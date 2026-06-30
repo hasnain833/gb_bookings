@@ -1,0 +1,95 @@
+export type ListingType = 'hotel' | 'car' | 'tour';
+
+export interface Listing {
+  id: string;
+  type: ListingType;
+  title: string;
+  location: string;
+  price: number;
+  rating: number;
+  reviewsCount: number;
+  image: string;
+  images: string[];
+  description: string;
+  featured: boolean;
+  // Specific fields
+  hotelSpecs?: {
+    roomsAvailable: number;
+    amenities: string[];
+    hotelType: string; // "Luxury Resort", "Boutique", etc.
+  };
+  carSpecs?: {
+    category: string; // "SUV", "Sedan", "4x4"
+    transmission: 'Automatic' | 'Manual';
+    seats: number;
+    fuelType: string;
+    withDriver: boolean;
+  };
+  tourSpecs?: {
+    durationDays: number;
+    maxGroupSize: number;
+    difficulty: 'Easy' | 'Moderate' | 'Challenging';
+    included: string[];
+    itinerary: { day: number; title: string; desc: string }[];
+  };
+}
+
+export interface Booking {
+  id: string;
+  listingId: string;
+  listingType: ListingType;
+  listingTitle: string;
+  listingImage: string;
+  listingLocation: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone?: string;
+  startDate: string;
+  endDate: string;
+  totalPrice: number;
+  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  paymentStatus: 'pending' | 'paid' | 'refunded';
+  paymentMethod: 'card' | 'jazzcash' | 'easypaisa';
+  createdAt: string;
+  // Additional details
+  guests?: number;
+  duration?: number; // nights or days
+  withDriver?: boolean;
+}
+
+export interface Review {
+  id: string;
+  listingId: string;
+  author: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+}
+
+export interface SupportTicket {
+  id: string;
+  subject: string;
+  category: 'booking' | 'payment' | 'vendor' | 'other';
+  message: string;
+  status: 'open' | 'resolved';
+  createdAt: string;
+  replies?: { id: string; sender: 'user' | 'support'; message: string; createdAt: string }[];
+}
+
+export interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'success' | 'warning';
+  read: boolean;
+  createdAt: string;
+}
+
+export interface WalletTransaction {
+  id: string;
+  type: 'deposit' | 'payment' | 'refund' | 'payout';
+  amount: number;
+  status: 'pending' | 'completed' | 'failed';
+  description: string;
+  createdAt: string;
+}
