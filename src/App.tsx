@@ -240,16 +240,6 @@ export default function App() {
             </span>
           </div>
           <p className="text-slate-500 font-medium">Premium Pakistan Travel Marketplace for Luxury Hotels, SUVs & Guided Mountain Tours.</p>
-          <div className="flex flex-wrap justify-between items-center text-[10px] font-bold uppercase tracking-widest border-t border-slate-100 pt-4 mt-4">
-            <div className="flex gap-6 text-[#64748B]">
-              <span>Version 1.0.4-PROD</span>
-              <span>Global Booking Network: Active</span>
-            </div>
-            <div className="flex items-center gap-2 text-[#64748B] mt-2 sm:mt-0">
-              <span className="w-1.5 h-1.5 bg-slate-300 rounded-full"></span>
-              Encrypted Transaction Mode
-            </div>
-          </div>
         </div>
       </footer>
 
