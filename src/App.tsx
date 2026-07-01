@@ -9,8 +9,10 @@ import VendorDashboard from './components/VendorDashboard';
 import AiPlanner from './components/AiPlanner';
 import SupportCentre from './components/SupportCentre';
 import { Listing, Booking } from './types';
+import { useLanguage } from './LanguageContext';
 
 export default function App() {
+  const { t, isRtl } = useLanguage();
   const [view, setView] = useState<string>('explore'); // 'explore' | 'search' | 'details' | 'checkout' | 'user-dashboard' | 'vendor-dashboard' | 'ai-planner' | 'support'
   const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
@@ -239,7 +241,9 @@ export default function App() {
               <span className="text-[#15803D]">GB</span>Bookings<span className="text-[#F97316]">.com</span>
             </span>
           </div>
-          <p className="text-slate-500 font-medium">Premium Pakistan Travel Marketplace for Luxury Hotels, SUVs & Guided Mountain Tours.</p>
+          <p className={`text-slate-500 font-medium ${isRtl ? 'font-urdu text-sm' : 'text-xs'}`}>
+            {t('footer.description')}
+          </p>
         </div>
       </footer>
 
