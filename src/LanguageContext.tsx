@@ -1,4 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Globe } from 'lucide-react';
+import { Listing, Review } from './types';
 
 type Language = 'en' | 'ur';
 
@@ -7,6 +10,7 @@ interface LanguageContextType {
   setLanguage: (lang: Language) => void;
   t: (key: string) => string;
   isRtl: boolean;
+  requestLanguageChange: (lang: Language) => void;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -402,15 +406,228 @@ const dictionary: Record<Language, Record<string, string>> = {
   }
 };
 
+const listingTranslations: Record<string, {
+  title: string;
+  location: string;
+  description: string;
+  hotelType?: string;
+  amenities?: Record<string, string>;
+  category?: string;
+  transmission?: string;
+  fuelType?: string;
+  difficulty?: string;
+  included?: Record<string, string>;
+  itinerary?: Record<number, { title: string; desc: string }>;
+}> = {
+  'h-1': {
+    title: 'لکژس ہنزہ ریزورٹ اینڈ سپا',
+    location: 'عطا آباد جھیل، وادی ہنزہ',
+    description: 'عطا آباد جھیل کے دلفریب نیلگوں پانیوں کے بالکل کنارے پر واقع، لکژس ہنزہ ایک شاندار پرتعیش تجربہ پیش کرتا ہے۔ اپنی نجی گرم بالکونی سے قراقرم کی چوٹیوں پر غروب آفتاب کا نظارہ کریں، ہمارے عالمی معیار کے انفینٹی پول میں آرام کریں، اور ہنزہ کے مقامی اجزاء سے تیار کردہ لذیذ ترین کھانوں سے لطف اندوز ہوں۔',
+    hotelType: 'پرتعیش ریزورٹ',
+    amenities: {
+      'Heated Balcony': 'گرم بالکونی',
+      'Infinity Pool': 'انفینٹی پول',
+      'Spa & Wellness Center': 'سپا اور فٹنس سینٹر',
+      'Lakeside Fine Dining': 'جھیل کنارے شاندار ڈائننگ',
+      'High-speed Wi-Fi': 'تیز ترین وائی فائی',
+      'Helipad Access': 'ہیلی پیڈ تک رسائی'
+    }
+  },
+  'h-2': {
+    title: 'شنگریلا ریزورٹ سکردو',
+    location: 'لوئر کچورا جھیل، سکردو',
+    description: 'اکثر زمین پر جنت کے نام سے پکارا جانے والا، شنگریلا ریزورٹ سکردو دنیا کی بلند ترین چوٹیوں کے درمیان، دل کی شکل کی خوبصورت کچورا جھیل کے گرد واقع ہے۔ یہ آرام دہ کاٹیجز، سرسبز پھلوں کے باغات اور گرینائٹ کی چٹانوں کے سائے تلے کشتی رانی کی سہولت فراہم کرتا ہے۔',
+    hotelType: 'فطرت ریزورٹ',
+    amenities: {
+      'Lakeside Cottages': 'جھیل کنارے کاٹیجز',
+      'Private Boating': 'نجی کشتی رانی',
+      'Orchard Walks': 'باغات کی سیر',
+      'Free Airport Shuttle': 'مفت ایئرپورٹ شٹل',
+      'Mini-Golf Course': 'منی گولف کورس',
+      'Traditional Restaurant': 'روایتی ریسٹورنٹ'
+    }
+  },
+  'h-3': {
+    title: 'سرینا ہوٹل اسلام آباد',
+    location: 'جی فائیو سیکٹر، اسلام آباد',
+    description: 'جدید ترین لگژری کے ساتھ روایتی اسلامی فن تعمیر کا ایک شاہکار، سرینا ہوٹل اسلام آباد مارگلہ پہاڑیوں کے نظارے کے ساتھ چھ ایکڑ کے سرسبز باغات میں کھڑا ہے۔ یہ اپنے اعلیٰ ترین سیکیورٹی معیار، اشرافیہ کے کانفرنس ہالز، اور لذیذ کھانوں کے لیے مشہور ہے۔',
+    hotelType: '5 اسٹار بزنس اور ہیریٹیج ہوٹل',
+    amenities: {
+      'Executive Lounges': 'ایگزیکٹو لاؤنجز',
+      'Maisha Spa & Gym': 'ملیشا سپا اور جم',
+      'Diplomatic Enclave Shuttle': 'ڈپلومیٹک انکلیو شٹل',
+      'Margalla View Rooftop': 'مارگلہ ویو روف ٹاپ',
+      'Outdoor Pool': 'آؤٹ ڈور پول',
+      '24/7 Butler Service': '24/7 بٹلر سروس'
+    }
+  },
+  'h-4': {
+    title: 'ملم جبہ اسکی ریزورٹ ہوٹل',
+    location: 'اسکی سلوپس، ملم جبہ، سوات',
+    description: 'پاکستان کے اولین اسکی تفریحی مقام کا پرتعیش انداز میں تجربہ کریں۔ ملم جبہ چیئرلفٹ تک براہ راست رسائی، مرکزی ہیٹنگ والے آرام دہ لکڑی کے کمرے، اور برف باری کے بعد گرمائش کے لیے فائر سائیڈ لاؤنج کی شاندار سہولت۔',
+    hotelType: 'الپائن اسکی ریزورٹ',
+    amenities: {
+      'Ski-in / Ski-out Access': 'چیئر لفٹ تک براہ راست رسائی',
+      'Chairlift Passes': 'چیئرلفٹ پاسز',
+      'Heated Rooms': 'گرم کمرے',
+      'Fireside Lounge': 'فائر سائیڈ لاؤنج',
+      'Ski Rental Shop': 'اسکی رینٹل شاپ',
+      'Indoor Activity Zone': 'انڈور سرگرمیوں کا زون'
+    }
+  },
+  'c-1': {
+    title: 'ٹویوٹا پراڈو TXL (4x4 SUV)',
+    location: 'گلگت اور سکردو ریجن',
+    description: 'شمالی پاکستان کے دشوار گزار راستوں پر سفر کرنے کے لیے بہترین انتخاب۔ یہ ٹویوٹا پراڈو بہترین گراؤنڈ کلیئرنس، فور ویل ڈرائیو اور پہاڑی راستوں کے ماہر مقامی ڈرائیورز کی سہولت کے ساتھ دستیاب ہے۔',
+    category: '4x4 پریمیم ایس یو وی',
+    transmission: 'آٹومیٹک',
+    fuelType: 'ڈیزل'
+  },
+  'c-2': {
+    title: 'کیا سپورٹیج AWD',
+    location: 'اسلام آباد اور پشاور',
+    description: 'ایک خوبصورت، ہموار اور آرام دہ ایس یو وی جو سوات، کلام اور ناران کی موٹر وے کے لیے بہترین ہے۔ اس میں پینورامک سن روف، جدید سسٹم اور بہترین ایندھن کی بچت شامل ہے۔',
+    category: 'کمپیکٹ ایس یو وی',
+    transmission: 'آٹومیٹک',
+    fuelType: 'پیٹرول'
+  },
+  'c-3': {
+    title: 'ٹویوٹا گرینڈ کیبن (HiAce)',
+    location: 'لاہور اور اسلام آباد',
+    description: 'بڑے خاندانوں یا کارپوریٹ ٹور گروپس کے لیے بہترین انتخاب۔ آرام دہ اور کشادہ نشستیں، طاقتور ڈبل اے سی، اور طویل راستوں کے ماہر پیشہ ور ڈرائیور کی خدمات۔',
+    category: 'پرتعیش کوچ',
+    transmission: 'مینول',
+    fuelType: 'ڈیزل'
+  },
+  't-1': {
+    title: 'وادی ہنزہ میں خزاں کا جادو',
+    location: 'گلگت، ہنزہ، عطا آباد، پاسو',
+    description: 'شمالی پاکستان کی وادیوں میں خزاں کے موسم میں پاپولر، خوبانی اور چیری کے درختوں کے سنہری اور نارنجی رنگوں کا دلفریب نظارہ کریں۔ یہ پریمیم ٹور آپ کو تاریخی قلعوں، شفاف جھیلوں اور شاندار پہاڑی نظاروں کی سیر کرواتا ہے۔',
+    difficulty: 'آسان',
+    included: {
+      '4-Star Lakeside Hotel Stay': '4 اسٹار جھیل کنارے ہوٹل کی رہائش',
+      'Daily Buffet Breakfast & Dinner': 'روزانہ بوفے ناشتہ اور رات کا کھانا',
+      'Private Prado SUV with Driver': 'ڈرائیور کے ساتھ ذاتی پراڈو جیپ',
+      'Historical Fort Entry Tickets': 'تاریخی قلعوں کے انٹری ٹکٹ',
+      'Lakeside Boating Trip': 'جھیل میں کشتی رانی کا سفر',
+      'Professional Tour Guide': 'پیشہ ور مقامی ٹور گائیڈ'
+    },
+    itinerary: {
+      1: { title: 'گلگت آمد اور ہنزہ کا سفر', desc: 'گلگت ایئرپورٹ پر آمد، اپنے گائیڈ سے ملاقات اور شاہراہ قراقرم پر ہنزہ کا سفر۔' },
+      2: { title: 'کریم آباد اور بلتت قلعہ کی سیر', desc: '700 سال پرانے تاریخی بلتت قلعہ کی سیر، کریم آباد بازار کا دورہ اور ایگلز نیسٹ سے غروب آفتاب کا نظارہ۔' },
+      3: { title: 'عطا آباد جھیل اور پاسو سسپنشن برج', desc: 'خوبصورت نیلگوں عطا آباد جھیل میں کشتی رانی، شاندار پاسو کونز کا نظارہ اور سنسنی خیز پاسو معلق پل پر واک۔' },
+      4: { title: 'خنجراب پاس (پاک چین سرحد)', desc: '4,693 میٹر کی بلندی پر دنیا کی بلند ترین پکی سرحد کا دورہ۔ خوبصورت ہمالیائی آئی بیکس اور برف باری کا لطف۔' },
+      5: { title: 'التت قلعہ اور شاہی باغات کا ٹور', desc: 'التت گاؤں اور اس کے 1100 سال پرانے قلعے کی سیر۔ آرگینک کیفے میں مقامی اخروٹ کے کیک کا لطف۔' },
+      6: { title: 'ہوپر گلیشیر اور وادی نگر کی سیر', desc: 'ہمسایہ وادی نگر کا سفر، خوبصورت ہوپر گلیشیر کا نظارہ اور مقامی نگر مہمان نوازی کا تجربہ۔' },
+      7: { title: 'گلگت سے واپسی', desc: 'یادگار یادوں کے ساتھ اسلام آباد واپسی کے لیے گلگت ایئرپورٹ کا سفر۔' }
+    }
+  },
+  't-2': {
+    title: 'دیوسائی پلیٹو اور سکردو مہم',
+    location: 'سکردو، دیوسائی، کولڈ ڈیزرٹ، شگر',
+    description: 'عظیم قراقرم کے پہاڑوں کے گیٹ وے سکردو کی سیر کریں۔ اس پریمیم ٹور میں دیوسائی نیشنل پارک (دنیا کا دوسرا بلند ترین سطح مرتفع)، کٹپانہ کے ٹھنڈے صحرا میں ستاروں کا نظارہ، اور تاریخی شگر قلعہ میں رہائش شامل ہے۔',
+    difficulty: 'درمیانہ',
+    included: {
+      'Luxury Heritage Resort Stays': 'پرتعیش ہیریٹیج ریزورٹ کی رہائش',
+      'Full Board Meal Plan (Breakfast, Lunch, Dinner)': 'روزانہ صبح، دوپہر اور رات کا کھانا',
+      'Dedicated 4x4 Prado Cruisers': 'مخصوص 4x4 پراڈو کروزرز',
+      'Deosai National Park Permits': 'دیوسائی نیشنل پارک کے اجازت نامے',
+      'Katpana Desert Glamping Evening': 'کٹپانہ صحرا میں گلیپنگ کی شام',
+      'Local Balti Culturist Guide': 'مقامی بلتی ثقافتی گائیڈ'
+    },
+    itinerary: {
+      1: { title: 'سکردو آمد اور کچورا جھیلیں', desc: 'سکردو آمد، کچورا اور شنگریلا جھیلوں کی سیر۔ مقامی ٹراؤٹ مچھلی کا ظہرانہ۔' },
+      2: { title: 'دیوسائی نیشنل پارک جنگلی حیات سفاری', desc: '4,114 میٹر پر واقع دیوسائی کے لامتناہی میدانوں کی سیر۔ شیوسر جھیل کا دورہ اور بھورے ریچھ کی تلاش۔' },
+      3: { title: 'تاریخی وادی شگر اور شاہی قلعہ', desc: 'وادی شگر کا سفر، 17ویں صدی کے بحال شدہ شگر قلعے کی سیر اور مقامی خوبانی کے باغات کی واک۔' },
+      4: { title: 'کٹپانہ ریت کے ٹیلے اور ستاروں کا نظارہ', desc: 'برف پوش پہاڑوں کے درمیان واقع سفید ریت کے ٹیلوں کا نظارہ۔ کہکشاں کے سائے تلے کیمپنگ اور باربی کیو۔' },
+      5: { title: 'منٹھوکا آبشار اور دریائے سندھ کا سنگم', desc: 'شاندار 180 فٹ بلند منٹھوکا آبشار کی سیر، اور دریائے سندھ اور شگر کے سنگم کا دورہ۔' },
+      6: { title: 'وفاقی دارالحکومت واپسی', desc: 'ننگا پربت کے حسین نظارے کے ساتھ واپسی کی پرواز کے لیے سکردو ایئرپورٹ کا سفر۔' }
+    }
+  }
+};
+
+const reviewTranslations: Record<string, { author: string; comment: string }> = {
+  'r-1': { author: 'ڈاکٹر سارہ خان', comment: 'بلاشبہ پاکستان کا سب سے خوبصورت نظارہ۔ کمرہ براہ راست خوبصورت جھیل کی طرف کھلتا ہے۔ بہترین لگژری اور شاندار مہمان نوازی!' },
+  'r-2': { author: 'کامران علوی', comment: 'کھانا بہت لذیذ ہے، درجہ حرارت گرنے کے باوجود گرم بالکونی نے ہمیں آرام دہ رکھا۔ قیمت کا پورا نعم البدل۔' },
+  'r-3': { author: 'زینب جمیل', comment: 'پراڈو بالکل نئی حالت میں تھی، اور ہمارے ڈرائیور طارق صاحب پاسو کے دشوار گزار راستوں پر گاڑی چلانے کے ماہر تھے۔' },
+  'r-4': { author: 'رچرڈ بینسن', comment: 'خزاں کے رنگ دنیا سے باہر ہیں! ہر چھوٹے سے چھوٹے پہلو کا انتظام جی بی بکنگز نے بہترین طریقے سے کیا۔ مقامی میزبان کی خدمات حاصل کرنے کا مشورہ دیتا ہوں۔' }
+};
+
+export function tListing(listing: Listing, isRtl: boolean): Listing {
+  if (!isRtl) return listing;
+  const trans = listingTranslations[listing.id];
+  if (!trans) return listing;
+
+  const translated: Listing = {
+    ...listing,
+    title: trans.title,
+    location: trans.location,
+    description: trans.description,
+  };
+
+  if (listing.hotelSpecs && trans.hotelType) {
+    translated.hotelSpecs = {
+      ...listing.hotelSpecs,
+      hotelType: trans.hotelType,
+      amenities: listing.hotelSpecs.amenities.map(a => trans.amenities?.[a] || a)
+    };
+  }
+
+  if (listing.carSpecs) {
+    translated.carSpecs = {
+      ...listing.carSpecs,
+      category: trans.category || listing.carSpecs.category,
+      fuelType: trans.fuelType || listing.carSpecs.fuelType,
+      transmission: (trans.transmission as any) || listing.carSpecs.transmission
+    };
+  }
+
+  if (listing.tourSpecs) {
+    translated.tourSpecs = {
+      ...listing.tourSpecs,
+      difficulty: (trans.difficulty as any) || listing.tourSpecs.difficulty,
+      included: listing.tourSpecs.included.map(inc => trans.included?.[inc] || inc),
+      itinerary: listing.tourSpecs.itinerary.map(item => {
+        const itemTrans = trans.itinerary?.[item.day];
+        return itemTrans ? { ...item, title: itemTrans.title, desc: itemTrans.desc } : item;
+      })
+    };
+  }
+
+  return translated;
+}
+
+export function tReview(review: Review, isRtl: boolean): Review {
+  if (!isRtl) return review;
+  const trans = reviewTranslations[review.id];
+  if (!trans) return review;
+  return {
+    ...review,
+    author: trans.author,
+    comment: trans.comment
+  };
+}
+
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [language, setLanguageState] = useState<Language>(() => {
     const saved = localStorage.getItem('app_lang');
     return (saved === 'ur' || saved === 'en') ? saved : 'en';
   });
+  const [showPermissionModal, setShowPermissionModal] = useState(false);
+  const [pendingLanguage, setPendingLanguage] = useState<'en' | 'ur' | null>(null);
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
     localStorage.setItem('app_lang', lang);
+  };
+
+  const requestLanguageChange = (lang: Language) => {
+    if (lang === 'ur' && language !== 'ur') {
+      setPendingLanguage('ur');
+      setShowPermissionModal(true);
+    } else {
+      setLanguage(lang);
+    }
   };
 
   const t = (key: string): string => {
@@ -433,10 +650,85 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [language, isRtl]);
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t, isRtl }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t, isRtl, requestLanguageChange }}>
       <div className={isRtl ? 'rtl-layout' : 'ltr-layout'}>
         {children}
       </div>
+
+      {/* Centered Urdu Language Permission Dialog */}
+      <AnimatePresence>
+        {showPermissionModal && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs" id="language-permission-modal">
+            {/* Backdrop */}
+            <div
+              onClick={() => setShowPermissionModal(false)}
+              className="absolute inset-0 cursor-default"
+            />
+            
+            {/* Modal Body */}
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 15 }}
+              transition={{ type: 'spring', duration: 0.4, bounce: 0.15 }}
+              className="relative w-full max-w-md bg-white rounded-3xl border border-slate-100 shadow-2xl p-6 sm:p-8 space-y-6 text-left overflow-hidden z-10"
+              dir="ltr"
+            >
+              {/* Pattern Header Accent */}
+              <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-emerald-500 via-teal-500 to-indigo-500" />
+              
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0">
+                  <Globe className="w-6 h-6 text-emerald-600 animate-pulse" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-lg font-bold text-slate-950 flex items-center gap-2">
+                    <span>Language Permission</span>
+                    <span className="text-slate-300">|</span>
+                    <span className="font-urdu font-medium text-emerald-700">اردو زبان</span>
+                  </h3>
+                  <p className="text-[10px] uppercase font-extrabold tracking-wider text-emerald-600">Urdu Language Request</p>
+                </div>
+              </div>
+
+              <div className="space-y-4 py-1 text-slate-600 text-xs sm:text-sm leading-relaxed">
+                <p className="font-medium text-slate-900 border-b border-slate-100 pb-3">
+                  Would you like to experience GBBookings.com in beautifully rendered, hand-crafted Urdu typography?
+                </p>
+                <p className="font-urdu font-medium text-slate-700 text-sm sm:text-base leading-relaxed bg-slate-50 p-4 rounded-2xl border border-slate-100 text-right" dir="rtl">
+                  کیا آپ ویب سائٹ کو شاندار اور پڑھنے میں انتہائی آسان اردو رسم الخط میں دیکھنا چاہتے ہیں؟
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <button
+                  id="btn-confirm-language-cancel"
+                  onClick={() => {
+                    setShowPermissionModal(false);
+                    setPendingLanguage(null);
+                  }}
+                  className="w-full py-3 px-4 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all text-xs font-bold uppercase tracking-wider cursor-pointer text-center"
+                >
+                  Cancel / منسوخ
+                </button>
+                <button
+                  id="btn-confirm-language-approve"
+                  onClick={() => {
+                    if (pendingLanguage) {
+                      setLanguage(pendingLanguage);
+                    }
+                    setShowPermissionModal(false);
+                    setPendingLanguage(null);
+                  }}
+                  className="w-full py-3 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white transition-all text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md shadow-emerald-700/10 hover:shadow-emerald-700/20 cursor-pointer flex justify-center text-center"
+                >
+                  Yes, Switch / تبدیل کریں
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </LanguageContext.Provider>
   );
 };

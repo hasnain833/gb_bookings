@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { ChevronDown, Globe, User, Bell, Bot, CalendarDays, Key, Compass as TourIcon, Sparkles, MessageCircle } from 'lucide-react';
 import { useLanguage } from '../LanguageContext';
 
@@ -19,9 +20,9 @@ export default function Navbar({
   userEmail,
   onOpenNotifications
 }: NavbarProps) {
-  const [showMoreMenu, setShowMoreMenu] = useState(false);
+   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const { language, setLanguage, t, isRtl } = useLanguage();
+  const { language, requestLanguageChange, t, isRtl } = useLanguage();
 
   const handleLinkClick = (id: string) => {
     if (id === 'hotels') {
@@ -158,7 +159,7 @@ export default function Navbar({
           {/* Language Toggle Button (Urdu / English) */}
           <button
             id="btn-language-toggle"
-            onClick={() => setLanguage(language === 'en' ? 'ur' : 'en')}
+            onClick={() => requestLanguageChange(language === 'en' ? 'ur' : 'en')}
             className="flex items-center gap-1.5 text-[14px] font-extrabold text-[#0B5D3E] hover:bg-emerald-50 py-1.5 px-3 rounded-xl transition-all border border-emerald-100 cursor-pointer whitespace-nowrap shrink-0 hover:scale-[1.03] active:scale-95"
             title={language === 'en' ? 'اردو زبان منتخب کریں' : 'Switch to English'}
           >
@@ -201,7 +202,7 @@ export default function Navbar({
       <div className="lg:hidden border-t border-[#E5E5E5] bg-slate-50 px-4 py-2.5 flex gap-2 items-center overflow-x-auto scrollbar-none" id="nav-mobile-scroll">
         {/* Mobile Language quick selector */}
         <button
-          onClick={() => setLanguage(language === 'en' ? 'ur' : 'en')}
+          onClick={() => requestLanguageChange(language === 'en' ? 'ur' : 'en')}
           className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider whitespace-nowrap bg-emerald-50 text-[#0B5D3E] border border-emerald-100"
         >
           <Globe className="w-3.5 h-3.5" />

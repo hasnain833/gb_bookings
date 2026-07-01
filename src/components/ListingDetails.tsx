@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Listing, Review, handleImageError } from '../types';
-import { useLanguage } from '../LanguageContext';
+import { useLanguage, tListing, tReview } from '../LanguageContext';
 import { 
   ArrowLeft, Star, MapPin, Calendar, Users, ShieldCheck, Heart, Share2, 
   Sparkles, Send, MessageSquare, AlertCircle, Check, Shield, Tag, Gift, 
@@ -28,8 +28,10 @@ interface ListingDetailsProps {
 
 export default function ListingDetails({ listingId, onBack, onProceedToCheckout }: ListingDetailsProps) {
   const { language, t, isRtl } = useLanguage();
-  const [listing, setListing] = useState<Listing | null>(null);
-  const [reviews, setReviews] = useState<Review[]>([]);
+  const [rawListing, setRawListing] = useState<Listing | null>(null);
+  const [rawReviews, setRawReviews] = useState<Review[]>([]);
+  const listing = rawListing ? tListing(rawListing, isRtl) : null;
+  const reviews = rawReviews.map(r => tReview(r, isRtl));
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState('');
 
@@ -77,8 +79,8 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
       const res = await fetch(`/api/listings/${listingId}`);
       if (res.ok) {
         const data = await res.json();
-        setListing(data);
-        setReviews(data.reviews || []);
+        setRawListing(data);
+        setRawReviews(data.reviews || []);
         if (data.images && data.images.length > 0) {
           setActiveImage(data.images[0]);
         } else {
@@ -305,7 +307,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
 
       if (res.ok) {
         const review = await res.json();
-        setReviews([review, ...reviews]);
+        setRawReviews([review, ...rawReviews]);
         // Reset
         setNewAuthor('');
         setNewComment('');

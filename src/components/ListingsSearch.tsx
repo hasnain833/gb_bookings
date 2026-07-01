@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Listing, ListingType, handleImageError } from '../types';
 import { Search, MapPin, Star, SlidersHorizontal, Key, Calendar, Map, Check, RefreshCw } from 'lucide-react';
-import { useLanguage } from '../LanguageContext';
+import { useLanguage, tListing } from '../LanguageContext';
 
 interface ListingsSearchProps {
   type: ListingType;
@@ -63,6 +63,8 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
 
     return true;
   });
+
+  const displayListings = filteredListings.map(l => tListing(l, isRtl));
 
   // Mock map coordinates generator for Pakistani listings
   const getCoordinates = (id: string) => {
@@ -269,7 +271,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
               Array(3).fill(0).map((_, i) => (
                 <div key={i} className="bg-white border border-slate-200 h-44 rounded-2xl animate-shimmer" />
               ))
-            ) : filteredListings.length === 0 ? (
+            ) : displayListings.length === 0 ? (
               // Empty State
               <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center space-y-4 shadow-xs" id="listings-empty-state">
                 <div className="w-12 h-12 bg-slate-50 border border-slate-200 rounded-full flex items-center justify-center mx-auto">
@@ -295,7 +297,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
               </div>
             ) : (
               // Real Cards
-              filteredListings.map((listing) => {
+              displayListings.map((listing) => {
                 const isHovered = hoveredListingId === listing.id;
                 return (
                   <div
@@ -395,7 +397,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
 
             {/* Pins layer */}
             <div className="absolute inset-0 z-10" id="map-pins-layer">
-              {filteredListings.map((listing) => {
+              {displayListings.map((listing) => {
                 const pos = getCoordinates(listing.id);
                 const isHovered = hoveredListingId === listing.id || selectedMapListing?.id === listing.id;
 

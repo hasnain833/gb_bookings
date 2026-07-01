@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { Listing, handleImageError } from '../types';
 import { INITIAL_LISTINGS, PAKISTAN_FAQ } from '../data';
-import { useLanguage } from '../LanguageContext';
+import { useLanguage, tListing } from '../LanguageContext';
 
 interface ExploreSectionProps {
   setView: (v: string) => void;
@@ -86,7 +86,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
     { name: 'Lahore', region: 'Punjab Heritage', image: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=600&q=80', tag: 'Mughal History' }
   ];
 
-  const featuredListings = INITIAL_LISTINGS.filter(l => l.featured);
+  const featuredListings = INITIAL_LISTINGS.filter(l => l.featured).map(l => tListing(l, isRtl));
 
   return (
     <div id="explore-section" className="space-y-12 pb-20">
@@ -730,20 +730,18 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
             
             // Translate FAQs on the fly
             const translatedQ = isRtl
-              ? faq.q.includes('best time') ? 'گلگت بلتستان کا سفر کرنے کا بہترین وقت کیا ہے؟'
-                : faq.q.includes('booking process') ? 'بکنگ کا طریقہ کار اور ادائیگیاں کیسے کام کرتی ہیں؟'
-                : faq.q.includes('road conditions') ? 'شاہراہوں اور سڑکوں کی تازہ ترین صورتحال کیا ہے؟'
-                : faq.q.includes('What is the refund') ? 'منسوخی اور ریفنڈ کی پالیسی کیا ہے؟'
-                : faq.q.includes('JazzCash') ? 'کیا آپ جیز کیش اور ایزی پیسہ قبول کرتے ہیں؟'
+              ? faq.q.includes('safe') ? 'کیا شمالی پاکستان کا سفر کرنا محفوظ ہے؟'
+                : faq.q.includes('best time') ? 'ہنزہ اور سکردو کا دورہ کرنے کا بہترین وقت کب ہے؟'
+                : faq.q.includes('payment methods') ? 'آپ ادائیگی کے کون سے طریقے قبول کرتے ہیں؟'
+                : faq.q.includes('drivers') ? 'کیا گاڑیوں کے کرائے میں ڈرائیور شامل ہیں؟'
                 : faq.q
               : faq.q;
 
             const translatedA = isRtl
-              ? faq.a.includes('May to October') ? 'سفر کے لیے بہترین وقت مئی سے اکتوبر کا ہے۔ اس دوران موسم انتہائی خوشگوار ہوتا ہے اور تمام اہم راستے کھلے رہتے ہیں۔ جبکہ خزاں کی دلکشی دیکھنے کے لیے اکتوبر کا مہینہ لاجواب ہے۔'
-                : faq.a.includes('Choose your stay') ? 'نہایت آسان ہے! اپنا پسندیدہ ہوٹل یا گاڑی منتخب کریں، تواریخ اور کسٹمر کی معلومات درج کریں، اور پریمیم گیٹ وے کے ذریعے فوری تصدیق پائیں۔'
-                : faq.a.includes('Karakoram Highway') ? 'شاہراہ قراقرم کی زیادہ تر سڑکیں بہترین حالت میں ہیں، لیکن کچھ مہم جوئی والے راستوں (جیسے دیوسائی) کے لیے پریمیم 4x4 گاڑی یا تجربہ کار ڈرائیور کی ضرورت ہوتی ہے۔'
-                : faq.a.includes('24 hours') ? 'ہاں! اگر آپ بکنگ سے 24 گھنٹے پہلے منسوخ کرتے ہیں تو آپ کو 100٪ رقم واپس کی جاتی ہے۔ منسوخی کا بٹن آپ کے ڈیش بورڈ پر موجود ہے۔'
-                : faq.a.includes('absolutely') ? 'جی ہاں بالکل! ہم جیز کیش، ایزی پیسہ، اور تمام بڑے کریڈٹ کارڈز کے ذریعے فوری اور محفوظ ادائیگیاں قبول کرتے ہیں۔'
+              ? faq.a.includes('safe') ? 'جی ہاں! ہنزہ اور سکردو جیسے شمالی علاقے انتہائی پرامن اور محفوظ ہیں، اور یہاں ہر سال ہزاروں ملکی و غیر ملکی سیاح آتے ہیں۔ مقامی لوگوں کی مہمان نوازی دنیا بھر میں مشہور ہے!'
+                : faq.a.includes('Spring') ? 'بہار (اپریل تا مئی) چیری کے پھولوں کے لیے، گرمیاں (جون تا اگست) خوشگوار موسم اور ہائیکنگ کے لیے، اور خزاں (اکتوبر تا نومبر) سنہرے پتیوں کے دلفریب نظاروں کے لیے بہترین ہیں۔ موسم سرما برفانی کھیلوں کے لیے لاجواب ہے۔'
+                : faq.a.includes('Visa') ? 'ہم ویزا اور ماسٹر کارڈ کے علاوہ پاکستان کے بڑے ڈیجیٹل والٹس یعنی جیز کیش اور ایزی پیسہ بھی قبول کرتے ہیں۔'
+                : faq.a.includes('mountain-terrain') ? 'پہاڑی سڑکوں پر حفاظت کے پیش نظر ہماری زیادہ تر پہاڑی جیپیں (جیسے ٹویوٹا پراڈو) ڈرائیور کے ساتھ دی جاتی ہیں۔ شہروں کے لیے گاڑیاں بغیر ڈرائیور کے بھی حاصل کی جا سکتی ہیں۔'
                 : faq.a
               : faq.a;
 
