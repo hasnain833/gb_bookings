@@ -5,8 +5,9 @@ import {
   ChevronDown, ChevronUp, Clock, ShieldCheck, Heart, Building2, Home, Car, HelpCircle,
   CheckCircle2, Flame, Users2, ThumbsUp, Headset
 } from 'lucide-react';
-import { Listing } from '../types';
+import { Listing, handleImageError } from '../types';
 import { INITIAL_LISTINGS, PAKISTAN_FAQ } from '../data';
+import { useLanguage } from '../LanguageContext';
 
 interface ExploreSectionProps {
   setView: (v: string) => void;
@@ -15,6 +16,7 @@ interface ExploreSectionProps {
 }
 
 export default function ExploreSection({ setView, setSearchFilters, onSelectListing }: ExploreSectionProps) {
+  const { language, t, isRtl } = useLanguage();
   // Supports tabs: 'hotel' | 'homestay' | 'car' | 'tour'
   const [activeTab, setActiveTab] = useState<'hotel' | 'homestay' | 'car' | 'tour'>('hotel');
   const [destination, setDestination] = useState('Gilgit Baltistan');
@@ -98,6 +100,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
             alt="Karakoram Mountains Gilgit Baltistan" 
             className="w-full h-full object-cover object-center"
             referrerPolicy="no-referrer"
+            onError={handleImageError}
           />
           <div className="absolute inset-0 bg-black/35" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/15" />
@@ -107,7 +110,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
         <div className="relative z-10">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/40 border border-white/20 text-white text-xs font-semibold backdrop-blur-md">
             <Compass className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Explore the Beauty of Gilgit Baltistan</span>
+            <span>{t('hero.badge')}</span>
           </div>
         </div>
 
@@ -117,11 +120,11 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
           {/* Left Hero Texts */}
           <div className="lg:col-span-7 space-y-4 text-left" id="hero-left-content">
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl xl:text-6xl font-bold text-white tracking-tight leading-tight">
-              Find Your Perfect Stay,<br />
-              Anywhere in <span className="text-[#22C55E]">Gilgit Baltistan</span>
+              {t('hero.title_part1')}<br />
+              {t('hero.title_part2')} <span className="text-[#22C55E]">{t('hero.title_highlight')}</span>
             </h1>
             <p className="text-white/90 text-sm sm:text-base font-medium max-w-xl leading-relaxed">
-              Hotels, Homestays, Cars & Tour Packages – Everything you need for an unforgettable journey.
+              {t('hero.subtitle')}
             </p>
 
             {/* Row of 4 Hero trust factors directly from image */}
@@ -130,28 +133,28 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                 <div className="w-8 h-8 rounded-full bg-[#10B981]/25 border border-[#10B981]/30 flex items-center justify-center shrink-0">
                   <ShieldCheck className="w-4 h-4 text-emerald-400" />
                 </div>
-                <span className="text-[11px] font-bold tracking-tight">Best Price Guarantee</span>
+                <span className="text-[11px] font-bold tracking-tight">{t('hero.trust.best_price')}</span>
               </div>
 
               <div className="flex items-center gap-2 text-white">
                 <div className="w-8 h-8 rounded-full bg-[#10B981]/25 border border-[#10B981]/30 flex items-center justify-center shrink-0">
                   <Calendar className="w-4 h-4 text-emerald-400" />
                 </div>
-                <span className="text-[11px] font-bold tracking-tight">Free Cancellation</span>
+                <span className="text-[11px] font-bold tracking-tight">{t('hero.trust.free_cancel')}</span>
               </div>
 
               <div className="flex items-center gap-2 text-white">
                 <div className="w-8 h-8 rounded-full bg-[#10B981]/25 border border-[#10B981]/30 flex items-center justify-center shrink-0">
                   <Headset className="w-4 h-4 text-emerald-400" />
                 </div>
-                <span className="text-[11px] font-bold tracking-tight">24/7 Support</span>
+                <span className="text-[11px] font-bold tracking-tight">{t('hero.trust.support')}</span>
               </div>
 
               <div className="flex items-center gap-2 text-white">
                 <div className="w-8 h-8 rounded-full bg-[#10B981]/25 border border-[#10B981]/30 flex items-center justify-center shrink-0">
                   <ThumbsUp className="w-4 h-4 text-emerald-400" />
                 </div>
-                <span className="text-[11px] font-bold tracking-tight">Trusted by Thousands</span>
+                <span className="text-[11px] font-bold tracking-tight">{t('hero.trust.trusted')}</span>
               </div>
             </div>
           </div>
@@ -164,18 +167,18 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
               <div className="flex flex-col justify-between z-10 py-1 space-y-4">
                 <div>
                   <span className="inline-block bg-gradient-to-r from-[#FF7D29] to-[#EA580C] text-white text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider mb-3">
-                    Limited Time Offer
+                    {t('hero.promo.tag')}
                   </span>
-                  <p className="text-white/80 text-[11px] font-bold tracking-widest uppercase">UP TO</p>
-                  <h3 className="text-4xl font-black text-white tracking-tighter leading-none mt-1">40% OFF</h3>
-                  <p className="text-white/80 text-xs font-semibold mt-2">On Selected Hotels</p>
+                  <p className="text-white/80 text-[11px] font-bold tracking-widest uppercase">{t('hero.promo.upto')}</p>
+                  <h3 className="text-4xl font-black text-white tracking-tighter leading-none mt-1">{t('hero.promo.discount')}</h3>
+                  <p className="text-white/80 text-xs font-semibold mt-2">{t('hero.promo.on_hotels')}</p>
                 </div>
                 
                 <button 
                   onClick={() => handleCategoryCardClick('hotel')}
                   className="text-left font-bold text-xs uppercase tracking-wider text-white hover:text-[#FF7D29] transition-colors flex items-center gap-1 group cursor-pointer"
                 >
-                  <span>Explore Deals</span>
+                  <span>{t('hero.promo.btn')}</span>
                   <span className="transition-transform group-hover:translate-x-1 font-mono">&gt;</span>
                 </button>
               </div>
@@ -187,6 +190,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                   alt="Promo alpine chalet" 
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
+                  onError={handleImageError}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#043E28]/50 to-transparent" />
               </div>
@@ -206,10 +210,10 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
           {/* Tabs header matching the image: Hotels, Homestays, Cars, Tours */}
           <div className="flex border-b border-[#F1F5F9] bg-[#FAFAFA] px-6 sm:px-8 gap-4 sm:gap-8 overflow-x-auto scrollbar-none" id="booking-tabs">
             {[
-              { id: 'hotel', label: 'Hotels', icon: Building2 },
-              { id: 'homestay', label: 'Homestays', icon: Home },
-              { id: 'car', label: 'Cars', icon: Car },
-              { id: 'tour', label: 'Tours', icon: Compass }
+              { id: 'hotel', label: t('search.hotel_tab'), icon: Building2 },
+              { id: 'homestay', label: t('search.homestay_tab'), icon: Home },
+              { id: 'car', label: t('search.car_tab'), icon: Car },
+              { id: 'tour', label: t('search.tour_tab'), icon: Compass }
             ].map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -237,7 +241,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
               
               {/* Field 1: Where are you going? */}
               <div className="bg-white p-4 md:col-span-3 flex flex-col justify-center space-y-1 rounded-xl md:rounded-none">
-                <label className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider">Where are you going?</label>
+                <label className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider">{isRtl ? 'کہاں جانا چاہتے ہیں؟' : 'Where are you going?'}</label>
                 <div className="flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-[#64748B] shrink-0" />
                   <select
@@ -246,19 +250,19 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                     onChange={(e) => setDestination(e.target.value)}
                     className="w-full bg-transparent border-none text-[13px] font-bold text-slate-800 focus:outline-none p-0 cursor-pointer"
                   >
-                    <option value="Gilgit Baltistan">Search destination (Gilgit Baltistan)</option>
-                    <option value="Hunza">Hunza Valley</option>
-                    <option value="Skardu">Skardu Region</option>
-                    <option value="Swat">Swat & Malam Jabba</option>
-                    <option value="Islamabad">Islamabad (Capital)</option>
-                    <option value="Lahore">Lahore (Heritage)</option>
+                    <option value="Gilgit Baltistan">{isRtl ? 'منزل تلاش کریں (گلگت بلتستان)' : 'Search destination (Gilgit Baltistan)'}</option>
+                    <option value="Hunza">{isRtl ? 'وادی ہنزہ' : 'Hunza Valley'}</option>
+                    <option value="Skardu">{isRtl ? 'سکردو کا علاقہ' : 'Skardu Region'}</option>
+                    <option value="Swat">{isRtl ? 'سوات اور مالم جبہ' : 'Swat & Malam Jabba'}</option>
+                    <option value="Islamabad">{isRtl ? 'اسلام آباد (دارالحکومت)' : 'Islamabad (Capital)'}</option>
+                    <option value="Lahore">{isRtl ? 'لاہور (تاریخی مقام)' : 'Lahore (Heritage)'}</option>
                   </select>
                 </div>
               </div>
 
               {/* Field 2: Check-in with Overlay Display */}
               <div className="bg-white p-4 md:col-span-2 flex flex-col justify-center space-y-1 rounded-xl md:rounded-none relative min-h-[64px]">
-                <label className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider">Check-in</label>
+                <label className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider">{isRtl ? 'چیک ان' : 'Check-in'}</label>
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-[#64748B] shrink-0" />
                   <span className="text-[13px] font-bold text-slate-800 select-none">
@@ -276,7 +280,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
 
               {/* Field 3: Check-out with Overlay Display */}
               <div className="bg-white p-4 md:col-span-2 flex flex-col justify-center space-y-1 rounded-xl md:rounded-none relative min-h-[64px]">
-                <label className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider">Check-out</label>
+                <label className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider">{isRtl ? 'چیک آؤٹ' : 'Check-out'}</label>
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-[#64748B] shrink-0" />
                   <span className="text-[13px] font-bold text-slate-800 select-none">
@@ -294,7 +298,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
 
               {/* Field 4: Guests & Rooms */}
               <div className="bg-white p-4 md:col-span-3 flex flex-col justify-center space-y-1 rounded-xl md:rounded-none relative">
-                <label className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider">Guests & Rooms</label>
+                <label className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider">{t('search.guests')}</label>
                 <div className="flex items-center gap-2">
                   <Users className="w-4 h-4 text-[#64748B] shrink-0" />
                   <select
@@ -302,10 +306,10 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                     onChange={(e) => setGuestCount(e.target.value)}
                     className="w-full bg-transparent border-none text-[13px] font-bold text-slate-800 focus:outline-none p-0 cursor-pointer appearance-none pr-6"
                   >
-                    <option value="2 Guests, 1 Room">2 Guests, 1 Room</option>
-                    <option value="1 Guest, 1 Room">1 Guest, 1 Room</option>
-                    <option value="4 Guests, 2 Rooms">4 Guests, 2 Rooms</option>
-                    <option value="6 Guests, 3 Rooms">6 Guests, 3 Rooms</option>
+                    <option value="2 Guests, 1 Room">{isRtl ? '2 مہمان، 1 کمرہ' : '2 Guests, 1 Room'}</option>
+                    <option value="1 Guest, 1 Room">{isRtl ? '1 مہمان، 1 کمرہ' : '1 Guest, 1 Room'}</option>
+                    <option value="4 Guests, 2 Rooms">{isRtl ? '4 مہمان، 2 کمرے' : '4 Guests, 2 Rooms'}</option>
+                    <option value="6 Guests, 3 Rooms">{isRtl ? '6 مہمان، 3 کمرے' : '6 Guests, 3 Rooms'}</option>
                   </select>
                   <ChevronDown className="w-3.5 h-3.5 text-slate-500 absolute right-4 pointer-events-none" />
                 </div>
@@ -319,7 +323,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                   className="w-full h-full bg-[#0B5D3E] hover:bg-[#07472E] text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] text-[14px] uppercase tracking-wider cursor-pointer py-3.5 md:py-0 min-h-[48px] md:min-h-0"
                 >
                   <Search className="w-4 h-4 stroke-[2.5] shrink-0" />
-                  <span className="whitespace-nowrap font-extrabold text-[13px]">Search Now</span>
+                  <span className="whitespace-nowrap font-extrabold text-[13px]">{t('search.btn')}</span>
                 </button>
               </div>
 
@@ -334,8 +338,8 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                     <Award className="w-5 h-5 shrink-0" />
                   </div>
                   <div>
-                    <p className="text-[12px] font-extrabold text-slate-800 leading-none">Best Price Guarantee</p>
-                    <p className="text-[10px] text-slate-400 mt-1 whitespace-nowrap">We ensure you get the best price</p>
+                    <p className="text-[12px] font-extrabold text-slate-800 leading-none">{t('hero.trust.best_price')}</p>
+                    <p className="text-[10px] text-slate-400 mt-1 whitespace-nowrap">{isRtl ? 'بہترین قیمت کی فراہمی' : 'We ensure you get the best price'}</p>
                   </div>
                 </div>
 
@@ -344,8 +348,8 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                     <Calendar className="w-5 h-5 shrink-0" />
                   </div>
                   <div>
-                    <p className="text-[12px] font-extrabold text-slate-800 leading-none">Free Cancellation</p>
-                    <p className="text-[10px] text-slate-400 mt-1 whitespace-nowrap">Cancel up to 24 hours</p>
+                    <p className="text-[12px] font-extrabold text-slate-800 leading-none">{t('hero.trust.free_cancel')}</p>
+                    <p className="text-[10px] text-slate-400 mt-1 whitespace-nowrap">{isRtl ? 'آسان منسوخی کی سہولت' : 'Cancel up to 24 hours'}</p>
                   </div>
                 </div>
 
@@ -354,8 +358,8 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                     <Sparkles className="w-5 h-5 shrink-0" />
                   </div>
                   <div>
-                    <p className="text-[12px] font-extrabold text-slate-800 leading-none">Instant Confirmation</p>
-                    <p className="text-[10px] text-slate-400 mt-1 whitespace-nowrap">Book & get confirmed</p>
+                    <p className="text-[12px] font-extrabold text-slate-800 leading-none">{isRtl ? 'فوری تصدیق' : 'Instant Confirmation'}</p>
+                    <p className="text-[10px] text-slate-400 mt-1 whitespace-nowrap">{isRtl ? 'بکنگ کریں اور تصدیق پائیں' : 'Book & get confirmed'}</p>
                   </div>
                 </div>
 
@@ -364,8 +368,8 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                     <Shield className="w-5 h-5 shrink-0" />
                   </div>
                   <div>
-                    <p className="text-[12px] font-extrabold text-slate-800 leading-none">Secure Payments</p>
-                    <p className="text-[10px] text-slate-400 mt-1 whitespace-nowrap">100% safe & secure</p>
+                    <p className="text-[12px] font-extrabold text-slate-800 leading-none">{isRtl ? 'محفوظ ادائیگیاں' : 'Secure Payments'}</p>
+                    <p className="text-[10px] text-slate-400 mt-1 whitespace-nowrap">{isRtl ? '100 فیصد محفوظ ادائیگی' : '100% safe & secure'}</p>
                   </div>
                 </div>
 
@@ -380,9 +384,9 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
       <section className="space-y-6 pt-4" id="section-categories">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight uppercase">
-            Browse By Category
+            {isRtl ? 'کیٹیگریز دیکھیں' : 'Browse By Category'}
           </h2>
-          <p className="text-sm text-slate-500">Pick a travel engine and set sail across the majestic lands of Gilgit Baltistan.</p>
+          <p className="text-sm text-slate-500">{isRtl ? 'اپنا پسندیدہ سفر انجن چنیں اور گلگت بلتستان کے خوبصورت مقامات کا رخ کریں۔' : 'Pick a travel engine and set sail across the majestic lands of Gilgit Baltistan.'}</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" id="category-cards-grid">
@@ -396,14 +400,14 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
             <div className="p-6">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[11px] font-bold text-indigo-600 tracking-wider uppercase bg-indigo-50 px-2.5 py-1 rounded-full">
-                  1200+ Properties
+                  {isRtl ? '120+ ہوٹل' : '120+ Stays'}
                 </span>
                 <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center">
                   <Building2 className="w-4 h-4 text-indigo-600" />
                 </div>
               </div>
-              <h3 className="text-lg font-bold text-slate-950">Hotels</h3>
-              <p className="text-xs text-slate-500 mt-1">Find the best hotel deals & luxury stays</p>
+              <h3 className="text-lg font-bold text-slate-950">{t('category.hotels.title')}</h3>
+              <p className="text-xs text-slate-500 mt-1">{t('category.hotels.desc')}</p>
             </div>
             
             <div className="px-6 pb-6 space-y-4">
@@ -413,6 +417,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                   alt="Luxury Hotels Gilgit" 
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   referrerPolicy="no-referrer"
+                  onError={handleImageError}
                 />
               </div>
               <div className="flex justify-start">
@@ -432,14 +437,14 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
             <div className="p-6">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[11px] font-bold text-emerald-600 tracking-wider uppercase bg-emerald-50 px-2.5 py-1 rounded-full">
-                  800+ Properties
+                  {isRtl ? '800+ جائیدادیں' : '800+ Properties'}
                 </span>
                 <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center">
                   <Home className="w-4 h-4 text-emerald-600" />
                 </div>
               </div>
-              <h3 className="text-lg font-bold text-slate-950">Homestays</h3>
-              <p className="text-xs text-slate-500 mt-1">Cozy stays with local hospitality</p>
+              <h3 className="text-lg font-bold text-slate-950">{t('category.homestays.title')}</h3>
+              <p className="text-xs text-slate-500 mt-1">{t('category.homestays.desc')}</p>
             </div>
             
             <div className="px-6 pb-6 space-y-4">
@@ -449,6 +454,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                   alt="Cozy Stays Skardu" 
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   referrerPolicy="no-referrer"
+                  onError={handleImageError}
                 />
               </div>
               <div className="flex justify-start">
@@ -468,14 +474,14 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
             <div className="p-6">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[11px] font-bold text-orange-600 tracking-wider uppercase bg-orange-50 px-2.5 py-1 rounded-full">
-                  500+ Vehicles
+                  {isRtl ? '500+ گاڑیاں' : '500+ Vehicles'}
                 </span>
                 <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center">
                   <Car className="w-4 h-4 text-orange-600" />
                 </div>
               </div>
-              <h3 className="text-lg font-bold text-slate-950">Cars</h3>
-              <p className="text-xs text-slate-500 mt-1">Wide range of cars for your journey</p>
+              <h3 className="text-lg font-bold text-slate-950">{t('category.cars.title')}</h3>
+              <p className="text-xs text-slate-500 mt-1">{t('category.cars.desc')}</p>
             </div>
             
             <div className="px-6 pb-6 space-y-4">
@@ -485,6 +491,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                   alt="Premium SUV Prado" 
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   referrerPolicy="no-referrer"
+                  onError={handleImageError}
                 />
               </div>
               <div className="flex justify-start">
@@ -504,14 +511,14 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
             <div className="p-6">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[11px] font-bold text-purple-600 tracking-wider uppercase bg-purple-50 px-2.5 py-1 rounded-full">
-                  50+ Packages
+                  {isRtl ? '50+ پیکیجز' : '50+ Packages'}
                 </span>
                 <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center">
                   <Compass className="w-4 h-4 text-purple-600" />
                 </div>
               </div>
-              <h3 className="text-lg font-bold text-slate-950">Tours & Packages</h3>
-              <p className="text-xs text-slate-500 mt-1">Curated experiences just for you</p>
+              <h3 className="text-lg font-bold text-slate-950">{t('category.tours.title')}</h3>
+              <p className="text-xs text-slate-500 mt-1">{t('category.tours.desc')}</p>
             </div>
             
             <div className="px-6 pb-6 space-y-4">
@@ -521,6 +528,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                   alt="Curated Mountain Expeditions" 
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   referrerPolicy="no-referrer"
+                  onError={handleImageError}
                 />
               </div>
               <div className="flex justify-start">
@@ -538,54 +546,93 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
       <section className="space-y-6 pt-4" id="section-destinations">
         <div className="flex items-end justify-between flex-wrap gap-4">
           <div>
-            <h3 className="text-xl font-bold tracking-tight text-slate-900 uppercase">Legendary Destinations</h3>
-            <p className="text-sm text-slate-500 mt-1">Handpicked landscapes offering world-class standard facilities.</p>
+            <h3 className="text-xl font-bold tracking-tight text-slate-900 uppercase">
+              {isRtl ? 'مشہور ترین منازل' : 'Legendary Destinations'}
+            </h3>
+            <p className="text-sm text-slate-500 mt-1">
+              {isRtl ? 'عالمی معیار کی سہولیات سے لیس بہترین تفریحی مقامات۔' : 'Handpicked landscapes offering world-class standard facilities.'}
+            </p>
           </div>
           <button 
             id="btn-all-destinations"
             onClick={() => { setDestination(''); setView('hotels'); }} 
             className="text-xs font-bold text-emerald-700 uppercase tracking-wider flex items-center gap-1 hover:text-emerald-800 transition-colors cursor-pointer"
           >
-            <span>Browse All Locations</span> <ArrowRight className="w-3.5 h-3.5" />
+            <span>{isRtl ? 'تمام مقامات دیکھیں' : 'Browse All Locations'}</span> <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4" id="destinations-grid">
-          {destinations.map((dest, i) => (
-            <div
-              key={dest.name}
-              id={`dest-card-${i}`}
-              onClick={() => {
-                setDestination(dest.name.split(' ')[0]);
-                setSearchFilters({ destination: dest.name.split(' ')[0], startDate: '', endDate: '', extra: {} });
-                setView(activeTab === 'car' ? 'browse-cars' : activeTab === 'tour' ? 'browse-tours' : 'browse-hotels');
-              }}
-              className="relative rounded-2xl overflow-hidden aspect-[3/4] cursor-pointer group shadow-sm border border-[#E2E8F0] bg-white"
-            >
-              <img 
-                src={dest.image} 
-                alt={dest.name} 
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                referrerPolicy="no-referrer"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
-              <div className="absolute top-3 right-3 bg-white/90 border border-slate-100 px-2.5 py-1 rounded-full text-[9px] font-bold text-slate-800 uppercase backdrop-blur-xs shadow-xs">
-                {dest.tag}
+          {destinations.map((dest, i) => {
+            // Translate destination names & regions
+            const translatedName = isRtl
+              ? dest.name.includes('Hunza') ? 'وادی ہنزہ'
+                : dest.name.includes('Skardu') ? 'سکردو'
+                : dest.name.includes('Swat') ? 'وادی سوات'
+                : dest.name.includes('Islamabad') ? 'اسلام آباد'
+                : dest.name.includes('Lahore') ? 'لاہور'
+                : dest.name
+              : dest.name;
+
+            const translatedRegion = isRtl
+              ? dest.region.includes('Gilgit') ? 'گلگت بلتستان'
+                : dest.region.includes('Karakoram') ? 'شاہراہ قراقرم'
+                : dest.region.includes('Khyber') ? 'خیبر پختونخوا'
+                : dest.region.includes('Margalla') ? 'مارگلہ کی پہاڑیاں'
+                : dest.region.includes('Punjab') ? 'پنجاب کا ورثہ'
+                : dest.region
+              : dest.region;
+
+            const translatedTag = isRtl
+              ? dest.tag.includes('Autumn') ? 'خزاں اور جھیلیں'
+                : dest.tag.includes('Cold') ? 'سرد صحرا اور کے ٹو'
+                : dest.tag.includes('Alpine') ? 'برفباری اور اسکیئنگ'
+                : dest.tag.includes('Modern') ? 'جدید دارالحکومت'
+                : dest.tag.includes('Mughal') ? 'مغلیہ تاریخ'
+                : dest.tag
+              : dest.tag;
+
+            return (
+              <div
+                key={dest.name}
+                id={`dest-card-${i}`}
+                onClick={() => {
+                  setDestination(dest.name.split(' ')[0]);
+                  setSearchFilters({ destination: dest.name.split(' ')[0], startDate: '', endDate: '', extra: {} });
+                  setView(activeTab === 'car' ? 'browse-cars' : activeTab === 'tour' ? 'browse-tours' : 'browse-hotels');
+                }}
+                className="relative rounded-2xl overflow-hidden aspect-[3/4] cursor-pointer group shadow-sm border border-[#E2E8F0] bg-white"
+              >
+                <img 
+                  src={dest.image} 
+                  alt={dest.name} 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  referrerPolicy="no-referrer"
+                  onError={handleImageError}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
+                <div className="absolute top-3 right-3 bg-white/90 border border-slate-100 px-2.5 py-1 rounded-full text-[9px] font-bold text-slate-800 uppercase backdrop-blur-xs shadow-xs">
+                  {translatedTag}
+                </div>
+                <div className="absolute bottom-4 left-4 right-4 text-left">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">{translatedRegion}</p>
+                  <h4 className="text-base font-bold text-white mt-0.5">{translatedName}</h4>
+                </div>
               </div>
-              <div className="absolute bottom-4 left-4 right-4">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">{dest.region}</p>
-                <h4 className="text-base font-bold text-white mt-0.5">{dest.name}</h4>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
       {/* 5. Curated Signature Luxury Exclusives */}
       <section className="space-y-6 pt-4" id="section-exclusives">
         <div>
-          <h3 className="text-xl font-bold tracking-tight text-slate-900 uppercase">The Signature Collection</h3>
-          <p className="text-sm text-slate-500 mt-1">Award-winning, highly coveted experiences and premium fleets in Gilgit Baltistan.</p>
+          <h3 className="text-xl font-bold tracking-tight text-slate-900 uppercase">
+            {isRtl ? 'ہمارا دستخطی مجموعہ' : 'The Signature Collection'}
+          </h3>
+          <p className="text-sm text-slate-500 mt-1">
+            {isRtl ? 'گلگت بلتستان میں بہترین پریمیم رہائش گاہیں، گاڑیاں اور یادگار تجربات۔' : 'Award-winning, highly coveted experiences and premium fleets in Gilgit Baltistan.'}
+          </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6" id="exclusives-grid">
@@ -602,9 +649,14 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                   alt={listing.title} 
                   className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300"
                   referrerPolicy="no-referrer"
+                  onError={handleImageError}
                 />
                 <div className="absolute top-3 left-3 bg-[#0B5D3E] text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm">
-                  {listing.type === 'hotel' ? '🏨 Hotel' : listing.type === 'car' ? '🚘 Premium SUV' : '🏔️ Expedition'}
+                  {listing.type === 'hotel' 
+                    ? (isRtl ? '🏨 ہوٹل' : '🏨 Hotel') 
+                    : listing.type === 'car' 
+                      ? (isRtl ? '🚘 پریمیم گاڑی' : '🚘 Premium SUV') 
+                      : (isRtl ? '🏔️ مہم جوئی' : '🏔️ Expedition')}
                 </div>
                 <div className="absolute bottom-3 right-3 bg-emerald-50 border border-emerald-100 text-[#0B5D3E] font-bold px-2 py-1 rounded-lg text-xs flex items-center shadow-sm">
                   <Star className="w-3 h-3 fill-[#0B5D3E] stroke-none mr-1" /> {listing.rating}
@@ -613,26 +665,46 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
 
               {/* Text Info */}
               <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                <div className="space-y-2">
+                <div className="space-y-2 text-left">
                   <p className="text-xs font-bold text-[#0B5D3E] uppercase tracking-wider flex items-center">
-                    <MapPin className="w-3.5 h-3.5 mr-1 text-[#0B5D3E]" /> {listing.location}
+                    <MapPin className="w-3.5 h-3.5 mr-1 text-[#0B5D3E]" /> 
+                    {isRtl 
+                      ? (listing.location.includes('Hunza') ? 'وادی ہنزہ' 
+                          : listing.location.includes('Skardu') ? 'سکردو کا علاقہ' 
+                          : listing.location.includes('Swat') ? 'وادی سوات' 
+                          : listing.location)
+                      : listing.location}
                   </p>
-                  <h4 className="text-base font-bold text-slate-900 group-hover:text-[#0B5D3E] transition-colors leading-snug">{listing.title}</h4>
+                  <h4 className="text-base font-bold text-slate-900 group-hover:text-[#0B5D3E] transition-colors leading-snug">
+                    {isRtl 
+                      ? (listing.title.includes('Resort') ? listing.title.replace('Resort', 'ریزارٹ')
+                          : listing.title.includes('Hotel') ? listing.title.replace('Hotel', 'ہوٹل')
+                          : listing.title)
+                      : listing.title}
+                  </h4>
                   <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">{listing.description}</p>
                 </div>
 
                 <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-                  <div>
-                    <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Prices starting from</span>
-                    <span className="text-base font-bold text-slate-900">PKR {listing.price.toLocaleString()}</span>
-                    <span className="text-[10px] text-slate-400">/{listing.type === 'hotel' ? 'night' : listing.type === 'car' ? 'day' : 'tour'}</span>
+                  <div className="text-left">
+                    <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">
+                      {isRtl ? 'ابتدائی قیمت' : 'Prices starting from'}
+                    </span>
+                    <span className="text-base font-bold text-slate-900">{isRtl ? 'روپے' : 'PKR'} {listing.price.toLocaleString()}</span>
+                    <span className="text-[10px] text-slate-400">
+                      /{listing.type === 'hotel' 
+                        ? (isRtl ? 'رات' : 'night') 
+                        : listing.type === 'car' 
+                          ? (isRtl ? 'دن' : 'day') 
+                          : (isRtl ? 'پیکیج' : 'tour')}
+                    </span>
                   </div>
                   <button
                     id={`btn-view-exclusive-${listing.id}`}
                     onClick={() => onSelectListing(listing)}
                     className="bg-[#0B5D3E] hover:bg-[#07472E] text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-transform active:scale-95 cursor-pointer flex items-center gap-1 shadow-sm"
                   >
-                    <span>View Spaces</span> <ArrowRight className="w-3 h-3" />
+                    <span>{isRtl ? 'تفصیلات دیکھیں' : 'View Spaces'}</span> <ArrowRight className="w-3 h-3" />
                   </button>
                 </div>
               </div>
@@ -644,13 +716,37 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
       {/* 6. Frequently Asked Questions (FAQ) Accordion */}
       <section className="max-w-3xl mx-auto space-y-6 pt-6" id="faq-section">
         <div className="text-center space-y-2">
-          <h3 className="text-xl font-bold tracking-tight text-slate-900 uppercase">Got Questions?</h3>
-          <p className="text-sm text-slate-500">Everything you need to know about premium bookings in Gilgit Baltistan.</p>
+          <h3 className="text-xl font-bold tracking-tight text-slate-900 uppercase">
+            {isRtl ? 'عام سوالات' : 'Got Questions?'}
+          </h3>
+          <p className="text-sm text-slate-500">
+            {isRtl ? 'گلگت بلتستان میں پریمیم بکنگ کے بارے میں تمام تفصیلات۔' : 'Everything you need to know about premium bookings in Gilgit Baltistan.'}
+          </p>
         </div>
 
         <div className="space-y-3" id="faq-list">
           {PAKISTAN_FAQ.map((faq, i) => {
             const isOpen = expandedFaq === i;
+            
+            // Translate FAQs on the fly
+            const translatedQ = isRtl
+              ? faq.q.includes('best time') ? 'گلگت بلتستان کا سفر کرنے کا بہترین وقت کیا ہے؟'
+                : faq.q.includes('booking process') ? 'بکنگ کا طریقہ کار اور ادائیگیاں کیسے کام کرتی ہیں؟'
+                : faq.q.includes('road conditions') ? 'شاہراہوں اور سڑکوں کی تازہ ترین صورتحال کیا ہے؟'
+                : faq.q.includes('What is the refund') ? 'منسوخی اور ریفنڈ کی پالیسی کیا ہے؟'
+                : faq.q.includes('JazzCash') ? 'کیا آپ جیز کیش اور ایزی پیسہ قبول کرتے ہیں؟'
+                : faq.q
+              : faq.q;
+
+            const translatedA = isRtl
+              ? faq.a.includes('May to October') ? 'سفر کے لیے بہترین وقت مئی سے اکتوبر کا ہے۔ اس دوران موسم انتہائی خوشگوار ہوتا ہے اور تمام اہم راستے کھلے رہتے ہیں۔ جبکہ خزاں کی دلکشی دیکھنے کے لیے اکتوبر کا مہینہ لاجواب ہے۔'
+                : faq.a.includes('Choose your stay') ? 'نہایت آسان ہے! اپنا پسندیدہ ہوٹل یا گاڑی منتخب کریں، تواریخ اور کسٹمر کی معلومات درج کریں، اور پریمیم گیٹ وے کے ذریعے فوری تصدیق پائیں۔'
+                : faq.a.includes('Karakoram Highway') ? 'شاہراہ قراقرم کی زیادہ تر سڑکیں بہترین حالت میں ہیں، لیکن کچھ مہم جوئی والے راستوں (جیسے دیوسائی) کے لیے پریمیم 4x4 گاڑی یا تجربہ کار ڈرائیور کی ضرورت ہوتی ہے۔'
+                : faq.a.includes('24 hours') ? 'ہاں! اگر آپ بکنگ سے 24 گھنٹے پہلے منسوخ کرتے ہیں تو آپ کو 100٪ رقم واپس کی جاتی ہے۔ منسوخی کا بٹن آپ کے ڈیش بورڈ پر موجود ہے۔'
+                : faq.a.includes('absolutely') ? 'جی ہاں بالکل! ہم جیز کیش، ایزی پیسہ، اور تمام بڑے کریڈٹ کارڈز کے ذریعے فوری اور محفوظ ادائیگیاں قبول کرتے ہیں۔'
+                : faq.a
+              : faq.a;
+
             return (
               <div 
                 key={i} 
@@ -662,7 +758,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                   className="w-full px-6 py-4 flex items-center justify-between text-left cursor-pointer hover:bg-slate-50 transition-colors"
                   id={`btn-faq-trigger-${i}`}
                 >
-                  <span className="font-bold text-slate-800 text-sm">{faq.q}</span>
+                  <span className="font-bold text-slate-800 text-sm">{translatedQ}</span>
                   {isOpen ? <ChevronUp className="w-4 h-4 text-[#0B5D3E]" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
                 </button>
                 
@@ -674,9 +770,9 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.2 }}
-                      className="px-6 pb-5 text-xs text-slate-500 leading-relaxed border-t border-slate-100 pt-3 bg-slate-50"
+                      className="px-6 pb-5 text-xs text-slate-500 leading-relaxed border-t border-slate-100 pt-3 bg-slate-50 text-left"
                     >
-                      {faq.a}
+                      {translatedA}
                     </motion.div>
                   )}
                 </AnimatePresence>

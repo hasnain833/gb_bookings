@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronDown, Globe, User, Bell, Bot, CalendarDays, Key, Compass as TourIcon, Sparkles, MessageCircle } from 'lucide-react';
+import { useLanguage } from '../LanguageContext';
 
 interface NavbarProps {
   currentView: string;
@@ -20,6 +21,7 @@ export default function Navbar({
 }: NavbarProps) {
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const { language, setLanguage, t, isRtl } = useLanguage();
 
   const handleLinkClick = (id: string) => {
     if (id === 'hotels') {
@@ -38,6 +40,15 @@ export default function Navbar({
       }, 100);
     }
   };
+
+  const navItems = [
+    { id: 'hotels', label: t('nav.hotels') },
+    { id: 'homestays', label: t('search.homestay_tab') },
+    { id: 'cars', label: t('nav.cars') },
+    { id: 'tours', label: t('nav.tours') },
+    { id: 'destinations', label: isRtl ? 'مقامات' : 'Destinations' },
+    { id: 'offers', label: isRtl ? 'آفرز' : 'Offers' }
+  ];
 
   return (
     <header id="app-navbar" className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-[#E5E5E5] shadow-xs">
@@ -74,23 +85,22 @@ export default function Navbar({
 
         {/* Center: Desktop Navigation Links (Direct match with image, no overlapping) */}
         <nav className="hidden lg:flex items-center justify-between gap-4 xl:gap-8 text-[14px] font-semibold text-[#1A1A1A] shrink-0 flex-nowrap" id="nav-desktop-links">
-          {['Hotels', 'Homestays', 'Cars', 'Tours', 'Destinations', 'Offers'].map((item) => {
-            const id = item.toLowerCase();
-            const isActive = currentView === id || 
-              (id === 'hotels' && (currentView === 'hotels' || currentView === 'browse-hotels')) ||
-              (id === 'cars' && (currentView === 'cars' || currentView === 'browse-cars')) ||
-              (id === 'tours' && (currentView === 'tours' || currentView === 'browse-tours'));
+          {navItems.map((item) => {
+            const isActive = currentView === item.id || 
+              (item.id === 'hotels' && (currentView === 'hotels' || currentView === 'browse-hotels')) ||
+              (item.id === 'cars' && (currentView === 'cars' || currentView === 'browse-cars')) ||
+              (item.id === 'tours' && (currentView === 'tours' || currentView === 'browse-tours'));
 
             return (
               <button
-                key={item}
-                id={`nav-link-${id}`}
-                onClick={() => handleLinkClick(id)}
+                key={item.id}
+                id={`nav-link-${item.id}`}
+                onClick={() => handleLinkClick(item.id)}
                 className={`transition-all duration-200 py-2 font-semibold hover:text-[#15803D] cursor-pointer relative whitespace-nowrap shrink-0 hover:scale-[1.03] active:scale-95 ${
-                  isActive ? 'text-[#15803D] font-bold' : 'text-slate-700'
+                  isActive ? 'text-[#15803D] font-bold border-b-2 border-[#15803D]' : 'text-slate-700'
                 }`}
               >
-                {item}
+                {item.label}
               </button>
             );
           })}
@@ -103,7 +113,7 @@ export default function Navbar({
               onBlur={() => setTimeout(() => setShowMoreMenu(false), 200)}
               className="flex items-center gap-1 font-semibold text-slate-700 hover:text-[#15803D] py-2 cursor-pointer whitespace-nowrap"
             >
-              <span>More</span>
+              <span>{isRtl ? 'مزید' : 'More'}</span>
               <ChevronDown className="w-4 h-4 text-slate-500 shrink-0" />
             </button>
 
@@ -114,28 +124,28 @@ export default function Navbar({
                   className="w-full text-left px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-indigo-600 flex items-center gap-2"
                 >
                   <Bot className="w-4 h-4 text-indigo-600" />
-                  <span>AI Companion Planner</span>
+                  <span>{t('nav.ai_planner')}</span>
                 </button>
                 <button
                   onClick={() => setView('dashboard-user')}
                   className="w-full text-left px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-[#15803D] flex items-center gap-2"
                 >
                   <User className="w-4 h-4 text-slate-500" />
-                  <span>My Bookings Panel</span>
+                  <span>{t('nav.user_dashboard')}</span>
                 </button>
                 <button
                   onClick={() => setView('dashboard-vendor')}
                   className="w-full text-left px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-[#15803D] flex items-center gap-2"
                 >
                   <Sparkles className="w-4 h-4 text-emerald-600" />
-                  <span>Vendor Console</span>
+                  <span>{t('nav.vendor_dashboard')}</span>
                 </button>
                 <button
                   onClick={() => setView('support')}
                   className="w-full text-left px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-[#15803D] flex items-center gap-2"
                 >
                   <MessageCircle className="w-4 h-4 text-slate-500" />
-                  <span>Customer Desk</span>
+                  <span>{t('nav.support')}</span>
                 </button>
               </div>
             )}
@@ -145,12 +155,16 @@ export default function Navbar({
         {/* Right Side: Language & Auth Actions (Direct match with image, perfect spacing, no overlap) */}
         <div className="flex items-center gap-3 md:gap-5 shrink-0 flex-nowrap" id="nav-actions">
           
-          {/* Language Selector (Globe EN Chevron) */}
-          <div className="hidden sm:flex items-center gap-1.5 text-[14px] font-semibold text-slate-700 cursor-pointer hover:text-[#15803D] py-1.5 px-2 rounded-lg hover:bg-slate-50 shrink-0 whitespace-nowrap">
-            <Globe className="w-4 h-4 text-slate-600 shrink-0" />
-            <span>EN</span>
-            <ChevronDown className="w-4 h-4 text-slate-500 shrink-0" />
-          </div>
+          {/* Language Toggle Button (Urdu / English) */}
+          <button
+            id="btn-language-toggle"
+            onClick={() => setLanguage(language === 'en' ? 'ur' : 'en')}
+            className="flex items-center gap-1.5 text-[14px] font-extrabold text-[#0B5D3E] hover:bg-emerald-50 py-1.5 px-3 rounded-xl transition-all border border-emerald-100 cursor-pointer whitespace-nowrap shrink-0 hover:scale-[1.03] active:scale-95"
+            title={language === 'en' ? 'اردو زبان منتخب کریں' : 'Switch to English'}
+          >
+            <Globe className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{language === 'en' ? 'اردو' : 'English'}</span>
+          </button>
 
           <div className="hidden sm:block h-6 w-px bg-slate-200 shrink-0"></div>
 
@@ -164,7 +178,7 @@ export default function Navbar({
               }}
               className="border border-[#CBD5E1] hover:border-[#1A1A1A] text-slate-800 font-bold text-[14px] px-5 py-2.5 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-95 cursor-pointer whitespace-nowrap shrink-0"
             >
-              Sign In
+              {isRtl ? 'لاگ ان' : 'Sign In'}
             </button>
 
             {/* Register Button */}
@@ -176,7 +190,7 @@ export default function Navbar({
               className="bg-[#0B5D3E] hover:bg-[#07472E] text-white font-bold text-[14px] px-5 py-2.5 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-95 cursor-pointer flex items-center gap-2 shadow-xs whitespace-nowrap shrink-0"
             >
               <User className="w-4 h-4 shrink-0 stroke-[2.5]" />
-              <span>Register</span>
+              <span>{isRtl ? 'رجسٹر کریں' : 'Register'}</span>
             </button>
           </div>
 
@@ -184,23 +198,39 @@ export default function Navbar({
       </div>
 
       {/* Mobile Scrollable links */}
-      <div className="lg:hidden border-t border-[#E5E5E5] bg-slate-50 px-4 py-2.5 flex gap-2 overflow-x-auto scrollbar-none" id="nav-mobile-scroll">
-        {['Hotels', 'Homestays', 'Cars', 'Tours', 'AI Planner', 'My Bookings', 'Vendor'].map((item) => {
-          const id = item.toLowerCase().replace(' ', '-');
-          const isCurrent = currentView === id || 
-            (id === 'hotels' && (currentView === 'hotels' || currentView === 'browse-hotels')) ||
-            (id === 'cars' && (currentView === 'cars' || currentView === 'browse-cars')) ||
-            (id === 'tours' && (currentView === 'tours' || currentView === 'browse-tours')) ||
-            (id === 'my-bookings' && currentView === 'dashboard-user') ||
-            (id === 'vendor' && currentView === 'dashboard-vendor');
+      <div className="lg:hidden border-t border-[#E5E5E5] bg-slate-50 px-4 py-2.5 flex gap-2 items-center overflow-x-auto scrollbar-none" id="nav-mobile-scroll">
+        {/* Mobile Language quick selector */}
+        <button
+          onClick={() => setLanguage(language === 'en' ? 'ur' : 'en')}
+          className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider whitespace-nowrap bg-emerald-50 text-[#0B5D3E] border border-emerald-100"
+        >
+          <Globe className="w-3.5 h-3.5" />
+          <span>{language === 'en' ? 'اردو' : 'EN'}</span>
+        </button>
+
+        {[
+          { id: 'hotels', label: t('nav.hotels') },
+          { id: 'homestays', label: t('search.homestay_tab') },
+          { id: 'cars', label: t('nav.cars') },
+          { id: 'tours', label: t('nav.tours') },
+          { id: 'ai-planner', label: t('nav.ai_planner') },
+          { id: 'my-bookings', label: t('nav.user_dashboard') },
+          { id: 'vendor', label: t('nav.vendor_dashboard') }
+        ].map((item) => {
+          const isCurrent = currentView === item.id || 
+            (item.id === 'hotels' && (currentView === 'hotels' || currentView === 'browse-hotels')) ||
+            (item.id === 'cars' && (currentView === 'cars' || currentView === 'browse-cars')) ||
+            (item.id === 'tours' && (currentView === 'tours' || currentView === 'browse-tours')) ||
+            (item.id === 'my-bookings' && currentView === 'dashboard-user') ||
+            (item.id === 'vendor' && currentView === 'dashboard-vendor');
 
           return (
             <button
-              key={item}
+              key={item.id}
               onClick={() => {
-                if (id === 'my-bookings') setView('dashboard-user');
-                else if (id === 'vendor') setView('dashboard-vendor');
-                else handleLinkClick(id);
+                if (item.id === 'my-bookings') setView('dashboard-user');
+                else if (item.id === 'vendor') setView('dashboard-vendor');
+                else handleLinkClick(item.id);
               }}
               className={`flex items-center gap-1 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all border ${
                 isCurrent
@@ -208,7 +238,7 @@ export default function Navbar({
                   : 'bg-white text-slate-600 border-slate-200 hover:text-[#0B5D3E]'
               }`}
             >
-              <span>{item}</span>
+              <span>{item.label}</span>
             </button>
           );
         })}

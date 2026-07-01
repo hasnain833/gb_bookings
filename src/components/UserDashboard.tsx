@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Booking, Notification, WalletTransaction, Listing } from '../types';
+import { Booking, Notification, WalletTransaction, Listing, handleImageError } from '../types';
+import { useLanguage } from '../LanguageContext';
 import { Calendar, Wallet, Award, Share2, Printer, AlertTriangle, MessageSquare, Bell, Check, Trash, Heart, Eye, MapPin } from 'lucide-react';
 
 interface UserDashboardProps {
@@ -10,6 +11,7 @@ interface UserDashboardProps {
 }
 
 export default function UserDashboard({ userEmail, setView, onSelectBooking, onSelectListing }: UserDashboardProps) {
+  const { language, t, isRtl } = useLanguage();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
@@ -210,7 +212,7 @@ export default function UserDashboard({ userEmail, setView, onSelectBooking, onS
                     className="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col md:flex-row shadow-xs"
                   >
                     {/* Thumbnail */}
-                    <img src={booking.listingImage} alt="" className="w-full md:w-44 h-32 md:h-auto object-cover shrink-0" referrerPolicy="no-referrer" />
+                    <img src={booking.listingImage} alt="" className="w-full md:w-44 h-32 md:h-auto object-cover shrink-0" referrerPolicy="no-referrer" onError={handleImageError} />
 
                     {/* Metadata Content */}
                     <div className="p-5 flex-1 flex flex-col md:flex-row justify-between gap-6">
@@ -302,6 +304,7 @@ export default function UserDashboard({ userEmail, setView, onSelectBooking, onS
                           alt={item.title} 
                           className="w-full h-full object-cover" 
                           referrerPolicy="no-referrer"
+                          onError={handleImageError}
                         />
                         <button
                           id={`btn-remove-wishlist-dash-${item.id}`}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CreditCard, Wallet, Calendar, ShieldCheck, CheckCircle, Ticket, Printer, ArrowRight, ArrowLeft, Info, HelpCircle } from 'lucide-react';
-import { Listing } from '../types';
+import { Listing, handleImageError } from '../types';
 
 interface CheckoutFlowProps {
   bookingParams: {
@@ -194,8 +194,8 @@ export default function CheckoutFlow({ bookingParams, listing, onSuccess, onCanc
 
           {/* Booking Summary Box */}
           <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex items-center justify-between shadow-xs">
-            <div className="flex items-center space-x-3">
-              <img src={listing.image} alt="" className="w-16 h-12 object-cover rounded-lg" referrerPolicy="no-referrer" />
+            <div className="flex items-center space-x-3 text-left">
+              <img src={listing.image} alt="" className="w-16 h-12 object-cover rounded-lg" referrerPolicy="no-referrer" onError={handleImageError} />
               <div>
                 <h4 className="text-xs font-bold text-slate-800">{listing.title}</h4>
                 <p className="text-[10px] text-slate-500 flex items-center mt-0.5"><Calendar className="w-3 h-3 mr-0.5 text-indigo-600" /> {bookingParams.startDate} to {bookingParams.endDate}</p>

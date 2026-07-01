@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Listing } from '../types';
+import { Listing, handleImageError } from '../types';
 import { DollarSign, Percent, BarChart3, Star, Sparkles, FolderPlus, ToggleLeft, ToggleRight, Trash, Send, Plus, Upload } from 'lucide-react';
 
 interface VendorDashboardProps {
@@ -222,9 +222,9 @@ export default function VendorDashboard({ setView }: VendorDashboardProps) {
                   <tbody className="divide-y divide-slate-200">
                     {listings.map((l) => (
                       <tr key={l.id} className="hover:bg-slate-50/50" id={`vend-listing-row-${l.id}`}>
-                        <td className="p-4 flex items-center space-x-3">
-                          <img src={l.image} alt="" className="w-10 h-8 object-cover rounded-lg shrink-0" referrerPolicy="no-referrer" />
-                          <span className="font-bold text-slate-800">{l.title}</span>
+                        <td className="p-4 flex items-center space-x-3 text-left">
+                          <img src={l.image} alt="" className="w-10 h-8 object-cover rounded-lg shrink-0" referrerPolicy="no-referrer" onError={handleImageError} />
+                          <span className="font-bold text-slate-800 text-left">{l.title}</span>
                         </td>
                         <td className="p-4 uppercase font-bold text-[10px] text-indigo-600">{l.type}</td>
                         <td className="p-4 text-slate-500 font-medium">{l.location.split(',')[0]}</td>

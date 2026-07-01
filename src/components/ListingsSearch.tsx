@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Listing, ListingType } from '../types';
+import { Listing, ListingType, handleImageError } from '../types';
 import { Search, MapPin, Star, SlidersHorizontal, Key, Calendar, Map, Check, RefreshCw } from 'lucide-react';
+import { useLanguage } from '../LanguageContext';
 
 interface ListingsSearchProps {
   type: ListingType;
@@ -9,6 +10,7 @@ interface ListingsSearchProps {
 }
 
 export default function ListingsSearch({ type, initialFilters, onSelectListing }: ListingsSearchProps) {
+  const { language, t, isRtl } = useLanguage();
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -82,19 +84,23 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
     <div id="listings-search-view" className="space-y-8 pb-10">
       {/* Search Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
+        <div className="text-left">
           <h2 className="text-xl font-bold tracking-tight text-[#0F172A] uppercase">
-            Explore {type === 'hotel' ? 'Resorts & Hotels' : type === 'car' ? 'Luxury Vehicles' : 'Tour Packages'}
+            {isRtl 
+              ? `${type === 'hotel' ? 'ریزورٹس اور ہوٹلز تلاش کریں' : type === 'car' ? 'لگژری گاڑیاں تلاش کریں' : 'سیاحتی پیکیجز تلاش کریں'}`
+              : `Explore ${type === 'hotel' ? 'Resorts & Hotels' : type === 'car' ? 'Luxury Vehicles' : 'Tour Packages'}`}
           </h2>
           <p className="text-sm text-slate-500">
-            Currently displaying handpicked elite listings matching your itinerary.
+            {isRtl ? 'آپ کے سفر کے پروگرام کے مطابق ہمارے ہینڈ پک کیے گئے خصوصی اشتہارات۔' : 'Currently displaying handpicked elite listings matching your itinerary.'}
           </p>
         </div>
 
         {/* Realtime API Sync Indicator */}
         <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-xs">
           <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse" />
-          <span className="text-xs font-mono font-bold text-slate-600 uppercase tracking-wide">API Connection Active</span>
+          <span className="text-xs font-mono font-bold text-slate-600 uppercase tracking-wide">
+            {isRtl ? 'کنکشن فعال ہے' : 'API Connection Active'}
+          </span>
           <button id="btn-sync-listings" onClick={fetchListings} className="text-slate-400 hover:text-slate-900 ml-2">
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
@@ -309,6 +315,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                         alt={listing.title} 
                         className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300"
                         referrerPolicy="no-referrer"
+                        onError={handleImageError}
                       />
                       <div className="absolute top-2 left-2 bg-white/95 border border-slate-100 text-slate-800 px-2.5 py-0.5 rounded-md text-[9px] font-bold shadow-xs uppercase tracking-wider">
                         PKR {listing.price >= 30000 ? '⭐ Elite' : '✔️ Standard'}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Listing, Review } from '../types';
+import { Listing, Review, handleImageError } from '../types';
+import { useLanguage } from '../LanguageContext';
 import { 
   ArrowLeft, Star, MapPin, Calendar, Users, ShieldCheck, Heart, Share2, 
   Sparkles, Send, MessageSquare, AlertCircle, Check, Shield, Tag, Gift, 
@@ -26,6 +27,7 @@ interface ListingDetailsProps {
 }
 
 export default function ListingDetails({ listingId, onBack, onProceedToCheckout }: ListingDetailsProps) {
+  const { language, t, isRtl } = useLanguage();
   const [listing, setListing] = useState<Listing | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
@@ -439,6 +441,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
                 alt={listing.title} 
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"
+                onError={handleImageError}
               />
             </div>
             {listing.images && listing.images.length > 1 && (
@@ -452,7 +455,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
                       activeImage === img ? 'border-indigo-600 scale-103 shadow-xs' : 'border-slate-200 hover:border-slate-300'
                     }`}
                   >
-                    <img src={img} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    <img src={img} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" onError={handleImageError} />
                   </button>
                 ))}
               </div>

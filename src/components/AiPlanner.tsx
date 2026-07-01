@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Bot, Sparkles, MapPin, DollarSign, Calendar, Users, Send, CheckCircle2, Map } from 'lucide-react';
 import { INITIAL_LISTINGS } from '../data';
-import { Listing } from '../types';
+import { Listing, handleImageError } from '../types';
+import { useLanguage } from '../LanguageContext';
 
 interface AiPlannerProps {
   setView: (v: string) => void;
@@ -9,6 +10,7 @@ interface AiPlannerProps {
 }
 
 export default function AiPlanner({ setView, onSelectListing }: AiPlannerProps) {
+  const { language, t, isRtl } = useLanguage();
   const [destination, setDestination] = useState('Hunza Valley');
   const [budgetTier, setBudgetTier] = useState('Elite Luxury');
   const [budgetAmount, setBudgetAmount] = useState('150000');
@@ -306,13 +308,17 @@ export default function AiPlanner({ setView, onSelectListing }: AiPlannerProps) 
 
           {/* Connected bookings recommendations loop */}
           {itinerary && recommendations.length > 0 && (
-            <div className="mt-6 space-y-3 animate-fadeIn" id="itinerary-listings-recommendations">
-              <h4 className="text-xs font-bold uppercase text-slate-500 tracking-wider">Book recommended spaces in {destination.split(' ')[0]}</h4>
+            <div className="mt-6 space-y-3 animate-fadeIn" id="itinerary-listings-recommendations text-left">
+              <h4 className="text-xs font-bold uppercase text-slate-500 tracking-wider text-left">
+                {isRtl 
+                  ? `${destination.split(' ')[0]} میں تجویز کردہ مقامات بک کریں`
+                  : `Book recommended spaces in ${destination.split(' ')[0]}`}
+              </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4" id="recommendations-row">
                 {recommendations.slice(0, 2).map((l) => (
                   <div key={l.id} className="bg-white border border-slate-200 p-3 rounded-lg flex items-center justify-between gap-4 shadow-xs" id={`recom-card-${l.id}`}>
-                    <div className="flex items-center space-x-3">
-                      <img src={l.image} alt="" className="w-14 h-11 object-cover rounded-lg shrink-0 border border-slate-100" referrerPolicy="no-referrer" />
+                    <div className="flex items-center space-x-3 text-left">
+                      <img src={l.image} alt="" className="w-14 h-11 object-cover rounded-lg shrink-0 border border-slate-100" referrerPolicy="no-referrer" onError={handleImageError} />
                       <div>
                         <h5 className="text-xs font-bold text-slate-800 line-clamp-1 leading-snug">{l.title}</h5>
                         <p className="text-[10px] text-indigo-600 font-bold mt-0.5">PKR {l.price.toLocaleString()}</p>
