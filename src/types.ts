@@ -1,4 +1,4 @@
-export type ListingType = 'hotel' | 'car' | 'tour';
+export type ListingType = 'hotel' | 'car' | 'tour' | 'homestay' | 'destination' | 'offer';
 
 export interface Listing {
   id: string;
@@ -17,6 +17,14 @@ export interface Listing {
     roomsAvailable: number;
     amenities: string[];
     hotelType: string; // "Luxury Resort", "Boutique", etc.
+  };
+  homestaySpecs?: {
+    roomsAvailable: number;
+    amenities: string[];
+    houseRules: string[];
+    hostName: string;
+    hostImage: string;
+    experienceType: 'Mountain View' | 'Family Friendly' | 'Lakeside Stays' | 'Local Culture' | 'Budget Friendly';
   };
   carSpecs?: {
     category: string; // "SUV", "Sedan", "4x4"

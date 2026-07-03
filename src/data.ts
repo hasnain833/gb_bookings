@@ -88,21 +88,138 @@ export const INITIAL_LISTINGS: Listing[] = [
     }
   },
   {
+    id: 'hs-1',
+    type: 'homestay',
+    title: 'Hunza Woodside Cottage',
+    location: 'Altit, Karimabad, Hunza Valley',
+    price: 12000,
+    rating: 4.8,
+    reviewsCount: 42,
+    image: 'https://images.unsplash.com/photo-1542718610-a1d656d1884c?auto=format&fit=crop&w=1200&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1542718610-a1d656d1884c?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1510312305653-8ed496efae75?auto=format&fit=crop&w=800&q=80'
+    ],
+    description: 'An authentic wooden cottage nestled in Altit village, offering unparalleled mountain views of Ultar Sar and Ladyfinger Peak. Enjoy traditional home-cooked apricot soup and salt tea with local host Karim and his family.',
+    featured: true,
+    homestaySpecs: {
+      roomsAvailable: 2,
+      amenities: ['Mountain View balcony', 'Local Host Kitchen', 'Fireside Stove', 'Complimentary Apricot Tea', 'High-speed Wi-Fi', 'Orchard Parking'],
+      houseRules: ['No smoking indoors', 'Respect local family culture', 'Quiet after 10 PM'],
+      hostName: 'Karim Balti',
+      hostImage: 'KB',
+      experienceType: 'Mountain View'
+    }
+  },
+  {
+    id: 'hs-2',
+    type: 'homestay',
+    title: 'Kachura Lakeside Lodge',
+    location: 'Upper Kachura Lake, Skardu',
+    price: 8500,
+    rating: 4.9,
+    reviewsCount: 29,
+    image: 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&w=1200&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1510312305653-8ed496efae75?auto=format&fit=crop&w=800&q=80'
+    ],
+    description: 'Relax in a traditional wood-and-stone cabin right beside the tranquil blue waters of Upper Kachura Lake. Perfect for fishing, boating, and enjoying local Balti hospitality under the towering Karakoram peaks.',
+    featured: true,
+    homestaySpecs: {
+      roomsAvailable: 3,
+      amenities: ['Lakeside Deck', 'Boating Access', 'Local Balti Dinners', 'Fireside Yard', 'Fresh Alpine Trout Meal Option', 'Free Fishing Rods'],
+      houseRules: ['Keep lakeside clean', 'No loud music near water', 'Check-in before sunset'],
+      hostName: 'Muhammad Ali',
+      hostImage: 'MA',
+      experienceType: 'Lakeside Stays'
+    }
+  },
+  {
+    id: 'hs-3',
+    type: 'homestay',
+    title: 'Shigar Heritage Homestay',
+    location: 'Shigar Valley, Skardu',
+    price: 14000,
+    rating: 4.7,
+    reviewsCount: 18,
+    image: 'https://images.unsplash.com/photo-1510312305653-8ed496efae75?auto=format&fit=crop&w=1200&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1510312305653-8ed496efae75?auto=format&fit=crop&w=1200&q=80'
+    ],
+    description: 'A beautifully restored 200-year-old traditional Balti stone house in Shigar Valley. Experience authentic culture, organic cherry orchard walks, and traditional balti bread baking classes.',
+    featured: true,
+    homestaySpecs: {
+      roomsAvailable: 2,
+      amenities: ['Organic Orchard Walks', 'Heritage Stone Architecture', 'Traditional Balti Cooking Classes', 'Complimentary Local Guide', 'Clay Fireplace'],
+      houseRules: ['Remove shoes inside', 'No alcohol', 'Respect historical furniture'],
+      hostName: 'Aisha Bibi',
+      hostImage: 'AB',
+      experienceType: 'Local Culture'
+    }
+  },
+  {
+    id: 'hs-4',
+    type: 'homestay',
+    title: 'Passu Peaks Cozy Cabin',
+    location: 'Passu, Gojal, Hunza Valley',
+    price: 10500,
+    rating: 4.9,
+    reviewsCount: 35,
+    image: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1200&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1200&q=80'
+    ],
+    description: 'Enjoy stunning, unobstructed views of the legendary Passu Cones from your cozy timber cabin balcony. Includes a traditional clay-oven fireplace and complimentary organic apricot jam breakfast.',
+    featured: true,
+    homestaySpecs: {
+      roomsAvailable: 4,
+      amenities: ['Passu Cones View Deck', 'Traditional Clay Oven', 'Complimentary Local Breakfast', 'Hiking Guide Service', 'Hot Geyser Water'],
+      houseRules: ['Respect water conservation', 'No pets', 'Quiet hours from 10:00 PM'],
+      hostName: 'Ghulam Rasool',
+      hostImage: 'GR',
+      experienceType: 'Mountain View'
+    }
+  },
+  {
+    id: 'hs-5',
+    type: 'homestay',
+    title: 'Gojal Valley Budget Homestead',
+    location: 'Gulmit, Gojal, Hunza Valley',
+    price: 5000,
+    rating: 4.6,
+    reviewsCount: 15,
+    image: 'https://images.unsplash.com/photo-1510312305653-8ed496efae75?auto=format&fit=crop&w=1200&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1510312305653-8ed496efae75?auto=format&fit=crop&w=1200&q=80'
+    ],
+    description: 'An affordable, cozy stone room hosted by a lovely local Wakhi family in historic Gulmit. Experience farming culture, watch traditional carpet weaving, and enjoy home-grown organic vegetables.',
+    featured: false,
+    homestaySpecs: {
+      roomsAvailable: 1,
+      amenities: ['Traditional Carpet Weaving Experience', 'Shared Wakhi Kitchen', 'Local Farming Tours', 'Budget Friendly Rooms', 'Free Herbal Teas'],
+      houseRules: ['Help clean up after dining', 'Respect Wakhi traditions', 'Check-out at 10:00 AM'],
+      hostName: 'Zehra Wakhi',
+      hostImage: 'ZW',
+      experienceType: 'Budget Friendly'
+    }
+  },
+  {
     id: 'c-1',
     type: 'car',
-    title: 'Toyota Prado TXL (4x4 SUV)',
-    location: 'Gilgit & Skardu Region',
-    price: 18000, // PKR per day
-    rating: 4.8,
-    reviewsCount: 89,
+    title: 'Toyota Land Cruiser',
+    location: 'Skardu, Gilgit Baltistan',
+    price: 32000,
+    rating: 4.9,
+    reviewsCount: 156,
     image: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=1200&q=80',
     images: [
       'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=1200&q=80'
     ],
-    description: 'The absolute gold standard for traveling across the rugged terrain of northern Pakistan. This Toyota Prado TXL comes fully prepared with high ground clearance, active 4-wheel drive, and optional professional local drivers who know the mountain passes like the back of their hand.',
+    description: 'The ultimate luxury rugged SUV, perfect for Skardu, Hunza and any rough terrain. Best Seller status with elite features.',
     featured: true,
     carSpecs: {
-      category: '4x4 Premium SUV',
+      category: 'SUV',
       transmission: 'Automatic',
       seats: 7,
       fuelType: 'Diesel',
@@ -112,19 +229,41 @@ export const INITIAL_LISTINGS: Listing[] = [
   {
     id: 'c-2',
     type: 'car',
-    title: 'Kia Sportage AWD',
-    location: 'Islamabad & Peshawar',
-    price: 12000,
-    rating: 4.7,
-    reviewsCount: 124,
+    title: 'Toyota Fortuner',
+    location: 'Skardu, Gilgit Baltistan',
+    price: 18000,
+    rating: 4.8,
+    reviewsCount: 198,
     image: 'https://images.unsplash.com/photo-1583121274602-3e2820c69888?auto=format&fit=crop&w=1200&q=80',
     images: [
       'https://images.unsplash.com/photo-1583121274602-3e2820c69888?auto=format&fit=crop&w=1200&q=80'
     ],
-    description: 'A luxurious, smooth, and compact SUV that is perfect for the motorway route up to Swat, Kalam, and Naran. Features a panoramic sunroof, modern infotainment, and excellent fuel efficiency. Available for self-drive or chauffeur-driven service.',
+    description: 'A powerful and popular companion for mountain drives, combining comfort and high terrain capability.',
     featured: true,
     carSpecs: {
-      category: 'Compact SUV',
+      category: 'SUV',
+      transmission: 'Automatic',
+      seats: 7,
+      fuelType: 'Diesel',
+      withDriver: true
+    }
+  },
+  {
+    id: 'c-3',
+    type: 'car',
+    title: 'Toyota Camry',
+    location: 'Skardu, Gilgit Baltistan',
+    price: 15000,
+    rating: 4.7,
+    reviewsCount: 112,
+    image: 'https://images.unsplash.com/photo-1617469767053-d3b508a0d182?auto=format&fit=crop&w=1200&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1617469767053-d3b508a0d182?auto=format&fit=crop&w=1200&q=80'
+    ],
+    description: 'A sleek, executive, and highly comfortable sedan. Ideal for inter-city travel and smooth paved highways.',
+    featured: false,
+    carSpecs: {
+      category: 'Sedan',
       transmission: 'Automatic',
       seats: 5,
       fuelType: 'Petrol',
@@ -132,25 +271,25 @@ export const INITIAL_LISTINGS: Listing[] = [
     }
   },
   {
-    id: 'c-3',
+    id: 'c-4',
     type: 'car',
-    title: 'Toyota Grand Cabin (HiAce)',
-    location: 'Lahore & Islamabad',
-    price: 22000,
-    rating: 4.9,
-    reviewsCount: 67,
-    image: 'https://images.unsplash.com/photo-1532581291347-9c39cf10a73c?auto=format&fit=crop&w=1200&q=80',
+    title: 'Suzuki Cultus',
+    location: 'Skardu, Gilgit Baltistan',
+    price: 35000, // PKR per day is listed as 3,500 in the image, but wait, the type says PKR 3,500 / day in image, let's write 3500!
+    rating: 4.6,
+    reviewsCount: 98,
+    image: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=1200&q=80',
     images: [
-      'https://images.unsplash.com/photo-1532581291347-9c39cf10a73c?auto=format&fit=crop&w=1200&q=80'
+      'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=1200&q=80'
     ],
-    description: 'Perfect for large families or corporate tour groups traveling to northern Pakistan. Offers extremely spacious reclining seats, powerful dual air-conditioning, custom high-top head space, and a professional captain driver with extensive route expertise.',
+    description: 'Highly economical and compact hatchback, perfect for city travel and budget-conscious travelers.',
     featured: false,
     carSpecs: {
-      category: 'Luxury Coach',
+      category: 'Hatchback',
       transmission: 'Manual',
-      seats: 14,
-      fuelType: 'Diesel',
-      withDriver: true
+      seats: 5,
+      fuelType: 'Petrol',
+      withDriver: false
     }
   },
   {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import ExploreSection from './components/ExploreSection';
 import ListingsSearch from './components/ListingsSearch';
@@ -22,8 +22,10 @@ export default function App() {
     destination: 'Hunza Valley',
     dates: '',
     guests: 2,
-    type: 'hotel' as 'hotel' | 'car' | 'tour'
+    type: 'hotel' as 'hotel' | 'car' | 'tour' | 'homestay' | 'destination' | 'offer'
   });
+
+  const [exploreTab, setExploreTab] = useState<'hotel' | 'homestay' | 'car' | 'tour'>('hotel');
 
   // Booking details passed to Checkout Flow
   const [bookingParams, setBookingParams] = useState<{
@@ -37,6 +39,16 @@ export default function App() {
   } | null>(null);
 
   const [userEmail, setUserEmail] = useState('ibtesaam0@gmail.com');
+
+  useEffect(() => {
+    const handleNavToType = (e: any) => {
+      const { type, destination } = e.detail;
+      setSearchParams(prev => ({ ...prev, type, destination }));
+      setView('search');
+    };
+    window.addEventListener('nav-to-type', handleNavToType);
+    return () => window.removeEventListener('nav-to-type', handleNavToType);
+  }, []);
 
   // Navigate to listing details helper
   const handleSelectListing = (listing: Listing) => {
@@ -69,19 +81,31 @@ export default function App() {
           view === 'user-dashboard' ? 'dashboard-user' :
           view === 'vendor-dashboard' ? 'dashboard-vendor' :
           view === 'search' && searchParams.type === 'hotel' ? 'hotels' :
+          view === 'search' && searchParams.type === 'homestay' ? 'homestays' :
           view === 'search' && searchParams.type === 'car' ? 'cars' :
           view === 'search' && searchParams.type === 'tour' ? 'tours' :
+          view === 'search' && searchParams.type === 'destination' ? 'destinations' :
+          view === 'search' && searchParams.type === 'offer' ? 'offers' :
           view
         } 
         setView={(v) => {
           if (v === 'hotels') {
             setSearchParams(prev => ({ ...prev, type: 'hotel', destination: '' }));
             setView('search');
+          } else if (v === 'homestays') {
+            setSearchParams(prev => ({ ...prev, type: 'homestay', destination: '' }));
+            setView('search');
           } else if (v === 'cars') {
             setSearchParams(prev => ({ ...prev, type: 'car', destination: '' }));
             setView('search');
           } else if (v === 'tours') {
             setSearchParams(prev => ({ ...prev, type: 'tour', destination: '' }));
+            setView('search');
+          } else if (v === 'destinations') {
+            setSearchParams(prev => ({ ...prev, type: 'destination', destination: '' }));
+            setView('search');
+          } else if (v === 'offers') {
+            setSearchParams(prev => ({ ...prev, type: 'offer', destination: '' }));
             setView('search');
           } else if (v === 'dashboard-user') {
             setView('user-dashboard');
@@ -110,6 +134,9 @@ export default function App() {
               if (newView === 'browse-hotels') {
                 setSearchParams(prev => ({ ...prev, type: 'hotel' }));
                 setView('search');
+              } else if (newView === 'browse-homestays') {
+                setSearchParams(prev => ({ ...prev, type: 'homestay' }));
+                setView('search');
               } else if (newView === 'browse-cars') {
                 setSearchParams(prev => ({ ...prev, type: 'car' }));
                 setView('search');
@@ -126,7 +153,7 @@ export default function App() {
                 destination: filters.destination,
                 dates: filters.startDate,
                 guests: Number(filters.extra?.guestCount || 2),
-                type: searchParams.type
+                type: filters.extra?.isHomestay ? 'homestay' : searchParams.type
               });
             }}
             onSelectListing={handleSelectListing}

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, MapPin, Calendar, Users, Star, ArrowRight, Compass, Shield, Award, Sparkles, 
   ChevronDown, ChevronUp, Clock, ShieldCheck, Heart, Building2, Home, Car, HelpCircle,
-  CheckCircle2, Flame, Users2, ThumbsUp, Headset
+  CheckCircle2, Flame, Users2, ThumbsUp, Headset, Mountain, Waves, Wallet
 } from 'lucide-react';
 import { Listing, handleImageError } from '../types';
 import { INITIAL_LISTINGS, PAKISTAN_FAQ } from '../data';
@@ -52,8 +52,10 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
     });
     
     // Route appropriately based on selected tab
-    if (activeTab === 'hotel' || activeTab === 'homestay') {
+    if (activeTab === 'hotel') {
       setView('browse-hotels');
+    } else if (activeTab === 'homestay') {
+      setView('browse-homestays');
     } else if (activeTab === 'car') {
       setView('browse-cars');
     } else {
@@ -69,8 +71,10 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
       endDate: '',
       extra: { isHomestay: type === 'homestay' }
     });
-    if (type === 'hotel' || type === 'homestay') {
+    if (type === 'hotel') {
       setView('browse-hotels');
+    } else if (type === 'homestay') {
+      setView('browse-homestays');
     } else if (type === 'car') {
       setView('browse-cars');
     } else {
@@ -133,28 +137,28 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                 <div className="w-8 h-8 rounded-full bg-[#10B981]/25 border border-[#10B981]/30 flex items-center justify-center shrink-0">
                   <ShieldCheck className="w-4 h-4 text-emerald-400" />
                 </div>
-                <span className="text-[11px] font-bold tracking-tight">{t('hero.trust.best_price')}</span>
+                <span className="text-[11px] font-bold tracking-tight">Verified Homestays</span>
               </div>
 
               <div className="flex items-center gap-2 text-white">
                 <div className="w-8 h-8 rounded-full bg-[#10B981]/25 border border-[#10B981]/30 flex items-center justify-center shrink-0">
-                  <Calendar className="w-4 h-4 text-emerald-400" />
+                  <Users className="w-4 h-4 text-emerald-400" />
                 </div>
-                <span className="text-[11px] font-bold tracking-tight">{t('hero.trust.free_cancel')}</span>
+                <span className="text-[11px] font-bold tracking-tight">Local Hosts</span>
+              </div>
+
+              <div className="flex items-center gap-2 text-white">
+                <div className="w-8 h-8 rounded-full bg-[#10B981]/25 border border-[#10B981]/30 flex items-center justify-center shrink-0">
+                  <Award className="w-4 h-4 text-emerald-400" />
+                </div>
+                <span className="text-[11px] font-bold tracking-tight">Best Price Guarantee</span>
               </div>
 
               <div className="flex items-center gap-2 text-white">
                 <div className="w-8 h-8 rounded-full bg-[#10B981]/25 border border-[#10B981]/30 flex items-center justify-center shrink-0">
                   <Headset className="w-4 h-4 text-emerald-400" />
                 </div>
-                <span className="text-[11px] font-bold tracking-tight">{t('hero.trust.support')}</span>
-              </div>
-
-              <div className="flex items-center gap-2 text-white">
-                <div className="w-8 h-8 rounded-full bg-[#10B981]/25 border border-[#10B981]/30 flex items-center justify-center shrink-0">
-                  <ThumbsUp className="w-4 h-4 text-emerald-400" />
-                </div>
-                <span className="text-[11px] font-bold tracking-tight">{t('hero.trust.trusted')}</span>
+                <span className="text-[11px] font-bold tracking-tight">24/7 Support</span>
               </div>
             </div>
           </div>
@@ -323,65 +327,47 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                   className="w-full h-full bg-[#0B5D3E] hover:bg-[#07472E] text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] text-[14px] uppercase tracking-wider cursor-pointer py-3.5 md:py-0 min-h-[48px] md:min-h-0"
                 >
                   <Search className="w-4 h-4 stroke-[2.5] shrink-0" />
-                  <span className="whitespace-nowrap font-extrabold text-[13px]">{t('search.btn')}</span>
+                  <span className="whitespace-nowrap font-extrabold text-[13px]">
+                    {activeTab === 'homestay' ? 'Search Homestays' : t('search.btn')}
+                  </span>
                 </button>
               </div>
 
             </div>
 
-            {/* Row of the 4 trust assurances (completely spaced at the bottom, matching first image) */}
-            <div className="pt-4" id="booking-reassurance-container">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 w-full py-2" id="booking-reassurance">
-                
-                <div className="flex items-center gap-3 text-slate-600">
-                  <div className="w-9 h-9 rounded-full bg-[#0B5D3E]/10 flex items-center justify-center text-[#0B5D3E] shrink-0">
-                    <Award className="w-5 h-5 shrink-0" />
-                  </div>
-                  <div>
-                    <p className="text-[12px] font-extrabold text-slate-800 leading-none">{t('hero.trust.best_price')}</p>
-                    <p className="text-[10px] text-slate-400 mt-1 whitespace-nowrap">{isRtl ? 'بہترین قیمت کی فراہمی' : 'We ensure you get the best price'}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 text-slate-600">
-                  <div className="w-9 h-9 rounded-full bg-[#0B5D3E]/10 flex items-center justify-center text-[#0B5D3E] shrink-0">
-                    <Calendar className="w-5 h-5 shrink-0" />
-                  </div>
-                  <div>
-                    <p className="text-[12px] font-extrabold text-slate-800 leading-none">{t('hero.trust.free_cancel')}</p>
-                    <p className="text-[10px] text-slate-400 mt-1 whitespace-nowrap">{isRtl ? 'آسان منسوخی کی سہولت' : 'Cancel up to 24 hours'}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 text-slate-600">
-                  <div className="w-9 h-9 rounded-full bg-[#0B5D3E]/10 flex items-center justify-center text-[#0B5D3E] shrink-0">
-                    <Sparkles className="w-5 h-5 shrink-0" />
-                  </div>
-                  <div>
-                    <p className="text-[12px] font-extrabold text-slate-800 leading-none">{isRtl ? 'فوری تصدیق' : 'Instant Confirmation'}</p>
-                    <p className="text-[10px] text-slate-400 mt-1 whitespace-nowrap">{isRtl ? 'بکنگ کریں اور تصدیق پائیں' : 'Book & get confirmed'}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 text-slate-600">
-                  <div className="w-9 h-9 rounded-full bg-[#0B5D3E]/10 flex items-center justify-center text-[#0B5D3E] shrink-0">
-                    <Shield className="w-5 h-5 shrink-0" />
-                  </div>
-                  <div>
-                    <p className="text-[12px] font-extrabold text-slate-800 leading-none">{isRtl ? 'محفوظ ادائیگیاں' : 'Secure Payments'}</p>
-                    <p className="text-[10px] text-slate-400 mt-1 whitespace-nowrap">{isRtl ? '100 فیصد محفوظ ادائیگی' : '100% safe & secure'}</p>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-
           </form>
         </div>
+
+        {/* 5-Column Trust Assurance Bar directly matching the reference image */}
+        <div className="mt-6 bg-[#F8FAFC] border border-slate-200/60 rounded-2xl p-4 sm:p-5" id="homestay-trust-bar">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6 justify-between items-center text-left">
+            {[
+              { title: 'Best Price Guarantee', desc: 'We ensure you get the best price', icon: ShieldCheck },
+              { title: 'Free Cancellation', desc: 'Cancel up to 24 hours', icon: Calendar },
+              { title: 'Instant Confirmation', desc: 'Book & get confirmed', icon: Sparkles },
+              { title: 'Secure Payments', desc: '100% safe & secure', icon: Shield },
+              { title: '24/7 Support', desc: "We're here to help", icon: Headset }
+            ].map((badge, idx) => {
+              const Icon = badge.icon;
+              return (
+                <div key={idx} className="flex items-center gap-3 text-slate-700">
+                  <div className="w-9 h-9 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-[#0B5D3E] shrink-0">
+                    <Icon className="w-5 h-5 shrink-0" />
+                  </div>
+                  <div>
+                    <h5 className="font-extrabold text-[12px] text-slate-800 leading-tight">{badge.title}</h5>
+                    <p className="text-[10px] text-slate-400 mt-1 whitespace-nowrap">{badge.desc}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
       </section>
 
-      {/* 3. Category Bento Grid at the bottom - Direct Match with the image */}
-      <section className="space-y-6 pt-4" id="section-categories">
+      {/* 3. Original Category Bento Grid at the bottom */}
+      <section className="space-y-6 pt-4 animate-fadeIn" id="section-categories">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight uppercase">
             {isRtl ? 'کیٹیگریز دیکھیں' : 'Browse By Category'}
@@ -394,7 +380,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
           {/* Card 1: Hotels */}
           <div 
             onClick={() => handleCategoryCardClick('hotel')}
-            className="bg-white rounded-3xl overflow-hidden border border-[#E2E8F0] shadow-sm hover:shadow-xl hover:border-slate-300 transition-all cursor-pointer group flex flex-col justify-between"
+            className="bg-white rounded-none overflow-hidden border border-[#E2E8F0] shadow-sm hover:shadow-xl hover:border-slate-300 transition-all cursor-pointer group flex flex-col justify-between"
             id="category-hotels"
           >
             <div className="p-6">
@@ -411,7 +397,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
             </div>
             
             <div className="px-6 pb-6 space-y-4">
-              <div className="h-32 rounded-2xl overflow-hidden relative border border-slate-100">
+              <div className="h-32 rounded-none overflow-hidden relative border border-slate-100">
                 <img 
                   src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=400&q=80" 
                   alt="Luxury Hotels Gilgit" 
@@ -428,119 +414,119 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
             </div>
           </div>
 
-          {/* Card 2: Homestays */}
-          <div 
-            onClick={() => handleCategoryCardClick('homestay')}
-            className="bg-white rounded-3xl overflow-hidden border border-[#E2E8F0] shadow-sm hover:shadow-xl hover:border-slate-300 transition-all cursor-pointer group flex flex-col justify-between"
-            id="category-homestays"
-          >
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-bold text-emerald-600 tracking-wider uppercase bg-emerald-50 px-2.5 py-1 rounded-full">
-                  {isRtl ? '800+ جائیدادیں' : '800+ Properties'}
-                </span>
-                <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center">
-                  <Home className="w-4 h-4 text-emerald-600" />
+            {/* Card 2: Homestays */}
+            <div 
+              onClick={() => handleCategoryCardClick('homestay')}
+              className="bg-white rounded-none overflow-hidden border border-[#E2E8F0] shadow-sm hover:shadow-xl hover:border-slate-300 transition-all cursor-pointer group flex flex-col justify-between"
+              id="category-homestays"
+            >
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-bold text-emerald-600 tracking-wider uppercase bg-emerald-50 px-2.5 py-1 rounded-full">
+                    {isRtl ? '800+ جائیدادیں' : '800+ Properties'}
+                  </span>
+                  <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center">
+                    <Home className="w-4 h-4 text-emerald-600" />
+                  </div>
+                </div>
+                <h3 className="text-lg font-bold text-slate-950">{t('category.homestays.title')}</h3>
+                <p className="text-xs text-slate-500 mt-1">{t('category.homestays.desc')}</p>
+              </div>
+              
+              <div className="px-6 pb-6 space-y-4">
+                <div className="h-32 rounded-none overflow-hidden relative border border-slate-100">
+                  <img 
+                    src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=400&q=80" 
+                    alt="Cozy Stays Skardu" 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    referrerPolicy="no-referrer"
+                    onError={handleImageError}
+                  />
+                </div>
+                <div className="flex justify-start">
+                  <div className="w-9 h-9 rounded-full bg-[#16A34A] text-white flex items-center justify-center transition-transform group-hover:translate-x-1 duration-200">
+                    <ArrowRight className="w-4 h-4" />
+                  </div>
                 </div>
               </div>
-              <h3 className="text-lg font-bold text-slate-950">{t('category.homestays.title')}</h3>
-              <p className="text-xs text-slate-500 mt-1">{t('category.homestays.desc')}</p>
             </div>
-            
-            <div className="px-6 pb-6 space-y-4">
-              <div className="h-32 rounded-2xl overflow-hidden relative border border-slate-100">
-                <img 
-                  src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=400&q=80" 
-                  alt="Cozy Stays Skardu" 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  referrerPolicy="no-referrer"
-                  onError={handleImageError}
-                />
-              </div>
-              <div className="flex justify-start">
-                <div className="w-9 h-9 rounded-full bg-[#16A34A] text-white flex items-center justify-center transition-transform group-hover:translate-x-1 duration-200">
-                  <ArrowRight className="w-4 h-4" />
-                </div>
-              </div>
-            </div>
-          </div>
 
-          {/* Card 3: Cars */}
-          <div 
-            onClick={() => handleCategoryCardClick('car')}
-            className="bg-white rounded-3xl overflow-hidden border border-[#E2E8F0] shadow-sm hover:shadow-xl hover:border-slate-300 transition-all cursor-pointer group flex flex-col justify-between"
-            id="category-cars"
-          >
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-bold text-orange-600 tracking-wider uppercase bg-orange-50 px-2.5 py-1 rounded-full">
-                  {isRtl ? '500+ گاڑیاں' : '500+ Vehicles'}
-                </span>
-                <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center">
-                  <Car className="w-4 h-4 text-orange-600" />
+            {/* Card 3: Cars */}
+            <div 
+              onClick={() => handleCategoryCardClick('car')}
+              className="bg-white rounded-none overflow-hidden border border-[#E2E8F0] shadow-sm hover:shadow-xl hover:border-slate-300 transition-all cursor-pointer group flex flex-col justify-between"
+              id="category-cars"
+            >
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-bold text-orange-600 tracking-wider uppercase bg-orange-50 px-2.5 py-1 rounded-full">
+                    {isRtl ? '500+ گاڑیاں' : '500+ Vehicles'}
+                  </span>
+                  <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center">
+                    <Car className="w-4 h-4 text-orange-600" />
+                  </div>
+                </div>
+                <h3 className="text-lg font-bold text-slate-950">{t('category.cars.title')}</h3>
+                <p className="text-xs text-slate-500 mt-1">{t('category.cars.desc')}</p>
+              </div>
+              
+              <div className="px-6 pb-6 space-y-4">
+                <div className="h-32 rounded-none overflow-hidden relative border border-slate-100 bg-slate-50">
+                  <img 
+                    src="https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=400&q=80" 
+                    alt="Premium SUV Prado" 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    referrerPolicy="no-referrer"
+                    onError={handleImageError}
+                  />
+                </div>
+                <div className="flex justify-start">
+                  <div className="w-9 h-9 rounded-full bg-[#EA580C] text-white flex items-center justify-center transition-transform group-hover:translate-x-1 duration-200">
+                    <ArrowRight className="w-4 h-4" />
+                  </div>
                 </div>
               </div>
-              <h3 className="text-lg font-bold text-slate-950">{t('category.cars.title')}</h3>
-              <p className="text-xs text-slate-500 mt-1">{t('category.cars.desc')}</p>
             </div>
-            
-            <div className="px-6 pb-6 space-y-4">
-              <div className="h-32 rounded-2xl overflow-hidden relative border border-slate-100 bg-slate-50">
-                <img 
-                  src="https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=400&q=80" 
-                  alt="Premium SUV Prado" 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  referrerPolicy="no-referrer"
-                  onError={handleImageError}
-                />
-              </div>
-              <div className="flex justify-start">
-                <div className="w-9 h-9 rounded-full bg-[#EA580C] text-white flex items-center justify-center transition-transform group-hover:translate-x-1 duration-200">
-                  <ArrowRight className="w-4 h-4" />
-                </div>
-              </div>
-            </div>
-          </div>
 
-          {/* Card 4: Tours & Packages */}
-          <div 
-            onClick={() => handleCategoryCardClick('tour')}
-            className="bg-white rounded-3xl overflow-hidden border border-[#E2E8F0] shadow-sm hover:shadow-xl hover:border-slate-300 transition-all cursor-pointer group flex flex-col justify-between"
-            id="category-tours"
-          >
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-bold text-purple-600 tracking-wider uppercase bg-purple-50 px-2.5 py-1 rounded-full">
-                  {isRtl ? '50+ پیکیجز' : '50+ Packages'}
-                </span>
-                <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center">
-                  <Compass className="w-4 h-4 text-purple-600" />
+            {/* Card 4: Tours & Packages */}
+            <div 
+              onClick={() => handleCategoryCardClick('tour')}
+              className="bg-white rounded-none overflow-hidden border border-[#E2E8F0] shadow-sm hover:shadow-xl hover:border-slate-300 transition-all cursor-pointer group flex flex-col justify-between"
+              id="category-tours"
+            >
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-bold text-purple-600 tracking-wider uppercase bg-purple-50 px-2.5 py-1 rounded-full">
+                    {isRtl ? '50+ پیکیجز' : '50+ Packages'}
+                  </span>
+                  <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center">
+                    <Compass className="w-4 h-4 text-purple-600" />
+                  </div>
+                </div>
+                <h3 className="text-lg font-bold text-slate-950">{t('category.tours.title')}</h3>
+                <p className="text-xs text-slate-500 mt-1">{t('category.tours.desc')}</p>
+              </div>
+              
+              <div className="px-6 pb-6 space-y-4">
+                <div className="h-32 rounded-none overflow-hidden relative border border-slate-100">
+                  <img 
+                    src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80" 
+                    alt="Curated Mountain Expeditions" 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    referrerPolicy="no-referrer"
+                    onError={handleImageError}
+                  />
+                </div>
+                <div className="flex justify-start">
+                  <div className="w-9 h-9 rounded-full bg-[#6366F1] text-white flex items-center justify-center transition-transform group-hover:translate-x-1 duration-200">
+                    <ArrowRight className="w-4 h-4" />
+                  </div>
                 </div>
               </div>
-              <h3 className="text-lg font-bold text-slate-950">{t('category.tours.title')}</h3>
-              <p className="text-xs text-slate-500 mt-1">{t('category.tours.desc')}</p>
             </div>
-            
-            <div className="px-6 pb-6 space-y-4">
-              <div className="h-32 rounded-2xl overflow-hidden relative border border-slate-100">
-                <img 
-                  src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80" 
-                  alt="Curated Mountain Expeditions" 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  referrerPolicy="no-referrer"
-                  onError={handleImageError}
-                />
-              </div>
-              <div className="flex justify-start">
-                <div className="w-9 h-9 rounded-full bg-[#6366F1] text-white flex items-center justify-center transition-transform group-hover:translate-x-1 duration-200">
-                  <ArrowRight className="w-4 h-4" />
-                </div>
-              </div>
-            </div>
-          </div>
 
-        </div>
-      </section>
+          </div>
+        </section>
 
       {/* 4. Editorial Locations Grid */}
       <section className="space-y-6 pt-4" id="section-destinations">
@@ -601,7 +587,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                   setSearchFilters({ destination: dest.name.split(' ')[0], startDate: '', endDate: '', extra: {} });
                   setView(activeTab === 'car' ? 'browse-cars' : activeTab === 'tour' ? 'browse-tours' : 'browse-hotels');
                 }}
-                className="relative rounded-2xl overflow-hidden aspect-[3/4] cursor-pointer group shadow-sm border border-[#E2E8F0] bg-white"
+                className="relative rounded-none overflow-hidden aspect-[3/4] cursor-pointer group shadow-sm border border-[#E2E8F0] bg-white"
               >
                 <img 
                   src={dest.image} 
@@ -640,7 +626,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
             <div
               key={listing.id}
               id={`exclusive-card-${listing.id}`}
-              className="bg-white rounded-2xl overflow-hidden border border-slate-200 flex flex-col h-full group hover:border-emerald-300 transition-all shadow-md"
+              className="bg-white rounded-none overflow-hidden border border-slate-200 flex flex-col h-full group hover:border-emerald-300 transition-all shadow-md"
             >
               {/* Photo Area */}
               <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
@@ -713,72 +699,6 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
         </div>
       </section>
 
-      {/* 6. Frequently Asked Questions (FAQ) Accordion */}
-      <section className="max-w-3xl mx-auto space-y-6 pt-6" id="faq-section">
-        <div className="text-center space-y-2">
-          <h3 className="text-xl font-bold tracking-tight text-slate-900 uppercase">
-            {isRtl ? 'عام سوالات' : 'Got Questions?'}
-          </h3>
-          <p className="text-sm text-slate-500">
-            {isRtl ? 'گلگت بلتستان میں پریمیم بکنگ کے بارے میں تمام تفصیلات۔' : 'Everything you need to know about premium bookings in Gilgit Baltistan.'}
-          </p>
-        </div>
-
-        <div className="space-y-3" id="faq-list">
-          {PAKISTAN_FAQ.map((faq, i) => {
-            const isOpen = expandedFaq === i;
-            
-            // Translate FAQs on the fly
-            const translatedQ = isRtl
-              ? faq.q.includes('safe') ? 'کیا شمالی پاکستان کا سفر کرنا محفوظ ہے؟'
-                : faq.q.includes('best time') ? 'ہنزہ اور سکردو کا دورہ کرنے کا بہترین وقت کب ہے؟'
-                : faq.q.includes('payment methods') ? 'آپ ادائیگی کے کون سے طریقے قبول کرتے ہیں؟'
-                : faq.q.includes('drivers') ? 'کیا گاڑیوں کے کرائے میں ڈرائیور شامل ہیں؟'
-                : faq.q
-              : faq.q;
-
-            const translatedA = isRtl
-              ? faq.a.includes('safe') ? 'جی ہاں! ہنزہ اور سکردو جیسے شمالی علاقے انتہائی پرامن اور محفوظ ہیں، اور یہاں ہر سال ہزاروں ملکی و غیر ملکی سیاح آتے ہیں۔ مقامی لوگوں کی مہمان نوازی دنیا بھر میں مشہور ہے!'
-                : faq.a.includes('Spring') ? 'بہار (اپریل تا مئی) چیری کے پھولوں کے لیے، گرمیاں (جون تا اگست) خوشگوار موسم اور ہائیکنگ کے لیے، اور خزاں (اکتوبر تا نومبر) سنہرے پتیوں کے دلفریب نظاروں کے لیے بہترین ہیں۔ موسم سرما برفانی کھیلوں کے لیے لاجواب ہے۔'
-                : faq.a.includes('Visa') ? 'ہم ویزا اور ماسٹر کارڈ کے علاوہ پاکستان کے بڑے ڈیجیٹل والٹس یعنی جیز کیش اور ایزی پیسہ بھی قبول کرتے ہیں۔'
-                : faq.a.includes('mountain-terrain') ? 'پہاڑی سڑکوں پر حفاظت کے پیش نظر ہماری زیادہ تر پہاڑی جیپیں (جیسے ٹویوٹا پراڈو) ڈرائیور کے ساتھ دی جاتی ہیں۔ شہروں کے لیے گاڑیاں بغیر ڈرائیور کے بھی حاصل کی جا سکتی ہیں۔'
-                : faq.a
-              : faq.a;
-
-            return (
-              <div 
-                key={i} 
-                id={`faq-item-${i}`}
-                className="bg-white border border-slate-200 rounded-xl overflow-hidden transition-all duration-300 shadow-sm"
-              >
-                <button
-                  onClick={() => setExpandedFaq(isOpen ? null : i)}
-                  className="w-full px-6 py-4 flex items-center justify-between text-left cursor-pointer hover:bg-slate-50 transition-colors"
-                  id={`btn-faq-trigger-${i}`}
-                >
-                  <span className="font-bold text-slate-800 text-sm">{translatedQ}</span>
-                  {isOpen ? <ChevronUp className="w-4 h-4 text-[#0B5D3E]" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-                </button>
-                
-                <AnimatePresence>
-                  {isOpen && (
-                    <motion.div
-                      id={`faq-answer-${i}`}
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="px-6 pb-5 text-xs text-slate-500 leading-relaxed border-t border-slate-100 pt-3 bg-slate-50 text-left"
-                    >
-                      {translatedA}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            );
-          })}
-        </div>
-      </section>
 
     </div>
   );

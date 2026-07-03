@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronDown, Globe, User, Bell, Bot, CalendarDays, Key, Compass as TourIcon, Sparkles, MessageCircle } from 'lucide-react';
+import { ChevronDown, Globe, User, Bell, Bot, CalendarDays, Key, Compass as TourIcon, Sparkles, MessageCircle, Building2, Home, Car, MapPin, Flame } from 'lucide-react';
 import { useLanguage } from '../LanguageContext';
 
 interface NavbarProps {
@@ -28,27 +28,25 @@ export default function Navbar({
     if (id === 'hotels') {
       setView('hotels');
     } else if (id === 'homestays') {
-      setView('hotels'); // homestays are handled under hotel search
+      setView('homestays');
     } else if (id === 'cars') {
       setView('cars');
     } else if (id === 'tours') {
       setView('tours');
-    } else if (id === 'destinations' || id === 'offers') {
-      setView('explore');
-      setTimeout(() => {
-        const element = document.getElementById(id === 'destinations' ? 'section-destinations' : 'hero-banner');
-        element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 100);
+    } else if (id === 'destinations') {
+      setView('destinations');
+    } else if (id === 'offers') {
+      setView('offers');
     }
   };
 
   const navItems = [
-    { id: 'hotels', label: t('nav.hotels') },
-    { id: 'homestays', label: t('search.homestay_tab') },
-    { id: 'cars', label: t('nav.cars') },
-    { id: 'tours', label: t('nav.tours') },
-    { id: 'destinations', label: isRtl ? 'مقامات' : 'Destinations' },
-    { id: 'offers', label: isRtl ? 'آفرز' : 'Offers' }
+    { id: 'hotels', label: t('nav.hotels'), icon: Building2 },
+    { id: 'homestays', label: t('search.homestay_tab'), icon: Home },
+    { id: 'cars', label: t('nav.cars'), icon: Car },
+    { id: 'tours', label: t('nav.tours'), icon: TourIcon },
+    { id: 'destinations', label: isRtl ? 'مقامات' : 'Destinations', icon: MapPin },
+    { id: 'offers', label: isRtl ? 'آفرز' : 'Offers', icon: Flame }
   ];
 
   return (
@@ -97,11 +95,12 @@ export default function Navbar({
                 key={item.id}
                 id={`nav-link-${item.id}`}
                 onClick={() => handleLinkClick(item.id)}
-                className={`transition-all duration-200 py-2 font-semibold hover:text-[#15803D] cursor-pointer relative whitespace-nowrap shrink-0 hover:scale-[1.03] active:scale-95 ${
+                className={`flex items-center gap-1.5 transition-all duration-200 py-2 font-semibold hover:text-[#15803D] cursor-pointer relative whitespace-nowrap shrink-0 hover:scale-[1.03] active:scale-95 ${
                   isActive ? 'text-[#15803D] font-bold border-b-2 border-[#15803D]' : 'text-slate-700'
                 }`}
               >
-                {item.label}
+                {item.icon && <item.icon className="w-4 h-4 shrink-0" />}
+                <span>{item.label}</span>
               </button>
             );
           })}
@@ -210,13 +209,13 @@ export default function Navbar({
         </button>
 
         {[
-          { id: 'hotels', label: t('nav.hotels') },
-          { id: 'homestays', label: t('search.homestay_tab') },
-          { id: 'cars', label: t('nav.cars') },
-          { id: 'tours', label: t('nav.tours') },
-          { id: 'ai-planner', label: t('nav.ai_planner') },
-          { id: 'my-bookings', label: t('nav.user_dashboard') },
-          { id: 'vendor', label: t('nav.vendor_dashboard') }
+          { id: 'hotels', label: t('nav.hotels'), icon: Building2 },
+          { id: 'homestays', label: t('search.homestay_tab'), icon: Home },
+          { id: 'cars', label: t('nav.cars'), icon: Car },
+          { id: 'tours', label: t('nav.tours'), icon: TourIcon },
+          { id: 'ai-planner', label: t('nav.ai_planner'), icon: Bot },
+          { id: 'my-bookings', label: t('nav.user_dashboard'), icon: User },
+          { id: 'vendor', label: t('nav.vendor_dashboard'), icon: Sparkles }
         ].map((item) => {
           const isCurrent = currentView === item.id || 
             (item.id === 'hotels' && (currentView === 'hotels' || currentView === 'browse-hotels')) ||
@@ -233,12 +232,13 @@ export default function Navbar({
                 else if (item.id === 'vendor') setView('dashboard-vendor');
                 else handleLinkClick(item.id);
               }}
-              className={`flex items-center gap-1 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all border ${
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all border ${
                 isCurrent
                   ? 'bg-[#0B5D3E] text-white border-[#0B5D3E]'
                   : 'bg-white text-slate-600 border-slate-200 hover:text-[#0B5D3E]'
               }`}
             >
+              {item.icon && <item.icon className="w-3.5 h-3.5 shrink-0" />}
               <span>{item.label}</span>
             </button>
           );

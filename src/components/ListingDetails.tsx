@@ -126,7 +126,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
     if (!listing) return 0;
     if (upgradeOption === 'standard') return 0;
     
-    if (listing.type === 'hotel') {
+    if (listing.type === 'hotel' || listing.type === 'homestay') {
       return upgradeOption === 'deluxe' ? 7500 : 16000;
     } else if (listing.type === 'car') {
       return upgradeOption === 'deluxe' ? 4000 : 9000;
@@ -369,11 +369,13 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
   }
 
   // Define host details based on listing
-  const hostName = listing.type === 'car' ? 'Mr. Tariq Shah' : 'Karim Balti';
-  const hostAvatar = listing.type === 'car' ? 'TS' : 'KB';
-  const hostDesc = listing.type === 'car' 
-    ? 'Senior Fleet Logistics coordinator. 200+ verified mountain routes managed across Karakoram & Babusar Pass.'
-    : 'Superhost & native Balti cultural enthusiast. Dedicated to making your Northern Pakistan escape absolutely pristine.';
+  const hostName = listing.type === 'homestay' && listing.homestaySpecs ? listing.homestaySpecs.hostName : (listing.type === 'car' ? 'Mr. Tariq Shah' : 'Karim Balti');
+  const hostAvatar = listing.type === 'homestay' && listing.homestaySpecs ? listing.homestaySpecs.hostImage : (listing.type === 'car' ? 'TS' : 'KB');
+  const hostDesc = listing.type === 'homestay' && listing.homestaySpecs 
+    ? `Local host of ${listing.title}. Dedicated to sharing local mountain traditions, organic farm secrets, and traditional Balti meals.`
+    : (listing.type === 'car' 
+      ? 'Senior Fleet Logistics coordinator. 200+ verified mountain routes managed across Karakoram & Babusar Pass.'
+      : 'Superhost & native Balti cultural enthusiast. Dedicated to making your Northern Pakistan escape absolutely pristine.');
 
   return (
     <div id="listing-details-view" className="space-y-8 animate-fadeIn max-w-7xl mx-auto">
@@ -498,9 +500,43 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
             </div>
           )}
 
+          {/* Airbnb Superhost Guarantee Badge (Airbnb Feature) */}
+          {listing.type === 'homestay' && (
+            <div className="bg-[#15803D]/10 border border-[#15803D]/25 rounded-2xl p-5 md:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 shadow-xs" id="homestay-guarantee-badge">
+              <div className="space-y-1.5 max-w-lg">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-[#15803D] flex items-center justify-center text-white text-xs font-black">
+                    ✓
+                  </div>
+                  <h4 className="text-sm font-extrabold text-[#15803D] uppercase tracking-wider">Superhost Certified Homestay</h4>
+                </div>
+                <p className="text-xs text-slate-700 leading-relaxed font-medium">
+                  This stay has been personally verified for authentic hospitality, clean local linens, and home-cooked culinary safety.
+                </p>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 pt-1">
+                  {[
+                    '100% Native Welcoming Hosts',
+                    'Traditional Organic Breakfast Included',
+                    'Cultural & Village Tour Guides',
+                    'Safe & Secure Family Environment'
+                  ].map((g, idx) => (
+                    <span key={idx} className="text-[10px] text-[#15803D] font-bold flex items-center gap-1">
+                      <Sparkle className="w-3 h-3 fill-[#15803D] stroke-none shrink-0" /> {g}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="bg-white border border-[#15803D]/20 px-4 py-3 rounded-xl text-center shrink-0 w-full md:w-auto shadow-xs">
+                <span className="text-[9px] font-extrabold text-[#15803D] uppercase tracking-widest block">GB HOMESTAY VERIFIED</span>
+                <span className="text-sm font-mono font-bold text-slate-800 block mt-0.5">GB-HOST-{(listing.homestaySpecs?.hostName || 'karim').substring(0,3).toUpperCase()}-2025</span>
+                <span className="text-[9.5px] text-slate-400 block mt-0.5">Superhost badge • Active</span>
+              </div>
+            </div>
+          )}
+
           {/* Detailed Description */}
           <section className="space-y-3" id="details-description">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">About the {listing.type === 'hotel' ? 'Property' : listing.type === 'car' ? 'Vehicle' : 'Expedition'}</h3>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">About the {listing.type === 'hotel' || listing.type === 'homestay' ? 'Property' : listing.type === 'car' ? 'Vehicle' : 'Expedition'}</h3>
             <p className="text-slate-600 text-sm md:text-base leading-relaxed font-normal">{listing.description}</p>
           </section>
 
@@ -516,6 +552,18 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
                 {listing.hotelSpecs.amenities.map((item) => (
                   <div key={item} className="flex items-center space-x-2 text-slate-700 text-xs md:text-sm font-medium">
                     <span className="w-2 h-2 rounded-full bg-indigo-600 shrink-0" />
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Homestay Specs */}
+            {listing.type === 'homestay' && listing.homestaySpecs && (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4" id="homestay-amenities-grid">
+                {listing.homestaySpecs.amenities.map((item) => (
+                  <div key={item} className="flex items-center space-x-2 text-slate-700 text-xs md:text-sm font-medium">
+                    <span className="w-2 h-2 rounded-full bg-emerald-600 shrink-0" />
                     <span>{item}</span>
                   </div>
                 ))}
