@@ -1,8 +1,214 @@
 import React, { useState } from 'react';
-import { Bot, Sparkles, MapPin, DollarSign, Calendar, Users, Send, CheckCircle2, Map } from 'lucide-react';
+import { Bot, Sparkles, MapPin, DollarSign, Calendar, Users, Send, CheckCircle2, Map, Compass, Clock, Lightbulb, ChevronRight, ChevronLeft, Navigation } from 'lucide-react';
 import { INITIAL_LISTINGS } from '../data';
 import { Listing, handleImageError } from '../types';
 import { useLanguage } from '../LanguageContext';
+
+interface RouteStop {
+  name: string;
+  elevation: string;
+  description: string;
+  transitTime: string;
+  tip: string;
+}
+
+interface SectorRoute {
+  title: string;
+  distance: string;
+  bestTime: string;
+  type: string;
+  stops: RouteStop[];
+}
+
+const SECTOR_ROUTES: Record<string, SectorRoute> = {
+  'Hunza Valley': {
+    title: 'Karakoram Highway Alpine Route',
+    distance: '~110 km (Karimabad Base)',
+    bestTime: 'May to October',
+    type: 'Scenic Mountain Drive & Lakes',
+    stops: [
+      {
+        name: 'Gilgit / Rakaposhi View',
+        elevation: '2,012m',
+        description: 'Spectacular viewpoint of 7,788m peak, traditional breakfast spot.',
+        transitTime: '1.5 hrs drive to Karimabad',
+        tip: 'Try the fresh local apricot juice at the roadside cafe.'
+      },
+      {
+        name: 'Karimabad (Hunza Base)',
+        elevation: '2,438m',
+        description: 'Explore historical Baltit & Altit Forts, walking cobblestone streets.',
+        transitTime: '45 mins drive to Attabad',
+        tip: 'Order the famous Walnut Cake at Cafe de Hunza.'
+      },
+      {
+        name: 'Attabad Turquoise Lake',
+        elevation: '2,559m',
+        description: 'Formed in 2010. Outstanding deep-blue waters, boating, and speed jets.',
+        transitTime: '30 mins drive to Passu',
+        tip: 'Take a boat ride; the reflection of Karakoram peaks is majestic.'
+      },
+      {
+        name: 'Passu Cathedral Cones',
+        elevation: '2,400m',
+        description: 'Scenic needle peaks, Hussaini Suspension Bridge, and Borith Lake.',
+        transitTime: '2 hrs drive to Khunjerab Pass',
+        tip: 'Stop at Yak Grill for premium gourmet Yak burgers.'
+      },
+      {
+        name: 'Khunjerab Border Pass',
+        elevation: '4,693m',
+        description: 'World\'s highest paved national border crossing into China.',
+        transitTime: 'Return to Karimabad Base',
+        tip: 'Bring a warm jacket; temperatures can drop below freezing even in summer.'
+      }
+    ]
+  },
+  'Skardu Plains': {
+    title: 'Indus Gorge & Deosai Plains Route',
+    distance: '~150 km Loop',
+    bestTime: 'June to September',
+    type: 'High Altitude Desert & Lakes',
+    stops: [
+      {
+        name: 'Kachura Valley & Shangrila',
+        elevation: '2,500m',
+        description: 'Famous heart-shaped Shangrila Resort lake and deep blue Upper Kachura Lake.',
+        transitTime: '1 hr drive to Skardu City',
+        tip: 'Take a local boat to explore the hidden corner of Upper Kachura.'
+      },
+      {
+        name: 'Skardu Capital',
+        elevation: '2,230m',
+        description: 'Trek to historical Kharpocho Fort overlooking the Indus River.',
+        transitTime: '45 mins drive to Shigar Valley',
+        tip: 'Shop for authentic gems and organic Hunza cherries at the central bazaar.'
+      },
+      {
+        name: 'Shigar Valley & Sand Dunes',
+        elevation: '2,300m',
+        description: 'Restored 400-year-old Shigar Fort, cold desert sand safari.',
+        transitTime: '2.5 hrs drive to Deosai Plains',
+        tip: 'Try tea at the fort orchards; the woodwork and architecture are stunning.'
+      },
+      {
+        name: 'Deosai National Plains',
+        elevation: '4,114m',
+        description: 'Land of Giants, pristine grasslands, and high altitude Sheosar Lake.',
+        transitTime: 'Return to Skardu Base',
+        tip: 'Do not stay past sunset unless camping with professional guides.'
+      }
+    ]
+  },
+  'Swat Valley': {
+    title: 'Swat Motorway & Kalam Alpine Route',
+    distance: '~180 km',
+    bestTime: 'Year-round (Winters for snow)',
+    type: 'Lush Green Valleys & Rivers',
+    stops: [
+      {
+        name: 'Mingora / Saidu Sharif',
+        elevation: '984m',
+        description: 'Central hub, ancient Buddhist heritage sites, White Palace of Marghazar.',
+        transitTime: '2 hrs drive to Kalam',
+        tip: 'Savor traditional trout fish at Riverside cafes.'
+      },
+      {
+        name: 'Kalam Valley Center',
+        elevation: '2,001m',
+        description: 'Beautiful forest town alongside Swat River with cool breeze.',
+        transitTime: '1.5 hrs to Ushu Forest',
+        tip: 'Take a morning walk by the riverside to see the mist rise.'
+      },
+      {
+        name: 'Ushu Pine Forest',
+        elevation: '2,300m',
+        description: 'Densely packed ancient pines, gorgeous green canopy, waterfalls.',
+        transitTime: '2 hrs drive to Mahodand',
+        tip: 'Stop at the forest-clearing stalls for fresh kettle-boiled Peshawari Kahwa.'
+      },
+      {
+        name: 'Mahodand Glacier Lake',
+        elevation: '2,865m',
+        description: 'Surrounded by wild meadows, massive waterfalls, and grazing horses.',
+        transitTime: 'Return to Kalam Base',
+        tip: 'Go horse-riding or rent a small wooden boat across the lake.'
+      }
+    ]
+  },
+  'Islamabad Capital': {
+    title: 'Margalla Foothills & Cultural Route',
+    distance: '~45 km',
+    bestTime: 'October to April',
+    type: 'Urban Greenery & Ridge Views',
+    stops: [
+      {
+        name: 'Faisal Mosque Landmark',
+        elevation: '540m',
+        description: 'Iconic Turkish-influenced architecture with the Margalla Hills backdrop.',
+        transitTime: '20 mins drive to Saidpur',
+        tip: 'Best visited at sunset to see the marble light up.'
+      },
+      {
+        name: 'Saidpur Ancient Village',
+        elevation: '600m',
+        description: 'Historic village showcasing Hindu, Sikh, and Mughal heritage.',
+        transitTime: '30 mins drive to Monal Ridge',
+        tip: 'Enjoy clay-pot chicken handi at Des Pardes under historical arches.'
+      },
+      {
+        name: 'Monal Ridge Viewpoint',
+        elevation: '1,150m',
+        description: 'Top-tier winding drive to panoramic views of the entire Islamabad capital.',
+        transitTime: '40 mins drive to Rawal Lake',
+        tip: 'Keep an eye out for wild monkeys on the tree canopies.'
+      },
+      {
+        name: 'Rawal Lake & Wetlands',
+        elevation: '510m',
+        description: 'Serene lake park with migratory birds, boating, and blooming gardens.',
+        transitTime: 'End of Urban Tour',
+        tip: 'Rent a private paddleboat at sunset for perfect reflections.'
+      }
+    ]
+  },
+  'Lahore Walled City': {
+    title: 'Mughal Empire Heritage Route',
+    distance: '~15 km Loop',
+    bestTime: 'November to March',
+    type: 'Historical Cultural Tour',
+    stops: [
+      {
+        name: 'Delhi Gate & Shahi Hammam',
+        elevation: '217m',
+        description: 'Historic entrance to Walled City, beautifully restored 17th-century bath house.',
+        transitTime: '15 mins walk to Wazir Khan',
+        tip: 'Hire a local certified Walled City guide at the gate.'
+      },
+      {
+        name: 'Wazir Khan Mosque',
+        elevation: '217m',
+        description: 'Famous for its outstanding Persian mosaic tilework and frescoes.',
+        transitTime: '20 mins rickshaw ride to Fort',
+        tip: 'Climb the minaret with permission for a view over the narrow lanes.'
+      },
+      {
+        name: 'Lahore Fort & Badshahi',
+        elevation: '220m',
+        description: 'UNESCO World Heritage Lahore Fort, Sheesh Mahal, and grand Badshahi Mosque.',
+        transitTime: '10 mins walk to Food Street',
+        tip: 'Take photos in the central red-stone courtyard at golden hour.'
+      },
+      {
+        name: 'Fort Road Food Street',
+        elevation: '225m',
+        description: 'Gourmet dining on rooftops of converted historic havelis looking onto the mosque.',
+        transitTime: 'End of Lahore Heritage Tour',
+        tip: 'Book a table on the top deck of Haveli Restaurant for the best view.'
+      }
+    ]
+  }
+};
 
 interface AiPlannerProps {
   setView: (v: string) => void;
@@ -21,6 +227,10 @@ export default function AiPlanner({ setView, onSelectListing }: AiPlannerProps) 
   const [loading, setLoading] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState('');
   const [itinerary, setItinerary] = useState<string | null>(null);
+
+  // Route & Visual Pattern states
+  const [activeTab, setActiveTab] = useState<'route' | 'details'>('route');
+  const [selectedStopIdx, setSelectedStopIdx] = useState<number>(0);
 
   // Trigger Gemini API via Express Server
   const handleGenerateItinerary = async (e: React.FormEvent) => {
@@ -63,6 +273,8 @@ export default function AiPlanner({ setView, onSelectListing }: AiPlannerProps) 
       if (res.ok) {
         const data = await res.json();
         setItinerary(data.itinerary);
+        setActiveTab('route');
+        setSelectedStopIdx(0);
       } else {
         const errData = await res.json();
         setItinerary(`### Error\n\n${errData.error || 'Failed to call Gemini API server.'}`);
@@ -75,48 +287,292 @@ export default function AiPlanner({ setView, onSelectListing }: AiPlannerProps) 
     }
   };
 
-  // Simple and highly elegant markdown formatter
-  const renderFormattedMarkdown = (text: string) => {
-    return text.split('\n').map((line, i) => {
-      const trimmed = line.trim();
+  // Helper to replace **text** with strong elements and *text* with em elements
+  const formatBold = (text: string): React.ReactNode => {
+    if (!text) return '';
+    
+    // First, split by bold **text**
+    const boldParts = text.split(/\*\*([^*]+)\*\*/g);
+    
+    // Helper to format italic parts inside bold-split segments
+    const formatItalic = (segment: string): React.ReactNode => {
+      const italicParts = segment.split(/\*([^*]+)\*/g);
+      if (italicParts.length === 1) return segment;
       
-      // Headers
-      if (trimmed.startsWith('###')) {
-        return <h4 key={i} className="text-base font-bold text-indigo-600 mt-6 mb-2 uppercase tracking-wide">{trimmed.replace('###', '')}</h4>;
-      }
-      if (trimmed.startsWith('##')) {
-        return <h3 key={i} className="text-lg font-bold text-[#0F172A] border-b border-slate-100 pb-2 mt-8 mb-4 uppercase tracking-tight">{trimmed.replace('##', '')}</h3>;
-      }
-      if (trimmed.startsWith('#')) {
-        return <h2 key={i} className="text-xl font-bold text-[#0F172A] mt-10 mb-5 uppercase tracking-tight">{trimmed.replace('#', '')}</h2>;
-      }
+      return italicParts.map((part, idx) => {
+        if (idx % 2 === 1) {
+          return <em key={idx} className="italic text-slate-700 font-medium">{part}</em>;
+        }
+        return part;
+      });
+    };
 
-      // Bullets
-      if (trimmed.startsWith('*') || trimmed.startsWith('-')) {
-        const cleanText = trimmed.substring(1).trim();
-        // Check for bold parts **text**
-        return (
-          <li key={i} className="text-xs md:text-sm text-slate-600 ml-4 list-disc marker:text-indigo-600 mb-2 leading-relaxed font-medium">
-            {formatBold(cleanText)}
-          </li>
-        );
-      }
+    if (boldParts.length === 1) return formatItalic(text);
 
-      // Normal text with potential bold formatting
-      if (trimmed === '') return <div key={i} className="h-2" />;
-      return <p key={i} className="text-xs md:text-sm text-slate-600 leading-relaxed mb-3.5 font-medium">{formatBold(trimmed)}</p>;
+    return boldParts.map((part, index) => {
+      if (index % 2 === 1) {
+        // This is a bold part - format it with clear bold styling and primary color, no bg rectangles!
+        return <strong key={index} className="font-bold text-[#0B5D3E]">{part}</strong>;
+      }
+      // This is a normal part, which may contain italics
+      return formatItalic(part);
     });
   };
 
-  // Helper to replace **text** with strong elements
-  const formatBold = (text: string) => {
-    const parts = text.split(/\*\*([^*]+)\*\*/g);
-    if (parts.length === 1) return text;
-    return parts.map((part, index) => {
-      if (index % 2 === 1) {
-        return <strong key={index} className="font-bold text-indigo-600 bg-indigo-50/50 px-1 py-0.5 rounded border border-indigo-100/30">{part}</strong>;
+  // Structured Markdown block parser to visualize tables, flowcharts, and custom roadmaps beautifully
+  const renderFormattedMarkdown = (text: string) => {
+    interface FlowchartNode {
+      type: 'node';
+      label: string;
+    }
+    
+    type Block = 
+      | { type: 'header'; level: number; text: string }
+      | { type: 'bullet'; text: string }
+      | { type: 'hr' }
+      | { type: 'table'; headers: string[]; rows: string[][] }
+      | { type: 'flowchart_row'; items: FlowchartNode[] }
+      | { type: 'flowchart_connector'; direction: 'down' }
+      | { type: 'paragraph'; text: string };
+
+    const lines = text.split('\n');
+    const blocks: Block[] = [];
+    
+    let i = 0;
+    while (i < lines.length) {
+      const line = lines[i].trim();
+      
+      // 1. Skip empty lines
+      if (line === '') {
+        i++;
+        continue;
       }
-      return part;
+      
+      // 2. Check for Table block
+      if (line.startsWith('|')) {
+        const tableRows: string[][] = [];
+        // Read all consecutive table lines
+        while (i < lines.length && lines[i].trim().startsWith('|')) {
+          const rawRow = lines[i].trim();
+          // Parse row by splitting by '|' and filtering out empty extremes
+          const cells = rawRow
+            .split('|')
+            .map(cell => cell.trim())
+            .filter((_, idx, arr) => {
+              if (idx === 0 && arr[0] === '') return false;
+              if (idx === arr.length - 1 && arr[arr.length - 1] === '') return false;
+              return true;
+            });
+          tableRows.push(cells);
+          i++;
+        }
+        
+        if (tableRows.length > 0) {
+          let headers = tableRows[0];
+          let dataRows = tableRows.slice(1);
+          
+          // Skip markdown table dividers like |---|:---|
+          if (dataRows.length > 0 && dataRows[0].every(cell => /^:?-+:?$/.test(cell))) {
+            dataRows = dataRows.slice(1);
+          } else if (headers.every(cell => /^:?-+:?$/.test(cell))) {
+            headers = [];
+          }
+          
+          blocks.push({
+            type: 'table',
+            headers,
+            rows: dataRows
+          });
+        }
+        continue;
+      }
+      
+      // 3. Check for Flowchart vertical connectors like | or ▼
+      const isConnector = /^[|\s▼v↓]*$/.test(line) && (line.includes('▼') || line.includes('|') || line.includes('v') || line.includes('↓'));
+      if (isConnector || line === '|' || line === '▼') {
+        blocks.push({
+          type: 'flowchart_connector',
+          direction: 'down'
+        });
+        i++;
+        continue;
+      }
+      
+      // 4. Check for Flowchart row [ Node A ] ——► [ Node B ]
+      if (/\[(.*?)\]/.test(line)) {
+        const nodeRegex = /\[(.*?)\]/g;
+        const labels: string[] = [];
+        let match;
+        while ((match = nodeRegex.exec(line)) !== null) {
+          labels.push(match[1].trim());
+        }
+        
+        if (labels.length > 0) {
+          blocks.push({
+            type: 'flowchart_row',
+            items: labels.map(label => ({ type: 'node', label }))
+          });
+        } else {
+          blocks.push({
+            type: 'paragraph',
+            text: line
+          });
+        }
+        i++;
+        continue;
+      }
+      
+      // 5. Check for Headers
+      if (line.startsWith('#')) {
+        const match = line.match(/^(#+)\s*(.*)$/);
+        if (match) {
+          const level = match[1].length;
+          const textVal = match[2].trim().replace(/^\*\*|\*\*$/g, '').trim();
+          blocks.push({
+            type: 'header',
+            level,
+            text: textVal
+          });
+        } else {
+          blocks.push({
+            type: 'paragraph',
+            text: line
+          });
+        }
+        i++;
+        continue;
+      }
+      
+      // 6. Check for Bullet list items
+      if (line.startsWith('*') || line.startsWith('-')) {
+        if (line.match(/^[-*]{3,}$/)) {
+          blocks.push({ type: 'hr' });
+        } else {
+          const cleanText = line.substring(1).trim();
+          blocks.push({
+            type: 'bullet',
+            text: cleanText
+          });
+        }
+        i++;
+        continue;
+      }
+      
+      // 7. Default to paragraph
+      blocks.push({
+        type: 'paragraph',
+        text: line
+      });
+      i++;
+    }
+
+    // Render parsed blocks to gorgeous React/Tailwind components
+    return blocks.map((block, index) => {
+      switch (block.type) {
+        case 'header': {
+          if (block.level === 1) {
+            return (
+              <h2 key={index} className="text-lg md:text-xl font-extrabold text-[#0F172A] mt-8 mb-4 border-b border-slate-100 pb-2.5 tracking-tight flex items-center gap-2">
+                <span className="w-1.5 h-6 bg-[#0B5D3E] rounded-full inline-block shrink-0" />
+                <span>{block.text}</span>
+              </h2>
+            );
+          } else if (block.level === 2) {
+            return (
+              <h3 key={index} className="text-base md:text-lg font-bold text-[#1E293B] mt-6 mb-3 tracking-tight">
+                {block.text}
+              </h3>
+            );
+          } else {
+            return (
+              <h4 key={index} className="text-sm md:text-base font-bold text-[#0B5D3E] mt-5 mb-2 uppercase tracking-wide">
+                {block.text}
+              </h4>
+            );
+          }
+        }
+        case 'bullet': {
+          return (
+            <li key={index} className="text-xs md:text-sm text-slate-600 ml-5 list-disc marker:text-[#0B5D3E] mb-2 leading-relaxed">
+              {formatBold(block.text)}
+            </li>
+          );
+        }
+        case 'hr': {
+          return <hr key={index} className="my-6 border-slate-100" />;
+        }
+        case 'table': {
+          return (
+            <div key={index} className="overflow-x-auto my-6 border border-slate-200/80 rounded-xl shadow-xs bg-white">
+              <table className="min-w-full divide-y divide-slate-200">
+                <thead className="bg-slate-50/70">
+                  <tr>
+                    {block.headers.map((h, hIdx) => (
+                      <th key={hIdx} className="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 bg-white text-xs text-slate-700">
+                  {block.rows.map((row, rIdx) => (
+                    <tr key={rIdx} className="hover:bg-slate-50/60 transition-colors">
+                      {row.map((cell, cIdx) => (
+                        <td key={cIdx} className="px-4 py-3 leading-relaxed font-medium">
+                          {formatBold(cell)}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        }
+        case 'flowchart_row': {
+          if (block.items.length === 1) {
+            return (
+              <div key={index} className="flex justify-center my-3 animate-fadeIn">
+                <div className="bg-emerald-50/30 hover:bg-emerald-50/60 border border-emerald-100/80 px-4 py-2.5 rounded-xl shadow-2xs flex items-center gap-2 max-w-sm w-full justify-center transition-all group">
+                  <MapPin className="w-4 h-4 text-[#0B5D3E] shrink-0 group-hover:scale-110 transition-transform" />
+                  <span className="text-xs md:text-sm font-bold text-slate-800">{block.items[0].label}</span>
+                </div>
+              </div>
+            );
+          }
+          return (
+            <div key={index} className="flex flex-wrap items-center justify-center gap-2.5 md:gap-3 my-4 animate-fadeIn">
+              {block.items.map((node, nodeIdx) => (
+                <React.Fragment key={nodeIdx}>
+                  {nodeIdx > 0 && (
+                    <svg className="w-4 h-4 text-emerald-500 shrink-0 mx-0.5 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  )}
+                  <div className="bg-emerald-50/30 hover:bg-emerald-50/60 border border-emerald-100/80 px-3.5 py-1.5 rounded-lg shadow-3xs flex items-center gap-1.5 transition-all group">
+                    <MapPin className="w-3.5 h-3.5 text-[#0B5D3E] shrink-0 group-hover:scale-110 transition-transform" />
+                    <span className="text-xs font-bold text-slate-700">{node.label}</span>
+                  </div>
+                </React.Fragment>
+              ))}
+            </div>
+          );
+        }
+        case 'flowchart_connector': {
+          return (
+            <div key={index} className="flex flex-col items-center justify-center py-0.5">
+              <div className="w-0.5 h-5 border-l-2 border-dashed border-emerald-300" />
+              <svg className="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          );
+        }
+        case 'paragraph':
+        default: {
+          return <p key={index} className="text-xs md:text-sm text-slate-600 leading-relaxed mb-3 font-medium">{formatBold(block.text)}</p>;
+        }
+      }
     });
   };
 
@@ -130,6 +586,7 @@ export default function AiPlanner({ setView, onSelectListing }: AiPlannerProps) 
   };
 
   const recommendations = getRecommendedListings();
+  const currentRoute = SECTOR_ROUTES[destination] || SECTOR_ROUTES['Hunza Valley'];
 
   return (
     <div id="ai-planner-view" className="space-y-8 pb-16">
@@ -161,7 +618,10 @@ export default function AiPlanner({ setView, onSelectListing }: AiPlannerProps) 
               <select
                 id="ai-dest"
                 value={destination}
-                onChange={(e) => setDestination(e.target.value)}
+                onChange={(e) => {
+                  setDestination(e.target.value);
+                  setSelectedStopIdx(0);
+                }}
                 className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-[#0F172A] focus:bg-white"
               >
                 <option value="Hunza Valley">Hunza Valley (Lakes & Peaks)</option>
@@ -283,12 +743,200 @@ export default function AiPlanner({ setView, onSelectListing }: AiPlannerProps) 
               </div>
             ) : itinerary ? (
               // Formatted markdown result
-              <div className="space-y-4 animate-fadeIn text-slate-600 text-sm leading-relaxed" id="itinerary-formatted-result">
-                <div className="flex items-center space-x-2 text-xs font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 px-3.5 py-1.5 rounded-lg mb-6 max-w-max uppercase tracking-wider">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Itinerary Compiled by Gemini AI Flash</span>
+              <div className="space-y-6 animate-fadeIn" id="itinerary-formatted-result">
+                {/* Compile success badge and Tab Selectors */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4 mb-2">
+                  <div className="flex items-center space-x-2 text-xs font-bold text-[#0B5D3E] bg-emerald-50 border border-emerald-100 px-3.5 py-1.5 rounded-lg max-w-max uppercase tracking-wider">
+                    <CheckCircle2 className="w-4 h-4 text-[#0B5D3E]" />
+                    <span>Itinerary & Map Ready</span>
+                  </div>
+                  
+                  {/* Dynamic Tab Selector */}
+                  <div className="flex bg-slate-100/80 p-1 rounded-xl border border-slate-200/40" id="itinerary-tab-selectors">
+                    <button
+                      type="button"
+                      id="tab-btn-route"
+                      onClick={() => setActiveTab('route')}
+                      className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                        activeTab === 'route'
+                          ? 'bg-white text-[#0B5D3E] shadow-2xs'
+                          : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      <Map className="w-3.5 h-3.5" />
+                      <span>Route Map</span>
+                    </button>
+                    <button
+                      type="button"
+                      id="tab-btn-details"
+                      onClick={() => setActiveTab('details')}
+                      className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                        activeTab === 'details'
+                          ? 'bg-white text-[#0B5D3E] shadow-2xs'
+                          : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      <Bot className="w-3.5 h-3.5" />
+                      <span>Day-by-Day</span>
+                    </button>
+                  </div>
                 </div>
-                {renderFormattedMarkdown(itinerary)}
+
+                {activeTab === 'route' ? (
+                  /* GORGEOUS SUGGESTED ROUTE INTERACTIVE MAP COMPONENT */
+                  <div className="space-y-6 animate-fadeIn" id="itinerary-route-visualizer">
+                    {/* Route Overview Grid */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-slate-50/70 p-4 rounded-xl border border-slate-100 text-left">
+                      <div className="space-y-0.5">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Route Corridor</span>
+                        <h5 className="text-xs font-extrabold text-slate-800 line-clamp-1">{currentRoute.title}</h5>
+                      </div>
+                      <div className="space-y-0.5">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Est. Distance</span>
+                        <h5 className="text-xs font-extrabold text-[#0B5D3E]">{currentRoute.distance}</h5>
+                      </div>
+                      <div className="space-y-0.5">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Prime Months</span>
+                        <h5 className="text-xs font-extrabold text-slate-800">{currentRoute.bestTime}</h5>
+                      </div>
+                      <div className="space-y-0.5">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Adventure Type</span>
+                        <h5 className="text-xs font-extrabold text-slate-800 line-clamp-1">{currentRoute.type}</h5>
+                      </div>
+                    </div>
+
+                    {/* Interactive Connecting Roadmap Horizontal/Vertical Map Line */}
+                    <div className="space-y-5">
+                      <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 flex items-center gap-1.5 text-left">
+                        <Compass className="w-3.5 h-3.5 text-[#0B5D3E]" />
+                        <span>Interactive Pathway & Stops (Click step to preview)</span>
+                      </h4>
+
+                      {/* Nodes Pathway */}
+                      <div className="relative flex flex-col md:flex-row items-center justify-between gap-4 md:gap-2 px-4 py-6 bg-emerald-50/15 border border-emerald-100/30 rounded-2xl overflow-hidden">
+                        {/* Decorative Background lines */}
+                        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(16,185,129,0.01)_1px,transparent_1px),linear-gradient(to_bottom,rgba(16,185,129,0.01)_1px,transparent_1px)] bg-[size:16px_16px]" />
+                        
+                        {currentRoute.stops.map((stop, sIdx) => {
+                          const isSelected = selectedStopIdx === sIdx;
+                          return (
+                            <React.Fragment key={sIdx}>
+                              {/* Connector Line (Desktop Only) */}
+                              {sIdx > 0 && (
+                                <div className="hidden md:block flex-1 h-0.5 border-t-2 border-dashed border-emerald-300 relative mx-1">
+                                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-1 text-[11px] font-bold text-emerald-600">
+                                    ➔
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Connector Line (Mobile Only) */}
+                              {sIdx > 0 && (
+                                <div className="md:hidden w-0.5 h-5 border-l-2 border-dashed border-emerald-300 relative my-0.5">
+                                  <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-emerald-600 text-xs font-black">
+                                    ▼
+                                  </span>
+                                </div>
+                              )}
+
+                              {/* Stop Interactive Button */}
+                              <button
+                                type="button"
+                                onClick={() => setSelectedStopIdx(sIdx)}
+                                className={`z-10 relative flex flex-col items-center p-3 rounded-xl transition-all cursor-pointer text-center max-w-[150px] w-full border ${
+                                  isSelected
+                                    ? 'bg-[#0B5D3E] border-[#07442D] text-white shadow-md shadow-emerald-800/10 scale-105'
+                                    : 'bg-white hover:bg-slate-50 border-slate-200/80 text-slate-600 hover:border-slate-300'
+                                }`}
+                              >
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
+                                  isSelected
+                                    ? 'bg-white text-[#0B5D3E]'
+                                    : 'bg-slate-100 text-slate-500'
+                                }`}>
+                                  {sIdx + 1}
+                                </div>
+                                <span className="text-[11px] font-extrabold mt-2 tracking-tight line-clamp-1 w-full">{stop.name.split('/')[0].split('(')[0].trim()}</span>
+                                <span className={`text-[9px] font-mono mt-0.5 px-1.5 py-0.2 rounded font-bold ${
+                                  isSelected ? 'bg-white/20 text-white' : 'bg-slate-50 text-slate-400'
+                                }`}>{stop.elevation}</span>
+                              </button>
+                            </React.Fragment>
+                          );
+                        })}
+                      </div>
+
+                      {/* Active Selected Stop Detailed Card View */}
+                      {currentRoute.stops[selectedStopIdx] && (
+                        <div className="bg-slate-50/50 border border-slate-200/80 p-5 rounded-2xl space-y-4 animate-slideIn text-left">
+                          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-slate-200/60 pb-3">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className="bg-emerald-100 text-emerald-800 font-extrabold text-[9px] uppercase px-2 py-0.5 rounded">
+                                  Checkpoint {selectedStopIdx + 1} of {currentRoute.stops.length}
+                                </span>
+                                <span className="bg-slate-100 text-slate-600 font-mono text-[9px] px-2 py-0.5 rounded flex items-center gap-1 font-bold">
+                                  🏔️ Altitude: {currentRoute.stops[selectedStopIdx].elevation}
+                                </span>
+                              </div>
+                              <h4 className="text-base font-extrabold text-slate-800">
+                                {currentRoute.stops[selectedStopIdx].name}
+                              </h4>
+                            </div>
+
+                            <div className="flex items-center gap-1 text-[11px] font-semibold text-slate-600 bg-white border border-slate-200 px-2.5 py-1 rounded-lg font-mono self-start">
+                              <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                              <span>{currentRoute.stops[selectedStopIdx].transitTime}</span>
+                            </div>
+                          </div>
+
+                          <p className="text-xs md:text-sm text-slate-600 leading-relaxed font-semibold">
+                            {currentRoute.stops[selectedStopIdx].description}
+                          </p>
+
+                          {/* Local Tip Box */}
+                          <div className="bg-[#0B5D3E]/5 border border-[#0B5D3E]/10 p-3.5 rounded-xl flex items-start gap-2.5 text-left">
+                            <Lightbulb className="w-4 h-4 text-[#0B5D3E] shrink-0 mt-0.5 animate-pulse" />
+                            <div className="space-y-0.5">
+                              <span className="text-[10px] font-black uppercase tracking-widest text-[#0B5D3E]">Local Operations Tip</span>
+                              <p className="text-xs text-slate-700 leading-relaxed font-medium">
+                                {currentRoute.stops[selectedStopIdx].tip}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Prev/Next buttons */}
+                          <div className="flex items-center justify-between pt-1">
+                            <button
+                              type="button"
+                              disabled={selectedStopIdx === 0}
+                              onClick={() => setSelectedStopIdx(prev => Math.max(0, prev - 1))}
+                              className="bg-white hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white text-slate-700 text-xs font-bold px-3.5 py-1.5 rounded-lg border border-slate-200 transition-all cursor-pointer flex items-center gap-1"
+                            >
+                              <ChevronLeft className="w-4 h-4" />
+                              <span>Previous</span>
+                            </button>
+                            
+                            <button
+                              type="button"
+                              disabled={selectedStopIdx === currentRoute.stops.length - 1}
+                              onClick={() => setSelectedStopIdx(prev => Math.min(currentRoute.stops.length - 1, prev + 1))}
+                              className="bg-[#0B5D3E] hover:bg-[#07442D] disabled:opacity-40 disabled:hover:bg-[#0B5D3E] text-white text-xs font-bold px-3.5 py-1.5 rounded-lg border border-[#0B5D3E] transition-all cursor-pointer flex items-center gap-1 shadow-xs"
+                            >
+                              <span>Next Stop</span>
+                              <ChevronRight className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  /* DETAILED MARKDOWN ITINERARY RESULTS FROM AI */
+                  <div className="space-y-4 animate-fadeIn" id="itinerary-details-text">
+                    {renderFormattedMarkdown(itinerary)}
+                  </div>
+                )}
               </div>
             ) : (
               // Initial Empty state

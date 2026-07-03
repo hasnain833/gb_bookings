@@ -37,6 +37,8 @@ export default function Navbar({
       setView('destinations');
     } else if (id === 'offers') {
       setView('offers');
+    } else if (id === 'ai-planner') {
+      setView('ai-planner');
     }
   };
 
@@ -46,7 +48,8 @@ export default function Navbar({
     { id: 'cars', label: t('nav.cars'), icon: Car },
     { id: 'tours', label: t('nav.tours'), icon: TourIcon },
     { id: 'destinations', label: isRtl ? 'مقامات' : 'Destinations', icon: MapPin },
-    { id: 'offers', label: isRtl ? 'آفرز' : 'Offers', icon: Flame }
+    { id: 'offers', label: isRtl ? 'آفرز' : 'Offers', icon: Flame },
+    { id: 'ai-planner', label: t('nav.ai_planner'), icon: Bot }
   ];
 
   return (
@@ -84,7 +87,7 @@ export default function Navbar({
 
         {/* Center: Desktop Navigation Links (Direct match with image, no overlapping) */}
         <nav className="hidden lg:flex items-center justify-between gap-4 xl:gap-8 text-[14px] font-semibold text-[#1A1A1A] shrink-0 flex-nowrap" id="nav-desktop-links">
-          {navItems.map((item) => {
+          {navItems.map((item: any) => {
             const isActive = currentView === item.id || 
               (item.id === 'hotels' && (currentView === 'hotels' || currentView === 'browse-hotels')) ||
               (item.id === 'cars' && (currentView === 'cars' || currentView === 'browse-cars')) ||
@@ -119,13 +122,6 @@ export default function Navbar({
 
             {showMoreMenu && (
               <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl py-2 z-50 animate-fadeIn" id="nav-more-dropdown">
-                <button
-                  onClick={() => setView('ai-planner')}
-                  className="w-full text-left px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-indigo-600 flex items-center gap-2"
-                >
-                  <Bot className="w-4 h-4 text-indigo-600" />
-                  <span>{t('nav.ai_planner')}</span>
-                </button>
                 <button
                   onClick={() => setView('dashboard-user')}
                   className="w-full text-left px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-[#15803D] flex items-center gap-2"
@@ -224,6 +220,10 @@ export default function Navbar({
             (item.id === 'my-bookings' && currentView === 'dashboard-user') ||
             (item.id === 'vendor' && currentView === 'dashboard-vendor');
 
+          const buttonClass = isCurrent
+            ? 'bg-[#0B5D3E] text-white border-[#0B5D3E]'
+            : 'bg-white text-slate-600 border-slate-200 hover:text-[#0B5D3E]';
+
           return (
             <button
               key={item.id}
@@ -232,11 +232,7 @@ export default function Navbar({
                 else if (item.id === 'vendor') setView('dashboard-vendor');
                 else handleLinkClick(item.id);
               }}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all border ${
-                isCurrent
-                  ? 'bg-[#0B5D3E] text-white border-[#0B5D3E]'
-                  : 'bg-white text-slate-600 border-slate-200 hover:text-[#0B5D3E]'
-              }`}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all border cursor-pointer ${buttonClass}`}
             >
               {item.icon && <item.icon className="w-3.5 h-3.5 shrink-0" />}
               <span>{item.label}</span>

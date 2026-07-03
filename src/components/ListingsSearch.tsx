@@ -2818,7 +2818,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
         category: 'Seasonal Packs',
         discount: '20% OFF',
         promoCode: 'MALAMSKI20',
-        image: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=800&q=80',
+        image: 'https://images.unsplash.com/photo-1518098268026-4e43a1a009de?auto=format&fit=crop&w=800&q=80',
         location: 'Swat',
         rate: 0.20,
         description: 'Unleash your winter spirit in Malam Jabba ski resort. Bundle lodging and full ski gear rentals together to save maximum.',
@@ -2832,7 +2832,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
         category: 'Flash Deals',
         discount: 'FLAT 25%',
         promoCode: 'DESERTFLASH25',
-        image: 'https://images.unsplash.com/photo-1518098268026-4e43a1a009de?auto=format&fit=crop&w=800&q=80',
+        image: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=800&q=80',
         location: 'Skardu',
         rate: 0.25,
         description: 'Valid only for a limited period! Explore Katpana Cold Desert and stay at boutique Lakeside Resorts with unparalleled luxury rates.',
@@ -2866,6 +2866,62 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
         description: 'Perfect for families exploring Saif-ul-Muluk lake. Get 15% discount on 3+ star hotels plus a free driver-driven SUV upgrade.',
         perks: ['Free premium SUV rental', 'Lakeside bonfire setup with tea', 'Kids adventure activity kit'],
         expiresIn: 'Active Seasonal',
+        isExclusive: true
+      },
+      {
+        id: 'offer-karachi',
+        title: 'Karachi Beachfront Luxury Escape',
+        category: 'VIP Perks',
+        discount: '20% OFF VIP',
+        promoCode: 'BEACHVIP20',
+        image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80',
+        location: 'Karachi',
+        rate: 0.20,
+        description: 'Bask in premium Arabian sea breezes. Get 20% discount on luxury stays plus a complimentary private candlelit beach dinner.',
+        perks: ['Complimentary private beach dinner', 'Free spa session for two', 'Late check-out till 6 PM'],
+        expiresIn: 'Ends Oct 30',
+        isExclusive: true
+      },
+      {
+        id: 'offer-passu',
+        title: 'Passu Cones Trekker Special',
+        category: 'Flash Deals',
+        discount: '15% OFF',
+        promoCode: 'PASSUTREK15',
+        image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=800&q=80',
+        location: 'Hunza',
+        rate: 0.15,
+        description: 'The ultimate trekker experience around the iconic Passu Cones. Save 15% on high-altitude equipment rentals and guided treks.',
+        perks: ['Professional mountain guide support', 'Free basecamp tent setup', 'Warm sleeping bag rentals included'],
+        expiresIn: '4 Days Left',
+        isExclusive: false
+      },
+      {
+        id: 'offer-islamabad',
+        title: 'Margalla Hills Boutique Getaway',
+        category: 'Last Minute',
+        discount: 'FLAT 10%',
+        promoCode: 'ISLBOOT10',
+        image: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800&q=80',
+        location: 'Islamabad',
+        rate: 0.10,
+        description: 'Escape to boutique retreats nestled inside the Margalla Hills. Wake up to crisp woodland air and enjoy panoramic city views.',
+        perks: ['Daily organic hilltop breakfast', 'Free mountain hiking trail kit', 'Complimentary evening Mocktails'],
+        expiresIn: 'Active Now',
+        isExclusive: false
+      },
+      {
+        id: 'offer-shigar',
+        title: 'Shigar Fort Royal Heritage Pack',
+        category: 'VIP Perks',
+        discount: '30% OFF',
+        promoCode: 'ROYALSHIGAR30',
+        image: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=800&q=80',
+        location: 'Skardu',
+        rate: 0.30,
+        description: 'Live like royalty inside the beautifully restored 400-year-old Shigar Fort. Complete museum tour and local fruit picking included.',
+        perks: ['Private museum guided tour', 'Complimentary cherry orchard basket', 'Traditional Balti welcome tea'],
+        expiresIn: '7 Days Left',
         isExclusive: true
       }
     ];
@@ -3013,11 +3069,12 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
               {filteredOffers.map((offer) => {
                 const isCopied = copiedOfferCode === offer.promoCode;
-                const budgetVal = offerBudgets[offer.id] || '';
-                const savedVal = calculatedSavings[offer.id] || 0;
+                const budgetVal = offerBudgets[offer.id] || 100000;
+                const savedVal = Math.round(budgetVal * offer.rate);
+                const spentVal = budgetVal - savedVal;
 
                 return (
                   <div 
@@ -3026,7 +3083,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                   >
                     
                     {/* Top Section with Image & Discount Badge */}
-                    <div className="relative h-48 bg-slate-100 overflow-hidden">
+                    <div className="relative aspect-[4/3] bg-slate-100 overflow-hidden shrink-0">
                       <img 
                         src={offer.image} 
                         alt={offer.title} 
@@ -3053,29 +3110,29 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                         ⏳ {offer.expiresIn}
                       </div>
 
-                      <div className="absolute bottom-4 left-4 text-white">
+                      <div className="absolute bottom-4 left-4 right-4 text-white">
                         <span className="text-[10px] bg-white/20 backdrop-blur-md px-2 py-0.5 rounded-md text-white font-extrabold uppercase tracking-widest border border-white/10">
                           {offer.category}
                         </span>
-                        <h3 className="text-lg font-black mt-1.5 truncate drop-shadow-sm">{offer.title}</h3>
+                        <h3 className="text-base sm:text-lg font-black mt-1.5 truncate drop-shadow-sm">{offer.title}</h3>
                       </div>
                     </div>
 
                     {/* Middle details and perks */}
                     <div className="p-5 space-y-4 text-left flex-1 flex flex-col justify-between">
                       <div className="space-y-3">
-                        <p className="text-xs text-slate-500 leading-relaxed font-sans font-medium">
+                        <p className="text-xs text-slate-500 leading-relaxed font-sans font-medium min-h-[40px] line-clamp-3">
                           {offer.description}
                         </p>
 
                         {/* Perks checklist */}
                         <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl space-y-1.5">
-                          <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Included Perks & Perks:</p>
+                          <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Included Perks:</p>
                           <div className="space-y-1">
                             {offer.perks.map((perk, perkIdx) => (
                               <div key={perkIdx} className="flex items-center gap-2 text-xs text-slate-700">
                                 <Check className="w-4 h-4 text-emerald-500 shrink-0" />
-                                <span className="font-medium font-sans">{perk}</span>
+                                <span className="font-medium font-sans truncate">{perk}</span>
                               </div>
                             ))}
                           </div>
@@ -3085,14 +3142,14 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                       {/* Promo Code Copy Row */}
                       <div className="pt-2 border-t border-slate-100">
                         <div className="flex gap-2 items-center">
-                          <div className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 flex items-center justify-between">
-                            <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest font-sans">Promo Code</span>
-                            <span className="font-mono font-bold text-xs text-[#0F172A]">{offer.promoCode}</span>
+                          <div className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 flex items-center justify-between min-w-0">
+                            <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest font-sans shrink-0">Promo</span>
+                            <span className="font-mono font-bold text-xs text-[#0F172A] truncate ml-1">{offer.promoCode}</span>
                           </div>
                           
                           <button
                             onClick={() => handleCopyCode(offer.promoCode)}
-                            className={`px-4.5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer border flex items-center gap-1.5 select-none ${
+                            className={`px-3 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer border flex items-center gap-1 shrink-0 select-none ${
                               isCopied 
                                 ? 'bg-emerald-600 border-emerald-600 text-white' 
                                 : 'bg-[#0F172A] hover:bg-slate-800 border-slate-800 text-white'
@@ -3100,13 +3157,13 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                           >
                             {isCopied ? (
                               <>
-                                <Check className="w-4 h-4" />
+                                <Check className="w-3.5 h-3.5" />
                                 <span>Copied!</span>
                               </>
                             ) : (
                               <>
-                                <FileText className="w-4 h-4" />
-                                <span>Copy Code</span>
+                                <FileText className="w-3.5 h-3.5" />
+                                <span>Copy</span>
                               </>
                             )}
                           </button>
@@ -3114,27 +3171,57 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                       </div>
 
                       {/* Interactive budget savings tool */}
-                      <div className="pt-3 border-t border-slate-100 bg-rose-50/20 rounded-xl p-3 border border-rose-100/50">
-                        <p className="text-[10px] font-extrabold text-rose-600 uppercase tracking-widest flex items-center gap-1">
-                          <Wallet className="w-3.5 h-3.5" />
-                          <span>Interactive Savings Estimator</span>
-                        </p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2 items-center">
-                          <div className="relative">
-                            <input
-                              type="number"
-                              placeholder="Enter your budget (PKR)"
-                              value={budgetVal}
-                              onChange={(e) => handleBudgetChange(offer.id, e.target.value, offer.rate)}
-                              className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-bold focus:outline-none focus:border-rose-400"
-                            />
-                            <span className="absolute right-2.5 top-2 text-[9px] font-mono font-bold text-slate-400">PKR</span>
+                      <div className="pt-3 border-t border-slate-100 bg-rose-50/20 rounded-xl p-3.5 border border-rose-100/50 space-y-3">
+                        <div className="flex justify-between items-center">
+                          <p className="text-[10px] font-extrabold text-rose-600 uppercase tracking-widest flex items-center gap-1">
+                            <Wallet className="w-3.5 h-3.5" />
+                            <span>Savings Visualizer</span>
+                          </p>
+                          <span className="text-[10px] font-mono font-bold text-slate-500">Rs. {budgetVal.toLocaleString()}</span>
+                        </div>
+                        
+                        {/* Interactive Range Slider */}
+                        <div className="space-y-1">
+                          <input
+                            type="range"
+                            min="10000"
+                            max="300000"
+                            step="5000"
+                            value={budgetVal}
+                            onChange={(e) => handleBudgetChange(offer.id, e.target.value, offer.rate)}
+                            className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-rose-600"
+                          />
+                          <div className="flex justify-between text-[8px] text-slate-400 font-bold font-sans">
+                            <span>Rs. 10k</span>
+                            <span>Slide to Adjust Budget</span>
+                            <span>Rs. 300k</span>
                           </div>
-                          <div className="text-left pl-1">
-                            <span className="text-[9px] text-slate-400 block uppercase font-bold leading-none">Estimated Saving:</span>
-                            <span className="text-sm font-black text-emerald-600 leading-snug">
-                              {savedVal > 0 ? `Rs. ${savedVal.toLocaleString()}` : 'Rs. 0'}
-                            </span>
+                        </div>
+
+                        {/* Real-time split bar */}
+                        <div className="space-y-1.5">
+                          <div className="h-3.5 w-full bg-slate-100 rounded-full overflow-hidden flex border border-slate-200/50 text-[8px] font-extrabold text-white text-center leading-none">
+                            <div 
+                              className="h-full bg-slate-700 flex items-center justify-center transition-all duration-300" 
+                              style={{ width: `${(1 - offer.rate) * 100}%` }}
+                            >
+                              Pay {Math.round((1 - offer.rate) * 100)}%
+                            </div>
+                            <div 
+                              className="h-full bg-emerald-500 flex items-center justify-center transition-all duration-300" 
+                              style={{ width: `${offer.rate * 100}%` }}
+                            >
+                              Save {Math.round(offer.rate * 100)}%
+                            </div>
+                          </div>
+
+                          <div className="flex justify-between items-center text-[10px] pt-0.5">
+                            <div className="text-left font-sans font-semibold text-slate-600">
+                              You Pay: <span className="font-bold text-slate-900">Rs. {spentVal.toLocaleString()}</span>
+                            </div>
+                            <div className="text-right font-sans font-bold text-emerald-600">
+                              You Save: <span>Rs. {savedVal.toLocaleString()}</span>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -3143,7 +3230,6 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                       <div className="flex gap-2 pt-3 border-t border-slate-100">
                         <button
                           onClick={() => {
-                            // Pre-fill query, navigate to hotels in destination
                             const queryTerm = offer.location;
                             setSearchQuery(queryTerm);
                             setPriceMax(120000);
@@ -3153,13 +3239,12 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                             const customEvent = new CustomEvent('nav-to-type', { detail: { type: 'hotel', destination: queryTerm } });
                             window.dispatchEvent(customEvent);
                           }}
-                          className="flex-1 bg-white hover:bg-slate-50 text-[#0F172A] border border-slate-200 text-[10px] font-extrabold uppercase tracking-wider py-2.5 px-3 rounded-xl transition-all cursor-pointer text-center font-sans"
+                          className="flex-1 bg-white hover:bg-slate-50 text-[#0F172A] border border-slate-200 text-[10px] font-extrabold uppercase tracking-wider py-2.5 px-3 rounded-xl transition-all cursor-pointer text-center font-sans truncate"
                         >
                           🏨 Stays in {offer.location}
                         </button>
                         <button
                           onClick={() => {
-                            // Pre-fill query, navigate to tours in destination
                             const queryTerm = offer.location;
                             setSearchQuery(queryTerm);
                             setPriceMax(120000);
@@ -3169,7 +3254,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                             const customEvent = new CustomEvent('nav-to-type', { detail: { type: 'tour', destination: queryTerm } });
                             window.dispatchEvent(customEvent);
                           }}
-                          className="flex-1 bg-rose-500 hover:bg-rose-600 text-white text-[10px] font-extrabold uppercase tracking-wider py-2.5 px-3 rounded-xl transition-all border-0 cursor-pointer text-center font-sans shadow-xs"
+                          className="flex-1 bg-rose-500 hover:bg-rose-600 text-white text-[10px] font-extrabold uppercase tracking-wider py-2.5 px-3 rounded-xl transition-all border-0 cursor-pointer text-center font-sans shadow-xs truncate"
                         >
                           🎒 Tours in {offer.location}
                         </button>
