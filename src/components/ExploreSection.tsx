@@ -340,7 +340,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
 
         {/* 5-Column Trust Assurance Bar directly matching the reference image */}
         <div className="mt-6 bg-[#F8FAFC] border border-slate-200/60 rounded-2xl p-4 sm:p-5" id="homestay-trust-bar">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6 justify-between items-center text-left">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 items-stretch text-left">
             {[
               { title: 'Best Price Guarantee', desc: 'We ensure you get the best price', icon: ShieldCheck },
               { title: 'Free Cancellation', desc: 'Cancel up to 24 hours', icon: Calendar },
@@ -350,13 +350,13 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
             ].map((badge, idx) => {
               const Icon = badge.icon;
               return (
-                <div key={idx} className="flex items-center gap-3 text-slate-700">
-                  <div className="w-9 h-9 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-[#0B5D3E] shrink-0">
+                <div key={idx} className="flex items-start gap-3 text-slate-700 p-2 rounded-xl hover:bg-slate-50 transition-all min-w-0">
+                  <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-[#0B5D3E] shrink-0">
                     <Icon className="w-5 h-5 shrink-0" />
                   </div>
-                  <div>
-                    <h5 className="font-extrabold text-[12px] text-slate-800 leading-tight">{badge.title}</h5>
-                    <p className="text-[10px] text-slate-400 mt-1 whitespace-nowrap">{badge.desc}</p>
+                  <div className="min-w-0">
+                    <h5 className="font-extrabold text-[12px] sm:text-[13px] text-slate-800 leading-tight">{badge.title}</h5>
+                    <p className="text-[10px] sm:text-[11px] text-slate-500 mt-1 break-words">{badge.desc}</p>
                   </div>
                 </div>
               );

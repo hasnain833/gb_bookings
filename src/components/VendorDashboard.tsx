@@ -209,8 +209,8 @@ export default function VendorDashboard({ setView }: VendorDashboardProps) {
             {loading ? (
               <DashboardSkeleton />
             ) : (
-              <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
-                <table className="w-full text-left text-xs text-slate-600" id="vend-listings-table">
+              <div className="bg-white border border-slate-200 rounded-2xl overflow-x-auto shadow-xs">
+                <table className="w-full min-w-[600px] text-left text-xs text-slate-600" id="vend-listings-table">
                   <thead className="bg-slate-50 border-b border-slate-200 font-bold uppercase text-slate-400 text-[10px] tracking-wider">
                     <tr>
                       <th className="p-4">Property</th>

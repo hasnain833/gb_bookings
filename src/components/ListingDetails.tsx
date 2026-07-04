@@ -921,7 +921,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
                 <Info className="w-3.5 h-3.5 text-indigo-600" /> Refund Cancellation Policy
               </label>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {[
                   { id: 'flexible', label: 'Flexible Refund', desc: 'Cancel anytime up to 24 hours' },
                   { id: 'nonRefundable', label: 'Non-Refundable', desc: 'Save 8% on subtotal' }
@@ -976,7 +976,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
                 <Gift className="w-3.5 h-3.5 text-indigo-600" /> Reservation Payment Scheme
               </label>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <button
                   id="btn-pay-online"
                   onClick={() => setPayAtHotel(false)}

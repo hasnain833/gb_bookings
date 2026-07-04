@@ -1139,7 +1139,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
         </div>
 
         {/* 2. FIVE-BADGE TRUST REASSURANCE ROW (under the search bar) */}
-        <div className="bg-white border border-[#E2E8F0] p-4 rounded-2xl grid grid-cols-2 md:grid-cols-5 gap-4 shadow-xs text-left" id="homestays-reassurance-row">
+        <div className="bg-white border border-[#E2E8F0] p-5 rounded-2xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 shadow-xs text-left" id="homestays-reassurance-row">
           {[
             { title: 'Best Price Guarantee', desc: 'We ensure you get the best price', icon: ShieldCheck },
             { title: 'Free Cancellation', desc: 'Cancel up to 24 hours', icon: Calendar },
@@ -1149,13 +1149,13 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
           ].map((item, idx) => {
             const Icon = item.icon;
             return (
-              <div key={idx} className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-[#15803D] shrink-0">
+              <div key={idx} className="flex items-start gap-3 p-1 rounded-xl hover:bg-slate-50 transition-all min-w-0">
+                <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-[#15803D] shrink-0">
                   <Icon className="w-5 h-5" />
                 </div>
-                <div>
-                  <h5 className="font-extrabold text-[11px] text-slate-800 leading-tight">{item.title}</h5>
-                  <p className="text-[9px] text-slate-400 mt-0.5 leading-none">{item.desc}</p>
+                <div className="min-w-0">
+                  <h5 className="font-extrabold text-[12px] text-slate-800 leading-tight">{item.title}</h5>
+                  <p className="text-[10px] text-slate-500 mt-1 break-words leading-tight">{item.desc}</p>
                 </div>
               </div>
             );

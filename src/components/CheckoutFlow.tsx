@@ -118,26 +118,26 @@ export default function CheckoutFlow({ bookingParams, listing, onSuccess, onCanc
 
       {/* Progress indicators (Only in steps 1, 2, 4) */}
       {step !== 3 && (
-        <div className="flex items-center justify-between mb-8" id="checkout-progress-indicators">
+        <div className="flex items-center justify-between mb-8 px-1" id="checkout-progress-indicators">
           {[
             { s: 1, label: 'Contacts' },
             { s: 2, label: bookingParams.payAtHotel ? 'Confirmation' : 'Payment' },
             { s: 4, label: 'Invoice' }
           ].map((item, i) => (
             <React.Fragment key={item.s}>
-              <div className="flex items-center space-x-2">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
+              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-[11px] sm:text-xs shrink-0 ${
                   step === item.s 
                     ? 'bg-[#0F172A] text-white shadow-xs' 
                     : step > item.s 
-                      ? 'bg-indigo-600/10 text-indigo-600 border border-indigo-200' 
+                      ? 'bg-[#0B5D3E]/10 text-[#0B5D3E] border border-[#0B5D3E]/20' 
                       : 'bg-slate-100 text-slate-400 border border-slate-200'
                 }`}>
                   {step > item.s ? '✓' : item.s === 4 ? 3 : item.s}
                 </div>
-                <span className={`text-xs font-bold uppercase tracking-wider ${step === item.s ? 'text-slate-900' : 'text-slate-400'}`}>{item.label}</span>
+                <span className={`text-[9px] sm:text-xs font-black uppercase tracking-wider ${step === item.s ? 'text-slate-900' : 'text-slate-400'} hidden min-[480px]:inline-block`}>{item.label}</span>
               </div>
-              {i < 2 && <div className={`flex-1 h-0.5 mx-4 ${step > item.s ? 'bg-indigo-600' : 'bg-slate-200'}`} />}
+              {i < 2 && <div className={`flex-1 h-0.5 mx-2 sm:mx-4 ${step > item.s ? 'bg-[#0B5D3E]' : 'bg-slate-200'}`} />}
             </React.Fragment>
           ))}
         </div>

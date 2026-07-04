@@ -234,8 +234,8 @@ export default function UserDashboard({ userEmail, setView, onSelectBooking, onS
                         </p>
                       </div>
 
-                      <div className="flex flex-col justify-between items-end gap-3 shrink-0">
-                        <div className="text-right">
+                      <div className="flex flex-col justify-between items-start md:items-end gap-3 shrink-0 w-full md:w-auto">
+                        <div className="text-left md:text-right w-full">
                           <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Paid Amount</span>
                           <span className="text-base font-bold text-slate-800">PKR {booking.totalPrice.toLocaleString()}</span>
                           <span className="text-[10px] text-slate-500 font-medium block capitalize">
@@ -244,11 +244,11 @@ export default function UserDashboard({ userEmail, setView, onSelectBooking, onS
                         </div>
 
                         {/* Actions */}
-                        <div className="flex space-x-2">
+                        <div className="flex flex-wrap gap-2 w-full md:w-auto">
                           <button
                             id={`btn-dash-view-${booking.id}`}
                             onClick={() => onSelectBooking(booking)}
-                            className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider cursor-pointer flex items-center space-x-1 shadow-xs"
+                            className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider cursor-pointer flex items-center gap-1 shadow-xs"
                           >
                             <Printer className="w-3.5 h-3.5 text-slate-400" />
                             <span>Invoice</span>
@@ -258,7 +258,7 @@ export default function UserDashboard({ userEmail, setView, onSelectBooking, onS
                             <button
                               id={`btn-dash-cancel-${booking.id}`}
                               onClick={() => handleCancelBooking(booking.id)}
-                              className="bg-rose-50 border border-rose-100 text-rose-600 hover:bg-rose-100 px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider cursor-pointer flex items-center space-x-1"
+                              className="bg-rose-50 border border-rose-100 text-rose-600 hover:bg-rose-100 px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider cursor-pointer flex items-center gap-1"
                             >
                               <AlertTriangle className="w-3.5 h-3.5" />
                               <span>Cancel Trip</span>
