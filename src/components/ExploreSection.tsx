@@ -241,10 +241,10 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
 
           {/* Form Fields Section */}
           <form onSubmit={handleSearch} className="p-6 sm:p-8 space-y-6" id="form-search-listings">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-px md:bg-[#E2E8F0] md:rounded-xl overflow-hidden border md:border-[#E2E8F0] items-stretch" id="fields-row">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-px md:bg-[#E2E8F0] md:rounded-xl overflow-hidden border-none md:border md:border-[#E2E8F0] items-stretch" id="fields-row">
               
               {/* Field 1: Where are you going? */}
-              <div className="bg-white p-4 md:col-span-3 flex flex-col justify-center space-y-1 rounded-xl md:rounded-none">
+              <div className="bg-white p-4 md:col-span-3 flex flex-col justify-center space-y-1 rounded-xl md:rounded-none border border-slate-200/80 md:border-none shadow-xs md:shadow-none">
                 <label className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider">{isRtl ? 'کہاں جانا چاہتے ہیں؟' : 'Where are you going?'}</label>
                 <div className="flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-[#64748B] shrink-0" />
@@ -265,7 +265,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
               </div>
 
               {/* Field 2: Check-in with Overlay Display */}
-              <div className="bg-white p-4 md:col-span-2 flex flex-col justify-center space-y-1 rounded-xl md:rounded-none relative min-h-[64px]">
+              <div className="bg-white p-4 md:col-span-2 flex flex-col justify-center space-y-1 rounded-xl md:rounded-none relative min-h-[64px] border border-slate-200/80 md:border-none shadow-xs md:shadow-none">
                 <label className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider">{isRtl ? 'چیک ان' : 'Check-in'}</label>
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-[#64748B] shrink-0" />
@@ -283,7 +283,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
               </div>
 
               {/* Field 3: Check-out with Overlay Display */}
-              <div className="bg-white p-4 md:col-span-2 flex flex-col justify-center space-y-1 rounded-xl md:rounded-none relative min-h-[64px]">
+              <div className="bg-white p-4 md:col-span-2 flex flex-col justify-center space-y-1 rounded-xl md:rounded-none relative min-h-[64px] border border-slate-200/80 md:border-none shadow-xs md:shadow-none">
                 <label className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider">{isRtl ? 'چیک آؤٹ' : 'Check-out'}</label>
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-[#64748B] shrink-0" />
@@ -301,7 +301,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
               </div>
 
               {/* Field 4: Guests & Rooms */}
-              <div className="bg-white p-4 md:col-span-3 flex flex-col justify-center space-y-1 rounded-xl md:rounded-none relative">
+              <div className="bg-white p-4 md:col-span-3 flex flex-col justify-center space-y-1 rounded-xl md:rounded-none relative border border-slate-200/80 md:border-none shadow-xs md:shadow-none">
                 <label className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider">{t('search.guests')}</label>
                 <div className="flex items-center gap-2">
                   <Users className="w-4 h-4 text-[#64748B] shrink-0" />

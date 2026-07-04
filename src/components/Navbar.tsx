@@ -54,17 +54,17 @@ export default function Navbar({
 
   return (
     <header id="app-navbar" className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-[#E5E5E5] shadow-xs">
-      <div className="w-full mx-auto px-4 sm:px-8 lg:px-12 xl:px-16 h-20 md:h-24 flex items-center justify-between gap-4 md:gap-6 flex-nowrap" id="nav-container">
+      <div className="w-full mx-auto px-4 sm:px-8 lg:px-12 xl:px-16 h-16 sm:h-20 md:h-24 flex items-center justify-between gap-2 sm:gap-4 md:gap-6 flex-nowrap" id="nav-container">
         
         {/* Left Side: Brand Logo (Horizontal layout matching the reference image) */}
         <div 
           onClick={() => setView('explore')} 
-          className="flex items-center gap-3 cursor-pointer group shrink-0"
+          className="flex items-center gap-1.5 sm:gap-3 cursor-pointer group shrink-0"
           id="nav-logo"
         >
           {/* Logo Icon on the left */}
           <div className="relative flex items-center justify-center shrink-0">
-            <svg className="w-12 h-9" viewBox="0 0 100 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg className="w-9 sm:w-11 md:w-12 h-6 sm:h-8 md:h-9" viewBox="0 0 100 80" fill="none" xmlns="http://www.w3.org/2000/svg">
               {/* Sun (Orange/Red circle with white light trail) */}
               <circle cx="50" cy="24" r="14" fill="#F97316" />
               <path d="M46 18 Q50 13 54 18" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
@@ -79,7 +79,7 @@ export default function Navbar({
           
           {/* Brand Text on the right */}
           <div className="flex flex-col shrink-0">
-            <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-800 leading-none whitespace-nowrap">
+            <span className="text-base sm:text-xl md:text-2xl font-black tracking-tight text-slate-800 leading-none whitespace-nowrap">
               <span className="text-[#15803D]">GB</span>Bookings<span className="text-[#F97316]">.com</span>
             </span>
           </div>
@@ -149,30 +149,31 @@ export default function Navbar({
         </nav>
 
         {/* Right Side: Language & Auth Actions (Direct match with image, perfect spacing, no overlap) */}
-        <div className="flex items-center gap-3 md:gap-5 shrink-0 flex-nowrap" id="nav-actions">
+        <div className="flex items-center gap-1.5 sm:gap-3 md:gap-5 shrink-0 flex-nowrap" id="nav-actions">
           
           {/* Language Toggle Button (Urdu / English) */}
           <button
             id="btn-language-toggle"
             onClick={() => requestLanguageChange(language === 'en' ? 'ur' : 'en')}
-            className="flex items-center gap-1.5 text-[14px] font-extrabold text-[#0B5D3E] hover:bg-emerald-50 py-1.5 px-3 rounded-xl transition-all border border-emerald-100 cursor-pointer whitespace-nowrap shrink-0 hover:scale-[1.03] active:scale-95"
+            className="flex items-center gap-1 text-[11px] sm:text-[14px] font-extrabold text-[#0B5D3E] hover:bg-emerald-50 py-1.5 px-2 sm:px-3 rounded-xl transition-all border border-emerald-100 cursor-pointer whitespace-nowrap shrink-0 hover:scale-[1.03] active:scale-95"
             title={language === 'en' ? 'اردو زبان منتخب کریں' : 'Switch to English'}
           >
-            <Globe className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>{language === 'en' ? 'اردو' : 'English'}</span>
+            <Globe className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+            <span className="hidden sm:inline">{language === 'en' ? 'اردو' : 'English'}</span>
+            <span className="sm:hidden">{language === 'en' ? 'اردو' : 'EN'}</span>
           </button>
 
           <div className="hidden sm:block h-6 w-px bg-slate-200 shrink-0"></div>
 
           {/* Interactive Sign In / Register Buttons with perfect spacing */}
-          <div className="flex items-center gap-3 shrink-0 flex-nowrap">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 flex-nowrap">
             {/* Sign In Button */}
             <button
               id="btn-sign-in"
               onClick={() => {
                 setView('dashboard-user');
               }}
-              className="border border-[#CBD5E1] hover:border-[#1A1A1A] text-slate-800 font-bold text-[14px] px-5 py-2.5 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-95 cursor-pointer whitespace-nowrap shrink-0"
+              className="border border-[#CBD5E1] hover:border-[#1A1A1A] text-slate-800 font-bold text-[11px] sm:text-[14px] px-2.5 sm:px-5 py-1.5 sm:py-2.5 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-95 cursor-pointer whitespace-nowrap shrink-0"
             >
               {isRtl ? 'لاگ ان' : 'Sign In'}
             </button>
@@ -183,10 +184,10 @@ export default function Navbar({
               onClick={() => {
                 setView('dashboard-user');
               }}
-              className="bg-[#0B5D3E] hover:bg-[#07472E] text-white font-bold text-[14px] px-5 py-2.5 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-95 cursor-pointer flex items-center gap-2 shadow-xs whitespace-nowrap shrink-0"
+              className="bg-[#0B5D3E] hover:bg-[#07472E] text-white font-bold text-[11px] sm:text-[14px] px-2.5 sm:px-5 py-1.5 sm:py-2.5 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-95 cursor-pointer flex items-center gap-1 sm:gap-2 shadow-xs whitespace-nowrap shrink-0"
             >
-              <User className="w-4 h-4 shrink-0 stroke-[2.5]" />
-              <span>{isRtl ? 'رجسٹر کریں' : 'Register'}</span>
+              <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 stroke-[2.5]" />
+              <span className="hidden sm:inline">{isRtl ? 'رجسٹر کریں' : 'Register'}</span>
             </button>
           </div>
 
