@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useLanguage, tListing } from '../LanguageContext';
 import { PAKISTAN_FAQ } from '../data';
+import { CardSkeleton } from './SkeletonLoader';
 
 interface ListingsSearchProps {
   type: ListingType;
@@ -825,9 +826,9 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
 
             {/* CARS GRID CONTAINER (4-column responsive) */}
             {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-                {Array(4).fill(0).map((_, i) => (
-                  <div key={i} className="bg-white border border-slate-200 h-80 rounded-2xl animate-shimmer" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
+                {Array(8).fill(0).map((_, i) => (
+                  <CardSkeleton key={i} />
                 ))}
               </div>
             ) : carFilteredListings.length === 0 ? (
@@ -1375,9 +1376,10 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
               {/* Listings List Column */}
               <section className="md:col-span-7 space-y-4">
                 {loading ? (
-                  <div className="flex flex-col items-center justify-center py-20 space-y-3 bg-white border border-slate-200 rounded-2xl">
-                    <RefreshCw className="w-8 h-8 text-[#15803D] animate-spin" />
-                    <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Fetching Verified Homestays...</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {Array(4).fill(0).map((_, i) => (
+                      <CardSkeleton key={i} />
+                    ))}
                   </div>
                 ) : homestayFilteredListings.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 text-center bg-white border border-slate-200 rounded-2xl p-6">
@@ -1955,9 +1957,10 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
               {/* Listings List Column */}
               <section className="md:col-span-7 space-y-4">
                 {loading ? (
-                  <div className="flex flex-col items-center justify-center py-20 space-y-3 bg-white border border-slate-200 rounded-2xl">
-                    <RefreshCw className="w-8 h-8 text-[#4F46E5] animate-spin" />
-                    <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Fetching Verified Luxury Stays...</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {Array(4).fill(0).map((_, i) => (
+                      <CardSkeleton key={i} />
+                    ))}
                   </div>
                 ) : hotelFilteredListings.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 text-center bg-white border border-slate-200 rounded-2xl p-6">
@@ -2555,9 +2558,10 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
               {/* Listings List Column */}
               <section className="md:col-span-7 space-y-4">
                 {loading ? (
-                  <div className="flex flex-col items-center justify-center py-20 space-y-3 bg-white border border-slate-200 rounded-2xl">
-                    <RefreshCw className="w-8 h-8 text-[#7C3AED] animate-spin" />
-                    <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Fetching Guided Expeditions...</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {Array(4).fill(0).map((_, i) => (
+                      <CardSkeleton key={i} />
+                    ))}
                   </div>
                 ) : tourFilteredListings.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 text-center bg-white border border-slate-200 rounded-2xl p-6">

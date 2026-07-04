@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Booking, Notification, WalletTransaction, Listing, handleImageError } from '../types';
 import { useLanguage } from '../LanguageContext';
+import { DashboardSkeleton } from './SkeletonLoader';
 import { Calendar, Wallet, Award, Share2, Printer, AlertTriangle, MessageSquare, Bell, Check, Trash, Heart, Eye, MapPin } from 'lucide-react';
 
 interface UserDashboardProps {
@@ -183,10 +184,7 @@ export default function UserDashboard({ userEmail, setView, onSelectBooking, onS
       </div>
 
       {loading ? (
-        <div className="text-center py-12">
-          <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-xs text-slate-500 mt-3 font-bold uppercase tracking-wider">Fetching profiles from server...</p>
-        </div>
+        <DashboardSkeleton />
       ) : (
         <div id="dashboard-active-pane">
           

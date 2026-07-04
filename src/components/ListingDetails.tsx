@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Listing, Review, handleImageError } from '../types';
 import { useLanguage, tListing, tReview } from '../LanguageContext';
+import { DetailsSkeleton } from './SkeletonLoader';
 import { 
   ArrowLeft, Star, MapPin, Calendar, Users, ShieldCheck, Heart, Share2, 
   Sparkles, Send, MessageSquare, AlertCircle, Check, Shield, Tag, Gift, 
@@ -352,9 +353,8 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-16 text-center space-y-4" id="listing-details-loading">
-        <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto" />
-        <p className="text-slate-500 font-mono text-sm uppercase font-bold tracking-wider">Retrieving property details and reviews from server...</p>
+      <div className="max-w-7xl mx-auto px-4 py-8" id="listing-details-loading">
+        <DetailsSkeleton />
       </div>
     );
   }

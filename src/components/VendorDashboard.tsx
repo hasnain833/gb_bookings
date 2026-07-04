@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Listing, handleImageError } from '../types';
+import { DashboardSkeleton } from './SkeletonLoader';
 import { DollarSign, Percent, BarChart3, Star, Sparkles, FolderPlus, ToggleLeft, ToggleRight, Trash, Send, Plus, Upload } from 'lucide-react';
 
 interface VendorDashboardProps {
@@ -206,7 +207,7 @@ export default function VendorDashboard({ setView }: VendorDashboardProps) {
         {activeTab === 'listings' && (
           <div className="space-y-4 animate-fadeIn" id="vend-listings-pane">
             {loading ? (
-              <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Syncing active portfolios...</p>
+              <DashboardSkeleton />
             ) : (
               <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
                 <table className="w-full text-left text-xs text-slate-600" id="vend-listings-table">

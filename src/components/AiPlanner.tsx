@@ -3,6 +3,7 @@ import { Bot, Sparkles, MapPin, DollarSign, Calendar, Users, Send, CheckCircle2,
 import { INITIAL_LISTINGS } from '../data';
 import { Listing, handleImageError } from '../types';
 import { useLanguage } from '../LanguageContext';
+import { PlannerSkeleton } from './SkeletonLoader';
 
 interface RouteStop {
   name: string;
@@ -733,13 +734,16 @@ export default function AiPlanner({ setView, onSelectListing }: AiPlannerProps) 
           {/* Output Content container */}
           <div className="bg-white rounded-xl border border-slate-200 p-6 flex-1 shadow-xs overflow-y-auto max-h-[580px]" id="itinerary-output-box">
             {loading ? (
-              // AI processing state
-              <div className="h-full flex flex-col items-center justify-center space-y-6 py-20 text-center animate-pulse" id="itinerary-loading-spinner">
-                <div className="w-14 h-14 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-                <div className="space-y-1">
-                  <h4 className="text-base font-bold text-[#0F172A] uppercase tracking-tight">Simulating Itinerary Coordinates</h4>
-                  <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">{loadingMsg}</p>
+              <div className="space-y-6 text-left" id="itinerary-loading-spinner">
+                {/* Loader status update banner */}
+                <div className="flex items-center gap-3 bg-indigo-50 border border-indigo-100 p-4 rounded-xl animate-pulse">
+                  <div className="w-8 h-8 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin shrink-0" />
+                  <div>
+                    <h5 className="font-extrabold text-[11px] text-[#0F172A] uppercase tracking-wider">AI Blueprint Synthesizer</h5>
+                    <p className="text-[10px] text-indigo-600 font-semibold uppercase tracking-wider mt-0.5">{loadingMsg}</p>
+                  </div>
                 </div>
+                <PlannerSkeleton />
               </div>
             ) : itinerary ? (
               // Formatted markdown result
