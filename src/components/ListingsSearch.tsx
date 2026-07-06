@@ -869,20 +869,20 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                   return (
                     <div 
                       key={car.id}
-                      className="bg-white border border-[#E2E8F0] overflow-hidden flex flex-col justify-between h-full group hover:shadow-md hover:border-slate-300 transition-all rounded-none text-left"
+                      className="bg-white border border-[#E2E8F0] overflow-hidden flex flex-col justify-between h-full group hover:shadow-md hover:border-slate-300 transition-all rounded-2xl text-left"
                     >
                       {/* Photo Header */}
-                      <div className="relative aspect-[16/11] w-full overflow-hidden bg-slate-50 border-b border-slate-100 shrink-0">
+                      <div className="relative aspect-[16/11] w-full overflow-hidden rounded-t-2xl bg-slate-50 border-b border-slate-100 shrink-0">
                         <img 
                           src={car.image} 
                           alt={car.title} 
-                          className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
+                          className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300 rounded-t-2xl"
                           referrerPolicy="no-referrer"
                           onError={handleImageError}
                         />
                         
                         {/* Cloned badges */}
-                        <div className={`absolute top-2 left-2 text-white text-[9px] font-extrabold uppercase px-2 py-0.5 shadow-xs tracking-wider rounded-none ${badgeClass}`}>
+                        <div className={`absolute top-2 left-2 text-white text-[9px] font-extrabold uppercase px-2 py-0.5 shadow-xs tracking-wider rounded-md ${badgeClass}`}>
                           {badgeLabel}
                         </div>
 
@@ -3898,11 +3898,11 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
             {loading ? (
               // Shimmer skeletons
               Array(3).fill(0).map((_, i) => (
-                <div key={i} className="bg-white border border-slate-200 h-44 rounded-none animate-shimmer" />
+                <div key={i} className="bg-white border border-slate-200 h-44 rounded-2xl animate-shimmer" />
               ))
             ) : displayListings.length === 0 ? (
               // Empty State
-              <div className="bg-white rounded-none border border-slate-200 p-12 text-center space-y-4 shadow-xs" id="listings-empty-state">
+              <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center space-y-4 shadow-xs" id="listings-empty-state">
                 <div className="w-12 h-12 bg-slate-50 border border-slate-200 rounded-full flex items-center justify-center mx-auto">
                   <MapPin className="w-6 h-6 text-slate-400" />
                 </div>
@@ -3935,20 +3935,20 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                     onMouseEnter={() => setHoveredListingId(listing.id)}
                     onMouseLeave={() => setHoveredListingId(null)}
                     onClick={() => onSelectListing(listing)}
-                    className={`bg-white rounded-none overflow-hidden border transition-all duration-300 flex flex-col sm:flex-row cursor-pointer group shadow-xs ${
+                    className={`bg-white rounded-2xl overflow-hidden border transition-all duration-300 flex flex-col sm:flex-row cursor-pointer group shadow-xs ${
                       isHovered ? 'border-indigo-500 translate-x-1 shadow-sm' : 'border-slate-200 hover:border-slate-300'
                     }`}
                   >
                     {/* Thumbnail */}
-                    <div className="relative w-full sm:w-44 h-36 sm:h-auto overflow-hidden shrink-0 bg-slate-100">
+                    <div className="relative w-full sm:w-44 h-36 sm:h-auto overflow-hidden rounded-t-2xl sm:rounded-tr-none sm:rounded-l-2xl shrink-0 bg-slate-100">
                       <img 
                         src={listing.image} 
                         alt={listing.title} 
-                        className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300"
+                        className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300 rounded-t-2xl sm:rounded-tr-none sm:rounded-l-2xl"
                         referrerPolicy="no-referrer"
                         onError={handleImageError}
                       />
-                      <div className="absolute top-2 left-2 bg-white/95 border border-slate-100 text-slate-800 px-2.5 py-0.5 rounded-none text-[9px] font-bold shadow-xs uppercase tracking-wider">
+                      <div className="absolute top-2 left-2 bg-white/95 border border-slate-100 text-slate-800 px-2.5 py-0.5 rounded-md text-[9px] font-bold shadow-xs uppercase tracking-wider">
                         PKR {listing.price >= 30000 ? '⭐ Elite' : '✔️ Standard'}
                       </div>
                     </div>
@@ -4110,7 +4110,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                 <div 
                   key={i} 
                   id={`faq-item-${i}`}
-                  className="bg-white border border-slate-200 rounded-none overflow-hidden transition-all duration-300 shadow-sm"
+                  className="bg-white border border-slate-200 rounded-2xl overflow-hidden transition-all duration-300 shadow-sm"
                 >
                   <button
                     onClick={() => setExpandedFaq(isOpen ? null : i)}

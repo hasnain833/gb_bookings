@@ -210,7 +210,7 @@ export default function UserDashboard({ userEmail, setView, onSelectBooking, onS
                     className="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col md:flex-row shadow-xs"
                   >
                     {/* Thumbnail */}
-                    <img src={booking.listingImage} alt="" className="w-full md:w-44 h-32 md:h-auto object-cover shrink-0" referrerPolicy="no-referrer" onError={handleImageError} />
+                    <img src={booking.listingImage} alt="" className="w-full md:w-44 h-32 md:h-auto object-cover shrink-0 rounded-t-2xl md:rounded-tr-none md:rounded-l-2xl" referrerPolicy="no-referrer" onError={handleImageError} />
 
                     {/* Metadata Content */}
                     <div className="p-5 flex-1 flex flex-col md:flex-row justify-between gap-6">
@@ -300,7 +300,7 @@ export default function UserDashboard({ userEmail, setView, onSelectBooking, onS
                         <img 
                           src={item.image} 
                           alt={item.title} 
-                          className="w-full h-full object-cover" 
+                          className="w-full h-full object-cover rounded-t-2xl" 
                           referrerPolicy="no-referrer"
                           onError={handleImageError}
                         />

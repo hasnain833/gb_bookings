@@ -192,7 +192,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                 <img 
                   src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=400&q=80" 
                   alt="Promo alpine chalet" 
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover rounded-2xl"
                   referrerPolicy="no-referrer"
                   onError={handleImageError}
                 />
@@ -380,7 +380,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
           {/* Card 1: Hotels */}
           <div 
             onClick={() => handleCategoryCardClick('hotel')}
-            className="bg-white rounded-none overflow-hidden border border-[#E2E8F0] shadow-sm hover:shadow-xl hover:border-slate-300 transition-all cursor-pointer group flex flex-col justify-between"
+            className="bg-white rounded-2xl overflow-hidden border border-[#E2E8F0] shadow-sm hover:shadow-xl hover:border-slate-300 transition-all cursor-pointer group flex flex-col justify-between"
             id="category-hotels"
           >
             <div className="p-6">
@@ -397,7 +397,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
             </div>
             
             <div className="px-6 pb-6 space-y-4">
-              <div className="h-32 rounded-none overflow-hidden relative border border-slate-100">
+              <div className="h-32 rounded-xl overflow-hidden relative border border-slate-100">
                 <img 
                   src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=400&q=80" 
                   alt="Luxury Hotels Gilgit" 
@@ -417,7 +417,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
             {/* Card 2: Homestays */}
             <div 
               onClick={() => handleCategoryCardClick('homestay')}
-              className="bg-white rounded-none overflow-hidden border border-[#E2E8F0] shadow-sm hover:shadow-xl hover:border-slate-300 transition-all cursor-pointer group flex flex-col justify-between"
+              className="bg-white rounded-2xl overflow-hidden border border-[#E2E8F0] shadow-sm hover:shadow-xl hover:border-slate-300 transition-all cursor-pointer group flex flex-col justify-between"
               id="category-homestays"
             >
               <div className="p-6">
@@ -434,7 +434,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
               </div>
               
               <div className="px-6 pb-6 space-y-4">
-                <div className="h-32 rounded-none overflow-hidden relative border border-slate-100">
+                <div className="h-32 rounded-xl overflow-hidden relative border border-slate-100">
                   <img 
                     src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=400&q=80" 
                     alt="Cozy Stays Skardu" 
@@ -454,7 +454,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
             {/* Card 3: Cars */}
             <div 
               onClick={() => handleCategoryCardClick('car')}
-              className="bg-white rounded-none overflow-hidden border border-[#E2E8F0] shadow-sm hover:shadow-xl hover:border-slate-300 transition-all cursor-pointer group flex flex-col justify-between"
+              className="bg-white rounded-2xl overflow-hidden border border-[#E2E8F0] shadow-sm hover:shadow-xl hover:border-slate-300 transition-all cursor-pointer group flex flex-col justify-between"
               id="category-cars"
             >
               <div className="p-6">
@@ -471,7 +471,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
               </div>
               
               <div className="px-6 pb-6 space-y-4">
-                <div className="h-32 rounded-none overflow-hidden relative border border-slate-100 bg-slate-50">
+                <div className="h-32 rounded-xl overflow-hidden relative border border-slate-100 bg-slate-50">
                   <img 
                     src="https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=400&q=80" 
                     alt="Premium SUV Prado" 
@@ -491,7 +491,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
             {/* Card 4: Tours & Packages */}
             <div 
               onClick={() => handleCategoryCardClick('tour')}
-              className="bg-white rounded-none overflow-hidden border border-[#E2E8F0] shadow-sm hover:shadow-xl hover:border-slate-300 transition-all cursor-pointer group flex flex-col justify-between"
+              className="bg-white rounded-2xl overflow-hidden border border-[#E2E8F0] shadow-sm hover:shadow-xl hover:border-slate-300 transition-all cursor-pointer group flex flex-col justify-between"
               id="category-tours"
             >
               <div className="p-6">
@@ -508,7 +508,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
               </div>
               
               <div className="px-6 pb-6 space-y-4">
-                <div className="h-32 rounded-none overflow-hidden relative border border-slate-100">
+                <div className="h-32 rounded-xl overflow-hidden relative border border-slate-100">
                   <img 
                     src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80" 
                     alt="Curated Mountain Expeditions" 
@@ -587,12 +587,12 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                   setSearchFilters({ destination: dest.name.split(' ')[0], startDate: '', endDate: '', extra: {} });
                   setView(activeTab === 'car' ? 'browse-cars' : activeTab === 'tour' ? 'browse-tours' : 'browse-hotels');
                 }}
-                className="relative rounded-none overflow-hidden aspect-[3/4] cursor-pointer group shadow-sm border border-[#E2E8F0] bg-white"
+                className="relative rounded-2xl overflow-hidden aspect-[3/4] cursor-pointer group shadow-sm border border-[#E2E8F0] bg-white"
               >
                 <img 
                   src={dest.image} 
                   alt={dest.name} 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 rounded-2xl"
                   referrerPolicy="no-referrer"
                   onError={handleImageError}
                 />
@@ -626,14 +626,14 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
             <div
               key={listing.id}
               id={`exclusive-card-${listing.id}`}
-              className="bg-white rounded-none overflow-hidden border border-slate-200 flex flex-col h-full group hover:border-emerald-300 transition-all shadow-md"
+              className="bg-white rounded-2xl overflow-hidden border border-slate-200 flex flex-col h-full group hover:border-emerald-300 transition-all shadow-md"
             >
               {/* Photo Area */}
-              <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
+              <div className="relative aspect-[16/10] overflow-hidden rounded-t-2xl bg-slate-100">
                 <img 
                   src={listing.image} 
                   alt={listing.title} 
-                  className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300"
+                  className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300 rounded-t-2xl"
                   referrerPolicy="no-referrer"
                   onError={handleImageError}
                 />

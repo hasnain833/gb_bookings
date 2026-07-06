@@ -443,7 +443,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
               <img 
                 src={activeImage} 
                 alt={listing.title} 
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover rounded-2xl"
                 referrerPolicy="no-referrer"
                 onError={handleImageError}
               />
@@ -459,7 +459,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
                       activeImage === img ? 'border-indigo-600 scale-103 shadow-xs' : 'border-slate-200 hover:border-slate-300'
                     }`}
                   >
-                    <img src={img} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" onError={handleImageError} />
+                    <img src={img} alt="" className="w-full h-full object-cover rounded-lg" referrerPolicy="no-referrer" onError={handleImageError} />
                   </button>
                 ))}
               </div>
