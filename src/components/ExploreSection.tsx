@@ -595,167 +595,172 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
 
       </section>
 
-      {/* 3. Original Category Bento Grid at the bottom */}
-      <section className="space-y-6 pt-4 animate-fadeIn" id="section-categories">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight uppercase">
-            {isRtl ? 'کیٹیگریز دیکھیں' : 'Browse By Category'}
-          </h2>
-          <p className="text-sm text-slate-500">{isRtl ? 'اپنا پسندیدہ سفر انجن چنیں اور گلگت بلتستان کے خوبصورت مقامات کا رخ کریں۔' : 'Pick a travel engine and set sail across the majestic lands of Gilgit Baltistan.'}</p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" id="category-cards-grid">
+      {/* 3. Category Bento Grid matching reference image */}
+      <section className="space-y-4 pt-2 animate-fadeIn" id="section-categories">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5" id="category-cards-grid">
           
           {/* Card 1: Hotels */}
           <div 
             onClick={() => handleCategoryCardClick('hotel')}
-            className="bg-white rounded-2xl overflow-hidden border border-[#E2E8F0] shadow-sm hover:shadow-xl hover:border-slate-300 transition-all cursor-pointer group flex flex-col justify-between"
+            className="bg-[#EFF6FF] rounded-2xl overflow-hidden border border-blue-100/80 shadow-2xs hover:shadow-md transition-all cursor-pointer group relative flex items-stretch h-[160px] sm:h-[165px]"
             id="category-hotels"
           >
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-bold text-indigo-600 tracking-wider uppercase bg-indigo-50 px-2.5 py-1 rounded-full">
-                  {isRtl ? '120+ ہوٹل' : '120+ Stays'}
-                </span>
-                <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center">
-                  <Building2 className="w-4 h-4 text-indigo-600" />
+            {/* Left Content */}
+            <div className="w-[58%] p-4 sm:p-4.5 flex flex-col justify-between z-10 shrink-0">
+              <div>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <Building2 className="w-5 h-5 text-[#2563EB] shrink-0 stroke-[2.2]" />
+                  <h3 className="text-base sm:text-[17px] font-extrabold text-slate-900 tracking-tight">
+                    {isRtl ? 'ہوٹل' : 'Hotels'}
+                  </h3>
                 </div>
+                <p className="text-[12px] font-bold text-slate-800">
+                  {isRtl ? '1200+ جائیدادیں' : '1200+ Properties'}
+                </p>
+                <p className="text-[11px] text-slate-500 leading-tight mt-0.5 line-clamp-2">
+                  {isRtl ? 'بہترین ہوٹل کے سودے اور لگژری قیام تلاش کریں' : 'Find the best hotel deals & luxury stays'}
+                </p>
               </div>
-              <h3 className="text-lg font-bold text-slate-950">{t('category.hotels.title')}</h3>
-              <p className="text-xs text-slate-500 mt-1">{t('category.hotels.desc')}</p>
+
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#2563EB] text-white flex items-center justify-center transition-transform group-hover:scale-110 duration-200 shadow-xs mt-2">
+                <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
+              </div>
             </div>
-            
-            <div className="px-6 pb-6 space-y-4">
-              <div className="h-32 rounded-xl overflow-hidden relative border border-slate-100">
-                <img 
-                  src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=400&q=80" 
-                  alt="Luxury Hotels Gilgit" 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  referrerPolicy="no-referrer"
-                  onError={handleImageError}
-                />
-              </div>
-              <div className="flex justify-start">
-                <div className="w-9 h-9 rounded-full bg-[#2563EB] text-white flex items-center justify-center transition-transform group-hover:translate-x-1 duration-200">
-                  <ArrowRight className="w-4 h-4" />
-                </div>
-              </div>
+
+            {/* Right Image Cutout */}
+            <div className="absolute right-0 top-0 bottom-0 w-[46%] overflow-hidden rounded-r-2xl rounded-l-[40px] sm:rounded-l-[50px]">
+              <img 
+                src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=600&q=80" 
+                alt="Hotels" 
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                referrerPolicy="no-referrer"
+                onError={handleImageError}
+              />
             </div>
           </div>
 
-            {/* Card 2: Homestays */}
-            <div 
-              onClick={() => handleCategoryCardClick('homestay')}
-              className="bg-white rounded-2xl overflow-hidden border border-[#E2E8F0] shadow-sm hover:shadow-xl hover:border-slate-300 transition-all cursor-pointer group flex flex-col justify-between"
-              id="category-homestays"
-            >
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] font-bold text-emerald-600 tracking-wider uppercase bg-emerald-50 px-2.5 py-1 rounded-full">
-                    {isRtl ? '800+ جائیدادیں' : '800+ Properties'}
-                  </span>
-                  <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center">
-                    <Home className="w-4 h-4 text-emerald-600" />
-                  </div>
+          {/* Card 2: Homestays */}
+          <div 
+            onClick={() => handleCategoryCardClick('homestay')}
+            className="bg-[#EFFDF4] rounded-2xl overflow-hidden border border-emerald-100/80 shadow-2xs hover:shadow-md transition-all cursor-pointer group relative flex items-stretch h-[160px] sm:h-[165px]"
+            id="category-homestays"
+          >
+            {/* Left Content */}
+            <div className="w-[58%] p-4 sm:p-4.5 flex flex-col justify-between z-10 shrink-0">
+              <div>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <Home className="w-5 h-5 text-[#059669] shrink-0 stroke-[2.2]" />
+                  <h3 className="text-base sm:text-[17px] font-extrabold text-slate-900 tracking-tight">
+                    {isRtl ? 'ہوم اسٹے' : 'Homestays'}
+                  </h3>
                 </div>
-                <h3 className="text-lg font-bold text-slate-950">{t('category.homestays.title')}</h3>
-                <p className="text-xs text-slate-500 mt-1">{t('category.homestays.desc')}</p>
+                <p className="text-[12px] font-bold text-slate-800">
+                  {isRtl ? '800+ جائیدادیں' : '800+ Properties'}
+                </p>
+                <p className="text-[11px] text-slate-500 leading-tight mt-0.5 line-clamp-2">
+                  {isRtl ? 'مقامی مہمان نوازی کے ساتھ پرسکون قیام' : 'Cozy stays with local hospitality'}
+                </p>
               </div>
-              
-              <div className="px-6 pb-6 space-y-4">
-                <div className="h-32 rounded-xl overflow-hidden relative border border-slate-100">
-                  <img 
-                    src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=400&q=80" 
-                    alt="Cozy Stays Skardu" 
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    referrerPolicy="no-referrer"
-                    onError={handleImageError}
-                  />
-                </div>
-                <div className="flex justify-start">
-                  <div className="w-9 h-9 rounded-full bg-[#16A34A] text-white flex items-center justify-center transition-transform group-hover:translate-x-1 duration-200">
-                    <ArrowRight className="w-4 h-4" />
-                  </div>
-                </div>
+
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#059669] text-white flex items-center justify-center transition-transform group-hover:scale-110 duration-200 shadow-xs mt-2">
+                <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
               </div>
             </div>
 
-            {/* Card 3: Cars */}
-            <div 
-              onClick={() => handleCategoryCardClick('car')}
-              className="bg-white rounded-2xl overflow-hidden border border-[#E2E8F0] shadow-sm hover:shadow-xl hover:border-slate-300 transition-all cursor-pointer group flex flex-col justify-between"
-              id="category-cars"
-            >
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] font-bold text-orange-600 tracking-wider uppercase bg-orange-50 px-2.5 py-1 rounded-full">
-                    {isRtl ? '500+ گاڑیاں' : '500+ Vehicles'}
-                  </span>
-                  <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center">
-                    <Car className="w-4 h-4 text-orange-600" />
-                  </div>
-                </div>
-                <h3 className="text-lg font-bold text-slate-950">{t('category.cars.title')}</h3>
-                <p className="text-xs text-slate-500 mt-1">{t('category.cars.desc')}</p>
-              </div>
-              
-              <div className="px-6 pb-6 space-y-4">
-                <div className="h-32 rounded-xl overflow-hidden relative border border-slate-100 bg-slate-50">
-                  <img 
-                    src="https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=400&q=80" 
-                    alt="Premium SUV Prado" 
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    referrerPolicy="no-referrer"
-                    onError={handleImageError}
-                  />
-                </div>
-                <div className="flex justify-start">
-                  <div className="w-9 h-9 rounded-full bg-[#EA580C] text-white flex items-center justify-center transition-transform group-hover:translate-x-1 duration-200">
-                    <ArrowRight className="w-4 h-4" />
-                  </div>
-                </div>
-              </div>
+            {/* Right Image Cutout */}
+            <div className="absolute right-0 top-0 bottom-0 w-[46%] overflow-hidden rounded-r-2xl rounded-l-[40px] sm:rounded-l-[50px]">
+              <img 
+                src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=600&q=80" 
+                alt="Homestays" 
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                referrerPolicy="no-referrer"
+                onError={handleImageError}
+              />
             </div>
-
-            {/* Card 4: Tours & Packages */}
-            <div 
-              onClick={() => handleCategoryCardClick('tour')}
-              className="bg-white rounded-2xl overflow-hidden border border-[#E2E8F0] shadow-sm hover:shadow-xl hover:border-slate-300 transition-all cursor-pointer group flex flex-col justify-between"
-              id="category-tours"
-            >
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] font-bold text-purple-600 tracking-wider uppercase bg-purple-50 px-2.5 py-1 rounded-full">
-                    {isRtl ? '50+ پیکیجز' : '50+ Packages'}
-                  </span>
-                  <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center">
-                    <Compass className="w-4 h-4 text-purple-600" />
-                  </div>
-                </div>
-                <h3 className="text-lg font-bold text-slate-950">{t('category.tours.title')}</h3>
-                <p className="text-xs text-slate-500 mt-1">{t('category.tours.desc')}</p>
-              </div>
-              
-              <div className="px-6 pb-6 space-y-4">
-                <div className="h-32 rounded-xl overflow-hidden relative border border-slate-100">
-                  <img 
-                    src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80" 
-                    alt="Curated Mountain Expeditions" 
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    referrerPolicy="no-referrer"
-                    onError={handleImageError}
-                  />
-                </div>
-                <div className="flex justify-start">
-                  <div className="w-9 h-9 rounded-full bg-[#6366F1] text-white flex items-center justify-center transition-transform group-hover:translate-x-1 duration-200">
-                    <ArrowRight className="w-4 h-4" />
-                  </div>
-                </div>
-              </div>
-            </div>
-
           </div>
-        </section>
+
+          {/* Card 3: Cars */}
+          <div 
+            onClick={() => handleCategoryCardClick('car')}
+            className="bg-[#FFF7ED] rounded-2xl overflow-hidden border border-orange-100/80 shadow-2xs hover:shadow-md transition-all cursor-pointer group relative flex items-stretch h-[160px] sm:h-[165px]"
+            id="category-cars"
+          >
+            {/* Left Content */}
+            <div className="w-[58%] p-4 sm:p-4.5 flex flex-col justify-between z-10 shrink-0">
+              <div>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <Car className="w-5 h-5 text-[#EA580C] shrink-0 stroke-[2.2]" />
+                  <h3 className="text-base sm:text-[17px] font-extrabold text-slate-900 tracking-tight">
+                    {isRtl ? 'گاڑیاں' : 'Cars'}
+                  </h3>
+                </div>
+                <p className="text-[12px] font-bold text-slate-800">
+                  {isRtl ? '500+ گاڑیاں' : '500+ Vehicles'}
+                </p>
+                <p className="text-[11px] text-slate-500 leading-tight mt-0.5 line-clamp-2">
+                  {isRtl ? 'آپ کے سفر کے لیے گاڑیوں کی وسعت' : 'Wide range of cars for your journey'}
+                </p>
+              </div>
+
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#EA580C] text-white flex items-center justify-center transition-transform group-hover:scale-110 duration-200 shadow-xs mt-2">
+                <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
+              </div>
+            </div>
+
+            {/* Right Image Cutout */}
+            <div className="absolute right-0 top-0 bottom-0 w-[46%] overflow-hidden rounded-r-2xl rounded-l-[40px] sm:rounded-l-[50px] bg-slate-100">
+              <img 
+                src="https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=600&q=80" 
+                alt="Cars" 
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                referrerPolicy="no-referrer"
+                onError={handleImageError}
+              />
+            </div>
+          </div>
+
+          {/* Card 4: Tours & Packages */}
+          <div 
+            onClick={() => handleCategoryCardClick('tour')}
+            className="bg-[#F5F3FF] rounded-2xl overflow-hidden border border-purple-100/80 shadow-2xs hover:shadow-md transition-all cursor-pointer group relative flex items-stretch h-[160px] sm:h-[165px]"
+            id="category-tours"
+          >
+            {/* Left Content */}
+            <div className="w-[58%] p-4 sm:p-4.5 flex flex-col justify-between z-10 shrink-0">
+              <div>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <Mountain className="w-5 h-5 text-[#7C3AED] shrink-0 stroke-[2.2]" />
+                  <h3 className="text-base sm:text-[17px] font-extrabold text-slate-900 tracking-tight whitespace-nowrap">
+                    {isRtl ? 'ٹورز اور پیکیجز' : 'Tours & Packages'}
+                  </h3>
+                </div>
+                <p className="text-[12px] font-bold text-slate-800">
+                  {isRtl ? '50+ پیکیجز' : '50+ Packages'}
+                </p>
+                <p className="text-[11px] text-slate-500 leading-tight mt-0.5 line-clamp-2">
+                  {isRtl ? 'خاص طور پر آپ کے لیے تیار کردہ تجربات' : 'Curated experiences just for you'}
+                </p>
+              </div>
+
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#7C3AED] text-white flex items-center justify-center transition-transform group-hover:scale-110 duration-200 shadow-xs mt-2">
+                <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
+              </div>
+            </div>
+
+            {/* Right Image Cutout */}
+            <div className="absolute right-0 top-0 bottom-0 w-[46%] overflow-hidden rounded-r-2xl rounded-l-[40px] sm:rounded-l-[50px]">
+              <img 
+                src="https://images.unsplash.com/photo-1551632811-561732d1e306?auto=format&fit=crop&w=600&q=80" 
+                alt="Tours and Packages" 
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                referrerPolicy="no-referrer"
+                onError={handleImageError}
+              />
+            </div>
+          </div>
+
+        </div>
+      </section>
 
       {/* 4. Editorial Locations Grid */}
       <section className="space-y-6 pt-4" id="section-destinations">
