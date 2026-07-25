@@ -234,9 +234,9 @@ export const INITIAL_LISTINGS: Listing[] = [
     price: 18000,
     rating: 4.8,
     reviewsCount: 198,
-    image: 'https://images.unsplash.com/photo-1583121274602-3e2820c69888?auto=format&fit=crop&w=1200&q=80',
+    image: 'https://images.unsplash.com/photo-1606016159991-dfe4f974be5c?auto=format&fit=crop&w=1200&q=80',
     images: [
-      'https://images.unsplash.com/photo-1583121274602-3e2820c69888?auto=format&fit=crop&w=1200&q=80'
+      'https://images.unsplash.com/photo-1606016159991-dfe4f974be5c?auto=format&fit=crop&w=1200&q=80'
     ],
     description: 'A powerful and popular companion for mountain drives, combining comfort and high terrain capability.',
     featured: true,
@@ -251,23 +251,23 @@ export const INITIAL_LISTINGS: Listing[] = [
   {
     id: 'c-3',
     type: 'car',
-    title: 'Toyota Camry',
+    title: 'Toyota Hiace Grand Cabin',
     location: 'Skardu, Gilgit Baltistan',
-    price: 15000,
+    price: 25000,
     rating: 4.7,
     reviewsCount: 112,
-    image: 'https://images.unsplash.com/photo-1617469767053-d3b508a0d182?auto=format&fit=crop&w=1200&q=80',
+    image: 'https://images.unsplash.com/photo-1520050206274-a1ae446cb3cc?auto=format&fit=crop&w=1200&q=80',
     images: [
-      'https://images.unsplash.com/photo-1617469767053-d3b508a0d182?auto=format&fit=crop&w=1200&q=80'
+      'https://images.unsplash.com/photo-1520050206274-a1ae446cb3cc?auto=format&fit=crop&w=1200&q=80'
     ],
-    description: 'A sleek, executive, and highly comfortable sedan. Ideal for inter-city travel and smooth paved highways.',
+    description: 'A spacious, executive, and highly comfortable grand cabin van. Ideal for groups, tours, and inter-city travel.',
     featured: false,
     carSpecs: {
-      category: 'Sedan',
+      category: 'Van',
       transmission: 'Automatic',
-      seats: 5,
-      fuelType: 'Petrol',
-      withDriver: false
+      seats: 14,
+      fuelType: 'Diesel',
+      withDriver: true
     }
   },
   {
@@ -275,18 +275,40 @@ export const INITIAL_LISTINGS: Listing[] = [
     type: 'car',
     title: 'Suzuki Cultus',
     location: 'Skardu, Gilgit Baltistan',
-    price: 35000, // PKR per day is listed as 3,500 in the image, but wait, the type says PKR 3,500 / day in image, let's write 3500!
+    price: 3500,
     rating: 4.6,
     reviewsCount: 98,
-    image: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=1200&q=80',
+    image: 'https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&w=1200&q=80',
     images: [
-      'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=1200&q=80'
+      'https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&w=1200&q=80'
     ],
     description: 'Highly economical and compact hatchback, perfect for city travel and budget-conscious travelers.',
     featured: false,
     carSpecs: {
       category: 'Hatchback',
       transmission: 'Manual',
+      seats: 4,
+      fuelType: 'Petrol',
+      withDriver: false
+    }
+  },
+  {
+    id: 'c-5',
+    type: 'car',
+    title: 'Honda Civic',
+    location: 'Skardu, Gilgit Baltistan',
+    price: 7500,
+    rating: 4.5,
+    reviewsCount: 98,
+    image: 'https://images.unsplash.com/photo-1606220588913-b3aacb4d2f46?auto=format&fit=crop&w=1200&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1606220588913-b3aacb4d2f46?auto=format&fit=crop&w=1200&q=80'
+    ],
+    description: 'A stylish, high-performing standard sedan. Ideal for inter-city travel and smooth paved highways.',
+    featured: false,
+    carSpecs: {
+      category: 'Sedan',
+      transmission: 'Automatic',
       seats: 5,
       fuelType: 'Petrol',
       withDriver: false

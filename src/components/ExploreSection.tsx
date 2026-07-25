@@ -1,13 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, MapPin, Calendar, Users, Star, ArrowRight, Compass, Shield, Award, Sparkles, 
   ChevronDown, ChevronUp, Clock, ShieldCheck, Heart, Building2, Home, Car, HelpCircle,
-  CheckCircle2, Flame, Users2, ThumbsUp, Headset, Mountain, Waves, Wallet
+  CheckCircle2, Flame, Users2, ThumbsUp, Headset, Mountain, Waves, Wallet,
+  ChevronLeft, ChevronRight, Map
 } from 'lucide-react';
 import { Listing, handleImageError } from '../types';
 import { INITIAL_LISTINGS, PAKISTAN_FAQ } from '../data';
 import { useLanguage, tListing } from '../LanguageContext';
+import { formatDateForDisplay, getMinCheckOutDate } from '../utils/date';
+import { CalendarPickerDropdown } from './CalendarPickerDropdown';
 
 interface ExploreSectionProps {
   setView: (v: string) => void;
@@ -20,35 +23,95 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
   // Supports tabs: 'hotel' | 'homestay' | 'car' | 'tour'
   const [activeTab, setActiveTab] = useState<'hotel' | 'homestay' | 'car' | 'tour'>('hotel');
   const [destination, setDestination] = useState('Gilgit Baltistan');
+  const [destQuery, setDestQuery] = useState('');
+  const [isDestDropdownOpen, setIsDestDropdownOpen] = useState(false);
+
   const [startDate, setStartDate] = useState('2025-05-20');
   const [endDate, setEndDate] = useState('2025-05-23');
-  const [guestCount, setGuestCount] = useState('2 Guests, 1 Room');
+  const [isStartDateOpen, setIsStartDateOpen] = useState(false);
+  const [isEndDateOpen, setIsEndDateOpen] = useState(false);
+
+  const [adultGuests, setAdultGuests] = useState(2);
+  const [roomCount, setRoomCount] = useState(1);
+  const [isGuestDropdownOpen, setIsGuestDropdownOpen] = useState(false);
+
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
 
-  const formatDateForDisplay = (dateStr: string) => {
-    if (!dateStr) return '';
-    const parts = dateStr.split('-');
-    if (parts.length !== 3) return dateStr;
-    const year = parts[0];
-    const monthIndex = parseInt(parts[1], 10) - 1;
-    const day = parseInt(parts[2], 10);
-    
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ];
-    
-    const monthName = months[monthIndex] || parts[1];
-    return `${day} ${monthName} ${year}`;
-  };
+  const destDropdownRef = React.useRef<HTMLDivElement>(null);
+  const guestDropdownRef = React.useRef<HTMLDivElement>(null);
+  const startDateRef = React.useRef<HTMLDivElement>(null);
+  const endDateRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (destDropdownRef.current && !destDropdownRef.current.contains(event.target as Node)) {
+        setIsDestDropdownOpen(false);
+      }
+      if (guestDropdownRef.current && !guestDropdownRef.current.contains(event.target as Node)) {
+        setIsGuestDropdownOpen(false);
+      }
+      if (startDateRef.current && !startDateRef.current.contains(event.target as Node)) {
+        setIsStartDateOpen(false);
+      }
+      if (endDateRef.current && !endDateRef.current.contains(event.target as Node)) {
+        setIsEndDateOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const destinationItems = [
+    { name: 'Gilgit Baltistan', region: 'Northern Pakistan', desc: 'Search entire Gilgit Baltistan' },
+    { name: 'Hunza Valley', region: 'Gilgit-Baltistan', desc: 'Karimabad, Attabad Lake, Passu Cones' },
+    { name: 'Skardu', region: 'Gilgit-Baltistan', desc: 'Shangrila Lake, Cold Desert, Deosai' },
+    { name: 'Attabad Lake', region: 'Hunza', desc: 'Boating & luxury water resorts' },
+    { name: 'Karimabad', region: 'Hunza', desc: 'Baltit Fort, Altit Fort & Local Bazaar' },
+    { name: 'Swat Valley', region: 'Khyber Pakhtunkhwa', desc: 'Kalam, Malam Jabba Ski Resort' },
+    { name: 'Fairy Meadows', region: 'Diamer', desc: 'Nanga Parbat Basecamp trekking' },
+    { name: 'Khaplu Valley', region: 'Baltistan', desc: 'Historic Khaplu Fort & Palace' },
+    { name: 'Naltar Valley', region: 'Gilgit', desc: 'Satrangi Lake & Pine valley' },
+    { name: 'Islamabad', region: 'Federal Capital', desc: 'Margalla Hills & Faisal Mosque' },
+  ];
+
+  const filteredDestinations = destinationItems.filter(item => 
+    item.name.toLowerCase().includes((destQuery || destination).toLowerCase()) || 
+    item.region.toLowerCase().includes((destQuery || destination).toLowerCase()) ||
+    item.desc.toLowerCase().includes((destQuery || destination).toLowerCase())
+  );
+
+  // States for Countdown timer & Testimonials matching the second image
+  const [timeLeft, setTimeLeft] = useState({ days: 2, hours: 14, minutes: 36, seconds: 45 });
+  const [testimonialIdx, setTestimonialIdx] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev.seconds > 0) {
+          return { ...prev, seconds: prev.seconds - 1 };
+        } else if (prev.minutes > 0) {
+          return { ...prev, minutes: prev.minutes - 1, seconds: 59 };
+        } else if (prev.hours > 0) {
+          return { ...prev, hours: prev.hours - 1, minutes: 59, seconds: 59 };
+        } else if (prev.days > 0) {
+          return { days: prev.days - 1, hours: 23, minutes: 59, seconds: 59 };
+        } else {
+          // Reset to some realistic countdown state
+          return { days: 2, hours: 14, minutes: 36, seconds: 45 };
+        }
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    const formattedGuestLabel = `${adultGuests} Guest${adultGuests > 1 ? 's' : ''}, ${roomCount} Room${roomCount > 1 ? 's' : ''}`;
     setSearchFilters({
-      destination: destination === 'Gilgit Baltistan' ? 'Hunza' : destination,
+      destination: destination || 'Gilgit Baltistan',
       startDate,
       endDate,
-      extra: { guestCount, isHomestay: activeTab === 'homestay' }
+      extra: { guestCount: formattedGuestLabel, isHomestay: activeTab === 'homestay' }
     });
     
     // Route appropriately based on selected tab
@@ -137,21 +200,14 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                 <div className="w-8 h-8 rounded-full bg-[#10B981]/25 border border-[#10B981]/30 flex items-center justify-center shrink-0">
                   <ShieldCheck className="w-4 h-4 text-emerald-400" />
                 </div>
-                <span className="text-[11px] font-bold tracking-tight">Verified Homestays</span>
-              </div>
-
-              <div className="flex items-center gap-2 text-white">
-                <div className="w-8 h-8 rounded-full bg-[#10B981]/25 border border-[#10B981]/30 flex items-center justify-center shrink-0">
-                  <Users className="w-4 h-4 text-emerald-400" />
-                </div>
-                <span className="text-[11px] font-bold tracking-tight">Local Hosts</span>
-              </div>
-
-              <div className="flex items-center gap-2 text-white">
-                <div className="w-8 h-8 rounded-full bg-[#10B981]/25 border border-[#10B981]/30 flex items-center justify-center shrink-0">
-                  <Award className="w-4 h-4 text-emerald-400" />
-                </div>
                 <span className="text-[11px] font-bold tracking-tight">Best Price Guarantee</span>
+              </div>
+
+              <div className="flex items-center gap-2 text-white">
+                <div className="w-8 h-8 rounded-full bg-[#10B981]/25 border border-[#10B981]/30 flex items-center justify-center shrink-0">
+                  <Calendar className="w-4 h-4 text-emerald-400" />
+                </div>
+                <span className="text-[11px] font-bold tracking-tight">Free Cancellation</span>
               </div>
 
               <div className="flex items-center gap-2 text-white">
@@ -159,6 +215,13 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                   <Headset className="w-4 h-4 text-emerald-400" />
                 </div>
                 <span className="text-[11px] font-bold tracking-tight">24/7 Support</span>
+              </div>
+
+              <div className="flex items-center gap-2 text-white">
+                <div className="w-8 h-8 rounded-full bg-[#10B981]/25 border border-[#10B981]/30 flex items-center justify-center shrink-0">
+                  <Award className="w-4 h-4 text-emerald-400" />
+                </div>
+                <span className="text-[11px] font-bold tracking-tight">Trusted by Thousands</span>
               </div>
             </div>
           </div>
@@ -209,10 +272,10 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
 
       {/* 2. Overlapping Booking / Search Widget Console */}
       <section className="-mt-20 relative z-20 max-w-7xl mx-auto px-2" id="search-console">
-        <div className="bg-white rounded-3xl border border-[#E2E8F0] shadow-2xl overflow-hidden">
+        <div className="bg-white rounded-3xl border border-[#E2E8F0] shadow-2xl overflow-visible">
           
           {/* Tabs header matching the image: Hotels, Homestays, Cars, Tours */}
-          <div className="flex border-b border-[#F1F5F9] bg-[#FAFAFA] px-6 sm:px-8 gap-4 sm:gap-8 overflow-x-auto scrollbar-none" id="booking-tabs">
+          <div className="flex border-b border-[#F1F5F9] bg-[#FAFAFA] px-6 sm:px-8 gap-4 sm:gap-8 overflow-x-auto scrollbar-none rounded-t-3xl" id="booking-tabs">
             {[
               { id: 'hotel', label: t('search.hotel_tab'), icon: Building2 },
               { id: 'homestay', label: t('search.homestay_tab'), icon: Home },
@@ -228,107 +291,248 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                   onClick={() => setActiveTab(tab.id as any)}
                   className={`flex items-center gap-2.5 py-4 px-1 border-b-2 font-bold text-[13px] uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
                     isActive
-                      ? 'border-[#0B5D3E] text-[#0B5D3E]'
+                      ? 'border-[#047857] text-[#047857]'
                       : 'border-transparent text-slate-500 hover:text-slate-800'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-[#0B5D3E]' : 'text-slate-400'}`} />
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-[#047857]' : 'text-slate-400'}`} />
                   <span>{tab.label}</span>
                 </button>
               );
             })}
           </div>
 
-          {/* Form Fields Section */}
-          <form onSubmit={handleSearch} className="p-6 sm:p-8 space-y-6" id="form-search-listings">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-px md:bg-[#E2E8F0] md:rounded-xl overflow-hidden border-none md:border md:border-[#E2E8F0] items-stretch" id="fields-row">
+          {/* Form Fields Section with 5 Separated Boxes */}
+          <form onSubmit={handleSearch} className="p-4 sm:p-6 bg-slate-50/50 rounded-b-3xl" id="form-search-listings">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-3 sm:gap-3.5 items-stretch relative" id="fields-row">
               
-              {/* Field 1: Where are you going? */}
-              <div className="bg-white p-4 md:col-span-3 flex flex-col justify-center space-y-1 rounded-xl md:rounded-none border border-slate-200/80 md:border-none shadow-xs md:shadow-none">
-                <label className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider">{isRtl ? 'کہاں جانا چاہتے ہیں؟' : 'Where are you going?'}</label>
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-[#64748B] shrink-0" />
-                  <select
-                    id="search-dest"
-                    value={destination}
-                    onChange={(e) => setDestination(e.target.value)}
-                    className="w-full bg-transparent border-none text-[13px] font-bold text-slate-800 focus:outline-none p-0 cursor-pointer"
-                  >
-                    <option value="Gilgit Baltistan">{isRtl ? 'منزل تلاش کریں (گلگت بلتستان)' : 'Search destination (Gilgit Baltistan)'}</option>
-                    <option value="Hunza">{isRtl ? 'وادی ہنزہ' : 'Hunza Valley'}</option>
-                    <option value="Skardu">{isRtl ? 'سکردو کا علاقہ' : 'Skardu Region'}</option>
-                    <option value="Swat">{isRtl ? 'سوات اور مالم جبہ' : 'Swat & Malam Jabba'}</option>
-                    <option value="Islamabad">{isRtl ? 'اسلام آباد (دارالحکومت)' : 'Islamabad (Capital)'}</option>
-                    <option value="Lahore">{isRtl ? 'لاہور (تاریخی مقام)' : 'Lahore (Heritage)'}</option>
-                  </select>
+              {/* Box 1: Where are you going? */}
+              <div ref={destDropdownRef} className="bg-white rounded-xl border border-slate-200/90 p-3.5 sm:p-4 shadow-2xs hover:border-slate-300 transition-colors flex flex-col justify-center space-y-1 lg:col-span-3 xl:col-span-3 relative">
+                <label className="text-[11px] font-bold text-slate-700 tracking-tight">{isRtl ? 'کہاں جانا چاہتے ہیں؟' : 'Where are you going?'}</label>
+                <div className="flex items-center gap-2 relative">
+                  <MapPin className="w-4 h-4 text-slate-500 shrink-0" />
+                  <input
+                    type="text"
+                    id="search-dest-input"
+                    value={isDestDropdownOpen ? destQuery : destination}
+                    onChange={(e) => {
+                      setDestQuery(e.target.value);
+                      setDestination(e.target.value);
+                      setIsDestDropdownOpen(true);
+                    }}
+                    onFocus={() => {
+                      setDestQuery(destination === 'Gilgit Baltistan' ? '' : destination);
+                      setIsDestDropdownOpen(true);
+                    }}
+                    placeholder={isRtl ? 'منزل، ہوٹل یا علاقہ تلاش کریں' : 'Search destination, hotel or area'}
+                    className="w-full bg-transparent border-none text-[13px] font-bold text-slate-800 focus:outline-none p-0 cursor-text placeholder-slate-400"
+                  />
                 </div>
+
+                {/* Dropdown Menu BELOW the field */}
+                {isDestDropdownOpen && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 max-h-72 overflow-y-auto p-2 space-y-1">
+                    <div className="px-3 py-1.5 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                      Popular Destinations in GB
+                    </div>
+                    {filteredDestinations.length > 0 ? (
+                      filteredDestinations.map((item, idx) => (
+                        <div
+                          key={idx}
+                          onClick={() => {
+                            setDestination(item.name);
+                            setDestQuery(item.name);
+                            setIsDestDropdownOpen(false);
+                          }}
+                          className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors"
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-7 h-7 rounded-lg bg-emerald-50 text-[#047857] flex items-center justify-center shrink-0">
+                              <MapPin className="w-3.5 h-3.5" />
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-slate-800">{item.name}</p>
+                              <p className="text-[10px] text-slate-500 font-medium">{item.desc}</p>
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">{item.region}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="p-4 text-center text-xs text-slate-500">
+                        No destinations found matching &quot;{destQuery}&quot;
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
-              {/* Field 2: Check-in with Overlay Display */}
-              <div className="bg-white p-4 md:col-span-2 flex flex-col justify-center space-y-1 rounded-xl md:rounded-none relative min-h-[64px] border border-slate-200/80 md:border-none shadow-xs md:shadow-none">
-                <label className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider">{isRtl ? 'چیک ان' : 'Check-in'}</label>
+              {/* Box 2: Check-in */}
+              <div 
+                ref={startDateRef}
+                onClick={() => {
+                  setIsStartDateOpen(!isStartDateOpen);
+                  setIsEndDateOpen(false);
+                  setIsGuestDropdownOpen(false);
+                  setIsDestDropdownOpen(false);
+                }}
+                className="bg-white rounded-xl border border-slate-200/90 p-3.5 sm:p-4 shadow-2xs hover:border-slate-300 transition-colors flex flex-col justify-center space-y-1 lg:col-span-2 relative cursor-pointer group"
+              >
+                <label className="text-[11px] font-bold text-slate-700 tracking-tight cursor-pointer">{isRtl ? 'چیک ان' : 'Check-in'}</label>
                 <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-[#64748B] shrink-0" />
-                  <span className="text-[13px] font-bold text-slate-800 select-none">
+                  <Calendar className="w-4 h-4 text-slate-500 group-hover:text-[#047857] transition-colors shrink-0" />
+                  <span className="text-[13px] font-bold text-slate-800 select-none whitespace-nowrap">
                     {formatDateForDisplay(startDate)}
                   </span>
-                  <input
-                    type="date"
-                    id="search-start-date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
-                  />
                 </div>
+
+                {/* Calendar Dropdown */}
+                {isStartDateOpen && (
+                  <CalendarPickerDropdown
+                    title="Check-in Date"
+                    selectedDate={startDate}
+                    minDate={new Date().toISOString().split('T')[0]}
+                    onChange={(newDate) => {
+                      setStartDate(newDate);
+                      if (newDate > endDate) {
+                        setEndDate(newDate);
+                      }
+                    }}
+                    onClose={() => setIsStartDateOpen(false)}
+                  />
+                )}
               </div>
 
-              {/* Field 3: Check-out with Overlay Display */}
-              <div className="bg-white p-4 md:col-span-2 flex flex-col justify-center space-y-1 rounded-xl md:rounded-none relative min-h-[64px] border border-slate-200/80 md:border-none shadow-xs md:shadow-none">
-                <label className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider">{isRtl ? 'چیک آؤٹ' : 'Check-out'}</label>
+              {/* Box 3: Check-out */}
+              <div 
+                ref={endDateRef}
+                onClick={() => {
+                  setIsEndDateOpen(!isEndDateOpen);
+                  setIsStartDateOpen(false);
+                  setIsGuestDropdownOpen(false);
+                  setIsDestDropdownOpen(false);
+                }}
+                className="bg-white rounded-xl border border-slate-200/90 p-3.5 sm:p-4 shadow-2xs hover:border-slate-300 transition-colors flex flex-col justify-center space-y-1 lg:col-span-2 relative cursor-pointer group"
+              >
+                <label className="text-[11px] font-bold text-slate-700 tracking-tight cursor-pointer">{isRtl ? 'چیک آؤٹ' : 'Check-out'}</label>
                 <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-[#64748B] shrink-0" />
-                  <span className="text-[13px] font-bold text-slate-800 select-none">
+                  <Calendar className="w-4 h-4 text-slate-500 group-hover:text-[#047857] transition-colors shrink-0" />
+                  <span className="text-[13px] font-bold text-slate-800 select-none whitespace-nowrap">
                     {formatDateForDisplay(endDate)}
                   </span>
-                  <input
-                    type="date"
-                    id="search-end-date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                </div>
+
+                {/* Calendar Dropdown */}
+                {isEndDateOpen && (
+                  <CalendarPickerDropdown
+                    title="Check-out Date"
+                    selectedDate={endDate}
+                    minDate={startDate}
+                    onChange={(newDate) => setEndDate(newDate)}
+                    onClose={() => setIsEndDateOpen(false)}
                   />
-                </div>
+                )}
               </div>
 
-              {/* Field 4: Guests & Rooms */}
-              <div className="bg-white p-4 md:col-span-3 flex flex-col justify-center space-y-1 rounded-xl md:rounded-none relative border border-slate-200/80 md:border-none shadow-xs md:shadow-none">
-                <label className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider">{t('search.guests')}</label>
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-[#64748B] shrink-0" />
-                  <select
-                    value={guestCount}
-                    onChange={(e) => setGuestCount(e.target.value)}
-                    className="w-full bg-transparent border-none text-[13px] font-bold text-slate-800 focus:outline-none p-0 cursor-pointer appearance-none pr-6"
+              {/* Box 4: Guests & Rooms */}
+              <div 
+                ref={guestDropdownRef} 
+                onClick={() => {
+                  setIsGuestDropdownOpen(!isGuestDropdownOpen);
+                  setIsStartDateOpen(false);
+                  setIsEndDateOpen(false);
+                  setIsDestDropdownOpen(false);
+                }}
+                className="bg-white rounded-xl border border-slate-200/90 p-3.5 sm:p-4 shadow-2xs hover:border-slate-300 transition-colors flex flex-col justify-center space-y-1 lg:col-span-3 xl:col-span-3 relative cursor-pointer group"
+              >
+                <label className="text-[11px] font-bold text-slate-700 tracking-tight cursor-pointer">{t('search.guests')}</label>
+                <div className="flex items-center justify-between gap-1 cursor-pointer">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Users className="w-4 h-4 text-slate-500 group-hover:text-[#047857] transition-colors shrink-0" />
+                    <span className="text-[13px] font-bold text-slate-800 select-none whitespace-nowrap truncate">
+                      {adultGuests} Guest{adultGuests > 1 ? 's' : ''}, {roomCount} Room{roomCount > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform shrink-0 ${isGuestDropdownOpen ? 'rotate-180' : ''}`} />
+                </div>
+
+                {/* Dropdown for Guest & Room counters */}
+                {isGuestDropdownOpen && (
+                  <div 
+                    onClick={(e) => e.stopPropagation()}
+                    className="absolute top-full left-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 p-4 space-y-4"
                   >
-                    <option value="2 Guests, 1 Room">{isRtl ? '2 مہمان، 1 کمرہ' : '2 Guests, 1 Room'}</option>
-                    <option value="1 Guest, 1 Room">{isRtl ? '1 مہمان، 1 کمرہ' : '1 Guest, 1 Room'}</option>
-                    <option value="4 Guests, 2 Rooms">{isRtl ? '4 مہمان، 2 کمرے' : '4 Guests, 2 Rooms'}</option>
-                    <option value="6 Guests, 3 Rooms">{isRtl ? '6 مہمان، 3 کمرے' : '6 Guests, 3 Rooms'}</option>
-                  </select>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-500 absolute right-4 pointer-events-none" />
-                </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-bold text-slate-800">Guests</p>
+                        <p className="text-[10px] text-slate-500">Ages 13 or above</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setAdultGuests(Math.max(1, adultGuests - 1))}
+                          className="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
+                        >
+                          -
+                        </button>
+                        <span className="text-xs font-bold w-4 text-center">{adultGuests}</span>
+                        <button
+                          type="button"
+                          onClick={() => setAdultGuests(Math.min(20, adultGuests + 1))}
+                          className="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-slate-100 pt-3 flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-bold text-slate-800">Rooms</p>
+                        <p className="text-[10px] text-slate-500 font-medium">Number of rooms</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setRoomCount(Math.max(1, roomCount - 1))}
+                          className="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
+                        >
+                          -
+                        </button>
+                        <span className="text-xs font-bold w-4 text-center">{roomCount}</span>
+                        <button
+                          type="button"
+                          onClick={() => setRoomCount(Math.min(10, roomCount + 1))}
+                          className="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-slate-100 pt-3 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setIsGuestDropdownOpen(false)}
+                        className="bg-[#047857] hover:bg-[#065f46] text-white text-xs font-bold px-4 py-1.5 rounded-lg transition-colors cursor-pointer"
+                      >
+                        Done
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Field 5: Unified Search Now Button */}
-              <div className="bg-white p-2 md:col-span-2 flex items-center justify-center rounded-xl md:rounded-none">
+              {/* Box 5: Unified Search Button */}
+              <div className="lg:col-span-2 flex items-stretch">
                 <button
                   type="submit"
                   id="btn-trigger-search"
-                  className="w-full h-full bg-[#0B5D3E] hover:bg-[#07472E] text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] text-[14px] uppercase tracking-wider cursor-pointer py-3.5 md:py-0 min-h-[48px] md:min-h-0"
+                  className="w-full h-full min-h-[50px] bg-gradient-to-r from-[#047857] to-[#059669] hover:from-[#065f46] hover:to-[#047857] text-white font-bold rounded-xl flex items-center justify-center gap-2 px-6 py-3.5 transition-all hover:scale-[1.01] active:scale-[0.99] text-[14px] cursor-pointer shadow-sm"
                 >
                   <Search className="w-4 h-4 stroke-[2.5] shrink-0" />
-                  <span className="whitespace-nowrap font-extrabold text-[13px]">
-                    {activeTab === 'homestay' ? 'Search Homestays' : t('search.btn')}
+                  <span className="whitespace-nowrap font-extrabold text-[14px]">
+                    Search Now
                   </span>
                 </button>
               </div>
@@ -338,29 +542,54 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
           </form>
         </div>
 
-        {/* 5-Column Trust Assurance Bar directly matching the reference image */}
-        <div className="mt-6 bg-[#F8FAFC] border border-slate-200/60 rounded-2xl p-4 sm:p-5" id="homestay-trust-bar">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 items-stretch text-left">
-            {[
-              { title: 'Best Price Guarantee', desc: 'We ensure you get the best price', icon: ShieldCheck },
-              { title: 'Free Cancellation', desc: 'Cancel up to 24 hours', icon: Calendar },
-              { title: 'Instant Confirmation', desc: 'Book & get confirmed', icon: Sparkles },
-              { title: 'Secure Payments', desc: '100% safe & secure', icon: Shield },
-              { title: '24/7 Support', desc: "We're here to help", icon: Headset }
-            ].map((badge, idx) => {
-              const Icon = badge.icon;
-              return (
-                <div key={idx} className="flex items-start gap-3 text-slate-700 p-2 rounded-xl hover:bg-slate-50 transition-all min-w-0">
-                  <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-[#0B5D3E] shrink-0">
-                    <Icon className="w-5 h-5 shrink-0" />
-                  </div>
-                  <div className="min-w-0">
-                    <h5 className="font-extrabold text-[12px] sm:text-[13px] text-slate-800 leading-tight">{badge.title}</h5>
-                    <p className="text-[10px] sm:text-[11px] text-slate-500 mt-1 break-words">{badge.desc}</p>
-                  </div>
-                </div>
-              );
-            })}
+        {/* 4-Column Trust Assurance Bar matching reference image with vertical dividers */}
+        <div className="mt-5 bg-[#F8FAFC] border border-slate-200/70 rounded-2xl p-2 sm:p-3 shadow-2xs" id="homestay-trust-bar">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 lg:divide-x divide-slate-200/80 items-center">
+            
+            {/* Item 1 */}
+            <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
+              <div className="w-10 h-10 rounded-full bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center text-[#047857] shrink-0">
+                <ShieldCheck className="w-5 h-5 shrink-0 text-[#047857]" />
+              </div>
+              <div className="min-w-0">
+                <h5 className="font-bold text-[13px] text-slate-800 leading-snug">Best Price Guarantee</h5>
+                <p className="text-[11px] text-slate-500 break-words">We ensure you get the best price</p>
+              </div>
+            </div>
+
+            {/* Item 2 */}
+            <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
+              <div className="w-10 h-10 rounded-full bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center text-[#047857] shrink-0">
+                <Calendar className="w-5 h-5 shrink-0 text-[#047857]" />
+              </div>
+              <div className="min-w-0">
+                <h5 className="font-bold text-[13px] text-slate-800 leading-snug">Free Cancellation</h5>
+                <p className="text-[11px] text-slate-500 break-words">Cancel up to 24 hours</p>
+              </div>
+            </div>
+
+            {/* Item 3 */}
+            <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
+              <div className="w-10 h-10 rounded-full bg-amber-100/70 border border-amber-200/60 flex items-center justify-center text-amber-600 shrink-0">
+                <Sparkles className="w-5 h-5 shrink-0 text-amber-500" />
+              </div>
+              <div className="min-w-0">
+                <h5 className="font-bold text-[13px] text-slate-800 leading-snug">Instant Confirmation</h5>
+                <p className="text-[11px] text-slate-500 break-words">Book & get confirmed</p>
+              </div>
+            </div>
+
+            {/* Item 4 */}
+            <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
+              <div className="w-10 h-10 rounded-full bg-purple-100/70 border border-purple-200/60 flex items-center justify-center text-purple-600 shrink-0">
+                <Shield className="w-5 h-5 shrink-0 text-purple-600" />
+              </div>
+              <div className="min-w-0">
+                <h5 className="font-bold text-[13px] text-slate-800 leading-snug">Secure Payments</h5>
+                <p className="text-[11px] text-slate-500 break-words">100% safe & secure</p>
+              </div>
+            </div>
+
           </div>
         </div>
 
@@ -699,6 +928,967 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
         </div>
       </section>
 
+      {/* SECTION 1: Featured Hotels & Resorts */}
+      <section className="space-y-6 pt-6" id="section-featured-hotels">
+        <div className="flex items-end justify-between flex-wrap gap-4 border-b border-slate-100 pb-3">
+          <div>
+            <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 uppercase">
+              {isRtl ? 'نمایاں ہوٹلز اور ریزارٹس' : 'Featured Hotels & Resorts'}
+            </h3>
+            <p className="text-sm text-slate-500 mt-1">
+              {isRtl ? 'ایک ناقابل فراموش تجربے کے لیے ہاتھ سے منتخب کردہ رہائش گاہیں۔' : 'Handpicked stays for an unforgettable experience'}
+            </p>
+          </div>
+          <button 
+            id="btn-all-hotels-link"
+            onClick={() => { setDestination(''); setView('hotels'); }}
+            className="text-xs font-bold text-emerald-700 uppercase tracking-wider flex items-center gap-1 hover:text-emerald-800 transition-colors cursor-pointer"
+          >
+            <span>{isRtl ? 'تمام ہوٹلز دیکھیں' : 'View all Hotels'}</span> <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5" id="featured-hotels-grid">
+          {[
+            {
+              id: 'h-4',
+              title: 'PC Malam Jabba',
+              location: 'Swat Valley, KPK',
+              rating: 4.6,
+              reviewsCount: 145,
+              price: 13200,
+              badge: 'Best Seller',
+              badgeColor: 'bg-[#FF7D29]',
+              image: 'https://images.unsplash.com/photo-1518098268026-4e43a1a009de?auto=format&fit=crop&w=400&q=80'
+            },
+            {
+              id: 'h-1',
+              title: 'Serena Hotel Hunza',
+              location: 'Hunza, Gilgit Baltistan',
+              rating: 4.8,
+              reviewsCount: 256,
+              price: 18500,
+              badge: 'Top Rated',
+              badgeColor: 'bg-emerald-600',
+              image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=400&q=80'
+            },
+            {
+              id: 'h-3',
+              title: 'Gilgit Serena Hotel',
+              location: 'Gilgit, Baltistan',
+              rating: 4.7,
+              reviewsCount: 198,
+              price: 16500,
+              badge: 'Luxury',
+              badgeColor: 'bg-blue-600',
+              image: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=400&q=80'
+            },
+            {
+              id: 'h-2',
+              title: 'Pearl Continental Skardu',
+              location: 'Skardu, Baltistan',
+              rating: 4.7,
+              reviewsCount: 170,
+              price: 16800,
+              badge: 'Popular',
+              badgeColor: 'bg-teal-600',
+              image: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=400&q=80'
+            },
+            {
+              id: 'h-5',
+              title: 'Mountiand Lodge Resort',
+              location: 'Skardu, Baltistan',
+              rating: 4.4,
+              reviewsCount: 112,
+              price: 14000,
+              badge: 'New',
+              badgeColor: 'bg-orange-500',
+              image: 'https://images.unsplash.com/photo-1542718610-a1d656d1884c?auto=format&fit=crop&w=400&q=80'
+            }
+          ].map((hotel, idx) => (
+            <div 
+              key={idx}
+              id={`featured-hotel-card-${idx}`}
+              onClick={() => {
+                // Find listing in INITIAL_LISTINGS or generate a dynamic one
+                const matched = INITIAL_LISTINGS.find(l => l.id === hotel.id) || {
+                  id: hotel.id,
+                  type: 'hotel',
+                  title: hotel.title,
+                  location: hotel.location,
+                  price: hotel.price,
+                  rating: hotel.rating,
+                  reviewsCount: hotel.reviewsCount,
+                  image: hotel.image,
+                  images: [hotel.image],
+                  description: `${hotel.title} is a premium standard accommodation situated in the beautiful landscape of ${hotel.location}, providing high fidelity hospitality services.`,
+                  featured: true,
+                  hotelSpecs: { roomsAvailable: 5, amenities: ['Free Wi-Fi', 'Room Service', 'Fireside Lounge', 'Traditional Dining'], hotelType: 'Premium Hotel' }
+                };
+                onSelectListing(matched as any);
+              }}
+              className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-lg hover:border-emerald-300 transition-all duration-300 flex flex-col justify-between h-full group cursor-pointer text-left"
+            >
+              <div className="relative aspect-[4/3] w-full overflow-hidden shrink-0 bg-slate-100">
+                <img 
+                  src={hotel.image} 
+                  alt={hotel.title} 
+                  className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300 rounded-t-2xl"
+                  referrerPolicy="no-referrer"
+                  onError={handleImageError}
+                />
+                <div className={`absolute top-2.5 left-2.5 text-white text-[9px] font-extrabold uppercase px-2 py-0.5 shadow-xs tracking-wider rounded-md ${hotel.badgeColor}`}>
+                  {hotel.badge}
+                </div>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); }}
+                  className="absolute top-2.5 right-2.5 w-7 h-7 bg-white/95 rounded-full border border-slate-100 flex items-center justify-center text-slate-500 hover:text-red-500 hover:scale-105 active:scale-95 transition-all shadow-xs"
+                >
+                  <Heart className="w-3.5 h-3.5 stroke-[2.5]" />
+                </button>
+              </div>
+
+              <div className="p-4 flex-1 flex flex-col justify-between space-y-2">
+                <div className="space-y-1">
+                  <h4 className="text-[14px] font-extrabold text-slate-900 group-hover:text-emerald-700 transition-colors line-clamp-1 leading-snug">
+                    {hotel.title}
+                  </h4>
+                  <p className="text-[11px] text-slate-500 flex items-center">
+                    <MapPin className="w-3 h-3 text-slate-400 mr-0.5 shrink-0" />
+                    <span>{hotel.location}</span>
+                  </p>
+                  <div className="flex items-center gap-1 pt-1">
+                    <Star className="w-3 h-3 fill-amber-400 stroke-none" />
+                    <span className="text-[11px] font-bold text-slate-800">{hotel.rating}</span>
+                    <span className="text-[10px] text-slate-400">({hotel.reviewsCount} Reviews)</span>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-100 flex items-baseline justify-between">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">PKR {hotel.price.toLocaleString()}</span>
+                  <span className="text-[10px] text-slate-500 font-medium">/night</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* SECTION 2: Popular Destinations */}
+      <section className="space-y-6 pt-6" id="section-popular-destinations">
+        <div className="flex items-end justify-between flex-wrap gap-4 border-b border-slate-100 pb-3">
+          <div>
+            <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 uppercase">
+              {isRtl ? 'مقبول ترین مقامات' : 'Popular Destinations'}
+            </h3>
+            <p className="text-sm text-slate-500 mt-1">
+              {isRtl ? 'گلگت بلتستان میں سب سے مشہور مقامات کا جائزہ لیں۔' : 'Explore the most popular places in Gilgit Baltistan'}
+            </p>
+          </div>
+          <button 
+            id="btn-all-destinations-link-popular"
+            onClick={() => { setDestination(''); setView('hotels'); }}
+            className="text-xs font-bold text-emerald-700 uppercase tracking-wider flex items-center gap-1 hover:text-emerald-800 transition-colors cursor-pointer"
+          >
+            <span>{isRtl ? 'تمام مقامات دیکھیں' : 'View all Destinations'}</span> <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4" id="popular-destinations-grid">
+          {[
+            { name: 'Skardu', count: '320+ Properties', image: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=400&q=80' },
+            { name: 'Hunza Valley', count: '450+ Properties', image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=400&q=80' },
+            { name: 'Deosai Plains', count: '120+ Properties', image: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80' },
+            { name: 'Khaplu', count: '80+ Properties', image: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=400&q=80' },
+            { name: 'Basho Valley', count: '60+ Properties', image: 'https://images.unsplash.com/photo-1518098268026-4e43a1a009de?auto=format&fit=crop&w=400&q=80' }
+          ].map((dest, i) => (
+            <div
+              key={i}
+              id={`popular-dest-card-${i}`}
+              onClick={() => {
+                setDestination(dest.name);
+                setSearchFilters({ destination: dest.name, startDate: '', endDate: '', extra: {} });
+                setView('browse-hotels');
+              }}
+              className="relative rounded-2xl overflow-hidden aspect-[4/5] cursor-pointer group shadow-sm border border-slate-200/60 bg-slate-900"
+            >
+              <img 
+                src={dest.image} 
+                alt={dest.name} 
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 rounded-2xl opacity-90"
+                referrerPolicy="no-referrer"
+                onError={handleImageError}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/25 to-transparent" />
+              <div className="absolute bottom-4 left-4 right-4 text-left">
+                <p className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-400 flex items-center">
+                  <MapPin className="w-2.5 h-2.5 mr-0.5 text-emerald-400" /> {dest.name}
+                </p>
+                <h4 className="text-base font-black text-white mt-0.5 tracking-tight">{dest.name}</h4>
+                <span className="text-[10px] text-white/80 font-bold block mt-1">{dest.count}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* SECTION 3: Trending Tour Packages */}
+      <section className="space-y-6 pt-6" id="section-trending-tours">
+        <div className="flex items-end justify-between flex-wrap gap-4 border-b border-slate-100 pb-3">
+          <div>
+            <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 uppercase">
+              {isRtl ? 'مقبول ترین ٹور پیکیجز' : 'Trending Tour Packages'}
+            </h3>
+            <p className="text-sm text-slate-500 mt-1">
+              {isRtl ? 'صرف آپ کے لیے خصوصی طور پر تیار کردہ ٹورز۔' : 'Curated tour packages just for you'}
+            </p>
+          </div>
+          <button 
+            id="btn-all-tours-link-trending"
+            onClick={() => { setDestination(''); setView('tours'); }}
+            className="text-xs font-bold text-emerald-700 uppercase tracking-wider flex items-center gap-1 hover:text-emerald-800 transition-colors cursor-pointer"
+          >
+            <span>{isRtl ? 'تمام پیکیجز دیکھیں' : 'View all Packages'}</span> <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5" id="trending-tours-grid">
+          {[
+            {
+              title: 'Hunza Valley Explorer',
+              duration: '5 Days / 4 Nights',
+              stops: 'Islamabad - Hunza - Attabad Lake',
+              price: 45000,
+              oldPrice: 56000,
+              rating: 4.8,
+              reviews: 156,
+              badge: '-20% OFF',
+              badgeColor: 'bg-[#FF7D29]',
+              image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=400&q=80'
+            },
+            {
+              title: 'Skardu Adventure Tour',
+              duration: '6 Days / 5 Nights',
+              stops: 'Islamabad - Skardu - Shigar - Khaplu',
+              price: 38000,
+              oldPrice: 45000,
+              rating: 4.7,
+              reviews: 128,
+              badge: '-15% OFF',
+              badgeColor: 'bg-emerald-600',
+              image: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=400&q=80'
+            },
+            {
+              title: 'Deosai Plains Expedition',
+              duration: '4 Days / 3 Nights',
+              stops: 'Skardu - Deosai - Sheosar Lake',
+              price: 32000,
+              oldPrice: 36000,
+              rating: 4.6,
+              reviews: 98,
+              badge: '-10% OFF',
+              badgeColor: 'bg-blue-600',
+              image: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80'
+            },
+            {
+              title: 'Naran Kaghan Escape',
+              duration: '5 Days / 4 Nights',
+              stops: 'Islamabad - Naran - Lake Saif ul Malook',
+              price: 28000,
+              oldPrice: 36000,
+              rating: 4.6,
+              reviews: 98,
+              badge: 'Family Tour',
+              badgeColor: 'bg-purple-600',
+              image: 'https://images.unsplash.com/photo-1518098268026-4e43a1a009de?auto=format&fit=crop&w=400&q=80'
+            }
+          ].map((tour, idx) => (
+            <div 
+              key={idx}
+              id={`trending-tour-card-${idx}`}
+              onClick={() => {
+                const matched = {
+                  id: `t-trend-${idx}`,
+                  type: 'tour',
+                  title: tour.title,
+                  location: tour.stops,
+                  price: tour.price,
+                  rating: tour.rating,
+                  reviewsCount: tour.reviews,
+                  image: tour.image,
+                  images: [tour.image],
+                  description: `Experience the breathtaking adventure of our ${tour.title}. Spanning ${tour.duration}, this curated tour package includes luxury transport, premium stays, expert mountain guides, and breathtaking views of ${tour.stops}.`,
+                  featured: true,
+                  tourSpecs: { durationDays: parseInt(tour.duration), groupSizeMax: 12, standardInclusions: ['Luxury AC Coaster', '3-Star Hotel Stay', 'Local Mountain Guide', 'Daily Breakfast & Dinner', 'Entry Tickets Included'] }
+                };
+                onSelectListing(matched as any);
+              }}
+              className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-lg hover:border-emerald-300 transition-all duration-300 flex flex-col justify-between h-full group cursor-pointer text-left"
+            >
+              <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100 shrink-0">
+                <img 
+                  src={tour.image} 
+                  alt={tour.title} 
+                  className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300 rounded-t-2xl"
+                  referrerPolicy="no-referrer"
+                  onError={handleImageError}
+                />
+                <div className={`absolute top-2.5 left-2.5 text-white text-[9px] font-extrabold uppercase px-2.5 py-0.5 shadow-xs tracking-wider rounded-md ${tour.badgeColor}`}>
+                  {tour.badge}
+                </div>
+              </div>
+
+              <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold text-emerald-700 tracking-wider uppercase block">{tour.duration}</span>
+                  <h4 className="text-[14px] font-extrabold text-slate-900 group-hover:text-emerald-700 transition-colors line-clamp-1 leading-snug">
+                    {tour.title}
+                  </h4>
+                  <p className="text-[11px] text-slate-500 line-clamp-1 flex items-center">
+                    <MapPin className="w-3.5 h-3.5 text-slate-400 mr-0.5 shrink-0" />
+                    <span>{tour.stops}</span>
+                  </p>
+                  <div className="flex items-center gap-1 pt-1">
+                    <Star className="w-3 h-3 fill-amber-400 stroke-none" />
+                    <span className="text-[11px] font-bold text-slate-800">{tour.rating}</span>
+                    <span className="text-[10px] text-slate-400">({tour.reviews} Reviews)</span>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-[13px] font-black text-slate-950">PKR {tour.price.toLocaleString()}</span>
+                    {tour.oldPrice && (
+                      <span className="text-[11px] text-slate-400 line-through">PKR {tour.oldPrice.toLocaleString()}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* SECTION 4: Premium Car Rentals */}
+      <section className="space-y-6 pt-6" id="section-car-rentals">
+        <div className="flex items-end justify-between flex-wrap gap-4 border-b border-slate-100 pb-3">
+          <div>
+            <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 uppercase">
+              {isRtl ? 'پریمیم کار رینٹل' : 'Premium Car Rentals'}
+            </h3>
+            <p className="text-sm text-slate-500 mt-1">
+              {isRtl ? 'آرام دہ اور یادگار سفر کے لیے قابل اعتماد اور پائیدار گاڑیاں۔' : 'Reliable cars for a comfortable journey'}
+            </p>
+          </div>
+          <button 
+            id="btn-all-cars-link-premium"
+            onClick={() => { setDestination(''); setView('cars'); }}
+            className="text-xs font-bold text-emerald-700 uppercase tracking-wider flex items-center gap-1 hover:text-emerald-800 transition-colors cursor-pointer"
+          >
+            <span>{isRtl ? 'تمام گاڑیاں دیکھیں' : 'View all Cars'}</span> <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5" id="premium-cars-grid">
+          {[
+            {
+              title: 'Toyota Land Cruiser',
+              specs: ['SUV', 'Diesel', '7 Seats'],
+              price: 32000,
+              rating: 4.9,
+              reviews: 186,
+              badge: 'Best Seller',
+              badgeColor: 'bg-[#FF7D29]',
+              image: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=600&q=80'
+            },
+            {
+              title: 'Toyota Fortuner',
+              specs: ['SUV', 'Diesel', '7 Seats'],
+              price: 18000,
+              rating: 4.8,
+              reviews: 198,
+              badge: 'Popular',
+              badgeColor: 'bg-emerald-600',
+              image: 'https://images.unsplash.com/photo-1606016159991-dfe4f974be5c?auto=format&fit=crop&w=600&q=80'
+            },
+            {
+              title: 'Toyota Hiace Grand Cabin',
+              specs: ['Van', 'Diesel', '14 Seats'],
+              price: 25000,
+              rating: 4.7,
+              reviews: 112,
+              badge: 'Luxury',
+              badgeColor: 'bg-blue-600',
+              image: 'https://images.unsplash.com/photo-1520050206274-a1ae446cb3cc?auto=format&fit=crop&w=600&q=80'
+            },
+            {
+              title: 'Suzuki Cultus',
+              specs: ['Hatchback', 'Petrol', '4 Seats'],
+              price: 3500,
+              rating: 4.5,
+              reviews: 98,
+              badge: 'Economy',
+              badgeColor: 'bg-[#2563EB]',
+              image: 'https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&w=600&q=80'
+            },
+            {
+              title: 'Honda Civic',
+              specs: ['Sedan', 'Petrol', '5 Seats'],
+              price: 7500,
+              rating: 4.5,
+              reviews: 98,
+              badge: 'Standard',
+              badgeColor: 'bg-[#0D9488]',
+              image: 'https://images.unsplash.com/photo-1606220588913-b3aacb4d2f46?auto=format&fit=crop&w=600&q=80'
+            }
+          ].map((car, idx) => (
+            <div 
+              key={idx}
+              id={`premium-car-card-${idx}`}
+              onClick={() => {
+                const matched = {
+                  id: `car-trend-${idx}`,
+                  type: 'car',
+                  title: car.title,
+                  location: 'Gilgit & Skardu Region',
+                  price: car.price,
+                  rating: car.rating,
+                  reviewsCount: car.reviews,
+                  image: car.image,
+                  images: [car.image],
+                  description: `Experience a premium rental trip with ${car.title}, equipped with premium engine performance, pristine interiors, full heating/cooling, and highly durable build suitable for the Karakoram peaks. Includes options for professional local driver.`,
+                  featured: true,
+                  carSpecs: { transmission: 'Automatic', seatingCapacity: parseInt(car.specs[2]), fuelType: car.specs[1], engineCapacity: '2700cc', withDriverOption: true }
+                };
+                onSelectListing(matched as any);
+              }}
+              className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-lg hover:border-emerald-300 transition-all duration-300 flex flex-col justify-between h-full group cursor-pointer text-left"
+            >
+              <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100 shrink-0">
+                <img 
+                  src={car.image} 
+                  alt={car.title} 
+                  className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300 rounded-t-2xl"
+                  referrerPolicy="no-referrer"
+                  onError={handleImageError}
+                />
+                <div className={`absolute top-2.5 left-2.5 text-white text-[9px] font-extrabold uppercase px-2 py-0.5 shadow-xs tracking-wider rounded-md ${car.badgeColor}`}>
+                  {car.badge}
+                </div>
+              </div>
+
+              <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
+                <div className="space-y-1">
+                  <h4 className="text-[14px] font-extrabold text-slate-900 group-hover:text-emerald-700 transition-colors line-clamp-1 leading-snug">
+                    {car.title}
+                  </h4>
+                  
+                  {/* Specs badges layout matching image */}
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    {car.specs.map((spec, sIdx) => (
+                      <span key={sIdx} className="text-[9px] font-extrabold bg-slate-50 text-slate-600 px-2 py-0.5 rounded border border-slate-200/60 uppercase tracking-tight">
+                        {spec}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center gap-1 pt-1.5">
+                    <Star className="w-3 h-3 fill-amber-400 stroke-none" />
+                    <span className="text-[11px] font-bold text-slate-800">{car.rating}</span>
+                    <span className="text-[10px] text-slate-400">({car.reviews} Reviews)</span>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-100 flex items-baseline justify-between">
+                  <span className="text-[13px] font-black text-slate-950">PKR {car.price.toLocaleString()}</span>
+                  <span className="text-[10px] text-slate-500 font-medium">/day</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* SECTION 5: Summer Special Deals! */}
+      <section className="pt-6" id="section-summer-deals">
+        <div className="bg-[#FAFBFD] border border-slate-200/65 rounded-3xl overflow-hidden shadow-sm grid grid-cols-1 lg:grid-cols-12 items-stretch">
+          
+          {/* Left Area: Countdown Promo (Green Block matching the image) */}
+          <div className="lg:col-span-5 bg-gradient-to-r from-[#035133] via-[#0E6C49] to-[#0A3D75] p-6 sm:p-8 flex flex-col justify-between text-white relative overflow-hidden text-left min-h-[280px]">
+            {/* Background elements */}
+            <div className="absolute top-0 right-0 w-44 h-44 bg-[#22C55E]/10 rounded-full blur-2xl pointer-events-none" />
+            
+            <div className="z-10 space-y-2 max-w-[260px] sm:max-w-xs">
+              <span className="text-[10px] text-white/80 uppercase font-black tracking-widest block">
+                Limited Time Offer
+              </span>
+              <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-white leading-tight">
+                Summer <span className="text-[#FACC15]">Special Deals!</span>
+              </h3>
+              <p className="text-white/80 text-xs font-medium leading-relaxed">
+                Grab amazing discounts on hotels, tours & cars.
+              </p>
+            </div>
+
+            {/* Timers countdown matching reference image */}
+            <div className="z-10 flex items-center gap-1.5 pt-4" id="countdown-timer-grid">
+              {[
+                { label: 'Days', val: timeLeft.days },
+                { label: 'Hours', val: timeLeft.hours },
+                { label: 'Minutes', val: timeLeft.minutes },
+                { label: 'Seconds', val: timeLeft.seconds }
+              ].map((time, tIdx) => (
+                <React.Fragment key={tIdx}>
+                  {tIdx > 0 && <span className="text-white/40 font-bold text-xs sm:text-sm">-</span>}
+                  <div className="bg-black/20 border border-white/15 rounded-xl px-2.5 py-1.5 min-w-[48px] sm:min-w-[54px] flex flex-col items-center justify-center backdrop-blur-xs">
+                    <span className="text-base sm:text-lg font-black text-white leading-none block">
+                      {time.val.toString().padStart(2, '0')}
+                    </span>
+                    <span className="text-[7px] sm:text-[8px] font-extrabold uppercase tracking-wider text-white/60 mt-1 block">
+                      {time.label}
+                    </span>
+                  </div>
+                </React.Fragment>
+              ))}
+            </div>
+
+            {/* Beautiful Layered Travel Illustration mirroring the reference image */}
+            <div className="absolute right-0 top-0 bottom-0 w-60 pointer-events-none hidden sm:block overflow-hidden z-20">
+              <svg viewBox="0 0 240 240" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  {/* Sky gradient inside the circle */}
+                  <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#bae6fd" />
+                    <stop offset="100%" stopColor="#f0f9ff" />
+                  </linearGradient>
+                  
+                  {/* Mountain gradient 1 */}
+                  <linearGradient id="mountGrad1" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#0284c7" />
+                    <stop offset="100%" stopColor="#075985" />
+                  </linearGradient>
+
+                  {/* Mountain gradient 2 */}
+                  <linearGradient id="mountGrad2" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#0369a1" />
+                    <stop offset="100%" stopColor="#0c4a6e" />
+                  </linearGradient>
+
+                  {/* Suitcase gradient */}
+                  <linearGradient id="suitGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#334155" />
+                    <stop offset="100%" stopColor="#0f172a" />
+                  </linearGradient>
+
+                  {/* Straw hat gradient */}
+                  <linearGradient id="strawGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#fef08a" />
+                    <stop offset="100%" stopColor="#facc15" />
+                  </linearGradient>
+
+                  <clipPath id="circle-clip">
+                    <circle cx="140" cy="110" r="70" />
+                  </clipPath>
+                </defs>
+
+                {/* 1. Background Circular Peak using clip-path */}
+                <g clipPath="url(#circle-clip)">
+                  {/* Sky */}
+                  <rect x="60" y="30" width="160" height="160" fill="url(#skyGrad)" />
+                  
+                  {/* Sun */}
+                  <circle cx="175" cy="75" r="12" fill="#fef08a" opacity="0.9" />
+                  
+                  {/* Mountains Back */}
+                  <polygon points="65,185 125,85 185,185" fill="url(#mountGrad1)" />
+                  
+                  {/* Mountains Front */}
+                  <polygon points="100,185 160,65 220,185" fill="url(#mountGrad2)" />
+
+                  {/* Mountain Snow Caps */}
+                  <polygon points="125,85 120,93 130,93" fill="#ffffff" />
+                  <polygon points="160,65 152,76 168,76" fill="#ffffff" />
+                </g>
+
+                {/* Circular Peak border */}
+                <circle cx="140" cy="110" r="70" fill="none" stroke="rgba(255, 255, 255, 0.2)" strokeWidth="1.5" />
+
+                {/* 2. Palm Leaf behind the suitcase */}
+                <g opacity="0.85">
+                  {/* Leaf stem */}
+                  <path d="M 85,170 Q 55,140 45,95" fill="none" stroke="#059669" strokeWidth="2" strokeLinecap="round" />
+                  {/* Fronds */}
+                  <path d="M 80,155 Q 52,145 42,130" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" />
+                  <path d="M 75,140 Q 48,128 38,112" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" />
+                  <path d="M 70,125 Q 45,110 35,95" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" />
+                  <path d="M 62,110 Q 42,95 35,80" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" />
+                  <path d="M 52,98 Q 38,82 32,68" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" />
+                  <path d="M 45,95 Q 35,75 35,60" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" />
+                </g>
+
+                {/* Subtle ground shadow under suitcase and wheels */}
+                <ellipse cx="110" cy="176" rx="35" ry="4" fill="#000000" opacity="0.3" />
+
+                {/* 3. Travel Suitcase standing */}
+                {/* Trolley Handle */}
+                <rect x="100" y="45" width="24" height="40" rx="3" fill="none" stroke="#64748b" strokeWidth="3" />
+                <rect x="103" y="42" width="18" height="6" rx="1.5" fill="#0f172a" />
+                
+                {/* Suitcase Body Shadow */}
+                <rect x="87" y="83" width="54" height="92" rx="10" fill="#000000" opacity="0.25" />
+
+                {/* Suitcase Body */}
+                <rect x="85" y="80" width="54" height="92" rx="10" fill="url(#suitGrad)" stroke="#334155" strokeWidth="1.5" />
+                
+                {/* Corner protectors */}
+                <path d="M 85,92 A 12,12 0 0,1 97,80" fill="none" stroke="#475569" strokeWidth="3" />
+                <path d="M 139,92 A 12,12 0 0,0 127,80" fill="none" stroke="#475569" strokeWidth="3" />
+
+                {/* Vertical Ribs/Stripes for texture */}
+                <line x1="95" y1="92" x2="95" y2="160" stroke="#334155" strokeWidth="2.5" strokeLinecap="round" />
+                <line x1="95" y1="92" x2="95" y2="160" stroke="#1e293b" strokeWidth="1" strokeLinecap="round" />
+
+                <line x1="112" y1="92" x2="112" y2="160" stroke="#334155" strokeWidth="2.5" strokeLinecap="round" />
+                <line x1="112" y1="92" x2="112" y2="160" stroke="#1e293b" strokeWidth="1" strokeLinecap="round" />
+
+                <line x1="129" y1="92" x2="129" y2="160" stroke="#334155" strokeWidth="2.5" strokeLinecap="round" />
+                <line x1="129" y1="92" x2="129" y2="160" stroke="#1e293b" strokeWidth="1" strokeLinecap="round" />
+
+                {/* Wheels */}
+                <circle cx="96" cy="174" r="5.5" fill="#1e293b" stroke="#475569" strokeWidth="1" />
+                <circle cx="96" cy="174" r="2.5" fill="#94a3b8" />
+                <circle cx="128" cy="174" r="5.5" fill="#1e293b" stroke="#475569" strokeWidth="1" />
+                <circle cx="128" cy="174" r="2.5" fill="#94a3b8" />
+
+                {/* 4. Straw Sun Hat resting in front, slightly rotated */}
+                <g transform="rotate(6 145 168)">
+                  {/* Hat Shadow */}
+                  <ellipse cx="147" cy="172" rx="42" ry="12" fill="#000000" opacity="0.35" />
+                  
+                  {/* Hat Brim (Wide ellipse) */}
+                  <ellipse cx="145" cy="168" rx="42" ry="11" fill="url(#strawGrad)" stroke="#d97706" strokeWidth="1" />
+                  
+                  {/* Inner concentric lines on brim for straw texture */}
+                  <ellipse cx="145" cy="168" rx="34" ry="8" fill="none" stroke="#d97706" strokeDasharray="3,3" opacity="0.4" />
+                  <ellipse cx="145" cy="168" rx="26" ry="6" fill="none" stroke="#d97706" strokeDasharray="2,2" opacity="0.3" />
+
+                  {/* Hat Crown (dome) */}
+                  <path d="M 125,164 C 125,142 165,142 165,164 Z" fill="url(#strawGrad)" stroke="#d97706" strokeWidth="1" />
+                  
+                  {/* Ribbon around crown */}
+                  <path d="M 125,162 C 131,158 159,158 165,162 L 164.5,165 C 158.5,161 131.5,161 125.5,165 Z" fill="#1e3a8a" />
+                  
+                  {/* Ribbon bow tail */}
+                  <path d="M 163,163 L 172,166 L 168,169 Z" fill="#172554" />
+                </g>
+
+                {/* 5. Camera on the ground */}
+                <g transform="rotate(-10 75 170)">
+                  <rect x="65" y="165" width="22" height="15" rx="3.5" fill="#475569" stroke="#334155" strokeWidth="1" />
+                  <rect x="68" y="168" width="16" height="9" fill="#1e293b" />
+                  <circle cx="76" cy="172" r="5" fill="#64748b" stroke="#94a3b8" strokeWidth="0.75" />
+                  <circle cx="76" cy="172" r="3" fill="#0f172a" />
+                  <circle cx="75" cy="171" r="1" fill="#38bdf8" />
+                  <rect x="68" y="163" width="3" height="2" fill="#94a3b8" />
+                </g>
+              </svg>
+
+              {/* 6. Orange Scalloped Badge: Up to 40% OFF */}
+              <div className="absolute right-4 top-[25%] w-18 h-18 bg-[#FF7D29] rounded-full border-2 border-dashed border-white/60 shadow-lg flex flex-col items-center justify-center rotate-[10deg] z-50 animate-pulse">
+                <span className="text-[7px] font-bold uppercase tracking-wider text-white/90 leading-none">Up to</span>
+                <span className="text-lg font-black text-white leading-none mt-0.5">40%</span>
+                <span className="text-[9px] font-bold uppercase text-white/95 leading-none">OFF</span>
+              </div>
+            </div>
+
+            {/* S-curve wave divider (replaces linear edge on large screens) */}
+            <svg 
+              className="absolute right-0 top-0 bottom-0 h-full w-20 text-white fill-white pointer-events-none hidden lg:block z-50"
+              viewBox="0 0 100 100" 
+              preserveAspectRatio="none"
+            >
+              <path d="M 50,0 C 25,30 75,70 50,100 L 100,100 L 100,0 Z" />
+            </svg>
+          </div>
+
+          {/* Right Area: Offers listing and Action (Matching the image) */}
+          <div className="lg:col-span-7 p-6 sm:p-8 flex flex-col lg:flex-row items-center justify-between gap-6 bg-white text-left">
+            <div className="flex flex-col sm:flex-row items-stretch gap-6 flex-1 w-full">
+              
+              {/* Stat 1: Hotels */}
+              <div className="flex items-center gap-3.5 flex-1 min-w-0">
+                <div className="w-12 h-12 rounded-xl bg-blue-50/50 border border-blue-100 flex items-center justify-center text-[#0B3E91] shrink-0 shadow-2xs">
+                  <Building2 className="w-6 h-6 stroke-[1.75]" />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest block">Up to</span>
+                  <span className="text-xl sm:text-2xl font-black text-[#FF7D29] block leading-none mt-0.5">40% OFF</span>
+                  <span className="text-[11px] text-[#0B3E91] font-extrabold tracking-tight block mt-1 uppercase">on Hotels</span>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="hidden sm:block w-px bg-slate-100" />
+
+              {/* Stat 2: Tour Packages */}
+              <div className="flex items-center gap-3.5 flex-1 min-w-0">
+                <div className="w-12 h-12 rounded-xl bg-emerald-50/50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0 shadow-2xs">
+                  <Map className="w-6 h-6 stroke-[1.75]" />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest block">Up to</span>
+                  <span className="text-xl sm:text-2xl font-black text-[#FF7D29] block leading-none mt-0.5">30% OFF</span>
+                  <span className="text-[11px] text-emerald-600 font-extrabold tracking-tight block mt-1 uppercase">on Tours</span>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="hidden sm:block w-px bg-slate-100" />
+
+              {/* Stat 3: Car Rentals */}
+              <div className="flex items-center gap-3.5 flex-1 min-w-0">
+                <div className="w-12 h-12 rounded-xl bg-orange-50/50 border border-orange-100 flex items-center justify-center text-orange-600 shrink-0 shadow-2xs">
+                  <Car className="w-6 h-6 stroke-[1.75]" />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest block">Up to</span>
+                  <span className="text-xl sm:text-2xl font-black text-[#FF7D29] block leading-none mt-0.5">25% OFF</span>
+                  <span className="text-[11px] text-orange-600 font-extrabold tracking-tight block mt-1 uppercase">on Cars</span>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Vertical separator on desktop before the button */}
+            <div className="hidden lg:block w-px h-12 bg-slate-200 shrink-0" />
+
+            {/* Explore Button */}
+            <button
+              id="btn-explore-deals"
+              onClick={() => { setDestination(''); setView('hotels'); }}
+              className="bg-[#0B3E91] hover:bg-[#082e6d] text-white px-6 py-3.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all hover:scale-[1.02] active:scale-95 cursor-pointer flex items-center justify-center gap-2 shadow-md shrink-0 w-full lg:w-auto"
+            >
+              <span>Explore All Deals</span>
+              <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
+            </button>
+          </div>
+
+        </div>
+      </section>
+
+      {/* SECTION 6: Why Choose GBBookings.com? */}
+      <section className="pt-6" id="section-why-choose">
+        <div className="bg-white border border-slate-200/50 rounded-3xl p-6 sm:p-8 md:p-10 shadow-xs text-left">
+          
+          {/* Header block with colored brand mark */}
+          <div className="space-y-1 pb-8 border-b border-slate-100 mb-8">
+            <h3 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 flex items-center gap-1.5 flex-wrap">
+              <span>{isRtl ? 'ہمیں کیوں منتخب کریں؟' : 'Why Choose'}</span>
+              <span className="inline-flex font-black tracking-tight">
+                <span className="text-[#0B3E91]">GB</span>
+                <span className="text-[#0E6C49]">Bookings</span>
+                <span className="text-[#FF7D29]">.com</span>
+              </span>
+              <span className="text-slate-900">?</span>
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium">
+              Your satisfaction is our top priority
+            </p>
+          </div>
+
+          {/* Six features in a row */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6 md:gap-8" id="why-choose-grid">
+            {[
+              { 
+                title: 'Verified Properties', 
+                desc: 'All properties are thoroughly verified', 
+                icon: ShieldCheck,
+                colorClass: 'text-emerald-600',
+                outerBorder: 'border-emerald-500/20',
+                outerBg: 'bg-emerald-50/20',
+                innerBorder: 'border-emerald-500/30',
+                innerBg: 'bg-emerald-50'
+              },
+              { 
+                title: 'Best Price Guarantee', 
+                desc: 'We ensure the best price always', 
+                icon: Shield, // Shield is excellent for a solid lock/trust feel
+                colorClass: 'text-blue-600',
+                outerBorder: 'border-blue-500/20',
+                outerBg: 'bg-blue-50/20',
+                innerBorder: 'border-blue-500/30',
+                innerBg: 'bg-blue-50'
+              },
+              { 
+                title: 'Secure Payments', 
+                desc: '100% safe & secure payment gateway', 
+                icon: ShieldCheck, 
+                colorClass: 'text-emerald-600',
+                outerBorder: 'border-emerald-500/20',
+                outerBg: 'bg-emerald-50/20',
+                innerBorder: 'border-emerald-500/30',
+                innerBg: 'bg-emerald-50'
+              },
+              { 
+                title: 'Instant Confirmation', 
+                desc: 'Book instantly & get confirmation', 
+                icon: Sparkles, // Sparkles matches perfectly with instant star indicator
+                colorClass: 'text-amber-500',
+                outerBorder: 'border-amber-500/20',
+                outerBg: 'bg-amber-50/20',
+                innerBorder: 'border-amber-500/30',
+                innerBg: 'bg-amber-50'
+              },
+              { 
+                title: 'Free Cancellation', 
+                desc: 'Cancel up to 24 hours before check-in', 
+                icon: Calendar, 
+                colorClass: 'text-emerald-600',
+                outerBorder: 'border-emerald-500/20',
+                outerBg: 'bg-emerald-50/20',
+                innerBorder: 'border-emerald-500/30',
+                innerBg: 'bg-emerald-50'
+              },
+              { 
+                title: '24/7 Customer Support', 
+                desc: "We're here to help anytime, anywhere", 
+                icon: Headset, 
+                colorClass: 'text-blue-600',
+                outerBorder: 'border-blue-500/20',
+                outerBg: 'bg-blue-50/20',
+                innerBorder: 'border-blue-500/30',
+                innerBg: 'bg-blue-50'
+              }
+            ].map((item, idx) => {
+              const Icon = item.icon;
+              return (
+                <div key={idx} className="flex flex-col items-start text-left space-y-4 group">
+                  {/* Outer nested concentric border container matching the exact visual style */}
+                  <div className={`p-1.5 rounded-full border ${item.outerBorder} ${item.outerBg} transition-all duration-300 group-hover:scale-105`}>
+                    <div className={`w-11 h-11 rounded-full border ${item.innerBorder} ${item.innerBg} flex items-center justify-center ${item.colorClass} shadow-3xs`}>
+                      <Icon className="w-5 h-5 stroke-[2]" />
+                    </div>
+                  </div>
+                  
+                  {/* Text Information block */}
+                  <div className="space-y-1.5">
+                    <h5 className="font-extrabold text-xs sm:text-[13px] text-slate-900 leading-tight tracking-tight">
+                      {item.title}
+                    </h5>
+                    <p className="text-[10px] sm:text-[11px] text-slate-500 leading-relaxed font-medium">
+                      {item.desc}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+        </div>
+      </section>
+
+      {/* SECTION 7: What Our Travelers Say */}
+      <section className="space-y-6 pt-6" id="section-testimonials">
+        <div className="text-left space-y-1">
+          <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 uppercase">
+            {isRtl ? 'ہمارے مسافروں کی رائے' : 'What Our Travelers Say'}
+          </h3>
+          <p className="text-sm text-slate-500">
+            Real reviews from our happy customers
+          </p>
+        </div>
+
+        {/* Carousel testmional container */}
+        <div className="max-w-2xl mx-auto relative bg-[#FAFBFD] border border-slate-200/70 p-6 sm:p-8 rounded-3xl shadow-3xs" id="testimonials-box">
+          <div className="flex flex-col items-center text-center space-y-5">
+            {/* Stars */}
+            <div className="flex items-center gap-0.5 text-amber-400">
+              {Array(5).fill(0).map((_, i) => (
+                <Star key={i} className="w-5 h-5 fill-amber-400 stroke-none" />
+              ))}
+            </div>
+
+            {/* Testimonial text */}
+            <p className="text-slate-700 text-sm sm:text-base font-medium italic leading-relaxed max-w-xl">
+              "Amazing experience with GBBookings! Everything was smooth and well organized. Highly recommended!"
+            </p>
+
+            {/* User details */}
+            <div className="flex items-center gap-3 pt-3">
+              <img 
+                src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&h=150&q=80" 
+                alt="Ahmed Khan" 
+                className="w-11 h-11 rounded-full object-cover border border-slate-200 shadow-sm"
+                referrerPolicy="no-referrer"
+                onError={handleImageError}
+              />
+              <div className="text-left">
+                <h4 className="text-xs sm:text-sm font-black text-slate-900 leading-none">Ahmed Khan</h4>
+                <p className="text-[10px] text-slate-400 font-extrabold tracking-wide uppercase mt-1">Lahore, Pakistan</p>
+              </div>
+            </div>
+
+            {/* Navigation buttons */}
+            <div className="absolute top-1/2 -translate-y-1/2 left-2 sm:-left-4">
+              <button className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:text-emerald-700 hover:border-emerald-300 hover:scale-105 active:scale-95 shadow-xs transition-all cursor-pointer">
+                <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
+              </button>
+            </div>
+            <div className="absolute top-1/2 -translate-y-1/2 right-2 sm:-right-4">
+              <button className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:text-emerald-700 hover:border-emerald-300 hover:scale-105 active:scale-95 shadow-xs transition-all cursor-pointer">
+                <ChevronRight className="w-4 h-4 stroke-[2.5]" />
+              </button>
+            </div>
+
+            {/* Pagination indicators */}
+            <div className="flex items-center gap-1.5 pt-2">
+              {[0, 1, 2, 3].map((dot) => (
+                <span key={dot} className={`w-2 h-2 rounded-full transition-all duration-200 ${dot === 0 ? 'bg-[#0B5D3E] w-4' : 'bg-slate-200'}`} />
+              ))}
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 8: GBBookings by the Numbers */}
+      <section className="space-y-6 pt-6 pb-4" id="section-by-the-numbers">
+        <div className="text-left space-y-1">
+          <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 uppercase">
+            {isRtl ? 'نمبرز کی زبانی' : 'GBBookings by the Numbers'}
+          </h3>
+          <p className="text-sm text-slate-500">
+            Trusted by travelers all around the world
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-5" id="numbers-grid">
+          {[
+            { metric: '1200+', label: 'Properties', desc: 'Hotels, Resorts & Homestays', color: 'text-indigo-600', icon: Building2 },
+            { metric: '500+', label: 'Cars', desc: 'Wide Range of Vehicles', color: 'text-emerald-700', icon: Car },
+            { metric: '50+', label: 'Packages', desc: 'Curated Experiences for You', color: 'text-orange-600', icon: Compass },
+            { metric: '10K+', label: 'Happy Travelers', desc: 'Trusted by Thousands of Travelers', color: 'text-purple-600', icon: Users2 }
+          ].map((item, idx) => {
+            const Icon = item.icon;
+            return (
+              <div key={idx} className="bg-white border border-slate-200/80 p-5 sm:p-6 rounded-3xl text-left flex flex-col justify-between space-y-5 shadow-xs hover:shadow-md transition-all duration-300">
+                <div className="flex items-center justify-between">
+                  <span className={`text-2xl sm:text-3xl font-black ${item.color} tracking-tight`}>
+                    {item.metric}
+                  </span>
+                  <div className="w-9 h-9 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400">
+                    <Icon className="w-4 h-4 shrink-0" />
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wider">{item.label}</h4>
+                  <p className="text-[10px] sm:text-[11px] text-slate-500 mt-1 leading-normal font-medium">{item.desc}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
 
     </div>
   );
