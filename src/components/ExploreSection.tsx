@@ -593,11 +593,9 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
           </div>
         </div>
 
-      </section>
-
-      {/* 3. Category Bento Grid matching reference image */}
-      <section className="space-y-4 pt-2 animate-fadeIn" id="section-categories">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5" id="category-cards-grid">
+        {/* 3. Category Bento Grid matching reference image - aligned with upper bar */}
+        <div className="mt-5 animate-fadeIn" id="section-categories">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5" id="category-cards-grid">
           
           {/* Card 1: Hotels */}
           <div 
@@ -760,6 +758,8 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
           </div>
 
         </div>
+      </div>
+
       </section>
 
       {/* 4. Editorial Locations Grid */}
