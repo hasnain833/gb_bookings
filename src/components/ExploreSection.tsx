@@ -158,70 +158,83 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
   return (
     <div id="explore-section" className="space-y-12 pb-20">
       
-      {/* 1. Elegant Sweeping Hero Section matching the image */}
-      <section className="relative rounded-3xl overflow-hidden min-h-[520px] lg:min-h-[580px] flex flex-col justify-between p-6 sm:p-10 lg:p-12 shadow-xl border border-slate-200" id="hero-banner">
-        {/* Sweeping Panoramic Mountain Background with refined overlay */}
+      {/* 1. Elegant Sweeping Hero Section matching the reference image */}
+      <section className="relative rounded-3xl overflow-hidden min-h-[500px] lg:min-h-[540px] flex flex-col justify-between p-6 sm:p-10 lg:p-12 shadow-2xl border border-slate-800/20" id="hero-banner">
+        {/* Sweeping Panoramic Mountain Background with high-contrast legibility overlay */}
         <div className="absolute inset-0 z-0">
           <img 
             src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1920&q=80" 
             alt="Karakoram Mountains Gilgit Baltistan" 
-            className="w-full h-full object-cover object-center"
+            className="w-full h-full object-cover object-center scale-105"
             referrerPolicy="no-referrer"
             onError={handleImageError}
           />
-          <div className="absolute inset-0 bg-black/35" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/15" />
+          <div className="absolute inset-0 bg-slate-950/50" />
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/85 via-slate-900/70 to-slate-900/35" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/30" />
         </div>
 
-        {/* Top/Badge element */}
+        {/* Top/Badge element matching image */}
         <div className="relative z-10">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/40 border border-white/20 text-white text-xs font-semibold backdrop-blur-md">
-            <Compass className="w-3.5 h-3.5 text-emerald-400" />
-            <span>{t('hero.badge')}</span>
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#062419]/80 border border-[#22c55e]/70 text-[#4ade80] text-xs font-bold backdrop-blur-md shadow-md">
+            <MapPin className="w-3.5 h-3.5 text-[#22c55e] shrink-0" />
+            <span className="tracking-tight text-white font-medium">{t('hero.badge')}</span>
           </div>
         </div>
 
         {/* Content & Promo Card split layout */}
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-end mt-8">
+        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-end mt-6">
           
           {/* Left Hero Texts */}
           <div className="lg:col-span-7 space-y-4 text-left" id="hero-left-content">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl xl:text-6xl font-bold text-white tracking-tight leading-tight">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl xl:text-6xl font-extrabold text-white tracking-tight leading-[1.12] drop-shadow-md">
               {t('hero.title_part1')}<br />
-              {t('hero.title_part2')} <span className="text-[#22C55E]">{t('hero.title_highlight')}</span>
+              {t('hero.title_part2')} <span className="text-[#22c55e] font-black">{t('hero.title_highlight')}</span>
             </h1>
-            <p className="text-white/90 text-sm sm:text-base font-medium max-w-xl leading-relaxed">
+            <p className="text-slate-100/95 text-sm sm:text-base md:text-lg font-medium max-w-xl leading-relaxed drop-shadow-xs">
               {t('hero.subtitle')}
             </p>
 
-            {/* Row of 4 Hero trust factors directly from image */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6 border-t border-white/10" id="hero-trust-factors">
-              <div className="flex items-center gap-2 text-white">
-                <div className="w-8 h-8 rounded-full bg-[#10B981]/25 border border-[#10B981]/30 flex items-center justify-center shrink-0">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            {/* Row of 4 Hero trust factors matching image with subtle dividers */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 pt-6 border-t border-white/15 divide-x-0 sm:divide-x divide-white/15" id="hero-trust-factors">
+              <div className="flex items-center gap-2.5 text-white pr-2">
+                <div className="w-9 h-9 rounded-full bg-[#10b981]/20 border border-[#10b981]/50 flex items-center justify-center shrink-0 shadow-inner">
+                  <ShieldCheck className="w-4 h-4 text-[#4ade80]" />
                 </div>
-                <span className="text-[11px] font-bold tracking-tight">Best Price Guarantee</span>
+                <div className="min-w-0">
+                  <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">Best Price</span>
+                  <span className="text-[11px] font-medium text-slate-200 block leading-tight">Guarantee</span>
+                </div>
               </div>
 
-              <div className="flex items-center gap-2 text-white">
-                <div className="w-8 h-8 rounded-full bg-[#10B981]/25 border border-[#10B981]/30 flex items-center justify-center shrink-0">
-                  <Calendar className="w-4 h-4 text-emerald-400" />
+              <div className="flex items-center gap-2.5 text-white sm:pl-3 sm:pr-2">
+                <div className="w-9 h-9 rounded-full bg-[#10b981]/20 border border-[#10b981]/50 flex items-center justify-center shrink-0 shadow-inner">
+                  <Calendar className="w-4 h-4 text-[#4ade80]" />
                 </div>
-                <span className="text-[11px] font-bold tracking-tight">Free Cancellation</span>
+                <div className="min-w-0">
+                  <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">Free</span>
+                  <span className="text-[11px] font-medium text-slate-200 block leading-tight">Cancellation</span>
+                </div>
               </div>
 
-              <div className="flex items-center gap-2 text-white">
-                <div className="w-8 h-8 rounded-full bg-[#10B981]/25 border border-[#10B981]/30 flex items-center justify-center shrink-0">
-                  <Headset className="w-4 h-4 text-emerald-400" />
+              <div className="flex items-center gap-2.5 text-white sm:pl-3 sm:pr-2">
+                <div className="w-9 h-9 rounded-full bg-[#10b981]/20 border border-[#10b981]/50 flex items-center justify-center shrink-0 shadow-inner">
+                  <Headset className="w-4 h-4 text-[#4ade80]" />
                 </div>
-                <span className="text-[11px] font-bold tracking-tight">24/7 Support</span>
+                <div className="min-w-0">
+                  <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">24/7</span>
+                  <span className="text-[11px] font-medium text-slate-200 block leading-tight">Support</span>
+                </div>
               </div>
 
-              <div className="flex items-center gap-2 text-white">
-                <div className="w-8 h-8 rounded-full bg-[#10B981]/25 border border-[#10B981]/30 flex items-center justify-center shrink-0">
-                  <Award className="w-4 h-4 text-emerald-400" />
+              <div className="flex items-center gap-2.5 text-white sm:pl-3">
+                <div className="w-9 h-9 rounded-full bg-[#10b981]/20 border border-[#10b981]/50 flex items-center justify-center shrink-0 shadow-inner">
+                  <Star className="w-4 h-4 text-[#4ade80]" />
                 </div>
-                <span className="text-[11px] font-bold tracking-tight">Trusted by Thousands</span>
+                <div className="min-w-0">
+                  <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">Trusted by</span>
+                  <span className="text-[11px] font-medium text-slate-200 block leading-tight">Thousands</span>
+                </div>
               </div>
             </div>
           </div>
