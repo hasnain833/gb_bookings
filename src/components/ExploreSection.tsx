@@ -4,13 +4,14 @@ import {
   Search, MapPin, Calendar, Users, Star, ArrowRight, Compass, Shield, Award, Sparkles, 
   ChevronDown, ChevronUp, Clock, ShieldCheck, Heart, Building2, Home, Car, HelpCircle,
   CheckCircle2, Flame, Users2, ThumbsUp, Headset, Mountain, Waves, Wallet,
-  ChevronLeft, ChevronRight, Map, Fuel
+  ChevronLeft, ChevronRight, Map, Fuel, Lock, BadgePercent, CalendarCheck, BadgeCheck
 } from 'lucide-react';
 import { Listing, handleImageError } from '../types';
 import { INITIAL_LISTINGS, PAKISTAN_FAQ } from '../data';
 import { useLanguage, tListing } from '../LanguageContext';
 import { formatDateForDisplay, getMinCheckOutDate } from '../utils/date';
 import { CalendarPickerDropdown } from './CalendarPickerDropdown';
+import GBLogo from './GBLogo';
 
 interface ExploreSectionProps {
   setView: (v: string) => void;
@@ -788,7 +789,11 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
           </div>
           <button 
             id="btn-all-destinations"
-            onClick={() => { setDestination(''); setView('hotels'); }} 
+            onClick={() => { 
+              setDestination(''); 
+              setSearchFilters({ destination: '', startDate: '', endDate: '', extra: {} }); 
+              setView('destinations'); 
+            }} 
             className="text-xs font-bold text-emerald-700 uppercase tracking-wider flex items-center gap-1 hover:text-emerald-800 transition-colors cursor-pointer"
           >
             <span>{isRtl ? 'تمام مقامات دیکھیں' : 'Browse All Locations'}</span> <ArrowRight className="w-3.5 h-3.5" />
@@ -959,7 +964,11 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
           </div>
           <button 
             id="btn-all-hotels-link"
-            onClick={() => { setDestination(''); setView('hotels'); }}
+            onClick={() => { 
+              setDestination(''); 
+              setSearchFilters({ destination: '', startDate: '', endDate: '', extra: {} }); 
+              setView('hotels'); 
+            }}
             className="text-xs font-bold text-emerald-700 uppercase tracking-wider flex items-center gap-1 hover:text-emerald-800 transition-colors cursor-pointer"
           >
             <span>{isRtl ? 'تمام ہوٹلز دیکھیں' : 'View all Hotels'}</span> <ArrowRight className="w-3.5 h-3.5" />
@@ -1105,7 +1114,11 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
           </div>
           <button 
             id="btn-all-destinations-link-popular"
-            onClick={() => { setDestination(''); setView('hotels'); }}
+            onClick={() => { 
+              setDestination(''); 
+              setSearchFilters({ destination: '', startDate: '', endDate: '', extra: {} }); 
+              setView('destinations'); 
+            }}
             className="text-xs font-bold text-emerald-700 uppercase tracking-wider flex items-center gap-1 hover:text-emerald-800 transition-colors cursor-pointer"
           >
             <span>{isRtl ? 'تمام مقامات دیکھیں' : 'View all Destinations'}</span> <ArrowRight className="w-3.5 h-3.5" />
@@ -1163,7 +1176,11 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
           </div>
           <button 
             id="btn-all-tours-link-trending"
-            onClick={() => { setDestination(''); setView('tours'); }}
+            onClick={() => { 
+              setDestination(''); 
+              setSearchFilters({ destination: '', startDate: '', endDate: '', extra: {} }); 
+              setView('tours'); 
+            }}
             className="text-xs font-bold text-emerald-700 uppercase tracking-wider flex items-center gap-1 hover:text-emerald-800 transition-colors cursor-pointer"
           >
             <span>{isRtl ? 'تمام پیکیجز دیکھیں' : 'View all Packages'}</span> <ArrowRight className="w-3.5 h-3.5" />
@@ -1301,7 +1318,11 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
           <div className="flex items-center gap-3">
             <button 
               id="btn-all-cars-link-premium"
-              onClick={() => { setDestination(''); setView('cars'); }}
+              onClick={() => { 
+                setDestination(''); 
+                setSearchFilters({ destination: '', startDate: '', endDate: '', extra: {} }); 
+                setView('cars'); 
+              }}
               className="text-xs font-bold text-[#059669] flex items-center gap-1 hover:text-emerald-800 transition-colors cursor-pointer"
             >
               <span>{isRtl ? 'تمام گاڑیاں دیکھیں' : 'View all Cars'}</span> <ArrowRight className="w-3.5 h-3.5" />
@@ -1707,7 +1728,11 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
             {/* Explore All Deals Button matching reference image */}
             <button
               id="btn-explore-deals"
-              onClick={() => { setDestination(''); setView('hotels'); }}
+              onClick={() => { 
+                setDestination(''); 
+                setSearchFilters({ destination: '', startDate: '', endDate: '', extra: {} }); 
+                setView('offers'); 
+              }}
               className="bg-[#0B2559] hover:bg-[#071a3e] text-white px-6 py-3.5 rounded-2xl text-xs font-bold transition-all hover:scale-[1.02] active:scale-95 cursor-pointer flex items-center justify-center gap-2 shadow-md shrink-0 w-full lg:w-auto"
             >
               <span className="font-bold text-[13px]">Explore All Deals</span>
@@ -1720,104 +1745,74 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
 
       {/* SECTION 6: Why Choose GBBookings.com? */}
       <section className="pt-6" id="section-why-choose">
-        <div className="bg-white border border-slate-200/50 rounded-3xl p-6 sm:p-8 md:p-10 shadow-xs text-left">
+        <div className="bg-white border border-slate-200/80 rounded-2xl sm:rounded-3xl p-5 sm:p-7 shadow-2xs text-left">
           
-          {/* Header block with colored brand mark */}
-          <div className="space-y-1 pb-8 border-b border-slate-100 mb-8">
-            <h3 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 flex items-center gap-1.5 flex-wrap">
+          {/* Header block with exact GBLogo mark */}
+          <div className="space-y-1 pb-6 border-b border-slate-100 mb-6">
+            <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2 flex-wrap">
               <span>{isRtl ? 'ہمیں کیوں منتخب کریں؟' : 'Why Choose'}</span>
-              <span className="inline-flex font-black tracking-tight">
-                <span className="text-[#0B3E91]">GB</span>
-                <span className="text-[#0E6C49]">Bookings</span>
-                <span className="text-[#FF7D29]">.com</span>
-              </span>
-              <span className="text-slate-900">?</span>
+              <GBLogo size="sm" />
+              <span className="text-slate-900 font-bold">?</span>
             </h3>
             <p className="text-xs sm:text-sm text-slate-500 font-medium">
-              Your satisfaction is our top priority
+              {isRtl ? 'آپ کا اطمینان ہماری پہلی ترجیح ہے۔' : 'Your satisfaction is our top priority'}
             </p>
           </div>
 
-          {/* Six features in a row */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6 md:gap-8" id="why-choose-grid">
+          {/* Six features in a row with vertical line dividers */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-y sm:divide-y-0 lg:divide-x divide-slate-200/80 gap-y-6 sm:gap-y-6 lg:gap-y-0 items-start" id="why-choose-grid">
             {[
               { 
                 title: 'Verified Properties', 
                 desc: 'All properties are thoroughly verified', 
-                icon: ShieldCheck,
-                colorClass: 'text-emerald-600',
-                outerBorder: 'border-emerald-500/20',
-                outerBg: 'bg-emerald-50/20',
-                innerBorder: 'border-emerald-500/30',
-                innerBg: 'bg-emerald-50'
+                icon: CheckCircle2,
+                color: 'text-[#16A34A]'
               },
               { 
                 title: 'Best Price Guarantee', 
                 desc: 'We ensure the best price always', 
-                icon: Shield, // Shield is excellent for a solid lock/trust feel
-                colorClass: 'text-blue-600',
-                outerBorder: 'border-blue-500/20',
-                outerBg: 'bg-blue-50/20',
-                innerBorder: 'border-blue-500/30',
-                innerBg: 'bg-blue-50'
+                icon: BadgePercent,
+                color: 'text-[#1E40AF]'
               },
               { 
                 title: 'Secure Payments', 
                 desc: '100% safe & secure payment gateway', 
-                icon: ShieldCheck, 
-                colorClass: 'text-emerald-600',
-                outerBorder: 'border-emerald-500/20',
-                outerBg: 'bg-emerald-50/20',
-                innerBorder: 'border-emerald-500/30',
-                innerBg: 'bg-emerald-50'
+                icon: Lock, 
+                color: 'text-[#16A34A]'
               },
               { 
                 title: 'Instant Confirmation', 
                 desc: 'Book instantly & get confirmation', 
-                icon: Sparkles, // Sparkles matches perfectly with instant star indicator
-                colorClass: 'text-amber-500',
-                outerBorder: 'border-amber-500/20',
-                outerBg: 'bg-amber-50/20',
-                innerBorder: 'border-amber-500/30',
-                innerBg: 'bg-amber-50'
+                icon: Sparkles, 
+                color: 'text-[#EA580C]'
               },
               { 
                 title: 'Free Cancellation', 
                 desc: 'Cancel up to 24 hours before check-in', 
-                icon: Calendar, 
-                colorClass: 'text-emerald-600',
-                outerBorder: 'border-emerald-500/20',
-                outerBg: 'bg-emerald-50/20',
-                innerBorder: 'border-emerald-500/30',
-                innerBg: 'bg-emerald-50'
+                icon: CalendarCheck, 
+                color: 'text-[#16A34A]'
               },
               { 
                 title: '24/7 Customer Support', 
                 desc: "We're here to help anytime, anywhere", 
                 icon: Headset, 
-                colorClass: 'text-blue-600',
-                outerBorder: 'border-blue-500/20',
-                outerBg: 'bg-blue-50/20',
-                innerBorder: 'border-blue-500/30',
-                innerBg: 'bg-blue-50'
+                color: 'text-[#1E40AF]'
               }
             ].map((item, idx) => {
               const Icon = item.icon;
               return (
-                <div key={idx} className="flex flex-col items-start text-left space-y-4 group">
-                  {/* Outer nested concentric border container matching the exact visual style */}
-                  <div className={`p-1.5 rounded-full border ${item.outerBorder} ${item.outerBg} transition-all duration-300 group-hover:scale-105`}>
-                    <div className={`w-11 h-11 rounded-full border ${item.innerBorder} ${item.innerBg} flex items-center justify-center ${item.colorClass} shadow-3xs`}>
-                      <Icon className="w-5 h-5 stroke-[2]" />
-                    </div>
+                <div key={idx} className="flex flex-col items-start text-left space-y-2.5 px-3 sm:px-4 py-1 group first:pl-0 last:pr-0">
+                  {/* Clean Icon direct outline */}
+                  <div className={`${item.color} transition-transform duration-200 group-hover:scale-110`}>
+                    <Icon className="w-7 h-7 stroke-[2]" />
                   </div>
                   
                   {/* Text Information block */}
-                  <div className="space-y-1.5">
-                    <h5 className="font-extrabold text-xs sm:text-[13px] text-slate-900 leading-tight tracking-tight">
+                  <div className="space-y-1">
+                    <h5 className="font-bold text-[13px] text-slate-900 leading-snug tracking-tight">
                       {item.title}
                     </h5>
-                    <p className="text-[10px] sm:text-[11px] text-slate-500 leading-relaxed font-medium">
+                    <p className="text-[11px] text-slate-500 leading-relaxed font-normal">
                       {item.desc}
                     </p>
                   </div>

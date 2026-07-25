@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
+import GBLogo from './components/GBLogo';
 import ExploreSection from './components/ExploreSection';
 import ListingsSearch from './components/ListingsSearch';
 import ListingDetails from './components/ListingDetails';
@@ -72,6 +73,35 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleNavigation = (v: string) => {
+    if (v === 'hotels' || v === 'browse-hotels') {
+      setSearchParams(prev => ({ ...prev, type: 'hotel' }));
+      setView('search');
+    } else if (v === 'homestays' || v === 'browse-homestays') {
+      setSearchParams(prev => ({ ...prev, type: 'homestay' }));
+      setView('search');
+    } else if (v === 'cars' || v === 'browse-cars') {
+      setSearchParams(prev => ({ ...prev, type: 'car' }));
+      setView('search');
+    } else if (v === 'tours' || v === 'browse-tours' || v === 'packages') {
+      setSearchParams(prev => ({ ...prev, type: 'tour' }));
+      setView('search');
+    } else if (v === 'destinations' || v === 'browse-destinations') {
+      setSearchParams(prev => ({ ...prev, type: 'destination' }));
+      setView('search');
+    } else if (v === 'offers' || v === 'browse-offers') {
+      setSearchParams(prev => ({ ...prev, type: 'offer' }));
+      setView('search');
+    } else if (v === 'dashboard-user' || v === 'user-dashboard') {
+      setView('user-dashboard');
+    } else if (v === 'dashboard-vendor' || v === 'vendor-dashboard') {
+      setView('vendor-dashboard');
+    } else {
+      setView(v);
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-[#1A1A1A] flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
       
@@ -88,34 +118,7 @@ export default function App() {
           view === 'search' && searchParams.type === 'offer' ? 'offers' :
           view
         } 
-        setView={(v) => {
-          if (v === 'hotels') {
-            setSearchParams(prev => ({ ...prev, type: 'hotel', destination: '' }));
-            setView('search');
-          } else if (v === 'homestays') {
-            setSearchParams(prev => ({ ...prev, type: 'homestay', destination: '' }));
-            setView('search');
-          } else if (v === 'cars') {
-            setSearchParams(prev => ({ ...prev, type: 'car', destination: '' }));
-            setView('search');
-          } else if (v === 'tours') {
-            setSearchParams(prev => ({ ...prev, type: 'tour', destination: '' }));
-            setView('search');
-          } else if (v === 'destinations') {
-            setSearchParams(prev => ({ ...prev, type: 'destination', destination: '' }));
-            setView('search');
-          } else if (v === 'offers') {
-            setSearchParams(prev => ({ ...prev, type: 'offer', destination: '' }));
-            setView('search');
-          } else if (v === 'dashboard-user') {
-            setView('user-dashboard');
-          } else if (v === 'dashboard-vendor') {
-            setView('vendor-dashboard');
-          } else {
-            setView(v);
-          }
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }} 
+        setView={handleNavigation} 
         userEmail={userEmail}
         notificationsCount={2}
         unreadNotifications={true}
@@ -129,32 +132,15 @@ export default function App() {
       <main className="flex-1 w-full mx-auto px-4 sm:px-8 lg:px-12 xl:px-16 py-8 md:py-12">
         {view === 'explore' && (
           <ExploreSection 
-            setView={(newView) => {
-              // Map browse-hotels, browse-cars, browse-tours to search type
-              if (newView === 'browse-hotels') {
-                setSearchParams(prev => ({ ...prev, type: 'hotel' }));
-                setView('search');
-              } else if (newView === 'browse-homestays') {
-                setSearchParams(prev => ({ ...prev, type: 'homestay' }));
-                setView('search');
-              } else if (newView === 'browse-cars') {
-                setSearchParams(prev => ({ ...prev, type: 'car' }));
-                setView('search');
-              } else if (newView === 'browse-tours') {
-                setSearchParams(prev => ({ ...prev, type: 'tour' }));
-                setView('search');
-              } else {
-                setView(newView);
-              }
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
+            setView={handleNavigation}
             setSearchFilters={(filters) => {
-              setSearchParams({
-                destination: filters.destination,
-                dates: filters.startDate,
-                guests: Number(filters.extra?.guestCount || 2),
-                type: filters.extra?.isHomestay ? 'homestay' : searchParams.type
-              });
+              setSearchParams(prev => ({
+                ...prev,
+                destination: filters.destination !== undefined ? filters.destination : prev.destination,
+                dates: filters.startDate !== undefined ? filters.startDate : prev.dates,
+                guests: Number(filters.extra?.guestCount || prev.guests),
+                type: filters.extra?.isHomestay ? 'homestay' : prev.type
+              }));
             }}
             onSelectListing={handleSelectListing}
           />
@@ -255,19 +241,8 @@ export default function App() {
 
       {/* Footer Details */}
       <footer className="bg-white border-t border-slate-200 py-8 text-center text-slate-400 text-xs flex-shrink-0 mt-auto">
-        <div className="w-full mx-auto px-4 sm:px-8 lg:px-12 xl:px-16 space-y-3">
-          <div className="flex justify-center items-center gap-1.5">
-            <div className="relative flex items-center justify-center w-8 h-6">
-              <svg className="w-full h-full" viewBox="0 0 100 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="50" cy="24" r="14" fill="#F97316" />
-                <path d="M22 70 L52 28 L72 70 Z" fill="#1E40AF" opacity="0.9" />
-                <path d="M42 70 L72 16 L98 70 Z" fill="#15803D" />
-              </svg>
-            </div>
-            <span className="font-extrabold tracking-tight text-[#0F172A] text-sm">
-              <span className="text-[#15803D]">GB</span>Bookings<span className="text-[#F97316]">.com</span>
-            </span>
-          </div>
+        <div className="w-full mx-auto px-4 sm:px-8 lg:px-12 xl:px-16 space-y-3 flex flex-col items-center">
+          <GBLogo size="sm" />
           <p className={`text-slate-500 font-medium ${isRtl ? 'font-urdu text-sm' : 'text-xs'}`}>
             {t('footer.description')}
           </p>

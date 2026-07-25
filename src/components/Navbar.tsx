@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronDown, Globe, User, Bell, Bot, CalendarDays, Key, Compass as TourIcon, Sparkles, MessageCircle, Building2, Home, Car, MapPin, Flame } from 'lucide-react';
 import { useLanguage } from '../LanguageContext';
+import GBLogo from './GBLogo';
 
 interface NavbarProps {
   currentView: string;
@@ -56,33 +57,13 @@ export default function Navbar({
     <header id="app-navbar" className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-[#E5E5E5] shadow-xs">
       <div className="w-full mx-auto px-4 sm:px-8 lg:px-12 xl:px-16 h-16 sm:h-20 md:h-24 flex items-center justify-between gap-2 sm:gap-4 md:gap-6 flex-nowrap" id="nav-container">
         
-        {/* Left Side: Brand Logo (Horizontal layout matching the reference image) */}
+        {/* Left Side: Brand Logo */}
         <div 
           onClick={() => setView('explore')} 
-          className="flex items-center gap-1.5 sm:gap-3 cursor-pointer group shrink-0"
+          className="flex items-center cursor-pointer group shrink-0"
           id="nav-logo"
         >
-          {/* Logo Icon on the left */}
-          <div className="relative flex items-center justify-center shrink-0">
-            <svg className="w-9 sm:w-11 md:w-12 h-6 sm:h-8 md:h-9" viewBox="0 0 100 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-              {/* Sun (Orange/Red circle with white light trail) */}
-              <circle cx="50" cy="24" r="14" fill="#F97316" />
-              <path d="M46 18 Q50 13 54 18" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
-              
-              {/* Blue/Teal mountain (Left) */}
-              <path d="M22 70 L52 28 L72 70 Z" fill="#1E40AF" opacity="0.9" />
-              
-              {/* Green mountain (Right / Foreground) */}
-              <path d="M42 70 L72 16 L98 70 Z" fill="#15803D" />
-            </svg>
-          </div>
-          
-          {/* Brand Text on the right */}
-          <div className="flex flex-col shrink-0">
-            <span className="text-base sm:text-xl md:text-2xl font-black tracking-tight text-slate-800 leading-none whitespace-nowrap">
-              <span className="text-[#15803D]">GB</span>Bookings<span className="text-[#F97316]">.com</span>
-            </span>
-          </div>
+          <GBLogo size="md" />
         </div>
 
         {/* Center: Desktop Navigation Links (Direct match with image, no overlapping) */}
