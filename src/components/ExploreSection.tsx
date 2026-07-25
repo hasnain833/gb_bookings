@@ -4,7 +4,7 @@ import {
   Search, MapPin, Calendar, Users, Star, ArrowRight, Compass, Shield, Award, Sparkles, 
   ChevronDown, ChevronUp, Clock, ShieldCheck, Heart, Building2, Home, Car, HelpCircle,
   CheckCircle2, Flame, Users2, ThumbsUp, Headset, Mountain, Waves, Wallet,
-  ChevronLeft, ChevronRight, Map
+  ChevronLeft, ChevronRight, Map, Fuel
 } from 'lucide-react';
 import { Listing, handleImageError } from '../types';
 import { INITIAL_LISTINGS, PAKISTAN_FAQ } from '../data';
@@ -1291,72 +1291,93 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
       <section className="space-y-6 pt-6" id="section-car-rentals">
         <div className="flex items-end justify-between flex-wrap gap-4 border-b border-slate-100 pb-3">
           <div>
-            <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 uppercase">
-              {isRtl ? 'پریمیم کار رینٹل' : 'Premium Car Rentals'}
+            <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+              Premium <span className="text-[#EA580C]">Car Rentals</span>
             </h3>
-            <p className="text-sm text-slate-500 mt-1">
+            <p className="text-sm text-slate-500 mt-0.5">
               {isRtl ? 'آرام دہ اور یادگار سفر کے لیے قابل اعتماد اور پائیدار گاڑیاں۔' : 'Reliable cars for a comfortable journey'}
             </p>
           </div>
-          <button 
-            id="btn-all-cars-link-premium"
-            onClick={() => { setDestination(''); setView('cars'); }}
-            className="text-xs font-bold text-emerald-700 uppercase tracking-wider flex items-center gap-1 hover:text-emerald-800 transition-colors cursor-pointer"
-          >
-            <span>{isRtl ? 'تمام گاڑیاں دیکھیں' : 'View all Cars'}</span> <ArrowRight className="w-3.5 h-3.5" />
-          </button>
+          <div className="flex items-center gap-3">
+            <button 
+              id="btn-all-cars-link-premium"
+              onClick={() => { setDestination(''); setView('cars'); }}
+              className="text-xs font-bold text-[#059669] flex items-center gap-1 hover:text-emerald-800 transition-colors cursor-pointer"
+            >
+              <span>{isRtl ? 'تمام گاڑیاں دیکھیں' : 'View all Cars'}</span> <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => {
+                const el = document.getElementById('premium-cars-grid');
+                if (el) el.scrollBy({ left: 300, behavior: 'smooth' });
+              }}
+              className="w-8 h-8 rounded-full border border-emerald-200/80 bg-white flex items-center justify-center text-[#059669] hover:bg-emerald-50 transition-colors shadow-2xs cursor-pointer"
+            >
+              <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+            </button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5" id="premium-cars-grid">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-5" id="premium-cars-grid">
           {[
             {
               title: 'Toyota Land Cruiser',
-              specs: ['SUV', 'Diesel', '7 Seats'],
+              type: 'SUV',
+              fuel: 'Diesel',
+              seats: '7 Seats',
               price: 32000,
               rating: 4.9,
-              reviews: 186,
+              reviews: 156,
               badge: 'Best Seller',
-              badgeColor: 'bg-[#FF7D29]',
+              badgeColor: 'bg-[#EA580C]',
               image: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=600&q=80'
             },
             {
               title: 'Toyota Fortuner',
-              specs: ['SUV', 'Diesel', '7 Seats'],
+              type: 'SUV',
+              fuel: 'Diesel',
+              seats: '7 Seats',
               price: 18000,
               rating: 4.8,
               reviews: 198,
               badge: 'Popular',
-              badgeColor: 'bg-emerald-600',
+              badgeColor: 'bg-[#16A34A]',
               image: 'https://images.unsplash.com/photo-1606016159991-dfe4f974be5c?auto=format&fit=crop&w=600&q=80'
             },
             {
               title: 'Toyota Hiace Grand Cabin',
-              specs: ['Van', 'Diesel', '14 Seats'],
+              type: 'Van',
+              fuel: 'Diesel',
+              seats: '14 Seats',
               price: 25000,
               rating: 4.7,
               reviews: 112,
               badge: 'Luxury',
-              badgeColor: 'bg-blue-600',
+              badgeColor: 'bg-[#2563EB]',
               image: 'https://images.unsplash.com/photo-1520050206274-a1ae446cb3cc?auto=format&fit=crop&w=600&q=80'
             },
             {
               title: 'Suzuki Cultus',
-              specs: ['Hatchback', 'Petrol', '4 Seats'],
+              type: 'Hatchback',
+              fuel: 'Petrol',
+              seats: '4 Seats',
               price: 3500,
               rating: 4.5,
               reviews: 98,
               badge: 'Economy',
-              badgeColor: 'bg-[#2563EB]',
+              badgeColor: 'bg-[#6366F1]',
               image: 'https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&w=600&q=80'
             },
             {
               title: 'Honda Civic',
-              specs: ['Sedan', 'Petrol', '5 Seats'],
+              type: 'Sedan',
+              fuel: 'Petrol',
+              seats: '5 Seats',
               price: 7500,
               rating: 4.5,
               reviews: 98,
               badge: 'Standard',
-              badgeColor: 'bg-[#0D9488]',
+              badgeColor: 'bg-[#15803D]',
               image: 'https://images.unsplash.com/photo-1606220588913-b3aacb4d2f46?auto=format&fit=crop&w=600&q=80'
             }
           ].map((car, idx) => (
@@ -1376,50 +1397,59 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                   images: [car.image],
                   description: `Experience a premium rental trip with ${car.title}, equipped with premium engine performance, pristine interiors, full heating/cooling, and highly durable build suitable for the Karakoram peaks. Includes options for professional local driver.`,
                   featured: true,
-                  carSpecs: { transmission: 'Automatic', seatingCapacity: parseInt(car.specs[2]), fuelType: car.specs[1], engineCapacity: '2700cc', withDriverOption: true }
+                  carSpecs: { transmission: 'Automatic', seatingCapacity: parseInt(car.seats), fuelType: car.fuel, engineCapacity: '2700cc', withDriverOption: true }
                 };
                 onSelectListing(matched as any);
               }}
-              className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-lg hover:border-emerald-300 transition-all duration-300 flex flex-col justify-between h-full group cursor-pointer text-left"
+              className="bg-[#F8FAFC] rounded-2xl border border-slate-200/80 p-3 sm:p-3.5 flex flex-col justify-between h-full group cursor-pointer text-left hover:shadow-md hover:border-slate-300 transition-all duration-300"
             >
-              <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100 shrink-0">
-                <img 
-                  src={car.image} 
-                  alt={car.title} 
-                  className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300 rounded-t-2xl"
-                  referrerPolicy="no-referrer"
-                  onError={handleImageError}
-                />
-                <div className={`absolute top-2.5 left-2.5 text-white text-[9px] font-extrabold uppercase px-2 py-0.5 shadow-xs tracking-wider rounded-md ${car.badgeColor}`}>
-                  {car.badge}
+              {/* Top Image Box */}
+              <div>
+                <div className="relative aspect-[16/10] w-full rounded-xl overflow-hidden bg-slate-100/80 mb-3 shrink-0">
+                  <img 
+                    src={car.image} 
+                    alt={car.title} 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 rounded-xl"
+                    referrerPolicy="no-referrer"
+                    onError={handleImageError}
+                  />
+                  <div className={`absolute top-2.5 left-2.5 text-white text-[10px] sm:text-[11px] font-bold px-2.5 py-1 shadow-2xs rounded-md ${car.badgeColor}`}>
+                    {car.badge}
+                  </div>
                 </div>
-              </div>
 
-              <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
-                <div className="space-y-1">
-                  <h4 className="text-[14px] font-extrabold text-slate-900 group-hover:text-emerald-700 transition-colors line-clamp-1 leading-snug">
+                {/* Info Content */}
+                <div className="space-y-1.5 px-0.5">
+                  <h4 className="text-[14px] sm:text-[15px] font-bold text-slate-900 group-hover:text-[#EA580C] transition-colors line-clamp-1 leading-snug">
                     {car.title}
                   </h4>
                   
-                  {/* Specs badges layout matching image */}
-                  <div className="flex flex-wrap gap-1 pt-1">
-                    {car.specs.map((spec, sIdx) => (
-                      <span key={sIdx} className="text-[9px] font-extrabold bg-slate-50 text-slate-600 px-2 py-0.5 rounded border border-slate-200/60 uppercase tracking-tight">
-                        {spec}
-                      </span>
-                    ))}
-                  </div>
-
-                  <div className="flex items-center gap-1 pt-1.5">
-                    <Star className="w-3 h-3 fill-amber-400 stroke-none" />
-                    <span className="text-[11px] font-bold text-slate-800">{car.rating}</span>
-                    <span className="text-[10px] text-slate-400">({car.reviews} Reviews)</span>
+                  {/* Specs row matching screenshot: [CarIcon] SUV [FuelIcon] Diesel [UsersIcon] 7 Seats */}
+                  <div className="flex items-center gap-2.5 text-[11px] text-slate-500 font-medium my-1.5 flex-wrap">
+                    <span className="flex items-center gap-1 shrink-0">
+                      <Car className="w-3.5 h-3.5 text-slate-400 shrink-0" /> {car.type}
+                    </span>
+                    <span className="flex items-center gap-1 shrink-0">
+                      <Fuel className="w-3.5 h-3.5 text-slate-400 shrink-0" /> {car.fuel}
+                    </span>
+                    <span className="flex items-center gap-1 shrink-0">
+                      <Users className="w-3.5 h-3.5 text-slate-400 shrink-0" /> {car.seats}
+                    </span>
                   </div>
                 </div>
+              </div>
 
-                <div className="pt-2 border-t border-slate-100 flex items-baseline justify-between">
-                  <span className="text-[13px] font-black text-slate-950">PKR {car.price.toLocaleString()}</span>
-                  <span className="text-[10px] text-slate-500 font-medium">/day</span>
+              {/* Bottom Price & Rating */}
+              <div className="pt-2.5 mt-2 border-t border-slate-200/60 space-y-1 px-0.5">
+                <div>
+                  <span className="text-base font-extrabold text-slate-900">PKR {car.price.toLocaleString()}</span>
+                  <span className="text-xs font-medium text-slate-400"> /day</span>
+                </div>
+
+                <div className="flex items-center gap-1 text-[11px]">
+                  <Star className="w-3.5 h-3.5 fill-amber-400 stroke-none text-amber-400 shrink-0" />
+                  <span className="font-bold text-amber-600">{car.rating}</span>
+                  <span className="text-slate-400">({car.reviews} Reviews)</span>
                 </div>
               </div>
             </div>
@@ -1629,65 +1659,59 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
             </svg>
           </div>
 
-          {/* Right Area: Offers listing and Action (Matching the image) */}
+          {/* Right Area: Offers listing and Action (Matching reference image) */}
           <div className="lg:col-span-7 p-6 sm:p-8 flex flex-col lg:flex-row items-center justify-between gap-6 bg-white text-left">
-            <div className="flex flex-col sm:flex-row items-stretch gap-6 flex-1 w-full">
+            <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-8 flex-1 w-full justify-around">
               
               {/* Stat 1: Hotels */}
-              <div className="flex items-center gap-3.5 flex-1 min-w-0">
-                <div className="w-12 h-12 rounded-xl bg-blue-50/50 border border-blue-100 flex items-center justify-center text-[#0B3E91] shrink-0 shadow-2xs">
-                  <Building2 className="w-6 h-6 stroke-[1.75]" />
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="shrink-0 text-[#1E40AF]">
+                  <Building2 className="w-9 h-9 stroke-[1.8] text-[#1E40AF]" />
                 </div>
                 <div className="min-w-0">
-                  <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest block">Up to</span>
-                  <span className="text-xl sm:text-2xl font-black text-[#FF7D29] block leading-none mt-0.5">40% OFF</span>
-                  <span className="text-[11px] text-[#0B3E91] font-extrabold tracking-tight block mt-1 uppercase">on Hotels</span>
+                  <span className="text-[11px] text-slate-500 font-semibold block leading-none">Up to</span>
+                  <span className="text-xl sm:text-2xl font-black text-[#EA580C] block leading-snug my-0.5">40% OFF</span>
+                  <span className="text-[12px] text-slate-600 font-medium block leading-none">on Hotels</span>
                 </div>
               </div>
 
-              {/* Divider */}
-              <div className="hidden sm:block w-px bg-slate-100" />
+              {/* Vertical Divider */}
+              <div className="hidden sm:block w-px h-12 bg-slate-200/80 shrink-0" />
 
               {/* Stat 2: Tour Packages */}
-              <div className="flex items-center gap-3.5 flex-1 min-w-0">
-                <div className="w-12 h-12 rounded-xl bg-emerald-50/50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0 shadow-2xs">
-                  <Map className="w-6 h-6 stroke-[1.75]" />
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="shrink-0 text-[#16A34A]">
+                  <Map className="w-9 h-9 stroke-[1.8] text-[#16A34A]" />
                 </div>
                 <div className="min-w-0">
-                  <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest block">Up to</span>
-                  <span className="text-xl sm:text-2xl font-black text-[#FF7D29] block leading-none mt-0.5">30% OFF</span>
-                  <span className="text-[11px] text-emerald-600 font-extrabold tracking-tight block mt-1 uppercase">on Tours</span>
+                  <span className="text-[11px] text-slate-500 font-semibold block leading-none">Up to</span>
+                  <span className="text-xl sm:text-2xl font-black text-[#EA580C] block leading-snug my-0.5">30% OFF</span>
+                  <span className="text-[12px] text-slate-600 font-medium block leading-none">on Tour Packages</span>
                 </div>
               </div>
 
-              {/* Divider */}
-              <div className="hidden sm:block w-px bg-slate-100" />
-
               {/* Stat 3: Car Rentals */}
-              <div className="flex items-center gap-3.5 flex-1 min-w-0">
-                <div className="w-12 h-12 rounded-xl bg-orange-50/50 border border-orange-100 flex items-center justify-center text-orange-600 shrink-0 shadow-2xs">
-                  <Car className="w-6 h-6 stroke-[1.75]" />
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="shrink-0 text-[#EA580C]">
+                  <Car className="w-9 h-9 stroke-[1.8] text-[#EA580C]" />
                 </div>
                 <div className="min-w-0">
-                  <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest block">Up to</span>
-                  <span className="text-xl sm:text-2xl font-black text-[#FF7D29] block leading-none mt-0.5">25% OFF</span>
-                  <span className="text-[11px] text-orange-600 font-extrabold tracking-tight block mt-1 uppercase">on Cars</span>
+                  <span className="text-[11px] text-slate-500 font-semibold block leading-none">Up to</span>
+                  <span className="text-xl sm:text-2xl font-black text-[#EA580C] block leading-snug my-0.5">25% OFF</span>
+                  <span className="text-[12px] text-slate-600 font-medium block leading-none">on Car Rentals</span>
                 </div>
               </div>
 
             </div>
 
-            {/* Vertical separator on desktop before the button */}
-            <div className="hidden lg:block w-px h-12 bg-slate-200 shrink-0" />
-
-            {/* Explore Button */}
+            {/* Explore All Deals Button matching reference image */}
             <button
               id="btn-explore-deals"
               onClick={() => { setDestination(''); setView('hotels'); }}
-              className="bg-[#0B3E91] hover:bg-[#082e6d] text-white px-6 py-3.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all hover:scale-[1.02] active:scale-95 cursor-pointer flex items-center justify-center gap-2 shadow-md shrink-0 w-full lg:w-auto"
+              className="bg-[#0B2559] hover:bg-[#071a3e] text-white px-6 py-3.5 rounded-2xl text-xs font-bold transition-all hover:scale-[1.02] active:scale-95 cursor-pointer flex items-center justify-center gap-2 shadow-md shrink-0 w-full lg:w-auto"
             >
-              <span>Explore All Deals</span>
-              <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span className="font-bold text-[13px]">Explore All Deals</span>
+              <ArrowRight className="w-4 h-4 stroke-[2.5]" />
             </button>
           </div>
 
