@@ -72,18 +72,83 @@ html {
   background: #9CA3AF;
 }
 
-/* Shimmer animation */
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
+/* Marquee Continuous Scrolling Keyframes */
+@keyframes marquee-left {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
 }
 
-.animate-shimmer {
-  background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+@keyframes marquee-right {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0%); }
 }
+
+@keyframes float-subtle-1 {
+  0%, 100% { transform: translateY(0px) rotate(-0.5deg); }
+  50% { transform: translateY(-8px) rotate(0.8deg); }
+}
+
+@keyframes float-subtle-2 {
+  0%, 100% { transform: translateY(-6px) rotate(0.6deg); }
+  50% { transform: translateY(6px) rotate(-0.7deg); }
+}
+
+@keyframes float-subtle-3 {
+  0%, 100% { transform: translateY(4px) rotate(-0.8deg); }
+  50% { transform: translateY(-10px) rotate(0.5deg); }
+}
+
+@keyframes float-subtle-4 {
+  0%, 100% { transform: translateY(-10px) rotate(1deg); }
+  50% { transform: translateY(2px) rotate(-0.6deg); }
+}
+
+@keyframes revolve-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes revolve-counter {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(-360deg); }
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.animate-marquee-left {
+  display: flex;
+  width: max-content;
+  animation: marquee-left 34s linear infinite;
+}
+
+.animate-marquee-right {
+  display: flex;
+  width: max-content;
+  animation: marquee-right 34s linear infinite;
+}
+
+.animate-float-1 {
+  animation: float-subtle-1 4.5s ease-in-out infinite;
+}
+
+.animate-float-2 {
+  animation: float-subtle-2 5.5s ease-in-out infinite;
+}
+
+.animate-float-3 {
+  animation: float-subtle-3 4.2s ease-in-out infinite;
+}
+
+.animate-float-4 {
+  animation: float-subtle-4 6s ease-in-out infinite;
+}
+
+.group-pause:hover .animate-marquee-left,
+.group-pause:hover .animate-marquee-right,
+.group-pause:hover .animate-spin-revolve {
+  animation-play-state: paused;
+}
+
+

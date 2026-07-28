@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, MapPin, Calendar, Users, Star, ArrowRight, Compass, Shield, Award, Sparkles, 
   ChevronDown, ChevronUp, Clock, ShieldCheck, Heart, Building2, Home, Car, HelpCircle,
   CheckCircle2, Flame, Users2, ThumbsUp, Headset, Mountain, Waves, Wallet,
-  ChevronLeft, ChevronRight, Map, Fuel, Lock, BadgePercent, CalendarCheck, BadgeCheck
+  ChevronLeft, ChevronRight, Map, Fuel, Lock, BadgePercent, CalendarCheck, BadgeCheck,
+  RotateCw, Play, Pause, Plus, MessageSquare, Shuffle, RefreshCw, Send
 } from 'lucide-react';
 import { Listing, handleImageError } from '../types';
 import { INITIAL_LISTINGS, PAKISTAN_FAQ } from '../data';
@@ -37,6 +38,191 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
   const [isGuestDropdownOpen, setIsGuestDropdownOpen] = useState(false);
 
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+
+  // Floating & Revolving Comments State
+  const [commentsList, setCommentsList] = useState([
+    {
+      id: 'c-1',
+      name: 'Ahmed Khan',
+      location: 'Lahore, Pakistan',
+      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&h=150&q=80',
+      badge: 'Hunza Valley Hotel',
+      rating: 5,
+      comment: 'Amazing experience with GBBookings! The hotel in Hunza was spotless with breathtaking views of Rakaposhi Peak.',
+      time: 'Just now',
+      likes: 38,
+      floatClass: 'animate-float-1'
+    },
+    {
+      id: 'c-2',
+      name: 'Sophia Martinez',
+      location: 'London, UK',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&h=150&q=80',
+      badge: 'Skardu Prado 4x4',
+      rating: 5,
+      comment: 'Rented a Prado for Skardu and Deosai Plains. Vehicle was immaculate and our local driver knew every hidden spot!',
+      time: '12m ago',
+      likes: 54,
+      floatClass: 'animate-float-2'
+    },
+    {
+      id: 'c-3',
+      name: 'Zainab Malik',
+      location: 'Islamabad, Pakistan',
+      avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=150&h=150&q=80',
+      badge: 'Attabad Lake Resort',
+      rating: 5,
+      comment: 'Attabad Lake boat trip and resort stay booked in 2 minutes. Instant confirmation and zero surprise fees.',
+      time: '45m ago',
+      likes: 27,
+      floatClass: 'animate-float-3'
+    },
+    {
+      id: 'c-4',
+      name: 'David Miller',
+      location: 'Toronto, Canada',
+      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&h=150&q=80',
+      badge: 'Nagar Valley Homestay',
+      rating: 5,
+      comment: 'Found a serene homestay in Nagar Valley. Host family treated us like royalty with fresh orchard fruits!',
+      time: '2h ago',
+      likes: 41,
+      floatClass: 'animate-float-4'
+    },
+    {
+      id: 'c-5',
+      name: 'Elena Rostova',
+      location: 'Berlin, Germany',
+      avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&h=150&q=80',
+      badge: 'Fairy Meadows Trek',
+      rating: 5,
+      comment: 'Fairy Meadows jeep safari + trekking guide package was top-notch! Best rates guaranteed indeed.',
+      time: '3h ago',
+      likes: 62,
+      floatClass: 'animate-float-1'
+    },
+    {
+      id: 'c-6',
+      name: 'Usman Sheikh',
+      location: 'Rawalpindi, Pakistan',
+      avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=150&h=150&q=80',
+      badge: 'Serena Hotel Gilgit',
+      rating: 5,
+      comment: 'The website made comparing luxury hotels in Gilgit super smooth. Seamless booking and easy payment.',
+      time: '5h ago',
+      likes: 33,
+      floatClass: 'animate-float-2'
+    }
+  ]);
+
+  const [isRevolving, setIsRevolving] = useState(true);
+  const [revolveAngle, setRevolveAngle] = useState(0);
+  const [commentViewMode, setCommentViewMode] = useState<'3d-ring' | 'floating-stream'>('3d-ring');
+  const [newCommentText, setNewCommentText] = useState('');
+  const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
+
+  // Auto-revolve effect for 3D ring
+  useEffect(() => {
+    if (!isRevolving) return;
+    const interval = setInterval(() => {
+      setRevolveAngle((prev) => (prev + 0.35) % 360);
+    }, 30);
+    return () => clearInterval(interval);
+  }, [isRevolving]);
+
+  // Handler to like a comment
+  const handleLikeComment = (id: string) => {
+    setCommentsList(prev => prev.map(c => c.id === id ? { ...c, likes: c.likes + 1 } : c));
+  };
+
+  // Handler to inject a random new floating comment
+  const handleGenerateRandomComment = () => {
+    const randomPool = [
+      {
+        name: 'Ayesha Siddiqui',
+        location: 'Peshawar, Pakistan',
+        avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=150&h=150&q=80',
+        badge: 'Khunjerab Border Tour',
+        comment: 'Khunjerab Pass border excursion was the highlight of our honeymoon trip! Thank you GBBookings!',
+      },
+      {
+        name: 'Michael Chen',
+        location: 'Singapore',
+        avatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=150&h=150&q=80',
+        badge: 'Shangrila Resort Skardu',
+        comment: 'Clean luxury rooms, instant confirmation, transparent prices with zero hidden charges. Will book again!',
+      },
+      {
+        name: 'Bilal Raza',
+        location: 'Faisalabad, Pakistan',
+        avatar: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=150&h=150&q=80',
+        badge: 'Combo Car + Stay',
+        comment: 'Most reliable portal for Northern Pakistan travel. Booked hotel stays + Prado 4x4 rental in one go!',
+      },
+      {
+        name: 'Tariq Mehmood',
+        location: 'Multan, Pakistan',
+        avatar: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=150&h=150&q=80',
+        badge: 'Naltar Valley Ski Tour',
+        comment: 'Satrangi Lake and Naltar Valley tour was super well coordinated. Driver was punctual and courteous.',
+      },
+      {
+        name: 'Claire Dubois',
+        location: 'Paris, France',
+        avatar: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=150&h=150&q=80',
+        badge: 'Passu Cones Lodge',
+        comment: 'Watching sunrise over Passu Cones from our balcony was unforgettable. GBBookings made it effortless!',
+      },
+      {
+        name: 'Hassan Ali',
+        location: 'Quetta, Pakistan',
+        avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=150&h=150&q=80',
+        badge: 'Shigar Fort Palace',
+        comment: 'Historical stay at Serena Shigar Fort! Exceptional hospitality and authentic local Baltic cuisine.',
+      }
+    ];
+
+    const pick = randomPool[Math.floor(Math.random() * randomPool.length)];
+    const floatClasses = ['animate-float-1', 'animate-float-2', 'animate-float-3', 'animate-float-4'];
+    const newCommentObj = {
+      id: 'c-rnd-' + Date.now(),
+      name: pick.name,
+      location: pick.location,
+      avatar: pick.avatar,
+      badge: pick.badge,
+      rating: 5,
+      comment: pick.comment,
+      time: 'Just now',
+      likes: Math.floor(Math.random() * 15) + 10,
+      floatClass: floatClasses[Math.floor(Math.random() * floatClasses.length)]
+    };
+
+    setCommentsList(prev => [newCommentObj, ...prev]);
+  };
+
+  // Add custom user comment
+  const handleAddCustomComment = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCommentText.trim()) return;
+
+    const floatClasses = ['animate-float-1', 'animate-float-2', 'animate-float-3', 'animate-float-4'];
+    const userObj = {
+      id: 'c-usr-' + Date.now(),
+      name: 'You (Traveler)',
+      location: 'Gilgit Baltistan Explorer',
+      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80',
+      badge: 'Verified Travel Experience',
+      rating: 5,
+      comment: newCommentText.trim(),
+      time: 'Just now',
+      likes: 1,
+      floatClass: floatClasses[Math.floor(Math.random() * floatClasses.length)]
+    };
+
+    setCommentsList(prev => [userObj, ...prev]);
+    setNewCommentText('');
+    setIsCommentModalOpen(false);
+  };
 
   const destDropdownRef = React.useRef<HTMLDivElement>(null);
   const guestDropdownRef = React.useRef<HTMLDivElement>(null);
@@ -159,9 +345,9 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
   return (
     <div id="explore-section" className="space-y-12 pb-20">
       
-      {/* 1. Elegant Sweeping Hero Section matching the reference image */}
-      <section className="relative rounded-3xl overflow-hidden min-h-[500px] lg:min-h-[540px] flex flex-col justify-between p-6 sm:p-10 lg:p-12 shadow-2xl border border-slate-800/20" id="hero-banner">
-        {/* Sweeping Panoramic Mountain Background with high-contrast legibility overlay */}
+      {/* 1. Full-Bleed Sweeping Hero Section matching reference image */}
+      <section className="relative -mx-4 sm:-mx-8 lg:-mx-12 xl:-mx-16 -mt-8 md:-mt-12 overflow-hidden min-h-[500px] lg:min-h-[540px] shadow-2xl" id="hero-banner">
+        {/* Sweeping Panoramic Mountain Background spanning edge-to-edge till the screen ends */}
         <div className="absolute inset-0 z-0">
           <img 
             src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1920&q=80" 
@@ -170,122 +356,126 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
             referrerPolicy="no-referrer"
             onError={handleImageError}
           />
-          <div className="absolute inset-0 bg-slate-950/50" />
-          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/85 via-slate-900/70 to-slate-900/35" />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/30" />
+          <div className="absolute inset-0 bg-slate-950/45" />
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/85 via-slate-900/65 to-slate-900/30" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/20" />
         </div>
 
-        {/* Top/Badge element matching image */}
-        <div className="relative z-10">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#062419]/80 border border-[#22c55e]/70 text-[#4ade80] text-xs font-bold backdrop-blur-md shadow-md">
-            <MapPin className="w-3.5 h-3.5 text-[#22c55e] shrink-0" />
-            <span className="tracking-tight text-white font-medium">{t('hero.badge')}</span>
-          </div>
-        </div>
-
-        {/* Content & Promo Card split layout */}
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-end mt-6">
-          
-          {/* Left Hero Texts */}
-          <div className="lg:col-span-7 space-y-4 text-left" id="hero-left-content">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl xl:text-6xl font-extrabold text-white tracking-tight leading-[1.12] drop-shadow-md">
-              {t('hero.title_part1')}<br />
-              {t('hero.title_part2')} <span className="text-[#22c55e] font-black">{t('hero.title_highlight')}</span>
-            </h1>
-            <p className="text-slate-100/95 text-sm sm:text-base md:text-lg font-medium max-w-xl leading-relaxed drop-shadow-xs">
-              {t('hero.subtitle')}
-            </p>
-
-            {/* Row of 4 Hero trust factors matching image with subtle dividers */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 pt-6 border-t border-white/15 divide-x-0 sm:divide-x divide-white/15" id="hero-trust-factors">
-              <div className="flex items-center gap-2.5 text-white pr-2">
-                <div className="w-9 h-9 rounded-full bg-[#10b981]/20 border border-[#10b981]/50 flex items-center justify-center shrink-0 shadow-inner">
-                  <ShieldCheck className="w-4 h-4 text-[#4ade80]" />
-                </div>
-                <div className="min-w-0">
-                  <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">Best Price</span>
-                  <span className="text-[11px] font-medium text-slate-200 block leading-tight">Guarantee</span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2.5 text-white sm:pl-3 sm:pr-2">
-                <div className="w-9 h-9 rounded-full bg-[#10b981]/20 border border-[#10b981]/50 flex items-center justify-center shrink-0 shadow-inner">
-                  <Calendar className="w-4 h-4 text-[#4ade80]" />
-                </div>
-                <div className="min-w-0">
-                  <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">Free</span>
-                  <span className="text-[11px] font-medium text-slate-200 block leading-tight">Cancellation</span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2.5 text-white sm:pl-3 sm:pr-2">
-                <div className="w-9 h-9 rounded-full bg-[#10b981]/20 border border-[#10b981]/50 flex items-center justify-center shrink-0 shadow-inner">
-                  <Headset className="w-4 h-4 text-[#4ade80]" />
-                </div>
-                <div className="min-w-0">
-                  <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">24/7</span>
-                  <span className="text-[11px] font-medium text-slate-200 block leading-tight">Support</span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2.5 text-white sm:pl-3">
-                <div className="w-9 h-9 rounded-full bg-[#10b981]/20 border border-[#10b981]/50 flex items-center justify-center shrink-0 shadow-inner">
-                  <Star className="w-4 h-4 text-[#4ade80]" />
-                </div>
-                <div className="min-w-0">
-                  <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">Trusted by</span>
-                  <span className="text-[11px] font-medium text-slate-200 block leading-tight">Thousands</span>
-                </div>
-              </div>
+        {/* Inner Centered Content Wrapper */}
+        <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-10 lg:px-12 pt-8 sm:pt-10 pb-28 sm:pb-32 flex flex-col justify-between h-full space-y-8">
+          {/* Top/Badge element matching image */}
+          <div>
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#062419]/80 border border-[#22c55e]/70 text-[#4ade80] text-xs font-bold backdrop-blur-md shadow-md">
+              <MapPin className="w-3.5 h-3.5 text-[#22c55e] shrink-0" />
+              <span className="tracking-tight text-white font-medium">{t('hero.badge')}</span>
             </div>
           </div>
 
-          {/* Right Promo Card (UP TO 40% OFF) matching the image */}
-          <div className="lg:col-span-5" id="hero-promo-card">
-            <div className="bg-gradient-to-br from-[#0B5D3E] via-[#0D6E4A] to-[#043E28] rounded-3xl p-5 border border-[#16A34A]/35 text-white shadow-2xl relative overflow-hidden flex justify-between gap-4 max-w-md mx-auto lg:ml-auto">
-              
-              {/* Promo details */}
-              <div className="flex flex-col justify-between z-10 py-1 space-y-4">
-                <div>
-                  <span className="inline-block bg-gradient-to-r from-[#FF7D29] to-[#EA580C] text-white text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider mb-3">
-                    {t('hero.promo.tag')}
-                  </span>
-                  <p className="text-white/80 text-[11px] font-bold tracking-widest uppercase">{t('hero.promo.upto')}</p>
-                  <h3 className="text-4xl font-black text-white tracking-tighter leading-none mt-1">{t('hero.promo.discount')}</h3>
-                  <p className="text-white/80 text-xs font-semibold mt-2">{t('hero.promo.on_hotels')}</p>
+          {/* Content & Promo Card split layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end mt-2">
+            
+            {/* Left Hero Texts */}
+            <div className="lg:col-span-7 space-y-4 text-left" id="hero-left-content">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl xl:text-6xl font-extrabold text-white tracking-tight leading-[1.12] drop-shadow-md">
+                {t('hero.title_part1')}<br />
+                {t('hero.title_part2')} <span className="text-[#22c55e] font-black">{t('hero.title_highlight')}</span>
+              </h1>
+              <p className="text-slate-100/95 text-sm sm:text-base md:text-lg font-medium max-w-xl leading-relaxed drop-shadow-xs">
+                {t('hero.subtitle')}
+              </p>
+
+              {/* Row of 4 Hero trust factors matching image with subtle dividers */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 pt-6 border-t border-white/15 divide-x-0 sm:divide-x divide-white/15" id="hero-trust-factors">
+                <div className="flex items-center gap-2.5 text-white pr-2">
+                  <div className="w-9 h-9 rounded-full bg-[#10b981]/20 border border-[#10b981]/50 flex items-center justify-center shrink-0 shadow-inner">
+                    <ShieldCheck className="w-4 h-4 text-[#4ade80]" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">Best Price</span>
+                    <span className="text-[11px] font-medium text-slate-200 block leading-tight">Guarantee</span>
+                  </div>
                 </div>
+
+                <div className="flex items-center gap-2.5 text-white sm:pl-3 sm:pr-2">
+                  <div className="w-9 h-9 rounded-full bg-[#10b981]/20 border border-[#10b981]/50 flex items-center justify-center shrink-0 shadow-inner">
+                    <Calendar className="w-4 h-4 text-[#4ade80]" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">Free</span>
+                    <span className="text-[11px] font-medium text-slate-200 block leading-tight">Cancellation</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2.5 text-white sm:pl-3 sm:pr-2">
+                  <div className="w-9 h-9 rounded-full bg-[#10b981]/20 border border-[#10b981]/50 flex items-center justify-center shrink-0 shadow-inner">
+                    <Headset className="w-4 h-4 text-[#4ade80]" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">24/7</span>
+                    <span className="text-[11px] font-medium text-slate-200 block leading-tight">Support</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2.5 text-white sm:pl-3">
+                  <div className="w-9 h-9 rounded-full bg-[#10b981]/20 border border-[#10b981]/50 flex items-center justify-center shrink-0 shadow-inner">
+                    <Star className="w-4 h-4 text-[#4ade80]" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">Trusted by</span>
+                    <span className="text-[11px] font-medium text-slate-200 block leading-tight">Thousands</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Promo Card (UP TO 40% OFF) matching the image */}
+            <div className="lg:col-span-5" id="hero-promo-card">
+              <div className="bg-gradient-to-br from-[#0B5D3E] via-[#0D6E4A] to-[#043E28] rounded-3xl p-5 border border-[#16A34A]/35 text-white shadow-2xl relative overflow-hidden flex justify-between gap-4 max-w-md mx-auto lg:ml-auto">
                 
-                <button 
-                  onClick={() => handleCategoryCardClick('hotel')}
-                  className="text-left font-bold text-xs uppercase tracking-wider text-white hover:text-[#FF7D29] transition-colors flex items-center gap-1 group cursor-pointer"
-                >
-                  <span>{t('hero.promo.btn')}</span>
-                  <span className="transition-transform group-hover:translate-x-1 font-mono">&gt;</span>
-                </button>
-              </div>
+                {/* Promo details */}
+                <div className="flex flex-col justify-between z-10 py-1 space-y-3">
+                  <div>
+                    <span className="inline-block bg-gradient-to-r from-[#FF7D29] to-[#EA580C] text-white text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider mb-2.5 shadow-sm">
+                      {t('hero.promo.tag')}
+                    </span>
+                    <p className="text-white/80 text-[11px] font-bold tracking-widest uppercase">{t('hero.promo.upto')}</p>
+                    <h3 className="text-4xl font-black text-white tracking-tighter leading-none mt-0.5">{t('hero.promo.discount')}</h3>
+                    <p className="text-white/80 text-xs font-semibold mt-1.5">{t('hero.promo.on_hotels')}</p>
+                  </div>
+                  
+                  {/* Styled Button inside the Deal Card */}
+                  <button 
+                    onClick={() => setView('offers')}
+                    className="bg-[#052D1D]/90 hover:bg-[#08422B] border border-[#22C55E]/40 text-white px-4 py-2 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-md transition-all cursor-pointer hover:scale-[1.02] active:scale-95 group w-fit"
+                  >
+                    <span>Explore Deals</span>
+                    <ChevronRight className="w-3.5 h-3.5 text-white/90 transition-transform group-hover:translate-x-0.5" />
+                  </button>
+                </div>
 
-              {/* Promo Chalet image with rounded overlay */}
-              <div className="relative w-40 h-36 shrink-0 rounded-2xl overflow-hidden shadow-lg border border-white/15 z-10 self-center">
-                <img 
-                  src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=400&q=80" 
-                  alt="Promo alpine chalet" 
-                  className="w-full h-full object-cover rounded-2xl"
-                  referrerPolicy="no-referrer"
-                  onError={handleImageError}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#043E28]/50 to-transparent" />
-              </div>
+                {/* Promo Chalet image with rounded overlay */}
+                <div className="relative w-40 h-36 shrink-0 rounded-2xl overflow-hidden shadow-lg border border-white/15 z-10 self-center">
+                  <img 
+                    src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=400&q=80" 
+                    alt="Promo alpine chalet" 
+                    className="w-full h-full object-cover rounded-2xl"
+                    referrerPolicy="no-referrer"
+                    onError={handleImageError}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#043E28]/50 to-transparent" />
+                </div>
 
-              {/* Ambient green radial lights */}
-              <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-[#22C55E]/20 rounded-full blur-2xl pointer-events-none" />
+                {/* Ambient green radial lights */}
+                <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-[#22C55E]/20 rounded-full blur-2xl pointer-events-none" />
+              </div>
             </div>
-          </div>
 
+          </div>
         </div>
       </section>
 
       {/* 2. Overlapping Booking / Search Widget Console */}
-      <section className="-mt-20 relative z-20 max-w-7xl mx-auto px-2" id="search-console">
+      <section className="-mt-20 sm:-mt-24 relative z-20 max-w-7xl mx-auto px-2 sm:px-4" id="search-console">
         <div className="bg-white rounded-3xl border border-[#E2E8F0] shadow-2xl overflow-visible">
           
           {/* Tabs header matching the image: Hotels, Homestays, Cars, Tours */}
@@ -1825,67 +2015,226 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
       </section>
 
       {/* SECTION 7: What Our Travelers Say */}
-      <section className="space-y-6 pt-6" id="section-testimonials">
-        <div className="text-left space-y-1">
+      <section className="space-y-6 pt-6 overflow-hidden" id="section-testimonials">
+        <div className="space-y-1.5 text-left">
           <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 uppercase">
             {isRtl ? 'ہمارے مسافروں کی رائے' : 'What Our Travelers Say'}
           </h3>
-          <p className="text-sm text-slate-500">
-            Real reviews from our happy customers
+          <p className="text-xs sm:text-sm text-slate-500">
+            Real stories from adventurers exploring Hunza, Skardu, Gilgit & beyond
           </p>
         </div>
 
-        {/* Carousel testmional container */}
-        <div className="max-w-2xl mx-auto relative bg-[#FAFBFD] border border-slate-200/70 p-6 sm:p-8 rounded-3xl shadow-3xs" id="testimonials-box">
-          <div className="flex flex-col items-center text-center space-y-5">
-            {/* Stars */}
-            <div className="flex items-center gap-0.5 text-amber-400">
-              {Array(5).fill(0).map((_, i) => (
-                <Star key={i} className="w-5 h-5 fill-amber-400 stroke-none" />
+        {/* CONTINUOUS MOVING MARQUEE STREAM */}
+        <div className="relative group-pause space-y-4 py-2 -mx-4 sm:-mx-8 lg:-mx-12 overflow-hidden" id="marquee-comments-container">
+          {/* Side Fade Gradients */}
+          <div className="absolute left-0 top-0 bottom-0 w-16 sm:w-28 bg-gradient-to-r from-[#FAFAFA] to-transparent z-10 pointer-events-none" />
+          <div className="absolute right-0 top-0 bottom-0 w-16 sm:w-28 bg-gradient-to-l from-[#FAFAFA] to-transparent z-10 pointer-events-none" />
+
+          {/* ROW 1: Moving Left Continuous Loop */}
+          <div className="flex overflow-hidden">
+            <div className="animate-marquee-left flex gap-4 sm:gap-5 pr-4 sm:pr-5">
+              {[...commentsList, ...commentsList].map((card, idx) => (
+                <div
+                  key={card.id + '-row1-' + idx}
+                  className={`w-[300px] sm:w-[340px] shrink-0 bg-white border border-slate-200/80 hover:border-emerald-500/50 p-5 rounded-2xl shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col justify-between space-y-3 cursor-pointer group ${card.floatClass}`}
+                  onClick={() => handleLikeComment(card.id)}
+                >
+                  <div className="space-y-2.5 text-left">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1">
+                        {Array(card.rating).fill(0).map((_, i) => (
+                          <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400 stroke-none" />
+                        ))}
+                      </div>
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                        <span>Verified Traveler</span>
+                      </span>
+                    </div>
+
+                    <p className="text-slate-700 text-xs sm:text-[13px] font-normal leading-relaxed italic line-clamp-3">
+                      "{card.comment}"
+                    </p>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0 text-left">
+                      <img
+                        src={card.avatar}
+                        alt={card.name}
+                        className="w-9 h-9 rounded-full object-cover border border-slate-200 shrink-0 shadow-2xs"
+                        referrerPolicy="no-referrer"
+                        onError={handleImageError}
+                      />
+                      <div className="min-w-0">
+                        <h5 className="text-xs font-bold text-slate-900 truncate group-hover:text-emerald-700 transition-colors">
+                          {card.name}
+                        </h5>
+                        <p className="text-[10px] text-slate-400 font-medium truncate flex items-center gap-1">
+                          <MapPin className="w-2.5 h-2.5 text-slate-400 shrink-0" />
+                          <span>{card.location}</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleLikeComment(card.id);
+                        }}
+                        className="flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[10px] font-bold border border-emerald-200/60"
+                      >
+                        <ThumbsUp className="w-3 h-3" />
+                        <span>{card.likes}</span>
+                      </button>
+                      <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-1 rounded-lg shrink-0 border border-slate-200/50">
+                        {card.badge}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
+          </div>
 
-            {/* Testimonial text */}
-            <p className="text-slate-700 text-sm sm:text-base font-medium italic leading-relaxed max-w-xl">
-              "Amazing experience with GBBookings! Everything was smooth and well organized. Highly recommended!"
-            </p>
+          {/* ROW 2: Moving Right Continuous Loop */}
+          <div className="flex overflow-hidden">
+            <div className="animate-marquee-right flex gap-4 sm:gap-5 pr-4 sm:pr-5">
+              {[...commentsList, ...commentsList].reverse().map((card, idx) => (
+                <div
+                  key={card.id + '-row2-' + idx}
+                  className={`w-[300px] sm:w-[340px] shrink-0 bg-white border border-slate-200/80 hover:border-emerald-500/50 p-5 rounded-2xl shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col justify-between space-y-3 cursor-pointer group ${card.floatClass}`}
+                  onClick={() => handleLikeComment(card.id)}
+                >
+                  <div className="space-y-2.5 text-left">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1">
+                        {Array(card.rating).fill(0).map((_, i) => (
+                          <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400 stroke-none" />
+                        ))}
+                      </div>
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                        <span>Verified Traveler</span>
+                      </span>
+                    </div>
 
-            {/* User details */}
-            <div className="flex items-center gap-3 pt-3">
-              <img 
-                src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&h=150&q=80" 
-                alt="Ahmed Khan" 
-                className="w-11 h-11 rounded-full object-cover border border-slate-200 shadow-sm"
-                referrerPolicy="no-referrer"
-                onError={handleImageError}
-              />
-              <div className="text-left">
-                <h4 className="text-xs sm:text-sm font-black text-slate-900 leading-none">Ahmed Khan</h4>
-                <p className="text-[10px] text-slate-400 font-extrabold tracking-wide uppercase mt-1">Lahore, Pakistan</p>
-              </div>
-            </div>
+                    <p className="text-slate-700 text-xs sm:text-[13px] font-normal leading-relaxed italic line-clamp-3">
+                      "{card.comment}"
+                    </p>
+                  </div>
 
-            {/* Navigation buttons */}
-            <div className="absolute top-1/2 -translate-y-1/2 left-2 sm:-left-4">
-              <button className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:text-emerald-700 hover:border-emerald-300 hover:scale-105 active:scale-95 shadow-xs transition-all cursor-pointer">
-                <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
-              </button>
-            </div>
-            <div className="absolute top-1/2 -translate-y-1/2 right-2 sm:-right-4">
-              <button className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:text-emerald-700 hover:border-emerald-300 hover:scale-105 active:scale-95 shadow-xs transition-all cursor-pointer">
-                <ChevronRight className="w-4 h-4 stroke-[2.5]" />
-              </button>
-            </div>
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0 text-left">
+                      <img
+                        src={card.avatar}
+                        alt={card.name}
+                        className="w-9 h-9 rounded-full object-cover border border-slate-200 shrink-0 shadow-2xs"
+                        referrerPolicy="no-referrer"
+                        onError={handleImageError}
+                      />
+                      <div className="min-w-0">
+                        <h5 className="text-xs font-bold text-slate-900 truncate group-hover:text-emerald-700 transition-colors">
+                          {card.name}
+                        </h5>
+                        <p className="text-[10px] text-slate-400 font-medium truncate flex items-center gap-1">
+                          <MapPin className="w-2.5 h-2.5 text-slate-400 shrink-0" />
+                          <span>{card.location}</span>
+                        </p>
+                      </div>
+                    </div>
 
-            {/* Pagination indicators */}
-            <div className="flex items-center gap-1.5 pt-2">
-              {[0, 1, 2, 3].map((dot) => (
-                <span key={dot} className={`w-2 h-2 rounded-full transition-all duration-200 ${dot === 0 ? 'bg-[#0B5D3E] w-4' : 'bg-slate-200'}`} />
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleLikeComment(card.id);
+                        }}
+                        className="flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[10px] font-bold border border-emerald-200/60"
+                      >
+                        <ThumbsUp className="w-3 h-3" />
+                        <span>{card.likes}</span>
+                      </button>
+                      <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-1 rounded-lg shrink-0 border border-slate-200/50">
+                        {card.badge}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
-
           </div>
         </div>
+
+        {/* MODAL: WRITE A FLOATING COMMENT */}
+        <AnimatePresence>
+          {isCommentModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                className="bg-white rounded-3xl p-6 max-w-md w-full border border-slate-200 shadow-2xl text-left space-y-4"
+              >
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
+                      <MessageSquare className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-900 text-base">Write Floating Comment</h4>
+                      <p className="text-xs text-slate-500">Your comment will revolve live in the traveler feed</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsCommentModalOpen(false)}
+                    className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <form onSubmit={handleAddCustomComment} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Your Travel Story / Comment
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={newCommentText}
+                      onChange={(e) => setNewCommentText(e.target.value)}
+                      placeholder="e.g. Loved our stay in Hunza valley! Super smooth booking..."
+                      required
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsCommentModalOpen(false)}
+                      className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md transition-all"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>Post Comment</span>
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </section>
 
       {/* SECTION 8: GBBookings by the Numbers */}

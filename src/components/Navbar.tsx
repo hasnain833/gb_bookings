@@ -54,7 +54,7 @@ export default function Navbar({
   ];
 
   return (
-    <header id="app-navbar" className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-[#E5E5E5] shadow-xs">
+    <header id="app-navbar" className="fixed top-0 left-0 right-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-[#E5E5E5] shadow-sm">
       <div className="w-full mx-auto px-4 sm:px-8 lg:px-12 xl:px-16 h-16 sm:h-20 md:h-24 flex items-center justify-between gap-2 sm:gap-4 md:gap-6 flex-nowrap" id="nav-container">
         
         {/* Left Side: Brand Logo */}

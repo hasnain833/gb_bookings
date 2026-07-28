@@ -3,6 +3,11 @@ import Navbar from './components/Navbar';
 import GBLogo from './components/GBLogo';
 import ExploreSection from './components/ExploreSection';
 import ListingsSearch from './components/ListingsSearch';
+import HomestaysSection from './components/HomestaysSection';
+import HotelsSection from './components/HotelsSection';
+import CarsSection from './components/CarsSection';
+import ToursSection from './components/ToursSection';
+import DestinationsSection from './components/DestinationsSection';
 import ListingDetails from './components/ListingDetails';
 import CheckoutFlow from './components/CheckoutFlow';
 import UserDashboard from './components/UserDashboard';
@@ -14,7 +19,7 @@ import { useLanguage } from './LanguageContext';
 
 export default function App() {
   const { t, isRtl } = useLanguage();
-  const [view, setView] = useState<string>('explore'); // 'explore' | 'search' | 'details' | 'checkout' | 'user-dashboard' | 'vendor-dashboard' | 'ai-planner' | 'support'
+  const [view, setView] = useState<string>('homestays'); // 'explore' | 'homestays' | 'search' | 'details' | 'checkout' | 'user-dashboard' | 'vendor-dashboard' | 'ai-planner' | 'support'
   const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   
@@ -75,23 +80,17 @@ export default function App() {
 
   const handleNavigation = (v: string) => {
     if (v === 'hotels' || v === 'browse-hotels') {
-      setSearchParams(prev => ({ ...prev, type: 'hotel' }));
-      setView('search');
+      setView('hotels');
     } else if (v === 'homestays' || v === 'browse-homestays') {
-      setSearchParams(prev => ({ ...prev, type: 'homestay' }));
-      setView('search');
+      setView('homestays');
     } else if (v === 'cars' || v === 'browse-cars') {
-      setSearchParams(prev => ({ ...prev, type: 'car' }));
-      setView('search');
+      setView('cars');
     } else if (v === 'tours' || v === 'browse-tours' || v === 'packages') {
-      setSearchParams(prev => ({ ...prev, type: 'tour' }));
-      setView('search');
+      setView('tours');
     } else if (v === 'destinations' || v === 'browse-destinations') {
-      setSearchParams(prev => ({ ...prev, type: 'destination' }));
-      setView('search');
+      setView('destinations');
     } else if (v === 'offers' || v === 'browse-offers') {
-      setSearchParams(prev => ({ ...prev, type: 'offer' }));
-      setView('search');
+      setView('tours');
     } else if (v === 'dashboard-user' || v === 'user-dashboard') {
       setView('user-dashboard');
     } else if (v === 'dashboard-vendor' || v === 'vendor-dashboard') {
@@ -103,7 +102,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] text-[#1A1A1A] flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
+    <div className="min-h-screen bg-[#FAFAFA] text-[#1A1A1A] flex flex-col font-sans selection:bg-indigo-500 selection:text-white overflow-x-hidden">
       
       {/* Top Navigation Bar */}
       <Navbar 
@@ -129,7 +128,7 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 w-full mx-auto px-4 sm:px-8 lg:px-12 xl:px-16 py-8 md:py-12">
+      <main className="flex-1 w-full mx-auto px-4 sm:px-8 lg:px-12 xl:px-16 pt-20 sm:pt-24 md:pt-28 pb-8 md:pb-12">
         {view === 'explore' && (
           <ExploreSection 
             setView={handleNavigation}
@@ -143,6 +142,41 @@ export default function App() {
               }));
             }}
             onSelectListing={handleSelectListing}
+          />
+        )}
+
+        {view === 'homestays' && (
+          <HomestaysSection 
+            onSelectListing={handleSelectListing}
+            onTriggerSearch={handleTriggerSearch}
+          />
+        )}
+
+        {view === 'hotels' && (
+          <HotelsSection 
+            onSelectListing={handleSelectListing}
+            onTriggerSearch={handleTriggerSearch}
+          />
+        )}
+
+        {view === 'cars' && (
+          <CarsSection 
+            onSelectListing={handleSelectListing}
+            onTriggerSearch={handleTriggerSearch}
+          />
+        )}
+
+        {(view === 'tours' || view === 'offers') && (
+          <ToursSection 
+            onSelectListing={handleSelectListing}
+            onTriggerSearch={handleTriggerSearch}
+          />
+        )}
+
+        {view === 'destinations' && (
+          <DestinationsSection 
+            onTriggerSearch={handleTriggerSearch}
+            setView={handleNavigation}
           />
         )}
 
