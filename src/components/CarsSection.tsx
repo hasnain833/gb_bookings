@@ -695,19 +695,16 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
                     </div>
 
                     {specs && (
-                      <div className="grid grid-cols-3 gap-1.5 pt-1 text-center">
-                        <div className="bg-slate-50 rounded-lg p-1.5 border border-slate-100">
-                          <span className="text-[10px] text-slate-400 block font-semibold">Capacity</span>
-                          <span className="text-xs font-bold text-slate-800">{specs.seats} Seats</span>
-                        </div>
-                        <div className="bg-slate-50 rounded-lg p-1.5 border border-slate-100">
-                          <span className="text-[10px] text-slate-400 block font-semibold">Gear</span>
-                          <span className="text-xs font-bold text-slate-800">{specs.transmission}</span>
-                        </div>
-                        <div className="bg-slate-50 rounded-lg p-1.5 border border-slate-100">
-                          <span className="text-[10px] text-slate-400 block font-semibold">Fuel</span>
-                          <span className="text-xs font-bold text-slate-800">{specs.fuelType}</span>
-                        </div>
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-semibold flex items-center gap-1">
+                          <Users className="w-3 h-3 text-[#047857]" /> {specs.seats} Seats
+                        </span>
+                        <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-semibold flex items-center gap-1">
+                          <Gauge className="w-3 h-3 text-[#047857]" /> {specs.transmission}
+                        </span>
+                        <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-semibold flex items-center gap-1">
+                          <Fuel className="w-3 h-3 text-[#047857]" /> {specs.fuelType}
+                        </span>
                       </div>
                     )}
 
