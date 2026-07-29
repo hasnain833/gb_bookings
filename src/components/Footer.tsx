@@ -481,7 +481,7 @@ export default function Footer({ onNavigate }: FooterProps) {
             {/* Background Mountain Contour Graphic */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400 relative z-10">
               <p className="text-center sm:text-left">
-                © 2024 GBBookings.com - All Rights Reserved.
+                © 2026 GBBookings.com - All Rights Reserved.
               </p>
               <div className="flex items-center gap-1 text-slate-300 font-medium">
                 <span>Made with</span>
