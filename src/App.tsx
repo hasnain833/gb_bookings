@@ -7,6 +7,7 @@ import HomestaysSection from './components/HomestaysSection';
 import HotelsSection from './components/HotelsSection';
 import CarsSection from './components/CarsSection';
 import ToursSection from './components/ToursSection';
+import OffersSection from './components/OffersSection';
 import DestinationsSection from './components/DestinationsSection';
 import ListingDetails from './components/ListingDetails';
 import CheckoutFlow from './components/CheckoutFlow';
@@ -175,15 +176,9 @@ export default function App() {
         )}
 
         {view === 'offers' && (
-          <ListingsSearch 
-            type="offer"
-            initialFilters={{
-              destination: searchParams.destination,
-              startDate: searchParams.dates,
-              endDate: '',
-              extra: { guestCount: searchParams.guests }
-            }}
+          <OffersSection 
             onSelectListing={handleSelectListing}
+            onTriggerSearch={handleTriggerSearch}
           />
         )}
 
