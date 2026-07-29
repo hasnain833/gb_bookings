@@ -458,48 +458,51 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
 
             </div>
           </form>
-        </div>
 
-        {/* 4-Column Trust Assurance Bar */}
-        <div className="mt-5 bg-[#F8FAFC] border border-slate-200/70 rounded-2xl p-2 sm:p-3 shadow-2xs">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 lg:divide-x divide-slate-200/80 items-center">
-            <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
-              <div className="w-10 h-10 rounded-full bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center text-[#047857] shrink-0">
-                <User className="w-5 h-5 shrink-0 text-[#047857]" />
-              </div>
-              <div className="min-w-0">
-                <h5 className="font-bold text-[13px] text-slate-800 leading-snug">Experienced Drivers</h5>
-                <p className="text-[11px] text-slate-500 break-words">Karakoram terrain experts</p>
-              </div>
-            </div>
+          {/* Divider Line */}
+          <div className="border-t border-slate-200/80" />
 
-            <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
-              <div className="w-10 h-10 rounded-full bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center text-[#047857] shrink-0">
-                <ShieldCheck className="w-5 h-5 shrink-0 text-[#047857]" />
+          {/* 4-Column Trust Assurance Bar */}
+          <div className="bg-[#F8FAFC]/80 p-2 sm:p-3 rounded-b-3xl">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 lg:divide-x divide-slate-200/80 items-center">
+              <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
+                <div className="w-10 h-10 rounded-full bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center text-[#047857] shrink-0">
+                  <User className="w-5 h-5 shrink-0 text-[#047857]" />
+                </div>
+                <div className="min-w-0">
+                  <h5 className="font-bold text-[13px] text-slate-800 leading-snug">Experienced Drivers</h5>
+                  <p className="text-[11px] text-slate-500 break-words">Karakoram terrain experts</p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <h5 className="font-bold text-[13px] text-slate-800 leading-snug">Insured Fleet</h5>
-                <p className="text-[11px] text-slate-500 break-words">Complete trip coverage</p>
-              </div>
-            </div>
 
-            <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
-              <div className="w-10 h-10 rounded-full bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center text-[#047857] shrink-0">
-                <Gauge className="w-5 h-5 shrink-0 text-[#047857]" />
+              <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
+                <div className="w-10 h-10 rounded-full bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center text-[#047857] shrink-0">
+                  <ShieldCheck className="w-5 h-5 shrink-0 text-[#047857]" />
+                </div>
+                <div className="min-w-0">
+                  <h5 className="font-bold text-[13px] text-slate-800 leading-snug">Insured Fleet</h5>
+                  <p className="text-[11px] text-slate-500 break-words">Complete trip coverage</p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <h5 className="font-bold text-[13px] text-slate-800 leading-snug">Unlimited Mileage</h5>
-                <p className="text-[11px] text-slate-500 break-words">Explore without caps</p>
-              </div>
-            </div>
 
-            <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
-              <div className="w-10 h-10 rounded-full bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center text-[#047857] shrink-0">
-                <Headset className="w-5 h-5 shrink-0 text-[#047857]" />
+              <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
+                <div className="w-10 h-10 rounded-full bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center text-[#047857] shrink-0">
+                  <Gauge className="w-5 h-5 shrink-0 text-[#047857]" />
+                </div>
+                <div className="min-w-0">
+                  <h5 className="font-bold text-[13px] text-slate-800 leading-snug">Unlimited Mileage</h5>
+                  <p className="text-[11px] text-slate-500 break-words">Explore without caps</p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <h5 className="font-bold text-[13px] text-slate-800 leading-snug">24/7 Road Dispatch</h5>
-                <p className="text-[11px] text-slate-500 break-words">Backup vehicle standing by</p>
+
+              <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
+                <div className="w-10 h-10 rounded-full bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center text-[#047857] shrink-0">
+                  <Headset className="w-5 h-5 shrink-0 text-[#047857]" />
+                </div>
+                <div className="min-w-0">
+                  <h5 className="font-bold text-[13px] text-slate-800 leading-snug">24/7 Road Dispatch</h5>
+                  <p className="text-[11px] text-slate-500 break-words">Backup vehicle standing by</p>
+                </div>
               </div>
             </div>
           </div>

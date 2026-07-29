@@ -491,52 +491,55 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
 
             </div>
           </form>
-        </div>
 
-        {/* 4-Column Trust Assurance Bar matching Homepage */}
-        <div className="mt-5 bg-[#F8FAFC] border border-slate-200/70 rounded-2xl p-2 sm:p-3 shadow-2xs">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 lg:divide-x divide-slate-200/80 items-center">
-            
-            <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
-              <div className="w-10 h-10 rounded-full bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center text-[#047857] shrink-0">
-                <ShieldCheck className="w-5 h-5 shrink-0 text-[#047857]" />
+          {/* Divider Line */}
+          <div className="border-t border-slate-200/80" />
+
+          {/* 4-Column Trust Assurance Bar matching Homepage */}
+          <div className="bg-[#F8FAFC]/80 p-2 sm:p-3 rounded-b-3xl">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 lg:divide-x divide-slate-200/80 items-center">
+              
+              <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
+                <div className="w-10 h-10 rounded-full bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center text-[#047857] shrink-0">
+                  <ShieldCheck className="w-5 h-5 shrink-0 text-[#047857]" />
+                </div>
+                <div className="min-w-0">
+                  <h5 className="font-bold text-[13px] text-slate-800 leading-snug">Best Price Guarantee</h5>
+                  <p className="text-[11px] text-slate-500 break-words">We ensure you get the best price</p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <h5 className="font-bold text-[13px] text-slate-800 leading-snug">Best Price Guarantee</h5>
-                <p className="text-[11px] text-slate-500 break-words">We ensure you get the best price</p>
+
+              <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
+                <div className="w-10 h-10 rounded-full bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center text-[#047857] shrink-0">
+                  <Calendar className="w-5 h-5 shrink-0 text-[#047857]" />
+                </div>
+                <div className="min-w-0">
+                  <h5 className="font-bold text-[13px] text-slate-800 leading-snug">Free Cancellation</h5>
+                  <p className="text-[11px] text-slate-500 break-words">Cancel up to 24 hours prior</p>
+                </div>
               </div>
+
+              <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
+                <div className="w-10 h-10 rounded-full bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center text-[#047857] shrink-0">
+                  <Lock className="w-5 h-5 shrink-0 text-[#047857]" />
+                </div>
+                <div className="min-w-0">
+                  <h5 className="font-bold text-[13px] text-slate-800 leading-snug">Verified Local Hosts</h5>
+                  <p className="text-[11px] text-slate-500 break-words">Direct local hospitality</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
+                <div className="w-10 h-10 rounded-full bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center text-[#047857] shrink-0">
+                  <Headset className="w-5 h-5 shrink-0 text-[#047857]" />
+                </div>
+                <div className="min-w-0">
+                  <h5 className="font-bold text-[13px] text-slate-800 leading-snug">24/7 Local Support</h5>
+                  <p className="text-[11px] text-slate-500 break-words">Dedicated support team</p>
+                </div>
+              </div>
+
             </div>
-
-            <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
-              <div className="w-10 h-10 rounded-full bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center text-[#047857] shrink-0">
-                <Calendar className="w-5 h-5 shrink-0 text-[#047857]" />
-              </div>
-              <div className="min-w-0">
-                <h5 className="font-bold text-[13px] text-slate-800 leading-snug">Free Cancellation</h5>
-                <p className="text-[11px] text-slate-500 break-words">Cancel up to 24 hours prior</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
-              <div className="w-10 h-10 rounded-full bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center text-[#047857] shrink-0">
-                <Lock className="w-5 h-5 shrink-0 text-[#047857]" />
-              </div>
-              <div className="min-w-0">
-                <h5 className="font-bold text-[13px] text-slate-800 leading-snug">Verified Local Hosts</h5>
-                <p className="text-[11px] text-slate-500 break-words">Direct local hospitality</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
-              <div className="w-10 h-10 rounded-full bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center text-[#047857] shrink-0">
-                <Headset className="w-5 h-5 shrink-0 text-[#047857]" />
-              </div>
-              <div className="min-w-0">
-                <h5 className="font-bold text-[13px] text-slate-800 leading-snug">24/7 Local Support</h5>
-                <p className="text-[11px] text-slate-500 break-words">Dedicated support team</p>
-              </div>
-            </div>
-
           </div>
         </div>
       </section>

@@ -744,57 +744,61 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
             </div>
 
           </form>
-        </div>
 
-        {/* 4-Column Trust Assurance Bar matching reference image with vertical dividers */}
-        <div className="mt-5 bg-[#F8FAFC] border border-slate-200/70 rounded-2xl p-2 sm:p-3 shadow-2xs" id="homestay-trust-bar">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 lg:divide-x divide-slate-200/80 items-center">
-            
-            {/* Item 1 */}
-            <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
-              <div className="w-10 h-10 rounded-full bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center text-[#047857] shrink-0">
-                <ShieldCheck className="w-5 h-5 shrink-0 text-[#047857]" />
+          {/* Divider Line */}
+          <div className="border-t border-slate-200/80" />
+
+          {/* 4-Column Trust Assurance Bar matching reference image with vertical dividers */}
+          <div className="bg-[#F8FAFC]/80 p-2 sm:p-3 rounded-b-3xl" id="homestay-trust-bar">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 lg:divide-x divide-slate-200/80 items-center">
+              
+              {/* Item 1 */}
+              <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
+                <div className="w-10 h-10 rounded-full bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center text-[#047857] shrink-0">
+                  <ShieldCheck className="w-5 h-5 shrink-0 text-[#047857]" />
+                </div>
+                <div className="min-w-0">
+                  <h5 className="font-bold text-[13px] text-slate-800 leading-snug">Best Price Guarantee</h5>
+                  <p className="text-[11px] text-slate-500 break-words">We ensure you get the best price</p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <h5 className="font-bold text-[13px] text-slate-800 leading-snug">Best Price Guarantee</h5>
-                <p className="text-[11px] text-slate-500 break-words">We ensure you get the best price</p>
+
+              {/* Item 2 */}
+              <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
+                <div className="w-10 h-10 rounded-full bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center text-[#047857] shrink-0">
+                  <Calendar className="w-5 h-5 shrink-0 text-[#047857]" />
+                </div>
+                <div className="min-w-0">
+                  <h5 className="font-bold text-[13px] text-slate-800 leading-snug">Free Cancellation</h5>
+                  <p className="text-[11px] text-slate-500 break-words">Cancel up to 24 hours</p>
+                </div>
               </div>
+
+              {/* Item 3 */}
+              <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
+                <div className="w-10 h-10 rounded-full bg-amber-100/70 border border-amber-200/60 flex items-center justify-center text-amber-600 shrink-0">
+                  <Sparkles className="w-5 h-5 shrink-0 text-amber-500" />
+                </div>
+                <div className="min-w-0">
+                  <h5 className="font-bold text-[13px] text-slate-800 leading-snug">Instant Confirmation</h5>
+                  <p className="text-[11px] text-slate-500 break-words">Book & get confirmed</p>
+                </div>
+              </div>
+
+              {/* Item 4 */}
+              <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
+                <div className="w-10 h-10 rounded-full bg-purple-100/70 border border-purple-200/60 flex items-center justify-center text-purple-600 shrink-0">
+                  <Shield className="w-5 h-5 shrink-0 text-purple-600" />
+                </div>
+                <div className="min-w-0">
+                  <h5 className="font-bold text-[13px] text-slate-800 leading-snug">Secure Payments</h5>
+                  <p className="text-[11px] text-slate-500 break-words">100% safe & secure</p>
+                </div>
+              </div>
+
             </div>
-
-            {/* Item 2 */}
-            <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
-              <div className="w-10 h-10 rounded-full bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center text-[#047857] shrink-0">
-                <Calendar className="w-5 h-5 shrink-0 text-[#047857]" />
-              </div>
-              <div className="min-w-0">
-                <h5 className="font-bold text-[13px] text-slate-800 leading-snug">Free Cancellation</h5>
-                <p className="text-[11px] text-slate-500 break-words">Cancel up to 24 hours</p>
-              </div>
-            </div>
-
-            {/* Item 3 */}
-            <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
-              <div className="w-10 h-10 rounded-full bg-amber-100/70 border border-amber-200/60 flex items-center justify-center text-amber-600 shrink-0">
-                <Sparkles className="w-5 h-5 shrink-0 text-amber-500" />
-              </div>
-              <div className="min-w-0">
-                <h5 className="font-bold text-[13px] text-slate-800 leading-snug">Instant Confirmation</h5>
-                <p className="text-[11px] text-slate-500 break-words">Book & get confirmed</p>
-              </div>
-            </div>
-
-            {/* Item 4 */}
-            <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
-              <div className="w-10 h-10 rounded-full bg-purple-100/70 border border-purple-200/60 flex items-center justify-center text-purple-600 shrink-0">
-                <Shield className="w-5 h-5 shrink-0 text-purple-600" />
-              </div>
-              <div className="min-w-0">
-                <h5 className="font-bold text-[13px] text-slate-800 leading-snug">Secure Payments</h5>
-                <p className="text-[11px] text-slate-500 break-words">100% safe & secure</p>
-              </div>
-            </div>
-
           </div>
+
         </div>
 
         {/* 3. Category Bento Grid matching reference image - aligned with upper bar */}

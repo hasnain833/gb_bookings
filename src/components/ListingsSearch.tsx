@@ -1135,31 +1135,34 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
               </div>
 
             </div>
-          </div>
-        </div>
 
-        {/* 2. FIVE-BADGE TRUST REASSURANCE ROW (under the search bar) */}
-        <div className="bg-white border border-[#E2E8F0] p-5 rounded-2xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 shadow-xs text-left" id="homestays-reassurance-row">
-          {[
-            { title: 'Best Price Guarantee', desc: 'We ensure you get the best price', icon: ShieldCheck },
-            { title: 'Free Cancellation', desc: 'Cancel up to 24 hours', icon: Calendar },
-            { title: 'Instant Confirmation', desc: 'Book & get confirmed', icon: Sparkles },
-            { title: 'Secure Payments', desc: '100% safe & secure', icon: Lock },
-            { title: '24/7 Support', desc: "We're here to help", icon: Headphones }
-          ].map((item, idx) => {
-            const Icon = item.icon;
-            return (
-              <div key={idx} className="flex items-start gap-3 p-1 rounded-xl hover:bg-slate-50 transition-all min-w-0">
-                <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-[#15803D] shrink-0">
-                  <Icon className="w-5 h-5" />
-                </div>
-                <div className="min-w-0">
-                  <h5 className="font-extrabold text-[12px] text-slate-800 leading-tight">{item.title}</h5>
-                  <p className="text-[10px] text-slate-500 mt-1 break-words leading-tight">{item.desc}</p>
-                </div>
-              </div>
-            );
-          })}
+            {/* Divider Line */}
+            <div className="border-t border-slate-200/80 -mx-5 sm:-mx-6 my-5" />
+
+            {/* FIVE-BADGE TRUST REASSURANCE ROW (under the search bar inside same box) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 text-left" id="homestays-reassurance-row">
+              {[
+                { title: 'Best Price Guarantee', desc: 'We ensure you get the best price', icon: ShieldCheck },
+                { title: 'Free Cancellation', desc: 'Cancel up to 24 hours', icon: Calendar },
+                { title: 'Instant Confirmation', desc: 'Book & get confirmed', icon: Sparkles },
+                { title: 'Secure Payments', desc: '100% safe & secure', icon: Lock },
+                { title: '24/7 Support', desc: "We're here to help", icon: Headphones }
+              ].map((item, idx) => {
+                const Icon = item.icon;
+                return (
+                  <div key={idx} className="flex items-start gap-3 p-1 rounded-xl hover:bg-slate-50 transition-all min-w-0">
+                    <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-[#15803D] shrink-0">
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <h5 className="font-extrabold text-[12px] text-slate-800 leading-tight">{item.title}</h5>
+                      <p className="text-[10px] text-slate-500 mt-1 break-words leading-tight">{item.desc}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         {/* 3. EXPLORE HOMESTAYS BY EXPERIENCE (5 customized category cards) */}
