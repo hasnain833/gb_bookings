@@ -174,7 +174,7 @@ export default function ToursSection({ onSelectListing, onTriggerSearch }: Tours
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end mt-2">
-            <div className="lg:col-span-8 space-y-4 text-left">
+            <div className="lg:col-span-12 space-y-4 text-left">
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl xl:text-6xl font-extrabold text-white tracking-tight leading-[1.12] drop-shadow-md">
                 Guided Tour Packages in <br />
                 <span className="text-[#22c55e] font-black">Gilgit Baltistan</span>
@@ -222,30 +222,6 @@ export default function ToursSection({ onSelectListing, onTriggerSearch }: Tours
                     <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">24/7 Assistance</span>
                     <span className="text-[11px] font-medium text-slate-200 block leading-tight">Trip Manager</span>
                   </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="lg:col-span-4 hidden lg:block">
-              <div className="bg-gradient-to-br from-[#0B5D3E] via-[#0D6E4A] to-[#043E28] rounded-3xl p-5 border border-[#16A34A]/35 text-white shadow-2xl relative overflow-hidden flex justify-between gap-4 max-w-md ml-auto">
-                <div className="flex flex-col justify-between z-10 py-1 space-y-3">
-                  <div>
-                    <span className="inline-block bg-gradient-to-r from-[#FF7D29] to-[#EA580C] text-white text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider mb-2 shadow-sm">
-                      AUTUMN TOUR SALE
-                    </span>
-                    <p className="text-white/80 text-[11px] font-bold tracking-widest uppercase">SAVE PKR</p>
-                    <h3 className="text-3xl font-black text-white tracking-tighter leading-none mt-0.5">20,000 OFF</h3>
-                    <p className="text-white/80 text-xs font-semibold mt-1.5">on 7-Day Hunza & Skardu groups</p>
-                  </div>
-                </div>
-                <div className="relative w-36 h-32 shrink-0 rounded-2xl overflow-hidden shadow-lg border border-white/15 z-10 self-center">
-                  <img 
-                    src="https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=400&q=80" 
-                    alt="Tour package promo" 
-                    className="w-full h-full object-cover rounded-2xl"
-                    referrerPolicy="no-referrer"
-                    onError={handleImageError}
-                  />
                 </div>
               </div>
             </div>
@@ -622,7 +598,7 @@ export default function ToursSection({ onSelectListing, onTriggerSearch }: Tours
         </div>
 
         {tourListings.length > 0 ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {tourListings.map((tour) => {
               const specs = tour.tourSpecs;
 
@@ -630,9 +606,10 @@ export default function ToursSection({ onSelectListing, onTriggerSearch }: Tours
                 <div
                   key={tour.id}
                   onClick={() => onSelectListing(tour)}
-                  className="bg-white rounded-3xl border border-slate-200/90 hover:border-emerald-500/60 overflow-hidden shadow-2xs hover:shadow-xl transition-all duration-300 group cursor-pointer flex flex-col md:flex-row justify-between"
+                  className="bg-white rounded-2xl border border-slate-200/90 hover:border-emerald-500/60 overflow-hidden shadow-2xs hover:shadow-xl transition-all duration-300 group cursor-pointer flex flex-col justify-between"
                 >
-                  <div className="relative md:w-5/12 h-64 md:h-auto overflow-hidden bg-slate-100 shrink-0">
+                  {/* Top Image + Badges */}
+                  <div className="relative h-52 sm:h-56 overflow-hidden bg-slate-100">
                     <img
                       src={tour.image}
                       alt={tour.title}
@@ -642,14 +619,16 @@ export default function ToursSection({ onSelectListing, onTriggerSearch }: Tours
                     />
 
                     <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none">
-                      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[#047857]/90 backdrop-blur-md text-white text-[11px] font-extrabold shadow-md">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#047857]/90 backdrop-blur-md text-white text-[11px] font-bold shadow-md">
                         <Clock className="w-3 h-3" />
                         <span>{specs?.durationDays ? `${specs.durationDays} Days / ${specs.durationDays - 1} Nights` : 'All Inclusive'}</span>
                       </span>
 
                       <button
                         type="button"
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
                         className="p-2 rounded-full bg-white/90 hover:bg-white text-slate-700 hover:text-red-500 transition-colors shadow-md pointer-events-auto"
                       >
                         <Heart className="w-4 h-4" />
@@ -662,8 +641,9 @@ export default function ToursSection({ onSelectListing, onTriggerSearch }: Tours
                     </div>
                   </div>
 
-                  <div className="p-6 md:w-7/12 space-y-4 flex-1 flex flex-col justify-between">
-                    <div className="space-y-2">
+                  {/* Body Content */}
+                  <div className="p-5 space-y-3 flex-1 flex flex-col justify-between">
+                    <div className="space-y-1.5">
                       <div className="flex items-center justify-between text-xs">
                         <p className="text-slate-500 font-medium flex items-center gap-1 truncate">
                           <MapPin className="w-3.5 h-3.5 text-[#047857] shrink-0" />
@@ -676,34 +656,33 @@ export default function ToursSection({ onSelectListing, onTriggerSearch }: Tours
                         </div>
                       </div>
 
-                      <h4 className="font-extrabold text-slate-900 text-xl group-hover:text-[#047857] transition-colors leading-snug">
+                      <h4 className="font-bold text-slate-900 text-lg group-hover:text-[#047857] transition-colors leading-snug line-clamp-1">
                         {tour.title}
                       </h4>
 
-                      <p className="text-slate-600 text-xs line-clamp-3 leading-relaxed">
+                      <p className="text-slate-600 text-xs line-clamp-2 leading-relaxed">
                         {tour.description}
                       </p>
                     </div>
 
-                    {/* What's Included Preview */}
                     {specs?.included && (
-                      <div className="space-y-1.5 bg-slate-50/80 p-3 rounded-xl border border-slate-100">
-                        <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Package Highlights Included:</p>
-                        <div className="grid grid-cols-2 gap-1 text-[11px] font-semibold text-slate-700">
-                          {specs.included.slice(0, 4).map((inc, i) => (
-                            <div key={i} className="flex items-center gap-1 truncate">
-                              <Check className="w-3 h-3 text-[#047857] shrink-0" />
-                              <span className="truncate">{inc}</span>
-                            </div>
-                          ))}
-                        </div>
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {specs.included.slice(0, 3).map((inc, i) => (
+                          <span
+                            key={i}
+                            className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-semibold flex items-center gap-1 truncate max-w-[160px]"
+                          >
+                            <Check className="w-3 h-3 text-[#047857] shrink-0" />
+                            <span className="truncate">{inc}</span>
+                          </span>
+                        ))}
                       </div>
                     )}
 
                     <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
                       <div>
                         <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Total Package Price</p>
-                        <p className="text-lg font-black text-slate-900">
+                        <p className="text-base font-black text-slate-900">
                           PKR {tour.price.toLocaleString()} <span className="text-xs font-normal text-slate-500">/ traveler</span>
                         </p>
                       </div>
@@ -714,7 +693,7 @@ export default function ToursSection({ onSelectListing, onTriggerSearch }: Tours
                           e.stopPropagation();
                           onSelectListing(tour);
                         }}
-                        className="px-5 py-2.5 rounded-xl bg-[#047857] hover:bg-[#065f46] text-white text-xs font-extrabold transition-all shadow-2xs group-hover:shadow-md flex items-center gap-1.5 cursor-pointer"
+                        className="px-4 py-2.5 rounded-xl bg-[#047857] hover:bg-[#065f46] text-white text-xs font-extrabold transition-all shadow-2xs group-hover:shadow-md flex items-center gap-1.5 cursor-pointer"
                       >
                         <span>Book Expedition</span>
                         <ArrowRight className="w-3.5 h-3.5" />

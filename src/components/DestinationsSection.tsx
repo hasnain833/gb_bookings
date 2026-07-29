@@ -133,7 +133,7 @@ export default function DestinationsSection({ onTriggerSearch, setView }: Destin
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end mt-2">
-            <div className="lg:col-span-8 space-y-4 text-left">
+            <div className="lg:col-span-12 space-y-4 text-left">
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl xl:text-6xl font-extrabold text-white tracking-tight leading-[1.12] drop-shadow-md">
                 Breathtaking Destinations in <br />
                 <span className="text-[#22c55e] font-black">Gilgit Baltistan</span>

@@ -181,7 +181,7 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end mt-2">
-            <div className="lg:col-span-8 space-y-4 text-left">
+            <div className="lg:col-span-12 space-y-4 text-left">
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl xl:text-6xl font-extrabold text-white tracking-tight leading-[1.12] drop-shadow-md">
                 Rent Premium 4x4 Vehicles in <br />
                 <span className="text-[#22c55e] font-black">Gilgit & Skardu</span>
@@ -229,30 +229,6 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
                     <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">Roadside Care</span>
                     <span className="text-[11px] font-medium text-slate-200 block leading-tight">24/7 Dispatch</span>
                   </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="lg:col-span-4 hidden lg:block">
-              <div className="bg-gradient-to-br from-[#0B5D3E] via-[#0D6E4A] to-[#043E28] rounded-3xl p-5 border border-[#16A34A]/35 text-white shadow-2xl relative overflow-hidden flex justify-between gap-4 max-w-md ml-auto">
-                <div className="flex flex-col justify-between z-10 py-1 space-y-3">
-                  <div>
-                    <span className="inline-block bg-gradient-to-r from-[#FF7D29] to-[#EA580C] text-white text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider mb-2 shadow-sm">
-                      4X4 FLEET SPECIAL
-                    </span>
-                    <p className="text-white/80 text-[11px] font-bold tracking-widest uppercase">DISCOUNT UP TO</p>
-                    <h3 className="text-4xl font-black text-white tracking-tighter leading-none mt-0.5">25% OFF</h3>
-                    <p className="text-white/80 text-xs font-semibold mt-1.5">on Land Cruiser weekly hires</p>
-                  </div>
-                </div>
-                <div className="relative w-36 h-32 shrink-0 rounded-2xl overflow-hidden shadow-lg border border-white/15 z-10 self-center">
-                  <img 
-                    src="https://images.unsplash.com/photo-1606016159991-dfe4f974be5c?auto=format&fit=crop&w=400&q=80" 
-                    alt="Car rental promo" 
-                    className="w-full h-full object-cover rounded-2xl"
-                    referrerPolicy="no-referrer"
-                    onError={handleImageError}
-                  />
                 </div>
               </div>
             </div>
