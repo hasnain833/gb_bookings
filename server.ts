@@ -118,7 +118,7 @@ app.get('/api/listings', (req, res) => {
   const { type, search } = req.query;
   let results = [...INITIAL_LISTINGS];
 
-  if (type && typeof type === 'string') {
+  if (type && typeof type === 'string' && type !== 'offer' && type !== 'all') {
     results = results.filter(l => l.type === type);
   }
 

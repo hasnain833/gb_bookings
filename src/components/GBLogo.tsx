@@ -35,14 +35,14 @@ export default function GBLogo({ className = '', size = 'md', showText = true, l
           </linearGradient>
 
           <linearGradient id="gbRightWingGrad" x1="10%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#8CC63F" />
-            <stop offset="55%" stopColor="#009245" />
-            <stop offset="100%" stopColor="#005826" />
+            <stop offset="0%" stopColor="#00A358" />
+            <stop offset="55%" stopColor="#008247" />
+            <stop offset="100%" stopColor="#006F3C" />
           </linearGradient>
 
           <linearGradient id="gbCenterDarkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#006837" />
-            <stop offset="100%" stopColor="#003314" />
+            <stop offset="0%" stopColor="#006F3C" />
+            <stop offset="100%" stopColor="#003E22" />
           </linearGradient>
 
           <linearGradient id="gbOrangeTargetGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -90,7 +90,7 @@ export default function GBLogo({ className = '', size = 'md', showText = true, l
           <span className="text-[#0B3E91] font-serif font-black tracking-tighter" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>
             GB
           </span>
-          <span className="text-[#006837] font-extrabold tracking-tight">
+          <span className="text-[#006F3C] font-extrabold tracking-tight">
             Bookings
           </span>
           <span className="text-[#F36C21] font-bold tracking-tight">

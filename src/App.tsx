@@ -91,7 +91,7 @@ export default function App() {
     } else if (v === 'destinations' || v === 'browse-destinations') {
       setView('destinations');
     } else if (v === 'offers' || v === 'browse-offers') {
-      setView('tours');
+      setView('offers');
     } else if (v === 'dashboard-user' || v === 'user-dashboard') {
       setView('user-dashboard');
     } else if (v === 'dashboard-vendor' || v === 'vendor-dashboard') {
@@ -167,10 +167,23 @@ export default function App() {
           />
         )}
 
-        {(view === 'tours' || view === 'offers') && (
+        {view === 'tours' && (
           <ToursSection 
             onSelectListing={handleSelectListing}
             onTriggerSearch={handleTriggerSearch}
+          />
+        )}
+
+        {view === 'offers' && (
+          <ListingsSearch 
+            type="offer"
+            initialFilters={{
+              destination: searchParams.destination,
+              startDate: searchParams.dates,
+              endDate: '',
+              extra: { guestCount: searchParams.guests }
+            }}
+            onSelectListing={handleSelectListing}
           />
         )}
 

@@ -67,7 +67,7 @@ export default function Footer({ onNavigate }: FooterProps) {
             
             {/* Prop 1 */}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-[#047857]/10 border border-[#047857]/20 flex items-center justify-center shrink-0 text-[#047857]">
+              <div className="w-10 h-10 rounded-full bg-[#006F3C]/10 border border-[#006F3C]/20 flex items-center justify-center shrink-0 text-[#006F3C]">
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <div>
@@ -78,7 +78,7 @@ export default function Footer({ onNavigate }: FooterProps) {
 
             {/* Prop 2 */}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-[#047857]/10 border border-[#047857]/20 flex items-center justify-center shrink-0 text-[#047857]">
+              <div className="w-10 h-10 rounded-full bg-[#006F3C]/10 border border-[#006F3C]/20 flex items-center justify-center shrink-0 text-[#006F3C]">
                 <Calendar className="w-5 h-5" />
               </div>
               <div>
@@ -89,7 +89,7 @@ export default function Footer({ onNavigate }: FooterProps) {
 
             {/* Prop 3 */}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-[#047857]/10 border border-[#047857]/20 flex items-center justify-center shrink-0 text-[#047857]">
+              <div className="w-10 h-10 rounded-full bg-[#006F3C]/10 border border-[#006F3C]/20 flex items-center justify-center shrink-0 text-[#006F3C]">
                 <Headset className="w-5 h-5" />
               </div>
               <div>
@@ -100,7 +100,7 @@ export default function Footer({ onNavigate }: FooterProps) {
 
             {/* Prop 4 */}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-[#047857]/10 border border-[#047857]/20 flex items-center justify-center shrink-0 text-[#047857]">
+              <div className="w-10 h-10 rounded-full bg-[#006F3C]/10 border border-[#006F3C]/20 flex items-center justify-center shrink-0 text-[#006F3C]">
                 <Award className="w-5 h-5" />
               </div>
               <div>
@@ -111,7 +111,7 @@ export default function Footer({ onNavigate }: FooterProps) {
 
             {/* Prop 5 */}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-[#047857]/10 border border-[#047857]/20 flex items-center justify-center shrink-0 text-[#047857]">
+              <div className="w-10 h-10 rounded-full bg-[#006F3C]/10 border border-[#006F3C]/20 flex items-center justify-center shrink-0 text-[#006F3C]">
                 <Lock className="w-5 h-5" />
               </div>
               <div>
@@ -125,7 +125,7 @@ export default function Footer({ onNavigate }: FooterProps) {
       </div>
 
       {/* 2. MAIN DARK FOOTER */}
-      <div className="bg-[#031C16] text-slate-300 pt-12 pb-8">
+      <div className="bg-[#002816] text-slate-300 pt-12 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-6 pb-10">
@@ -153,7 +153,7 @@ export default function Footer({ onNavigate }: FooterProps) {
                   target="_blank" 
                   rel="noreferrer" 
                   aria-label="Facebook"
-                  className="w-8 h-8 rounded-full bg-[#072D24] border border-[#0F4A3B] hover:bg-[#047857] flex items-center justify-center text-white transition-colors cursor-pointer"
+                  className="w-8 h-8 rounded-full bg-[#003D21] border border-[#006F3C] hover:bg-[#006F3C] flex items-center justify-center text-white transition-colors cursor-pointer"
                 >
                   <Facebook className="w-4 h-4" />
                 </a>
@@ -162,7 +162,7 @@ export default function Footer({ onNavigate }: FooterProps) {
                   target="_blank" 
                   rel="noreferrer" 
                   aria-label="Instagram"
-                  className="w-8 h-8 rounded-full bg-[#072D24] border border-[#0F4A3B] hover:bg-[#047857] flex items-center justify-center text-white transition-colors cursor-pointer"
+                  className="w-8 h-8 rounded-full bg-[#003D21] border border-[#006F3C] hover:bg-[#006F3C] flex items-center justify-center text-white transition-colors cursor-pointer"
                 >
                   <Instagram className="w-4 h-4" />
                 </a>
@@ -171,7 +171,7 @@ export default function Footer({ onNavigate }: FooterProps) {
                   target="_blank" 
                   rel="noreferrer" 
                   aria-label="YouTube"
-                  className="w-8 h-8 rounded-full bg-[#072D24] border border-[#0F4A3B] hover:bg-[#047857] flex items-center justify-center text-white transition-colors cursor-pointer"
+                  className="w-8 h-8 rounded-full bg-[#003D21] border border-[#006F3C] hover:bg-[#006F3C] flex items-center justify-center text-white transition-colors cursor-pointer"
                 >
                   <Youtube className="w-4 h-4" />
                 </a>
@@ -180,7 +180,7 @@ export default function Footer({ onNavigate }: FooterProps) {
                   target="_blank" 
                   rel="noreferrer" 
                   aria-label="WhatsApp"
-                  className="w-8 h-8 rounded-full bg-[#072D24] border border-[#0F4A3B] hover:bg-[#047857] flex items-center justify-center text-white transition-colors cursor-pointer"
+                  className="w-8 h-8 rounded-full bg-[#003D21] border border-[#006F3C] hover:bg-[#006F3C] flex items-center justify-center text-white transition-colors cursor-pointer"
                 >
                   <MessageCircle className="w-4 h-4" />
                 </a>
@@ -189,7 +189,7 @@ export default function Footer({ onNavigate }: FooterProps) {
                   target="_blank" 
                   rel="noreferrer" 
                   aria-label="TikTok"
-                  className="w-8 h-8 rounded-full bg-[#072D24] border border-[#0F4A3B] hover:bg-[#047857] flex items-center justify-center text-white transition-colors cursor-pointer"
+                  className="w-8 h-8 rounded-full bg-[#003D21] border border-[#006F3C] hover:bg-[#006F3C] flex items-center justify-center text-white transition-colors cursor-pointer"
                 >
                   <Video className="w-4 h-4" />
                 </a>
@@ -208,18 +208,18 @@ export default function Footer({ onNavigate }: FooterProps) {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Enter your email address"
-                    className="bg-[#072D24] border border-[#0F4A3B] text-white text-xs px-3.5 py-2.5 rounded-l-xl w-full focus:outline-none focus:border-[#10b981] placeholder-slate-400"
+                    className="bg-[#003D21] border border-[#006F3C] text-white text-xs px-3.5 py-2.5 rounded-l-xl w-full focus:outline-none focus:border-[#006F3C] placeholder-slate-400"
                   />
                   <button
                     type="submit"
-                    className="bg-[#047857] hover:bg-[#065f46] text-white text-xs font-bold px-4 py-2.5 rounded-r-xl flex items-center gap-1.5 shrink-0 transition-colors cursor-pointer"
+                    className="bg-[#006F3C] hover:bg-[#005C32] text-white text-xs font-bold px-4 py-2.5 rounded-r-xl flex items-center gap-1.5 shrink-0 transition-colors cursor-pointer"
                   >
                     <span>Subscribe</span>
                     <Send className="w-3.5 h-3.5" />
                   </button>
                 </form>
                 {subscribed && (
-                  <p className="text-[#10b981] text-[11px] font-semibold pt-1">
+                  <p className="text-[#006F3C] text-[11px] font-semibold pt-1">
                     ✓ Thank you for subscribing! Check your inbox soon.
                   </p>
                 )}
@@ -228,7 +228,7 @@ export default function Footer({ onNavigate }: FooterProps) {
 
             {/* Column 2: Top Destinations (Span 2) */}
             <div className="lg:col-span-2 space-y-3">
-              <h4 className="text-white font-extrabold text-sm border-b border-[#0F4A3B] pb-2">Top Destinations</h4>
+              <h4 className="text-white font-extrabold text-sm border-b border-[#006F3C] pb-2">Top Destinations</h4>
               <ul className="space-y-2 text-xs">
                 {[
                   { label: 'Skardu', name: 'Skardu' },
@@ -243,9 +243,9 @@ export default function Footer({ onNavigate }: FooterProps) {
                   <li key={idx}>
                     <button 
                       onClick={() => handleNav('destinations', { destination: item.name })}
-                      className="flex items-center gap-2 hover:text-[#10b981] transition-colors text-left text-slate-300"
+                      className="flex items-center gap-2 hover:text-[#006F3C] transition-colors text-left text-slate-300"
                     >
-                      <MapPin className="w-3.5 h-3.5 text-[#10b981] shrink-0" />
+                      <MapPin className="w-3.5 h-3.5 text-[#006F3C] shrink-0" />
                       <span>{item.label}</span>
                     </button>
                   </li>
@@ -253,7 +253,7 @@ export default function Footer({ onNavigate }: FooterProps) {
               </ul>
               <button 
                 onClick={() => handleNav('destinations')}
-                className="text-[#10b981] hover:text-[#34d399] font-bold text-xs flex items-center gap-1 pt-1 transition-colors"
+                className="text-[#006F3C] hover:text-[#008247] font-bold text-xs flex items-center gap-1 pt-1 transition-colors"
               >
                 <span>View All Destinations</span>
                 <ArrowRight className="w-3 h-3" />
@@ -262,7 +262,7 @@ export default function Footer({ onNavigate }: FooterProps) {
 
             {/* Column 3: Tours & Packages (Span 2) */}
             <div className="lg:col-span-2 space-y-3">
-              <h4 className="text-white font-extrabold text-sm border-b border-[#0F4A3B] pb-2">Tours & Packages</h4>
+              <h4 className="text-white font-extrabold text-sm border-b border-[#006F3C] pb-2">Tours & Packages</h4>
               <ul className="space-y-2 text-xs">
                 {[
                   { label: 'Adventure Tours', icon: Compass },
@@ -279,9 +279,9 @@ export default function Footer({ onNavigate }: FooterProps) {
                     <li key={idx}>
                       <button 
                         onClick={() => handleNav('tours')}
-                        className="flex items-center gap-2 hover:text-[#10b981] transition-colors text-left text-slate-300"
+                        className="flex items-center gap-2 hover:text-[#006F3C] transition-colors text-left text-slate-300"
                       >
-                        <Icon className="w-3.5 h-3.5 text-[#10b981] shrink-0" />
+                        <Icon className="w-3.5 h-3.5 text-[#006F3C] shrink-0" />
                         <span>{item.label}</span>
                       </button>
                     </li>
@@ -290,7 +290,7 @@ export default function Footer({ onNavigate }: FooterProps) {
               </ul>
               <button 
                 onClick={() => handleNav('tours')}
-                className="text-[#10b981] hover:text-[#34d399] font-bold text-xs flex items-center gap-1 pt-1 transition-colors"
+                className="text-[#006F3C] hover:text-[#008247] font-bold text-xs flex items-center gap-1 pt-1 transition-colors"
               >
                 <span>View All Packages</span>
                 <ArrowRight className="w-3 h-3" />
@@ -299,7 +299,7 @@ export default function Footer({ onNavigate }: FooterProps) {
 
             {/* Column 4: Hotels (Span 2) */}
             <div className="lg:col-span-2 space-y-3">
-              <h4 className="text-white font-extrabold text-sm border-b border-[#0F4A3B] pb-2">Hotels</h4>
+              <h4 className="text-white font-extrabold text-sm border-b border-[#006F3C] pb-2">Hotels</h4>
               <ul className="space-y-2 text-xs">
                 {[
                   { label: 'Hotels in Skardu', icon: Building2 },
@@ -316,9 +316,9 @@ export default function Footer({ onNavigate }: FooterProps) {
                     <li key={idx}>
                       <button 
                         onClick={() => handleNav('hotels')}
-                        className="flex items-center gap-2 hover:text-[#10b981] transition-colors text-left text-slate-300"
+                        className="flex items-center gap-2 hover:text-[#006F3C] transition-colors text-left text-slate-300"
                       >
-                        <Icon className="w-3.5 h-3.5 text-[#10b981] shrink-0" />
+                        <Icon className="w-3.5 h-3.5 text-[#006F3C] shrink-0" />
                         <span>{item.label}</span>
                       </button>
                     </li>
@@ -327,7 +327,7 @@ export default function Footer({ onNavigate }: FooterProps) {
               </ul>
               <button 
                 onClick={() => handleNav('hotels')}
-                className="text-[#10b981] hover:text-[#34d399] font-bold text-xs flex items-center gap-1 pt-1 transition-colors"
+                className="text-[#006F3C] hover:text-[#008247] font-bold text-xs flex items-center gap-1 pt-1 transition-colors"
               >
                 <span>View All Hotels</span>
                 <ArrowRight className="w-3 h-3" />
@@ -336,7 +336,7 @@ export default function Footer({ onNavigate }: FooterProps) {
 
             {/* Column 5: Cars & More (Span 2) */}
             <div className="lg:col-span-2 space-y-3">
-              <h4 className="text-white font-extrabold text-sm border-b border-[#0F4A3B] pb-2">Cars & More</h4>
+              <h4 className="text-white font-extrabold text-sm border-b border-[#006F3C] pb-2">Cars & More</h4>
               <ul className="space-y-2 text-xs">
                 {[
                   { label: 'Car Rental in Skardu', view: 'cars', icon: Car },
@@ -355,9 +355,9 @@ export default function Footer({ onNavigate }: FooterProps) {
                     <li key={idx}>
                       <button 
                         onClick={() => handleNav(item.view)}
-                        className="flex items-center gap-2 hover:text-[#10b981] transition-colors text-left text-slate-300"
+                        className="flex items-center gap-2 hover:text-[#006F3C] transition-colors text-left text-slate-300"
                       >
-                        <Icon className="w-3.5 h-3.5 text-[#10b981] shrink-0" />
+                        <Icon className="w-3.5 h-3.5 text-[#006F3C] shrink-0" />
                         <span>{item.label}</span>
                       </button>
                     </li>
@@ -366,7 +366,7 @@ export default function Footer({ onNavigate }: FooterProps) {
               </ul>
               <button 
                 onClick={() => handleNav('cars')}
-                className="text-[#10b981] hover:text-[#34d399] font-bold text-xs flex items-center gap-1 pt-1 transition-colors"
+                className="text-[#006F3C] hover:text-[#008247] font-bold text-xs flex items-center gap-1 pt-1 transition-colors"
               >
                 <span>View All Cars</span>
                 <ArrowRight className="w-3 h-3" />
@@ -376,9 +376,9 @@ export default function Footer({ onNavigate }: FooterProps) {
           </div>
 
           {/* 3. BOTTOM MULTI-WIDGET ROW - SINGLE BOX WITH DIVIDERS */}
-          <div className="border-t border-[#0F4A3B] pt-8 mt-4">
-            <div className="bg-[#072D24]/60 border border-[#0F4A3B] rounded-2xl p-5 sm:p-6 shadow-xl">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-[#0F4A3B]">
+          <div className="border-t border-[#006F3C] pt-8 mt-4">
+            <div className="bg-[#003D21]/60 border border-[#006F3C] rounded-2xl p-5 sm:p-6 shadow-xl">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-[#006F3C]">
                 
                 {/* Widget 1: We Accept */}
                 <div className="flex flex-col justify-between space-y-3 pb-6 lg:pb-0 lg:pr-6">
@@ -445,15 +445,15 @@ export default function Footer({ onNavigate }: FooterProps) {
                   <h5 className="text-white font-extrabold text-xs uppercase tracking-wider">Contact Us</h5>
                   <div className="space-y-1.5 text-slate-300">
                     <div className="flex items-center gap-2">
-                      <Phone className="w-3.5 h-3.5 text-[#10b981] shrink-0" />
+                      <Phone className="w-3.5 h-3.5 text-[#006F3C] shrink-0" />
                       <span className="font-semibold">+92 300 1234567</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Mail className="w-3.5 h-3.5 text-[#10b981] shrink-0" />
+                      <Mail className="w-3.5 h-3.5 text-[#006F3C] shrink-0" />
                       <span>info@gbbookings.com</span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <MapPin className="w-3.5 h-3.5 text-[#10b981] shrink-0 mt-0.5" />
+                      <MapPin className="w-3.5 h-3.5 text-[#006F3C] shrink-0 mt-0.5" />
                       <span>Skardu, Gilgit Baltistan, Pakistan</span>
                     </div>
                   </div>
@@ -469,9 +469,9 @@ export default function Footer({ onNavigate }: FooterProps) {
                     href="https://wa.me/923001234567"
                     target="_blank"
                     rel="noreferrer"
-                    className="w-full bg-[#047857]/80 hover:bg-[#047857] border border-[#10b981]/50 text-white font-bold text-xs py-2 px-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm mt-1"
+                    className="w-full bg-[#006F3C] hover:bg-[#005C32] border border-[#006F3C]/50 text-white font-bold text-xs py-2 px-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm mt-1"
                   >
-                    <MessageCircle className="w-4 h-4 text-[#10b981] fill-[#10b981]/20" />
+                    <MessageCircle className="w-4 h-4 text-white fill-white/20" />
                     <span>Chat on WhatsApp</span>
                   </a>
                 </div>
@@ -481,7 +481,7 @@ export default function Footer({ onNavigate }: FooterProps) {
           </div>
 
           {/* 4. COPYRIGHT & FOOTER BOTTOM BAR */}
-          <div className="border-t border-[#0F4A3B]/80 mt-8 pt-6 relative overflow-hidden">
+          <div className="border-t border-[#005C32]/80 mt-8 pt-6 relative overflow-hidden">
             {/* Background Mountain Contour Graphic */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400 relative z-10">
               <p className="text-center sm:text-left">

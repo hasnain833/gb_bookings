@@ -124,19 +124,19 @@ export default function DestinationsSection({ onTriggerSearch, setView }: Destin
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/20" />
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-10 lg:px-12 pt-8 sm:pt-10 pb-28 sm:pb-32 flex flex-col justify-between h-full space-y-8">
-          <div>
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#062419]/80 border border-[#22c55e]/70 text-[#4ade80] text-xs font-bold backdrop-blur-md shadow-md">
-              <Compass className="w-3.5 h-3.5 text-[#22c55e] shrink-0" />
-              <span className="tracking-tight text-white font-medium">Explore Heaven on Earth</span>
-            </div>
-          </div>
+        <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-10 lg:px-12 pt-12 sm:pt-16 pb-28 sm:pb-32 flex flex-col justify-end h-full">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end">
+            <div className="lg:col-span-12 space-y-3 text-left">
+              <div>
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#006F3C]/80 border border-[#006F3C]/70 text-white text-xs font-bold backdrop-blur-md shadow-md">
+                  <Compass className="w-3.5 h-3.5 text-white shrink-0" />
+                  <span className="tracking-tight text-white font-medium">Explore Heaven on Earth</span>
+                </div>
+              </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end mt-2">
-            <div className="lg:col-span-12 space-y-4 text-left">
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl xl:text-6xl font-extrabold text-white tracking-tight leading-[1.12] drop-shadow-md">
                 Breathtaking Destinations in <br />
-                <span className="text-[#22c55e] font-black">Gilgit Baltistan</span>
+                <span className="text-[#006F3C] font-black">Gilgit Baltistan</span>
               </h1>
               <p className="text-slate-100/95 text-sm sm:text-base md:text-lg font-medium max-w-xl leading-relaxed drop-shadow-xs">
                 From the turquoise waters of Attabad Lake to the infinite plains of Deosai and ancient royal fort palaces.
@@ -159,7 +159,7 @@ export default function DestinationsSection({ onTriggerSearch, setView }: Destin
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search valley, fort, lake or region..."
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-3 text-xs font-bold text-slate-800 focus:outline-none focus:border-[#047857]"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-3 text-xs font-bold text-slate-800 focus:outline-none focus:border-[#006F3C]"
               />
             </div>
 
@@ -172,7 +172,7 @@ export default function DestinationsSection({ onTriggerSearch, setView }: Destin
                   onClick={() => setSelectedFilter(reg)}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
                     selectedFilter === reg
-                      ? 'bg-[#047857] text-white shadow-sm'
+                      ? 'bg-[#006F3C] text-white shadow-sm'
                       : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                   }`}
                 >
@@ -204,7 +204,7 @@ export default function DestinationsSection({ onTriggerSearch, setView }: Destin
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent" />
 
                 <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
-                  <span className="px-3 py-1 rounded-full bg-[#047857] text-white text-[11px] font-extrabold shadow-md">
+                  <span className="px-3 py-1 rounded-full bg-[#006F3C] text-white text-[11px] font-extrabold shadow-md">
                     {dest.region}
                   </span>
                   <span className="px-2.5 py-1 rounded-full bg-slate-900/80 backdrop-blur-md text-slate-200 text-[10px] font-semibold border border-white/20">
@@ -238,7 +238,7 @@ export default function DestinationsSection({ onTriggerSearch, setView }: Destin
                 </div>
 
                 <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
-                  <span className="font-bold text-[#047857]">{dest.hotelsCount}</span>
+                  <span className="font-bold text-[#006F3C]">{dest.hotelsCount}</span>
                   <span className="font-medium text-slate-400">Best: {dest.bestTime}</span>
                 </div>
 
@@ -255,7 +255,7 @@ export default function DestinationsSection({ onTriggerSearch, setView }: Destin
                         });
                       }
                     }}
-                    className="w-full py-3 rounded-xl bg-[#047857] hover:bg-[#065f46] text-white text-xs font-extrabold transition-all shadow-2xs flex items-center justify-center gap-2 cursor-pointer"
+                    className="w-full py-3 rounded-xl bg-[#006F3C] hover:bg-[#005C32] text-white text-xs font-extrabold transition-all shadow-2xs flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <span>Search Stays in {dest.name}</span>
                     <ArrowRight className="w-3.5 h-3.5" />

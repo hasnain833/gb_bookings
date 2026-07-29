@@ -26,7 +26,8 @@ export default function UserDashboard({ userEmail, setView, onSelectBooking, onS
     try {
       // 1. Fetch user bookings
       const bookRes = await fetch(`/api/bookings?email=${userEmail}`);
-      if (bookRes.ok) {
+      const bookCt = bookRes.headers.get('content-type') || '';
+      if (bookRes.ok && bookCt.includes('application/json')) {
         const bookData = await bookRes.json();
         // Sort descending by created time
         setBookings(bookData.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
@@ -34,7 +35,8 @@ export default function UserDashboard({ userEmail, setView, onSelectBooking, onS
 
       // 2. Fetch system notifications
       const notifRes = await fetch('/api/notifications');
-      if (notifRes.ok) {
+      const notifCt = notifRes.headers.get('content-type') || '';
+      if (notifRes.ok && notifCt.includes('application/json')) {
         const notifData = await notifRes.json();
         setNotifications(notifData);
       }
@@ -50,7 +52,8 @@ export default function UserDashboard({ userEmail, setView, onSelectBooking, onS
       const savedIds = JSON.parse(localStorage.getItem('wishlist') || '[]');
       if (savedIds.length > 0) {
         const listRes = await fetch('/api/listings');
-        if (listRes.ok) {
+        const listCt = listRes.headers.get('content-type') || '';
+        if (listRes.ok && listCt.includes('application/json')) {
           const allListings: Listing[] = await listRes.json();
           const matched = allListings.filter(item => savedIds.includes(item.id));
           setWishlistItems(matched);

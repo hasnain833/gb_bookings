@@ -362,23 +362,23 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
         </div>
 
         {/* Inner Centered Content Wrapper */}
-        <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-10 lg:px-12 pt-8 sm:pt-10 pb-28 sm:pb-32 flex flex-col justify-between h-full space-y-8">
-          {/* Top/Badge element matching image */}
-          <div>
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#062419]/80 border border-[#22c55e]/70 text-[#4ade80] text-xs font-bold backdrop-blur-md shadow-md">
-              <MapPin className="w-3.5 h-3.5 text-[#22c55e] shrink-0" />
-              <span className="tracking-tight text-white font-medium">{t('hero.badge')}</span>
-            </div>
-          </div>
-
+        <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-10 lg:px-12 pt-12 sm:pt-16 pb-28 sm:pb-32 flex flex-col justify-end h-full">
           {/* Content & Promo Card split layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end mt-2">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end">
             
             {/* Left Hero Texts */}
-            <div className="lg:col-span-7 space-y-4 text-left" id="hero-left-content">
+            <div className="lg:col-span-7 space-y-3 text-left" id="hero-left-content">
+              {/* Top/Badge element matching image */}
+              <div>
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#006F3C]/80 border border-[#006F3C]/70 text-[#006F3C] text-xs font-bold backdrop-blur-md shadow-md">
+                  <MapPin className="w-3.5 h-3.5 text-[#006F3C] shrink-0" />
+                  <span className="tracking-tight text-white font-medium">{t('hero.badge')}</span>
+                </div>
+              </div>
+
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl xl:text-6xl font-extrabold text-white tracking-tight leading-[1.12] drop-shadow-md">
                 {t('hero.title_part1')}<br />
-                {t('hero.title_part2')} <span className="text-[#22c55e] font-black">{t('hero.title_highlight')}</span>
+                {t('hero.title_part2')} <span className="text-[#006F3C] font-black">{t('hero.title_highlight')}</span>
               </h1>
               <p className="text-slate-100/95 text-sm sm:text-base md:text-lg font-medium max-w-xl leading-relaxed drop-shadow-xs">
                 {t('hero.subtitle')}
@@ -387,8 +387,8 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
               {/* Row of 4 Hero trust factors matching image with subtle dividers */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 pt-6 border-t border-white/15 divide-x-0 sm:divide-x divide-white/15" id="hero-trust-factors">
                 <div className="flex items-center gap-2.5 text-white pr-2">
-                  <div className="w-9 h-9 rounded-full bg-[#10b981]/20 border border-[#10b981]/50 flex items-center justify-center shrink-0 shadow-inner">
-                    <ShieldCheck className="w-4 h-4 text-[#4ade80]" />
+                  <div className="w-9 h-9 rounded-full bg-[#006F3C]/40 border border-[#006F3C]/60 flex items-center justify-center shrink-0 shadow-inner">
+                    <ShieldCheck className="w-4 h-4 text-[#006F3C]" />
                   </div>
                   <div className="min-w-0">
                     <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">Best Price</span>
@@ -397,8 +397,8 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                 </div>
 
                 <div className="flex items-center gap-2.5 text-white sm:pl-3 sm:pr-2">
-                  <div className="w-9 h-9 rounded-full bg-[#10b981]/20 border border-[#10b981]/50 flex items-center justify-center shrink-0 shadow-inner">
-                    <Calendar className="w-4 h-4 text-[#4ade80]" />
+                  <div className="w-9 h-9 rounded-full bg-[#006F3C]/40 border border-[#006F3C]/60 flex items-center justify-center shrink-0 shadow-inner">
+                    <Calendar className="w-4 h-4 text-[#006F3C]" />
                   </div>
                   <div className="min-w-0">
                     <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">Free</span>
@@ -407,8 +407,8 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                 </div>
 
                 <div className="flex items-center gap-2.5 text-white sm:pl-3 sm:pr-2">
-                  <div className="w-9 h-9 rounded-full bg-[#10b981]/20 border border-[#10b981]/50 flex items-center justify-center shrink-0 shadow-inner">
-                    <Headset className="w-4 h-4 text-[#4ade80]" />
+                  <div className="w-9 h-9 rounded-full bg-[#006F3C]/40 border border-[#006F3C]/60 flex items-center justify-center shrink-0 shadow-inner">
+                    <Headset className="w-4 h-4 text-[#006F3C]" />
                   </div>
                   <div className="min-w-0">
                     <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">24/7</span>
@@ -417,8 +417,8 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                 </div>
 
                 <div className="flex items-center gap-2.5 text-white sm:pl-3">
-                  <div className="w-9 h-9 rounded-full bg-[#10b981]/20 border border-[#10b981]/50 flex items-center justify-center shrink-0 shadow-inner">
-                    <Star className="w-4 h-4 text-[#4ade80]" />
+                  <div className="w-9 h-9 rounded-full bg-[#006F3C]/40 border border-[#006F3C]/60 flex items-center justify-center shrink-0 shadow-inner">
+                    <Star className="w-4 h-4 text-[#006F3C]" />
                   </div>
                   <div className="min-w-0">
                     <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">Trusted by</span>
@@ -430,7 +430,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
 
             {/* Right Promo Card (UP TO 40% OFF) matching the image */}
             <div className="lg:col-span-5" id="hero-promo-card">
-              <div className="bg-gradient-to-br from-[#0B5D3E] via-[#0D6E4A] to-[#043E28] rounded-3xl p-5 border border-[#16A34A]/35 text-white shadow-2xl relative overflow-hidden flex justify-between gap-4 max-w-md mx-auto lg:ml-auto">
+              <div className="bg-gradient-to-br from-[#006F3C] via-[#007D44] to-[#003D21] rounded-3xl p-5 border border-[#006F3C]/40 text-white shadow-2xl relative overflow-hidden flex justify-between gap-4 max-w-md mx-auto lg:ml-auto">
                 
                 {/* Promo details */}
                 <div className="flex flex-col justify-between z-10 py-1 space-y-3">
@@ -446,7 +446,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                   {/* Styled Button inside the Deal Card */}
                   <button 
                     onClick={() => setView('offers')}
-                    className="bg-[#052D1D]/90 hover:bg-[#08422B] border border-[#22C55E]/40 text-white px-4 py-2 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-md transition-all cursor-pointer hover:scale-[1.02] active:scale-95 group w-fit"
+                    className="bg-[#002816]/90 hover:bg-[#006F3C] border border-[#006F3C]/50 text-white px-4 py-2 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-md transition-all cursor-pointer hover:scale-[1.02] active:scale-95 group w-fit"
                   >
                     <span>Explore Deals</span>
                     <ChevronRight className="w-3.5 h-3.5 text-white/90 transition-transform group-hover:translate-x-0.5" />
@@ -462,11 +462,11 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                     referrerPolicy="no-referrer"
                     onError={handleImageError}
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#043E28]/50 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#003D21]/50 to-transparent" />
                 </div>
 
                 {/* Ambient green radial lights */}
-                <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-[#22C55E]/20 rounded-full blur-2xl pointer-events-none" />
+                <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-[#006F3C]/20 rounded-full blur-2xl pointer-events-none" />
               </div>
             </div>
 
@@ -495,11 +495,11 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                   onClick={() => setActiveTab(tab.id as any)}
                   className={`flex items-center gap-2.5 py-4 px-1 border-b-2 font-bold text-[13px] uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
                     isActive
-                      ? 'border-[#047857] text-[#047857]'
+                      ? 'border-[#006F3C] text-[#006F3C]'
                       : 'border-transparent text-slate-500 hover:text-slate-800'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-[#047857]' : 'text-slate-400'}`} />
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-[#006F3C]' : 'text-slate-400'}`} />
                   <span>{tab.label}</span>
                 </button>
               );
@@ -551,7 +551,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                           className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors"
                         >
                           <div className="flex items-center gap-2.5">
-                            <div className="w-7 h-7 rounded-lg bg-emerald-50 text-[#047857] flex items-center justify-center shrink-0">
+                            <div className="w-7 h-7 rounded-lg bg-[#006F3C]/10 text-[#006F3C] flex items-center justify-center shrink-0">
                               <MapPin className="w-3.5 h-3.5" />
                             </div>
                             <div>
@@ -559,7 +559,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                               <p className="text-[10px] text-slate-500 font-medium">{item.desc}</p>
                             </div>
                           </div>
-                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">{item.region}</span>
+                          <span className="text-[10px] font-bold text-[#006F3C] bg-[#006F3C]/10 px-2 py-0.5 rounded-full">{item.region}</span>
                         </div>
                       ))
                     ) : (
@@ -584,7 +584,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
               >
                 <label className="text-[11px] font-bold text-slate-700 tracking-tight cursor-pointer">{isRtl ? 'چیک ان' : 'Check-in'}</label>
                 <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-slate-500 group-hover:text-[#047857] transition-colors shrink-0" />
+                  <Calendar className="w-4 h-4 text-slate-500 group-hover:text-[#006F3C] transition-colors shrink-0" />
                   <span className="text-[13px] font-bold text-slate-800 select-none whitespace-nowrap">
                     {formatDateForDisplay(startDate)}
                   </span>
@@ -620,7 +620,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
               >
                 <label className="text-[11px] font-bold text-slate-700 tracking-tight cursor-pointer">{isRtl ? 'چیک آؤٹ' : 'Check-out'}</label>
                 <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-slate-500 group-hover:text-[#047857] transition-colors shrink-0" />
+                  <Calendar className="w-4 h-4 text-slate-500 group-hover:text-[#006F3C] transition-colors shrink-0" />
                   <span className="text-[13px] font-bold text-slate-800 select-none whitespace-nowrap">
                     {formatDateForDisplay(endDate)}
                   </span>
@@ -652,7 +652,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                 <label className="text-[11px] font-bold text-slate-700 tracking-tight cursor-pointer">{t('search.guests')}</label>
                 <div className="flex items-center justify-between gap-1 cursor-pointer">
                   <div className="flex items-center gap-2 min-w-0">
-                    <Users className="w-4 h-4 text-slate-500 group-hover:text-[#047857] transition-colors shrink-0" />
+                    <Users className="w-4 h-4 text-slate-500 group-hover:text-[#006F3C] transition-colors shrink-0" />
                     <span className="text-[13px] font-bold text-slate-800 select-none whitespace-nowrap truncate">
                       {adultGuests} Guest{adultGuests > 1 ? 's' : ''}, {roomCount} Room{roomCount > 1 ? 's' : ''}
                     </span>
@@ -718,7 +718,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                       <button
                         type="button"
                         onClick={() => setIsGuestDropdownOpen(false)}
-                        className="bg-[#047857] hover:bg-[#065f46] text-white text-xs font-bold px-4 py-1.5 rounded-lg transition-colors cursor-pointer"
+                        className="bg-[#006F3C] hover:bg-[#005C32] text-white text-xs font-bold px-4 py-1.5 rounded-lg transition-colors cursor-pointer"
                       >
                         Done
                       </button>
@@ -732,7 +732,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                 <button
                   type="submit"
                   id="btn-trigger-search"
-                  className="w-full h-full min-h-[50px] bg-gradient-to-r from-[#047857] to-[#059669] hover:from-[#065f46] hover:to-[#047857] text-white font-bold rounded-xl flex items-center justify-center gap-2 px-6 py-3.5 transition-all hover:scale-[1.01] active:scale-[0.99] text-[14px] cursor-pointer shadow-sm"
+                  className="w-full h-full min-h-[50px] bg-[#006F3C] hover:bg-[#005C32] text-white font-bold rounded-xl flex items-center justify-center gap-2 px-6 py-3.5 transition-all hover:scale-[1.01] active:scale-[0.99] text-[14px] cursor-pointer shadow-md"
                 >
                   <Search className="w-4 h-4 stroke-[2.5] shrink-0" />
                   <span className="whitespace-nowrap font-extrabold text-[14px]">
@@ -754,8 +754,8 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
               
               {/* Item 1 */}
               <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
-                <div className="w-10 h-10 rounded-full bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center text-[#047857] shrink-0">
-                  <ShieldCheck className="w-5 h-5 shrink-0 text-[#047857]" />
+                <div className="w-10 h-10 rounded-full bg-[#006F3C]/10 border border-[#006F3C]/20 flex items-center justify-center text-[#006F3C] shrink-0">
+                  <ShieldCheck className="w-5 h-5 shrink-0 text-[#006F3C]" />
                 </div>
                 <div className="min-w-0">
                   <h5 className="font-bold text-[13px] text-slate-800 leading-snug">Best Price Guarantee</h5>
@@ -765,8 +765,8 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
 
               {/* Item 2 */}
               <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
-                <div className="w-10 h-10 rounded-full bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center text-[#047857] shrink-0">
-                  <Calendar className="w-5 h-5 shrink-0 text-[#047857]" />
+                <div className="w-10 h-10 rounded-full bg-[#006F3C]/10 border border-[#006F3C]/20 flex items-center justify-center text-[#006F3C] shrink-0">
+                  <Calendar className="w-5 h-5 shrink-0 text-[#006F3C]" />
                 </div>
                 <div className="min-w-0">
                   <h5 className="font-bold text-[13px] text-slate-800 leading-snug">Free Cancellation</h5>
@@ -848,14 +848,14 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
           {/* Card 2: Homestays */}
           <div 
             onClick={() => handleCategoryCardClick('homestay')}
-            className="bg-[#EFFDF4] rounded-2xl overflow-hidden border border-emerald-100/80 shadow-2xs hover:shadow-md transition-all cursor-pointer group relative flex items-stretch h-[160px] sm:h-[165px]"
+            className="bg-[#006F3C]/5 rounded-2xl overflow-hidden border border-[#006F3C]/15 shadow-2xs hover:shadow-md transition-all cursor-pointer group relative flex items-stretch h-[160px] sm:h-[165px]"
             id="category-homestays"
           >
             {/* Left Content */}
             <div className="w-[58%] p-4 sm:p-4.5 flex flex-col justify-between z-10 shrink-0">
               <div>
                 <div className="flex items-center gap-2 mb-1.5">
-                  <Home className="w-5 h-5 text-[#059669] shrink-0 stroke-[2.2]" />
+                  <Home className="w-5 h-5 text-[#006F3C] shrink-0 stroke-[2.2]" />
                   <h3 className="text-base sm:text-[17px] font-extrabold text-slate-900 tracking-tight">
                     {isRtl ? 'ہوم اسٹے' : 'Homestays'}
                   </h3>
@@ -868,7 +868,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                 </p>
               </div>
 
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#059669] text-white flex items-center justify-center transition-transform group-hover:scale-110 duration-200 shadow-xs mt-2">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#006F3C] text-white flex items-center justify-center transition-transform group-hover:scale-110 duration-200 shadow-xs mt-2">
                 <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
               </div>
             </div>
@@ -1083,23 +1083,23 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                   referrerPolicy="no-referrer"
                   onError={handleImageError}
                 />
-                <div className="absolute top-3 left-3 bg-[#0B5D3E] text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm">
+                <div className="absolute top-3 left-3 bg-[#006F3C] text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm">
                   {listing.type === 'hotel' 
                     ? (isRtl ? '🏨 ہوٹل' : '🏨 Hotel') 
                     : listing.type === 'car' 
                       ? (isRtl ? '🚘 پریمیم گاڑی' : '🚘 Premium SUV') 
                       : (isRtl ? '🏔️ مہم جوئی' : '🏔️ Expedition')}
                 </div>
-                <div className="absolute bottom-3 right-3 bg-emerald-50 border border-emerald-100 text-[#0B5D3E] font-bold px-2 py-1 rounded-lg text-xs flex items-center shadow-sm">
-                  <Star className="w-3 h-3 fill-[#0B5D3E] stroke-none mr-1" /> {listing.rating}
+                <div className="absolute bottom-3 right-3 bg-[#006F3C]/10 border border-[#006F3C]/20 text-[#006F3C] font-bold px-2 py-1 rounded-lg text-xs flex items-center shadow-sm">
+                  <Star className="w-3 h-3 fill-[#006F3C] stroke-none mr-1" /> {listing.rating}
                 </div>
               </div>
 
               {/* Text Info */}
               <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
                 <div className="space-y-2 text-left">
-                  <p className="text-xs font-bold text-[#0B5D3E] uppercase tracking-wider flex items-center">
-                    <MapPin className="w-3.5 h-3.5 mr-1 text-[#0B5D3E]" /> 
+                  <p className="text-xs font-bold text-[#006F3C] uppercase tracking-wider flex items-center">
+                    <MapPin className="w-3.5 h-3.5 mr-1 text-[#006F3C]" /> 
                     {isRtl 
                       ? (listing.location.includes('Hunza') ? 'وادی ہنزہ' 
                           : listing.location.includes('Skardu') ? 'سکردو کا علاقہ' 
@@ -1107,7 +1107,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                           : listing.location)
                       : listing.location}
                   </p>
-                  <h4 className="text-base font-bold text-slate-900 group-hover:text-[#0B5D3E] transition-colors leading-snug">
+                  <h4 className="text-base font-bold text-slate-900 group-hover:text-[#006F3C] transition-colors leading-snug">
                     {isRtl 
                       ? (listing.title.includes('Resort') ? listing.title.replace('Resort', 'ریزارٹ')
                           : listing.title.includes('Hotel') ? listing.title.replace('Hotel', 'ہوٹل')
@@ -1117,7 +1117,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                   <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">{listing.description}</p>
                 </div>
 
-                <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+                <div className="flex items-center justify-between pt-4 border-slate-100">
                   <div className="text-left">
                     <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">
                       {isRtl ? 'ابتدائی قیمت' : 'Prices starting from'}
@@ -1134,7 +1134,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                   <button
                     id={`btn-view-exclusive-${listing.id}`}
                     onClick={() => onSelectListing(listing)}
-                    className="bg-[#0B5D3E] hover:bg-[#07472E] text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-transform active:scale-95 cursor-pointer flex items-center gap-1 shadow-sm"
+                    className="bg-[#006F3C] hover:bg-[#005C32] text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-transform active:scale-95 cursor-pointer flex items-center gap-1 shadow-sm"
                   >
                     <span>{isRtl ? 'تفصیلات دیکھیں' : 'View Spaces'}</span> <ArrowRight className="w-3 h-3" />
                   </button>
@@ -1517,7 +1517,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                 setSearchFilters({ destination: '', startDate: '', endDate: '', extra: {} }); 
                 setView('cars'); 
               }}
-              className="text-xs font-bold text-[#059669] flex items-center gap-1 hover:text-emerald-800 transition-colors cursor-pointer"
+              className="text-xs font-bold text-[#006F3C] flex items-center gap-1 hover:text-[#005C32] transition-colors cursor-pointer"
             >
               <span>{isRtl ? 'تمام گاڑیاں دیکھیں' : 'View all Cars'}</span> <ArrowRight className="w-3.5 h-3.5" />
             </button>
@@ -1526,7 +1526,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                 const el = document.getElementById('premium-cars-grid');
                 if (el) el.scrollBy({ left: 300, behavior: 'smooth' });
               }}
-              className="w-8 h-8 rounded-full border border-emerald-200/80 bg-white flex items-center justify-center text-[#059669] hover:bg-emerald-50 transition-colors shadow-2xs cursor-pointer"
+              className="w-8 h-8 rounded-full border border-[#006F3C]/20 bg-white flex items-center justify-center text-[#006F3C] hover:bg-[#006F3C]/10 transition-colors shadow-2xs cursor-pointer"
             >
               <ArrowRight className="w-4 h-4 stroke-[2.5]" />
             </button>
@@ -1556,7 +1556,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
               rating: 4.8,
               reviews: 198,
               badge: 'Popular',
-              badgeColor: 'bg-[#16A34A]',
+              badgeColor: 'bg-[#006F3C]',
               image: 'https://images.unsplash.com/photo-1606016159991-dfe4f974be5c?auto=format&fit=crop&w=600&q=80'
             },
             {
@@ -1592,7 +1592,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
               rating: 4.5,
               reviews: 98,
               badge: 'Standard',
-              badgeColor: 'bg-[#15803D]',
+              badgeColor: 'bg-[#006F3C]',
               image: 'https://images.unsplash.com/photo-1606220588913-b3aacb4d2f46?auto=format&fit=crop&w=600&q=80'
             }
           ].map((car, idx) => (
@@ -1677,9 +1677,9 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
         <div className="bg-[#FAFBFD] border border-slate-200/65 rounded-3xl overflow-hidden shadow-sm grid grid-cols-1 lg:grid-cols-12 items-stretch">
           
           {/* Left Area: Countdown Promo (Green Block matching the image) */}
-          <div className="lg:col-span-5 bg-gradient-to-r from-[#035133] via-[#0E6C49] to-[#0A3D75] p-6 sm:p-8 flex flex-col justify-between text-white relative overflow-hidden text-left min-h-[280px]">
+          <div className="lg:col-span-5 bg-gradient-to-r from-[#003D21] via-[#006F3C] to-[#002816] p-6 sm:p-8 flex flex-col justify-between text-white relative overflow-hidden text-left min-h-[280px]">
             {/* Background elements */}
-            <div className="absolute top-0 right-0 w-44 h-44 bg-[#22C55E]/10 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute top-0 right-0 w-44 h-44 bg-[#006F3C]/10 rounded-full blur-2xl pointer-events-none" />
             
             <div className="z-10 space-y-2 max-w-[260px] sm:max-w-xs">
               <span className="text-[10px] text-white/80 uppercase font-black tracking-widest block">
@@ -1779,14 +1779,14 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                 {/* 2. Palm Leaf behind the suitcase */}
                 <g opacity="0.85">
                   {/* Leaf stem */}
-                  <path d="M 85,170 Q 55,140 45,95" fill="none" stroke="#059669" strokeWidth="2" strokeLinecap="round" />
+                  <path d="M 85,170 Q 55,140 45,95" fill="none" stroke="#006F3C" strokeWidth="2" strokeLinecap="round" />
                   {/* Fronds */}
-                  <path d="M 80,155 Q 52,145 42,130" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" />
-                  <path d="M 75,140 Q 48,128 38,112" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" />
-                  <path d="M 70,125 Q 45,110 35,95" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" />
-                  <path d="M 62,110 Q 42,95 35,80" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" />
-                  <path d="M 52,98 Q 38,82 32,68" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" />
-                  <path d="M 45,95 Q 35,75 35,60" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" />
+                  <path d="M 80,155 Q 52,145 42,130" fill="none" stroke="#006F3C" strokeWidth="2.5" strokeLinecap="round" />
+                  <path d="M 75,140 Q 48,128 38,112" fill="none" stroke="#006F3C" strokeWidth="2.5" strokeLinecap="round" />
+                  <path d="M 70,125 Q 45,110 35,95" fill="none" stroke="#006F3C" strokeWidth="2.5" strokeLinecap="round" />
+                  <path d="M 62,110 Q 42,95 35,80" fill="none" stroke="#006F3C" strokeWidth="2.5" strokeLinecap="round" />
+                  <path d="M 52,98 Q 38,82 32,68" fill="none" stroke="#006F3C" strokeWidth="2.5" strokeLinecap="round" />
+                  <path d="M 45,95 Q 35,75 35,60" fill="none" stroke="#006F3C" strokeWidth="2.5" strokeLinecap="round" />
                 </g>
 
                 {/* Subtle ground shadow under suitcase and wheels */}

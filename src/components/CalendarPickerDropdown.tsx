@@ -133,9 +133,9 @@ export const CalendarPickerDropdown: React.FC<CalendarPickerDropdownProps> = ({
                 isDisabled ? 'opacity-30 cursor-not-allowed text-slate-300' : ''
               } ${
                 isSelected
-                  ? 'bg-[#047857] text-white shadow-md font-extrabold scale-105'
+                  ? 'bg-[#006F3C] text-white shadow-md font-extrabold scale-105'
                   : isToday && isCurrentMonth
-                  ? 'border border-[#047857] text-[#047857] hover:bg-emerald-50'
+                  ? 'border border-[#006F3C] text-[#006F3C] hover:bg-emerald-50'
                   : isCurrentMonth && !isDisabled
                   ? 'hover:bg-slate-100 text-slate-700'
                   : ''

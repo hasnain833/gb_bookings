@@ -78,7 +78,8 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
     setLoading(true);
     try {
       const res = await fetch(`/api/listings/${listingId}`);
-      if (res.ok) {
+      const ct = res.headers.get('content-type') || '';
+      if (res.ok && ct.includes('application/json')) {
         const data = await res.json();
         setRawListing(data);
         setRawReviews(data.reviews || []);
@@ -468,13 +469,13 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
 
           {/* Oyo Certified Sanitized Stay Guarantees Badge (Oyo Rooms Feature) */}
           {listing.type === 'hotel' && (
-            <div className="bg-[#15803D]/10 border border-[#15803D]/25 rounded-2xl p-5 md:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 shadow-xs" id="oyo-guarantee-badge">
+            <div className="bg-[#006F3C]/10 border border-[#006F3C]/25 rounded-2xl p-5 md:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 shadow-xs" id="oyo-guarantee-badge">
               <div className="space-y-1.5 max-w-lg">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-[#15803D] flex items-center justify-center text-white text-xs font-black">
+                  <div className="w-6 h-6 rounded-full bg-[#006F3C] flex items-center justify-center text-white text-xs font-black">
                     ✓
                   </div>
-                  <h4 className="text-sm font-extrabold text-[#15803D] uppercase tracking-wider">Oyo Quality & Cleanliness Guaranteed</h4>
+                  <h4 className="text-sm font-extrabold text-[#006F3C] uppercase tracking-wider">Oyo Quality & Cleanliness Guaranteed</h4>
                 </div>
                 <p className="text-xs text-slate-700 leading-relaxed font-medium">
                   We check this hotel room against a strict 5-point quality checklist before check-in. Rest assured with native comfort standards.
@@ -486,14 +487,14 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
                     'Hot Water Geyser on demand',
                     'Free High-Speed Wi-Fi Support'
                   ].map((g, idx) => (
-                    <span key={idx} className="text-[10px] text-[#15803D] font-bold flex items-center gap-1">
-                      <Sparkle className="w-3 h-3 fill-[#15803D] stroke-none shrink-0" /> {g}
+                    <span key={idx} className="text-[10px] text-[#006F3C] font-bold flex items-center gap-1">
+                      <Sparkle className="w-3 h-3 fill-[#006F3C] stroke-none shrink-0" /> {g}
                     </span>
                   ))}
                 </div>
               </div>
-              <div className="bg-white border border-[#15803D]/20 px-4 py-3 rounded-xl text-center shrink-0 w-full md:w-auto shadow-xs">
-                <span className="text-[9px] font-extrabold text-[#15803D] uppercase tracking-widest block">GB CERTIFICATION ID</span>
+              <div className="bg-white border border-[#006F3C]/20 px-4 py-3 rounded-xl text-center shrink-0 w-full md:w-auto shadow-xs">
+                <span className="text-[9px] font-extrabold text-[#006F3C] uppercase tracking-widest block">GB CERTIFICATION ID</span>
                 <span className="text-sm font-mono font-bold text-slate-800 block mt-0.5">GB-OYO-98442</span>
                 <span className="text-[9.5px] text-slate-400 block mt-0.5">Checked today • Active</span>
               </div>
@@ -502,13 +503,13 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
 
           {/* Airbnb Superhost Guarantee Badge (Airbnb Feature) */}
           {listing.type === 'homestay' && (
-            <div className="bg-[#15803D]/10 border border-[#15803D]/25 rounded-2xl p-5 md:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 shadow-xs" id="homestay-guarantee-badge">
+            <div className="bg-[#006F3C]/10 border border-[#006F3C]/25 rounded-2xl p-5 md:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 shadow-xs" id="homestay-guarantee-badge">
               <div className="space-y-1.5 max-w-lg">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-[#15803D] flex items-center justify-center text-white text-xs font-black">
+                  <div className="w-6 h-6 rounded-full bg-[#006F3C] flex items-center justify-center text-white text-xs font-black">
                     ✓
                   </div>
-                  <h4 className="text-sm font-extrabold text-[#15803D] uppercase tracking-wider">Superhost Certified Homestay</h4>
+                  <h4 className="text-sm font-extrabold text-[#006F3C] uppercase tracking-wider">Superhost Certified Homestay</h4>
                 </div>
                 <p className="text-xs text-slate-700 leading-relaxed font-medium">
                   This stay has been personally verified for authentic hospitality, clean local linens, and home-cooked culinary safety.
@@ -520,14 +521,14 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
                     'Cultural & Village Tour Guides',
                     'Safe & Secure Family Environment'
                   ].map((g, idx) => (
-                    <span key={idx} className="text-[10px] text-[#15803D] font-bold flex items-center gap-1">
-                      <Sparkle className="w-3 h-3 fill-[#15803D] stroke-none shrink-0" /> {g}
+                    <span key={idx} className="text-[10px] text-[#006F3C] font-bold flex items-center gap-1">
+                      <Sparkle className="w-3 h-3 fill-[#006F3C] stroke-none shrink-0" /> {g}
                     </span>
                   ))}
                 </div>
               </div>
-              <div className="bg-white border border-[#15803D]/20 px-4 py-3 rounded-xl text-center shrink-0 w-full md:w-auto shadow-xs">
-                <span className="text-[9px] font-extrabold text-[#15803D] uppercase tracking-widest block">GB HOMESTAY VERIFIED</span>
+              <div className="bg-white border border-[#006F3C]/20 px-4 py-3 rounded-xl text-center shrink-0 w-full md:w-auto shadow-xs">
+                <span className="text-[9px] font-extrabold text-[#006F3C] uppercase tracking-widest block">GB HOMESTAY VERIFIED</span>
                 <span className="text-sm font-mono font-bold text-slate-800 block mt-0.5">GB-HOST-{(listing.homestaySpecs?.hostName || 'karim').substring(0,3).toUpperCase()}-2025</span>
                 <span className="text-[9.5px] text-slate-400 block mt-0.5">Superhost badge • Active</span>
               </div>

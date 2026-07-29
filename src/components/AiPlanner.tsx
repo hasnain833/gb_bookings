@@ -313,7 +313,7 @@ export default function AiPlanner({ setView, onSelectListing }: AiPlannerProps) 
     return boldParts.map((part, index) => {
       if (index % 2 === 1) {
         // This is a bold part - format it with clear bold styling and primary color, no bg rectangles!
-        return <strong key={index} className="font-bold text-[#0B5D3E]">{part}</strong>;
+        return <strong key={index} className="font-bold text-[#006F3C]">{part}</strong>;
       }
       // This is a normal part, which may contain italics
       return formatItalic(part);
@@ -474,7 +474,7 @@ export default function AiPlanner({ setView, onSelectListing }: AiPlannerProps) 
           if (block.level === 1) {
             return (
               <h2 key={index} className="text-lg md:text-xl font-extrabold text-[#0F172A] mt-8 mb-4 border-b border-slate-100 pb-2.5 tracking-tight flex items-center gap-2">
-                <span className="w-1.5 h-6 bg-[#0B5D3E] rounded-full inline-block shrink-0" />
+                <span className="w-1.5 h-6 bg-[#006F3C] rounded-full inline-block shrink-0" />
                 <span>{block.text}</span>
               </h2>
             );
@@ -486,7 +486,7 @@ export default function AiPlanner({ setView, onSelectListing }: AiPlannerProps) 
             );
           } else {
             return (
-              <h4 key={index} className="text-sm md:text-base font-bold text-[#0B5D3E] mt-5 mb-2 uppercase tracking-wide">
+              <h4 key={index} className="text-sm md:text-base font-bold text-[#006F3C] mt-5 mb-2 uppercase tracking-wide">
                 {block.text}
               </h4>
             );
@@ -494,7 +494,7 @@ export default function AiPlanner({ setView, onSelectListing }: AiPlannerProps) 
         }
         case 'bullet': {
           return (
-            <li key={index} className="text-xs md:text-sm text-slate-600 ml-5 list-disc marker:text-[#0B5D3E] mb-2 leading-relaxed">
+            <li key={index} className="text-xs md:text-sm text-slate-600 ml-5 list-disc marker:text-[#006F3C] mb-2 leading-relaxed">
               {formatBold(block.text)}
             </li>
           );
@@ -535,7 +535,7 @@ export default function AiPlanner({ setView, onSelectListing }: AiPlannerProps) 
             return (
               <div key={index} className="flex justify-center my-3 animate-fadeIn">
                 <div className="bg-emerald-50/30 hover:bg-emerald-50/60 border border-emerald-100/80 px-4 py-2.5 rounded-xl shadow-2xs flex items-center gap-2 max-w-sm w-full justify-center transition-all group">
-                  <MapPin className="w-4 h-4 text-[#0B5D3E] shrink-0 group-hover:scale-110 transition-transform" />
+                  <MapPin className="w-4 h-4 text-[#006F3C] shrink-0 group-hover:scale-110 transition-transform" />
                   <span className="text-xs md:text-sm font-bold text-slate-800">{block.items[0].label}</span>
                 </div>
               </div>
@@ -551,7 +551,7 @@ export default function AiPlanner({ setView, onSelectListing }: AiPlannerProps) 
                     </svg>
                   )}
                   <div className="bg-emerald-50/30 hover:bg-emerald-50/60 border border-emerald-100/80 px-3.5 py-1.5 rounded-lg shadow-3xs flex items-center gap-1.5 transition-all group">
-                    <MapPin className="w-3.5 h-3.5 text-[#0B5D3E] shrink-0 group-hover:scale-110 transition-transform" />
+                    <MapPin className="w-3.5 h-3.5 text-[#006F3C] shrink-0 group-hover:scale-110 transition-transform" />
                     <span className="text-xs font-bold text-slate-700">{node.label}</span>
                   </div>
                 </React.Fragment>
@@ -750,8 +750,8 @@ export default function AiPlanner({ setView, onSelectListing }: AiPlannerProps) 
               <div className="space-y-6 animate-fadeIn" id="itinerary-formatted-result">
                 {/* Compile success badge and Tab Selectors */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4 mb-2">
-                  <div className="flex items-center space-x-2 text-xs font-bold text-[#0B5D3E] bg-emerald-50 border border-emerald-100 px-3.5 py-1.5 rounded-lg max-w-max uppercase tracking-wider">
-                    <CheckCircle2 className="w-4 h-4 text-[#0B5D3E]" />
+                  <div className="flex items-center space-x-2 text-xs font-bold text-[#006F3C] bg-emerald-50 border border-emerald-100 px-3.5 py-1.5 rounded-lg max-w-max uppercase tracking-wider">
+                    <CheckCircle2 className="w-4 h-4 text-[#006F3C]" />
                     <span>Itinerary & Map Ready</span>
                   </div>
                   
@@ -763,7 +763,7 @@ export default function AiPlanner({ setView, onSelectListing }: AiPlannerProps) 
                       onClick={() => setActiveTab('route')}
                       className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
                         activeTab === 'route'
-                          ? 'bg-white text-[#0B5D3E] shadow-2xs'
+                          ? 'bg-white text-[#006F3C] shadow-2xs'
                           : 'text-slate-500 hover:text-slate-800'
                       }`}
                     >
@@ -776,7 +776,7 @@ export default function AiPlanner({ setView, onSelectListing }: AiPlannerProps) 
                       onClick={() => setActiveTab('details')}
                       className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
                         activeTab === 'details'
-                          ? 'bg-white text-[#0B5D3E] shadow-2xs'
+                          ? 'bg-white text-[#006F3C] shadow-2xs'
                           : 'text-slate-500 hover:text-slate-800'
                       }`}
                     >
@@ -797,7 +797,7 @@ export default function AiPlanner({ setView, onSelectListing }: AiPlannerProps) 
                       </div>
                       <div className="space-y-0.5">
                         <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Est. Distance</span>
-                        <h5 className="text-xs font-extrabold text-[#0B5D3E]">{currentRoute.distance}</h5>
+                        <h5 className="text-xs font-extrabold text-[#006F3C]">{currentRoute.distance}</h5>
                       </div>
                       <div className="space-y-0.5">
                         <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Prime Months</span>
@@ -812,7 +812,7 @@ export default function AiPlanner({ setView, onSelectListing }: AiPlannerProps) 
                     {/* Interactive Connecting Roadmap Horizontal/Vertical Map Line */}
                     <div className="space-y-5">
                       <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 flex items-center gap-1.5 text-left">
-                        <Compass className="w-3.5 h-3.5 text-[#0B5D3E]" />
+                        <Compass className="w-3.5 h-3.5 text-[#006F3C]" />
                         <span>Interactive Pathway & Stops (Click step to preview)</span>
                       </h4>
 
@@ -849,13 +849,13 @@ export default function AiPlanner({ setView, onSelectListing }: AiPlannerProps) 
                                 onClick={() => setSelectedStopIdx(sIdx)}
                                 className={`z-10 relative flex flex-col items-center p-3 rounded-xl transition-all cursor-pointer text-center max-w-[150px] w-full border ${
                                   isSelected
-                                    ? 'bg-[#0B5D3E] border-[#07442D] text-white shadow-md shadow-emerald-800/10 scale-105'
+                                    ? 'bg-[#006F3C] border-[#005C32] text-white shadow-md shadow-emerald-800/10 scale-105'
                                     : 'bg-white hover:bg-slate-50 border-slate-200/80 text-slate-600 hover:border-slate-300'
                                 }`}
                               >
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
                                   isSelected
-                                    ? 'bg-white text-[#0B5D3E]'
+                                    ? 'bg-white text-[#006F3C]'
                                     : 'bg-slate-100 text-slate-500'
                                 }`}>
                                   {sIdx + 1}
@@ -899,10 +899,10 @@ export default function AiPlanner({ setView, onSelectListing }: AiPlannerProps) 
                           </p>
 
                           {/* Local Tip Box */}
-                          <div className="bg-[#0B5D3E]/5 border border-[#0B5D3E]/10 p-3.5 rounded-xl flex items-start gap-2.5 text-left">
-                            <Lightbulb className="w-4 h-4 text-[#0B5D3E] shrink-0 mt-0.5 animate-pulse" />
+                          <div className="bg-[#006F3C]/5 border border-[#006F3C]/10 p-3.5 rounded-xl flex items-start gap-2.5 text-left">
+                            <Lightbulb className="w-4 h-4 text-[#006F3C] shrink-0 mt-0.5 animate-pulse" />
                             <div className="space-y-0.5">
-                              <span className="text-[10px] font-black uppercase tracking-widest text-[#0B5D3E]">Local Operations Tip</span>
+                              <span className="text-[10px] font-black uppercase tracking-widest text-[#006F3C]">Local Operations Tip</span>
                               <p className="text-xs text-slate-700 leading-relaxed font-medium">
                                 {currentRoute.stops[selectedStopIdx].tip}
                               </p>
@@ -925,7 +925,7 @@ export default function AiPlanner({ setView, onSelectListing }: AiPlannerProps) 
                               type="button"
                               disabled={selectedStopIdx === currentRoute.stops.length - 1}
                               onClick={() => setSelectedStopIdx(prev => Math.min(currentRoute.stops.length - 1, prev + 1))}
-                              className="bg-[#0B5D3E] hover:bg-[#07442D] disabled:opacity-40 disabled:hover:bg-[#0B5D3E] text-white text-xs font-bold px-3.5 py-1.5 rounded-lg border border-[#0B5D3E] transition-all cursor-pointer flex items-center gap-1 shadow-xs"
+                              className="bg-[#006F3C] hover:bg-[#005C32] disabled:opacity-40 disabled:hover:bg-[#006F3C] text-white text-xs font-bold px-3.5 py-1.5 rounded-lg border border-[#006F3C] transition-all cursor-pointer flex items-center gap-1 shadow-xs"
                             >
                               <span>Next Stop</span>
                               <ChevronRight className="w-4 h-4" />

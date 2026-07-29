@@ -6,6 +6,28 @@
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   --font-display: "Space Grotesk", sans-serif;
   --font-urdu: "Harmattan", "Noto Naskh Arabic", "Noto Nastaliq Urdu", "Inter", sans-serif;
+
+  /* Custom Brand Theme Colors extracted from user image (#006F3C) */
+  --color-forest-950: #002816;
+  --color-forest-900: #003D21;
+  --color-forest-800: #006F3C;
+  --color-forest-700: #007D44;
+
+  --color-leaf-600: #006F3C;
+  --color-leaf-500: #008247;
+  --color-leaf-400: #009B54;
+
+  /* Standard Tailwind green overrides for seamless global theme integration */
+  --color-emerald-500: #006F3C;
+  --color-emerald-600: #005C32;
+  --color-emerald-700: #004827;
+  --color-emerald-800: #00371E;
+  --color-emerald-900: #002615;
+
+  --color-green-500: #006F3C;
+  --color-green-600: #005C32;
+  --color-green-700: #004827;
+  --color-green-800: #00371E;
 }
 
 @layer base {

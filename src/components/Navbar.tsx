@@ -72,15 +72,16 @@ export default function Navbar({
             const isActive = currentView === item.id || 
               (item.id === 'hotels' && (currentView === 'hotels' || currentView === 'browse-hotels')) ||
               (item.id === 'cars' && (currentView === 'cars' || currentView === 'browse-cars')) ||
-              (item.id === 'tours' && (currentView === 'tours' || currentView === 'browse-tours'));
+              (item.id === 'tours' && (currentView === 'tours' || currentView === 'browse-tours')) ||
+              (item.id === 'offers' && (currentView === 'offers' || currentView === 'browse-offers'));
 
             return (
               <button
                 key={item.id}
                 id={`nav-link-${item.id}`}
                 onClick={() => handleLinkClick(item.id)}
-                className={`flex items-center gap-1.5 transition-all duration-200 py-2 font-semibold hover:text-[#15803D] cursor-pointer relative whitespace-nowrap shrink-0 hover:scale-[1.03] active:scale-95 ${
-                  isActive ? 'text-[#15803D] font-bold border-b-2 border-[#15803D]' : 'text-slate-700'
+                className={`flex items-center gap-1.5 transition-all duration-200 py-2 font-semibold hover:text-[#006F3C] cursor-pointer relative whitespace-nowrap shrink-0 hover:scale-[1.03] active:scale-95 ${
+                  isActive ? 'text-[#006F3C] font-bold border-b-2 border-[#006F3C]' : 'text-slate-700'
                 }`}
               >
                 {item.icon && <item.icon className="w-4 h-4 shrink-0" />}
@@ -95,7 +96,7 @@ export default function Navbar({
               id="nav-link-more"
               onClick={() => setShowMoreMenu(!showMoreMenu)}
               onBlur={() => setTimeout(() => setShowMoreMenu(false), 200)}
-              className="flex items-center gap-1 font-semibold text-slate-700 hover:text-[#15803D] py-2 cursor-pointer whitespace-nowrap"
+              className="flex items-center gap-1 font-semibold text-slate-700 hover:text-[#006F3C] py-2 cursor-pointer whitespace-nowrap"
             >
               <span>{isRtl ? 'مزید' : 'More'}</span>
               <ChevronDown className="w-4 h-4 text-slate-500 shrink-0" />
@@ -105,21 +106,21 @@ export default function Navbar({
               <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl py-2 z-50 animate-fadeIn" id="nav-more-dropdown">
                 <button
                   onClick={() => setView('dashboard-user')}
-                  className="w-full text-left px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-[#15803D] flex items-center gap-2"
+                  className="w-full text-left px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-[#006F3C] flex items-center gap-2"
                 >
                   <User className="w-4 h-4 text-slate-500" />
                   <span>{t('nav.user_dashboard')}</span>
                 </button>
                 <button
                   onClick={() => setView('dashboard-vendor')}
-                  className="w-full text-left px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-[#15803D] flex items-center gap-2"
+                  className="w-full text-left px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-[#006F3C] flex items-center gap-2"
                 >
-                  <Sparkles className="w-4 h-4 text-emerald-600" />
+                  <Sparkles className="w-4 h-4 text-[#006F3C]" />
                   <span>{t('nav.vendor_dashboard')}</span>
                 </button>
                 <button
                   onClick={() => setView('support')}
-                  className="w-full text-left px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-[#15803D] flex items-center gap-2"
+                  className="w-full text-left px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-[#006F3C] flex items-center gap-2"
                 >
                   <MessageCircle className="w-4 h-4 text-slate-500" />
                   <span>{t('nav.support')}</span>
@@ -136,10 +137,10 @@ export default function Navbar({
           <button
             id="btn-language-toggle"
             onClick={() => requestLanguageChange(language === 'en' ? 'ur' : 'en')}
-            className="flex items-center gap-1 text-[11px] sm:text-[14px] font-extrabold text-[#0B5D3E] hover:bg-emerald-50 py-1.5 px-2 sm:px-3 rounded-xl transition-all border border-emerald-100 cursor-pointer whitespace-nowrap shrink-0 hover:scale-[1.03] active:scale-95"
+            className="flex items-center gap-1 text-[11px] sm:text-[14px] font-extrabold text-[#006F3C] hover:bg-[#006F3C]/10 py-1.5 px-2 sm:px-3 rounded-xl transition-all border border-[#006F3C]/20 cursor-pointer whitespace-nowrap shrink-0 hover:scale-[1.03] active:scale-95"
             title={language === 'en' ? 'اردو زبان منتخب کریں' : 'Switch to English'}
           >
-            <Globe className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+            <Globe className="w-3.5 h-3.5 text-[#006F3C] shrink-0" />
             <span className="hidden sm:inline">{language === 'en' ? 'اردو' : 'English'}</span>
             <span className="sm:hidden">{language === 'en' ? 'اردو' : 'EN'}</span>
           </button>
@@ -154,7 +155,7 @@ export default function Navbar({
               onClick={() => {
                 setView('dashboard-user');
               }}
-              className="border border-[#CBD5E1] hover:border-[#1A1A1A] text-slate-800 font-bold text-[11px] sm:text-[14px] px-2.5 sm:px-5 py-1.5 sm:py-2.5 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-95 cursor-pointer whitespace-nowrap shrink-0"
+              className="border border-[#CBD5E1] hover:border-[#006F3C] text-slate-800 font-bold text-[11px] sm:text-[14px] px-2.5 sm:px-5 py-1.5 sm:py-2.5 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-95 cursor-pointer whitespace-nowrap shrink-0"
             >
               {isRtl ? 'لاگ ان' : 'Sign In'}
             </button>
@@ -165,7 +166,7 @@ export default function Navbar({
               onClick={() => {
                 setView('dashboard-user');
               }}
-              className="bg-[#0B5D3E] hover:bg-[#07472E] text-white font-bold text-[11px] sm:text-[14px] px-2.5 sm:px-5 py-1.5 sm:py-2.5 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-95 cursor-pointer flex items-center gap-1 sm:gap-2 shadow-xs whitespace-nowrap shrink-0"
+              className="bg-[#006F3C] hover:bg-[#005C32] text-white font-bold text-[11px] sm:text-[14px] px-2.5 sm:px-5 py-1.5 sm:py-2.5 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-95 cursor-pointer flex items-center gap-1 sm:gap-2 shadow-xs whitespace-nowrap shrink-0"
             >
               <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 stroke-[2.5]" />
               <span className="hidden sm:inline">{isRtl ? 'رجسٹر کریں' : 'Register'}</span>
@@ -180,7 +181,7 @@ export default function Navbar({
         {/* Mobile Language quick selector */}
         <button
           onClick={() => requestLanguageChange(language === 'en' ? 'ur' : 'en')}
-          className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider whitespace-nowrap bg-emerald-50 text-[#0B5D3E] border border-emerald-100"
+          className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider whitespace-nowrap bg-[#006F3C]/10 text-[#006F3C] border border-[#006F3C]/20"
         >
           <Globe className="w-3.5 h-3.5" />
           <span>{language === 'en' ? 'اردو' : 'EN'}</span>
@@ -203,8 +204,8 @@ export default function Navbar({
             (item.id === 'vendor' && currentView === 'dashboard-vendor');
 
           const buttonClass = isCurrent
-            ? 'bg-[#0B5D3E] text-white border-[#0B5D3E]'
-            : 'bg-white text-slate-600 border-slate-200 hover:text-[#0B5D3E]';
+            ? 'bg-[#006F3C] text-white border-[#006F3C]'
+            : 'bg-white text-slate-600 border-slate-200 hover:text-[#006F3C]';
 
           return (
             <button

@@ -181,20 +181,20 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
         </div>
 
         {/* Inner Content Container matching Homepage padding */}
-        <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-10 lg:px-12 pt-8 sm:pt-10 pb-28 sm:pb-32 flex flex-col justify-between h-full space-y-8">
-          <div>
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#062419]/80 border border-[#22c55e]/70 text-[#4ade80] text-xs font-bold backdrop-blur-md shadow-md">
-              <Home className="w-3.5 h-3.5 text-[#22c55e] shrink-0" />
-              <span className="tracking-tight text-white font-medium">Stay Local. Feel at Home.</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end mt-2">
+        <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-10 lg:px-12 pt-12 sm:pt-16 pb-28 sm:pb-32 flex flex-col justify-end h-full">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end">
             {/* Left Texts */}
-            <div className="lg:col-span-12 space-y-4 text-left">
+            <div className="lg:col-span-12 space-y-3 text-left">
+              <div>
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#006F3C]/80 border border-[#006F3C]/70 text-white text-xs font-bold backdrop-blur-md shadow-md">
+                  <Home className="w-3.5 h-3.5 text-white shrink-0" />
+                  <span className="tracking-tight text-white font-medium">Stay Local. Feel at Home.</span>
+                </div>
+              </div>
+
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl xl:text-6xl font-extrabold text-white tracking-tight leading-[1.12] drop-shadow-md">
                 Authentic Homestays in <br />
-                <span className="text-[#22c55e] font-black">Gilgit Baltistan</span>
+                <span className="text-[#006F3C] font-black">Gilgit Baltistan</span>
               </h1>
               <p className="text-slate-100/95 text-sm sm:text-base md:text-lg font-medium max-w-xl leading-relaxed drop-shadow-xs">
                 Experience warm hospitality, local culture, and breathtaking mountain views with our handpicked homestays.
@@ -203,8 +203,8 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
               {/* Trust Factors Row with Subtle Vertical Dividers */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 pt-6 border-t border-white/15 divide-x-0 sm:divide-x divide-white/15" id="homestay-trust-factors">
                 <div className="flex items-center gap-2.5 text-white pr-2">
-                  <div className="w-9 h-9 rounded-full bg-[#10b981]/20 border border-[#10b981]/50 flex items-center justify-center shrink-0 shadow-inner">
-                    <ShieldCheck className="w-4 h-4 text-[#4ade80]" />
+                  <div className="w-9 h-9 rounded-full bg-[#006F3C]/40 border border-[#006F3C]/60 flex items-center justify-center shrink-0 shadow-inner">
+                    <ShieldCheck className="w-4 h-4 text-white" />
                   </div>
                   <div className="min-w-0">
                     <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">Verified Stays</span>
@@ -213,8 +213,8 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
                 </div>
 
                 <div className="flex items-center gap-2.5 text-white sm:pl-3 sm:pr-2">
-                  <div className="w-9 h-9 rounded-full bg-[#10b981]/20 border border-[#10b981]/50 flex items-center justify-center shrink-0 shadow-inner">
-                    <User className="w-4 h-4 text-[#4ade80]" />
+                  <div className="w-9 h-9 rounded-full bg-[#006F3C]/40 border border-[#006F3C]/60 flex items-center justify-center shrink-0 shadow-inner">
+                    <User className="w-4 h-4 text-white" />
                   </div>
                   <div className="min-w-0">
                     <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">Local Hosts</span>
@@ -223,8 +223,8 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
                 </div>
 
                 <div className="flex items-center gap-2.5 text-white sm:pl-3 sm:pr-2">
-                  <div className="w-9 h-9 rounded-full bg-[#10b981]/20 border border-[#10b981]/50 flex items-center justify-center shrink-0 shadow-inner">
-                    <Award className="w-4 h-4 text-[#4ade80]" />
+                  <div className="w-9 h-9 rounded-full bg-[#006F3C]/40 border border-[#006F3C]/60 flex items-center justify-center shrink-0 shadow-inner">
+                    <Award className="w-4 h-4 text-white" />
                   </div>
                   <div className="min-w-0">
                     <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">Best Rates</span>
@@ -233,8 +233,8 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
                 </div>
 
                 <div className="flex items-center gap-2.5 text-white sm:pl-3">
-                  <div className="w-9 h-9 rounded-full bg-[#10b981]/20 border border-[#10b981]/50 flex items-center justify-center shrink-0 shadow-inner">
-                    <Headset className="w-4 h-4 text-[#4ade80]" />
+                  <div className="w-9 h-9 rounded-full bg-[#006F3C]/40 border border-[#006F3C]/60 flex items-center justify-center shrink-0 shadow-inner">
+                    <Headset className="w-4 h-4 text-white" />
                   </div>
                   <div className="min-w-0">
                     <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">24/7 Support</span>
@@ -253,8 +253,8 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
           
           {/* Header Tab */}
           <div className="flex border-b border-[#F1F5F9] bg-[#FAFAFA] px-6 sm:px-8 gap-4 sm:gap-8 overflow-x-auto scrollbar-none rounded-t-3xl">
-            <div className="flex items-center gap-2.5 py-4 px-1 border-b-2 border-[#047857] text-[#047857] font-bold text-[13px] uppercase tracking-wider">
-              <Home className="w-4 h-4 text-[#047857]" />
+            <div className="flex items-center gap-2.5 py-4 px-1 border-b-2 border-[#006F3C] text-[#006F3C] font-bold text-[13px] uppercase tracking-wider">
+              <Home className="w-4 h-4 text-[#006F3C]" />
               <span>Find Authentic Homestays</span>
             </div>
           </div>
@@ -303,7 +303,7 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
                           className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors"
                         >
                           <div className="flex items-center gap-2.5">
-                            <div className="w-7 h-7 rounded-lg bg-emerald-50 text-[#047857] flex items-center justify-center shrink-0">
+                            <div className="w-7 h-7 rounded-lg bg-emerald-50 text-[#006F3C] flex items-center justify-center shrink-0">
                               <MapPin className="w-3.5 h-3.5" />
                             </div>
                             <div>
@@ -336,7 +336,7 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
               >
                 <label className="text-[11px] font-bold text-slate-700 tracking-tight cursor-pointer">{isRtl ? 'چیک ان' : 'Check-in'}</label>
                 <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-slate-500 group-hover:text-[#047857] transition-colors shrink-0" />
+                  <Calendar className="w-4 h-4 text-slate-500 group-hover:text-[#006F3C] transition-colors shrink-0" />
                   <span className="text-[13px] font-bold text-slate-800 select-none whitespace-nowrap">
                     {formatDateDisplay(checkIn)}
                   </span>
@@ -371,7 +371,7 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
               >
                 <label className="text-[11px] font-bold text-slate-700 tracking-tight cursor-pointer">{isRtl ? 'چیک آؤٹ' : 'Check-out'}</label>
                 <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-slate-500 group-hover:text-[#047857] transition-colors shrink-0" />
+                  <Calendar className="w-4 h-4 text-slate-500 group-hover:text-[#006F3C] transition-colors shrink-0" />
                   <span className="text-[13px] font-bold text-slate-800 select-none whitespace-nowrap">
                     {formatDateDisplay(checkOut)}
                   </span>
@@ -402,7 +402,7 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
                 <label className="text-[11px] font-bold text-slate-700 tracking-tight cursor-pointer">{t('search.guests')}</label>
                 <div className="flex items-center justify-between gap-1 cursor-pointer">
                   <div className="flex items-center gap-2 min-w-0">
-                    <Users className="w-4 h-4 text-slate-500 group-hover:text-[#047857] transition-colors shrink-0" />
+                    <Users className="w-4 h-4 text-slate-500 group-hover:text-[#006F3C] transition-colors shrink-0" />
                     <span className="text-[13px] font-bold text-slate-800 select-none whitespace-nowrap truncate">
                       {guestCount} Guest{guestCount > 1 ? 's' : ''}, {roomCount} Room{roomCount > 1 ? 's' : ''}
                     </span>
@@ -467,7 +467,7 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
                       <button
                         type="button"
                         onClick={() => setShowGuestPicker(false)}
-                        className="bg-[#047857] hover:bg-[#065f46] text-white text-xs font-bold px-4 py-1.5 rounded-lg transition-colors cursor-pointer"
+                        className="bg-[#006F3C] hover:bg-[#005C32] text-white text-xs font-bold px-4 py-1.5 rounded-lg transition-colors cursor-pointer"
                       >
                         Done
                       </button>
@@ -480,7 +480,7 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
               <div className="lg:col-span-2 flex items-stretch">
                 <button
                   type="submit"
-                  className="w-full h-full min-h-[50px] bg-gradient-to-r from-[#047857] to-[#059669] hover:from-[#065f46] hover:to-[#047857] text-white font-bold rounded-xl flex items-center justify-center gap-2 px-6 py-3.5 transition-all hover:scale-[1.01] active:scale-[0.99] text-[14px] cursor-pointer shadow-sm"
+                  className="w-full h-full min-h-[50px] bg-gradient-to-r from-[#006F3C] to-[#005C32] hover:from-[#005C32] hover:to-[#006F3C] text-white font-bold rounded-xl flex items-center justify-center gap-2 px-6 py-3.5 transition-all hover:scale-[1.01] active:scale-[0.99] text-[14px] cursor-pointer shadow-sm"
                 >
                   <Search className="w-4 h-4 stroke-[2.5] shrink-0" />
                   <span className="whitespace-nowrap font-extrabold text-[14px]">
@@ -500,8 +500,8 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 lg:divide-x divide-slate-200/80 items-center">
               
               <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
-                <div className="w-10 h-10 rounded-full bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center text-[#047857] shrink-0">
-                  <ShieldCheck className="w-5 h-5 shrink-0 text-[#047857]" />
+                <div className="w-10 h-10 rounded-full bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center text-[#006F3C] shrink-0">
+                  <ShieldCheck className="w-5 h-5 shrink-0 text-[#006F3C]" />
                 </div>
                 <div className="min-w-0">
                   <h5 className="font-bold text-[13px] text-slate-800 leading-snug">Best Price Guarantee</h5>
@@ -510,8 +510,8 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
               </div>
 
               <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
-                <div className="w-10 h-10 rounded-full bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center text-[#047857] shrink-0">
-                  <Calendar className="w-5 h-5 shrink-0 text-[#047857]" />
+                <div className="w-10 h-10 rounded-full bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center text-[#006F3C] shrink-0">
+                  <Calendar className="w-5 h-5 shrink-0 text-[#006F3C]" />
                 </div>
                 <div className="min-w-0">
                   <h5 className="font-bold text-[13px] text-slate-800 leading-snug">Free Cancellation</h5>
@@ -520,8 +520,8 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
               </div>
 
               <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
-                <div className="w-10 h-10 rounded-full bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center text-[#047857] shrink-0">
-                  <Lock className="w-5 h-5 shrink-0 text-[#047857]" />
+                <div className="w-10 h-10 rounded-full bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center text-[#006F3C] shrink-0">
+                  <Lock className="w-5 h-5 shrink-0 text-[#006F3C]" />
                 </div>
                 <div className="min-w-0">
                   <h5 className="font-bold text-[13px] text-slate-800 leading-snug">Verified Local Hosts</h5>
@@ -530,8 +530,8 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
               </div>
 
               <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
-                <div className="w-10 h-10 rounded-full bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center text-[#047857] shrink-0">
-                  <Headset className="w-5 h-5 shrink-0 text-[#047857]" />
+                <div className="w-10 h-10 rounded-full bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center text-[#006F3C] shrink-0">
+                  <Headset className="w-5 h-5 shrink-0 text-[#006F3C]" />
                 </div>
                 <div className="min-w-0">
                   <h5 className="font-bold text-[13px] text-slate-800 leading-snug">24/7 Local Support</h5>
@@ -559,7 +559,7 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
           <button
             type="button"
             onClick={() => setSelectedExperience('All')}
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-[#047857] hover:text-[#065f46] hover:underline cursor-pointer"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-[#006F3C] hover:text-[#005C32] hover:underline cursor-pointer"
           >
             <span>View all Homestays</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -577,7 +577,7 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
                 key={exp.id}
                 onClick={() => setSelectedExperience(isSelected ? 'All' : exp.title)}
                 className={`relative h-48 sm:h-52 rounded-2xl overflow-hidden cursor-pointer group shadow-2xs hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border-2 ${
-                  isSelected ? 'border-[#047857] ring-4 ring-emerald-500/20' : 'border-transparent'
+                  isSelected ? 'border-[#006F3C] ring-4 ring-emerald-500/20' : 'border-transparent'
                 }`}
               >
                 <img
@@ -592,7 +592,7 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
 
                 <div className="absolute inset-0 p-4 flex flex-col justify-between text-white z-10">
                   {isSelected && (
-                    <div className="self-start px-2.5 py-1 rounded-full bg-[#047857] text-white text-[10px] font-bold shadow-md">
+                    <div className="self-start px-2.5 py-1 rounded-full bg-[#006F3C] text-white text-[10px] font-bold shadow-md">
                       Filtered
                     </div>
                   )}
@@ -624,7 +624,7 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
           <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1">
-              <Filter className="w-3.5 h-3.5 text-[#047857]" /> Filter:
+              <Filter className="w-3.5 h-3.5 text-[#006F3C]" /> Filter:
             </span>
             {['All', 'Hunza Valley', 'Skardu', 'Shigar Valley', 'Passu', 'Altit'].map((loc) => (
               <button
@@ -670,7 +670,7 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
                     />
 
                     <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#047857]/90 backdrop-blur-md text-white text-[11px] font-bold shadow-md">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#006F3C]/90 backdrop-blur-md text-white text-[11px] font-bold shadow-md">
                         <Home className="w-3 h-3" />
                         <span>{specs?.experienceType || 'Authentic Stay'}</span>
                       </span>
@@ -701,7 +701,7 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
                       {/* Location + Rating */}
                       <div className="flex items-center justify-between text-xs">
                         <p className="text-slate-500 font-medium flex items-center gap-1 truncate">
-                          <MapPin className="w-3.5 h-3.5 text-[#047857] shrink-0" />
+                          <MapPin className="w-3.5 h-3.5 text-[#006F3C] shrink-0" />
                           <span className="truncate">{stay.location}</span>
                         </p>
                         <div className="flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/60 shrink-0">
@@ -712,7 +712,7 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
                       </div>
 
                       {/* Title */}
-                      <h4 className="font-bold text-slate-900 text-lg group-hover:text-[#047857] transition-colors leading-snug line-clamp-1">
+                      <h4 className="font-bold text-slate-900 text-lg group-hover:text-[#006F3C] transition-colors leading-snug line-clamp-1">
                         {stay.title}
                       </h4>
 
@@ -751,7 +751,7 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
                           e.stopPropagation();
                           onSelectListing(stay);
                         }}
-                        className="px-4 py-2.5 rounded-xl bg-[#047857] hover:bg-[#065f46] text-white text-xs font-extrabold transition-all shadow-2xs group-hover:shadow-md flex items-center gap-1.5 cursor-pointer"
+                        className="px-4 py-2.5 rounded-xl bg-[#006F3C] hover:bg-[#005C32] text-white text-xs font-extrabold transition-all shadow-2xs group-hover:shadow-md flex items-center gap-1.5 cursor-pointer"
                       >
                         <span>Book Stay</span>
                         <ArrowRight className="w-3.5 h-3.5" />
@@ -773,7 +773,7 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
                 setSelectedExperience('All');
                 setSelectedLocationFilter('All');
               }}
-              className="px-4 py-2 rounded-xl bg-[#047857] text-white text-xs font-bold"
+              className="px-4 py-2 rounded-xl bg-[#006F3C] text-white text-xs font-bold"
             >
               Reset Filters
             </button>

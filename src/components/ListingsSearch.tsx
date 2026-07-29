@@ -9,7 +9,7 @@ import {
   Building, Building2, Coffee, Compass
 } from 'lucide-react';
 import { useLanguage, tListing } from '../LanguageContext';
-import { PAKISTAN_FAQ } from '../data';
+import { PAKISTAN_FAQ, INITIAL_LISTINGS } from '../data';
 import { CardSkeleton } from './SkeletonLoader';
 
 interface ListingsSearchProps {
@@ -64,16 +64,30 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const [showCarCategoryDropdown, setShowCarCategoryDropdown] = useState(false);
 
-  // Fetch from Express API
+  // Fetch from Express API with fallback
   const fetchListings = async () => {
     setLoading(true);
     try {
       const url = `/api/listings?type=${type}&search=${type === 'car' ? '' : searchQuery}`;
       const res = await fetch(url);
-      const data = await res.json();
-      setListings(data);
+      const ct = res.headers.get('content-type') || '';
+      if (res.ok && ct.includes('application/json')) {
+        const data = await res.json();
+        setListings(data);
+      } else {
+        let fallback = [...INITIAL_LISTINGS];
+        if (type && type !== 'offer') {
+          fallback = fallback.filter((l) => l.type === type);
+        }
+        setListings(fallback);
+      }
     } catch (err) {
       console.error('Error fetching listings:', err);
+      let fallback = [...INITIAL_LISTINGS];
+      if (type && type !== 'offer') {
+        fallback = fallback.filter((l) => l.type === type);
+      }
+      setListings(fallback);
     } finally {
       setLoading(false);
     }
@@ -279,17 +293,17 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
           {/* Hero Content Grid */}
           <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center flex-1">
             {/* Left Content Column */}
-            <div className="lg:col-span-7 space-y-6">
+            <div className="lg:col-span-7 space-y-3">
               {/* Reliable Cars Pill */}
               <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full text-xs font-semibold text-white border border-white/20 uppercase tracking-widest">
-                <Car className="w-3.5 h-3.5 text-[#22C55E]" />
+                <Car className="w-3.5 h-3.5 text-white" />
                 <span>Reliable Cars. Unforgettable Journeys.</span>
               </div>
 
               {/* Find Your Perfect Ride Heading */}
               <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white tracking-tight leading-tight">
                 Find Your Perfect Ride in <br />
-                <span className="text-[#22C55E] drop-shadow-sm font-black">Gilgit Baltistan</span>
+                <span className="text-white drop-shadow-sm font-black">Gilgit Baltistan</span>
               </h1>
 
               {/* Subheading */}
@@ -307,7 +321,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                   { label: '24/7 Support', icon: Headphones }
                 ].map((item, idx) => (
                   <div key={idx} className="flex flex-col items-center sm:items-start text-center sm:text-left space-y-1 bg-slate-950/30 backdrop-blur-xs p-2 rounded-xl border border-white/5">
-                    <div className="w-7 h-7 rounded-full bg-[#22C55E]/20 flex items-center justify-center text-[#22C55E]">
+                    <div className="w-7 h-7 rounded-full bg-[#006F3C]/40 border border-[#006F3C]/60 flex items-center justify-center text-white">
                       <item.icon className="w-4 h-4" />
                     </div>
                     <span className="text-[10px] font-extrabold text-white leading-tight uppercase tracking-wider">{item.label}</span>
@@ -344,7 +358,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                   className="flex items-center justify-between border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   <div className="flex items-center gap-2 text-slate-800">
-                    <MapPin className="w-4 h-4 text-[#0B5D3E] shrink-0" />
+                    <MapPin className="w-4 h-4 text-[#006F3C] shrink-0" />
                     <span className="text-xs font-bold font-sans">{carPickupLocation}</span>
                   </div>
                   <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
@@ -365,7 +379,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                           setCarPickupLocation(loc);
                           setShowLocationDropdown(false);
                         }}
-                        className="px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-[#0B5D3E] cursor-pointer flex items-center gap-2"
+                        className="px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-[#006F3C] cursor-pointer flex items-center gap-2"
                       >
                         <MapPin className="w-3.5 h-3.5 text-slate-400" />
                         <span>{loc}</span>
@@ -379,7 +393,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
               <div className="col-span-1 md:col-span-3 space-y-1.5">
                 <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Pick-up Date & Time</p>
                 <div className="flex items-center gap-2 border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50">
-                  <Calendar className="w-4 h-4 text-[#0B5D3E] shrink-0" />
+                  <Calendar className="w-4 h-4 text-[#006F3C] shrink-0" />
                   <div className="flex items-center gap-1 text-xs font-bold text-slate-800 w-full justify-between">
                     <input 
                       type="date" 
@@ -405,7 +419,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
               <div className="col-span-1 md:col-span-3 space-y-1.5">
                 <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Return Date & Time</p>
                 <div className="flex items-center gap-2 border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50">
-                  <Calendar className="w-4 h-4 text-[#0B5D3E] shrink-0" />
+                  <Calendar className="w-4 h-4 text-[#006F3C] shrink-0" />
                   <div className="flex items-center gap-1 text-xs font-bold text-slate-800 w-full justify-between">
                     <input 
                       type="date" 
@@ -438,7 +452,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                   className="flex items-center justify-between border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   <div className="flex items-center gap-2 text-slate-800">
-                    <Car className="w-4 h-4 text-[#0B5D3E] shrink-0" />
+                    <Car className="w-4 h-4 text-[#006F3C] shrink-0" />
                     <span className="text-xs font-bold font-sans">{carSelectedCategory}</span>
                   </div>
                   <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
@@ -461,7 +475,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                           setCarSelectedCategory(cat);
                           setShowCarCategoryDropdown(false);
                         }}
-                        className="px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-[#0B5D3E] cursor-pointer flex items-center gap-2"
+                        className="px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-[#006F3C] cursor-pointer flex items-center gap-2"
                       >
                         <Car className="w-3.5 h-3.5 text-slate-400" />
                         <span>{cat}</span>
@@ -477,7 +491,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                   onClick={() => {
                     document.getElementById('cars-results')?.scrollIntoView({ behavior: 'smooth' });
                   }}
-                  className="w-full bg-[#0B5D3E] hover:bg-[#07402a] text-white font-bold h-11 rounded-xl flex items-center justify-center gap-2 shadow-lg transition-all"
+                  className="w-full bg-[#006F3C] hover:bg-[#005C32] text-white font-bold h-11 rounded-xl flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer"
                 >
                   <Search className="w-4 h-4" />
                   <span className="md:hidden">Search Cars</span>
@@ -493,7 +507,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                   type="checkbox"
                   checked={differentReturnLocation}
                   onChange={(e) => setDifferentReturnLocation(e.target.checked)}
-                  className="rounded border-slate-300 text-[#0B5D3E] focus:ring-[#0B5D3E] w-4 h-4"
+                  className="rounded border-slate-300 text-[#006F3C] focus:ring-[#006F3C] w-4 h-4"
                 />
                 <span className="text-xs font-bold text-slate-500">Return car at different location</span>
               </label>
@@ -504,11 +518,11 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
         {/* 2. FIVE HORIZONTAL TRUST BADGES ROW (styled impeccably) */}
         <div className="bg-white border border-[#E2E8F0] p-5 rounded-2xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 text-left shadow-xs">
           {[
-            { title: 'Well Maintained Cars', desc: 'All vehicles are regularly serviced and sanitized', icon: ShieldCheck, color: 'text-emerald-600 bg-emerald-50 border-emerald-100' },
+            { title: 'Well Maintained Cars', desc: 'All vehicles are regularly serviced and sanitized', icon: ShieldCheck, color: 'text-[#006F3C] bg-[#006F3C]/10 border-[#006F3C]/20' },
             { title: 'Best Price Guarantee', desc: 'We ensure you get the best prices always', icon: Tag, color: 'text-orange-600 bg-orange-50 border-orange-100' },
             { title: 'Free Cancellation', desc: 'Cancel up to 24 hours before pick-up', icon: Calendar, color: 'text-blue-600 bg-blue-50 border-blue-100' },
             { title: 'No Hidden Charges', desc: 'Transparent pricing with no surprises', icon: FileText, color: 'text-purple-600 bg-purple-50 border-purple-100' },
-            { title: '24/7 Customer Support', desc: "We're here to help you anytime, anywhere", icon: Headphones, color: 'text-[#0B5D3E] bg-[#E6F4EA] border-[#A7F3D0]' }
+            { title: '24/7 Customer Support', desc: "We're here to help you anytime, anywhere", icon: Headphones, color: 'text-[#006F3C] bg-[#006F3C]/10 border-[#006F3C]/20' }
           ].map((badge, idx) => (
             <div key={idx} className="flex gap-3 items-start border-r last:border-0 border-slate-100 pr-2">
               <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 ${badge.color}`}>
@@ -523,7 +537,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
         </div>
 
         {/* 3. LIMITED TIME OFFER BANNER (gorgeous emerald/teal gradient with cars overlapping) */}
-        <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-[#022C22] via-[#064E3B] to-[#0F766E] border border-emerald-800 p-6 sm:p-10 shadow-xl flex flex-col md:flex-row justify-between items-center gap-8">
+        <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-[#00381E] via-[#006F3C] to-[#005C32] border border-[#006F3C]/40 p-6 sm:p-10 shadow-xl flex flex-col md:flex-row justify-between items-center gap-8">
           
           {/* Abstract elegant decoration lines */}
           <div className="absolute inset-0 z-0 opacity-10 pointer-events-none">
@@ -604,7 +618,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                 ].map((src, idx) => (
                   <img 
                     key={idx} 
-                    className="inline-block h-6 w-6 rounded-full ring-2 ring-[#064E3B] object-cover" 
+                    className="inline-block h-6 w-6 rounded-full ring-2 ring-[#006F3C] object-cover" 
                     src={src} 
                     alt="Happy user" 
                     referrerPolicy="no-referrer"
@@ -643,7 +657,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                     setCarSelectedCategory('All Cars');
                     setCarPickupLocation('Skardu, Gilgit Baltistan');
                   }}
-                  className="text-[11px] font-bold uppercase tracking-wider text-[#0B5D3E] hover:underline cursor-pointer"
+                  className="text-[11px] font-bold uppercase tracking-wider text-[#006F3C] hover:underline cursor-pointer"
                 >
                   Reset All
                 </button>
@@ -658,7 +672,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                     placeholder="e.g. Toyota Fortuner"
                     value={carSearchName}
                     onChange={(e) => setCarSearchName(e.target.value)}
-                    className="w-full bg-white border border-[#CBD5E1] rounded-xl pl-9 pr-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-[#0B5D3E] transition-colors"
+                    className="w-full bg-white border border-[#CBD5E1] rounded-xl pl-9 pr-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-[#006F3C] transition-colors"
                   />
                   <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                 </div>
@@ -691,7 +705,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                               }
                               handleCarTypeToggle(item.key);
                             }}
-                            className="rounded border-slate-300 text-[#0B5D3E] focus:ring-[#0B5D3E] w-3.5 h-3.5"
+                            className="rounded border-slate-300 text-[#006F3C] focus:ring-[#006F3C] w-3.5 h-3.5"
                           />
                           <span className={`font-semibold ${checked ? 'text-slate-900 font-bold' : 'text-slate-600 group-hover:text-slate-900'}`}>{item.label}</span>
                         </div>
@@ -707,7 +721,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">Price Range (PKR / day)</label>
                 <div className="flex justify-between items-center text-[10px] font-extrabold text-slate-800">
                   <span>PKR 3,000</span>
-                  <span className="text-[#0B5D3E] font-extrabold font-mono">PKR {carPriceMax.toLocaleString()}{carPriceMax >= 40000 ? '+' : ''}</span>
+                  <span className="text-[#006F3C] font-extrabold font-mono">PKR {carPriceMax.toLocaleString()}{carPriceMax >= 40000 ? '+' : ''}</span>
                 </div>
                 <input
                   type="range"
@@ -716,7 +730,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                   step="1000"
                   value={carPriceMax}
                   onChange={(e) => setCarPriceMax(Number(e.target.value))}
-                  className="w-full accent-[#0B5D3E] bg-slate-100 h-1 rounded-none cursor-pointer"
+                  className="w-full accent-[#006F3C] bg-slate-100 h-1 rounded-none cursor-pointer"
                 />
               </div>
 
@@ -740,7 +754,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                             type="checkbox"
                             checked={checked}
                             onChange={() => handleFeatureToggle(item.key)}
-                            className="rounded border-slate-300 text-[#0B5D3E] focus:ring-[#0B5D3E] w-3.5 h-3.5"
+                            className="rounded border-slate-300 text-[#006F3C] focus:ring-[#006F3C] w-3.5 h-3.5"
                           />
                           <span className={`font-semibold ${checked ? 'text-slate-900 font-bold' : 'text-slate-600 group-hover:text-slate-900'}`}>{item.label}</span>
                         </div>
@@ -774,7 +788,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                 <select
                   value={carSortBy}
                   onChange={(e) => setCarSortBy(e.target.value)}
-                  className="bg-white border border-[#CBD5E1] rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:border-[#0B5D3E]"
+                  className="bg-white border border-[#CBD5E1] rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:border-[#006F3C]"
                 >
                   <option value="Recommended">Recommended</option>
                   <option value="PriceLowToHigh">Price: Low to High</option>
@@ -812,8 +826,8 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                     }}
                     className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all cursor-pointer ${
                       isPillActive
-                        ? 'bg-[#0B5D3E] text-white border-[#0B5D3E] shadow-sm'
-                        : 'bg-white text-slate-600 border-slate-200 hover:text-[#0B5D3E] hover:border-[#0B5D3E]'
+                        ? 'bg-[#006F3C] text-white border-[#006F3C] shadow-sm'
+                        : 'bg-white text-slate-600 border-slate-200 hover:text-[#006F3C] hover:border-[#006F3C]'
                     }`}
                   >
                     <pill.icon className={`w-3.5 h-3.5 ${isPillActive ? 'text-white' : 'text-slate-500'}`} />
@@ -857,7 +871,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                     badgeClass = 'bg-[#EA580C]';
                   } else if (car.title.includes('Fortuner')) {
                     badgeLabel = 'Popular';
-                    badgeClass = 'bg-[#0B5D3E]';
+                    badgeClass = 'bg-[#006F3C]';
                   } else if (car.title.includes('Camry')) {
                     badgeLabel = 'Luxury';
                     badgeClass = 'bg-[#2563EB]';
@@ -901,7 +915,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                       {/* Info Block */}
                       <div className="p-3.5 flex-1 flex flex-col justify-between space-y-3">
                         <div className="space-y-2">
-                          <h4 className="text-sm font-extrabold text-slate-900 group-hover:text-[#0B5D3E] transition-colors line-clamp-1">{car.title}</h4>
+                          <h4 className="text-sm font-extrabold text-slate-900 group-hover:text-[#006F3C] transition-colors line-clamp-1">{car.title}</h4>
                           
                           {/* Specs Row 1 */}
                           <div className="flex items-center gap-3 text-[10px] text-slate-500">
@@ -922,19 +936,19 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                           {/* Specs Row 2 (Detailed icons) */}
                           <div className="flex flex-wrap gap-1.5 text-[9px] font-bold uppercase tracking-wider text-slate-500">
                             <span className="flex items-center gap-1 bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded-none">
-                              <Wind className="w-2.5 h-2.5 text-[#0B5D3E]" />
+                              <Wind className="w-2.5 h-2.5 text-[#006F3C]" />
                               <span>AC</span>
                             </span>
                             <span className="flex items-center gap-1 bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded-none">
-                              <Settings className="w-2.5 h-2.5 text-[#0B5D3E]" />
+                              <Settings className="w-2.5 h-2.5 text-[#006F3C]" />
                               <span>{car.carSpecs?.transmission}</span>
                             </span>
                             <span className="flex items-center gap-1 bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded-none">
-                              <RefreshCw className="w-2.5 h-2.5 text-[#0B5D3E]" />
+                              <RefreshCw className="w-2.5 h-2.5 text-[#006F3C]" />
                               <span>Bluetooth</span>
                             </span>
                             <span className="flex items-center gap-1 bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded-none">
-                              <MapPin className="w-2.5 h-2.5 text-[#0B5D3E]" />
+                              <MapPin className="w-2.5 h-2.5 text-[#006F3C]" />
                               <span>GPS</span>
                             </span>
                           </div>
@@ -961,13 +975,13 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                       {/* Bottom Ribbons & Actions */}
                       <div className="shrink-0">
                         {/* Free Cancellation green ribbon */}
-                        <div className="bg-emerald-50 text-[#0B5D3E] text-center font-bold py-1 text-[9px] uppercase tracking-wide border-t border-b border-emerald-100">
+                        <div className="bg-[#006F3C]/10 text-[#006F3C] text-center font-bold py-1 text-[9px] uppercase tracking-wide border-t border-b border-[#006F3C]/20">
                           Free Cancellation
                         </div>
 
                         <button 
                           onClick={() => onSelectListing(car)}
-                          className="w-full bg-[#0B5D3E] hover:bg-[#07402a] text-white font-bold py-2.5 text-xs uppercase tracking-wider text-center transition-colors rounded-none block"
+                          className="w-full bg-[#006F3C] hover:bg-[#005C32] text-white font-bold py-2.5 text-xs uppercase tracking-wider text-center transition-colors rounded-none block cursor-pointer"
                         >
                           View Details
                         </button>
@@ -989,7 +1003,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                 { title: '24/7 Roadside Assistance', desc: "We're here to help you anytime", icon: Wrench }
               ].map((badge, idx) => (
                 <div key={idx} className="space-y-2">
-                  <div className="w-8 h-8 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-[#0B5D3E]">
+                  <div className="w-8 h-8 rounded-full bg-[#006F3C]/10 border border-[#006F3C]/20 flex items-center justify-center text-[#006F3C]">
                     <badge.icon className="w-4 h-4" />
                   </div>
                   <div>
@@ -1030,17 +1044,17 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
           {/* Hero Content Grid */}
           <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center flex-1">
             {/* Left Content Column */}
-            <div className="lg:col-span-8 space-y-6">
+            <div className="lg:col-span-8 space-y-3">
               {/* Stay Local. Feel at Home Pill */}
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-[#15803D]/30 backdrop-blur-md rounded-full text-xs font-semibold text-white border border-[#22C55E]/30 uppercase tracking-widest">
-                <Home className="w-3.5 h-3.5 text-[#22C55E]" />
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-[#006F3C]/60 backdrop-blur-md rounded-full text-xs font-semibold text-white border border-[#006F3C]/40 uppercase tracking-widest">
+                <Home className="w-3.5 h-3.5 text-white" />
                 <span>Stay Local. Feel at Home.</span>
               </div>
 
               {/* Authentic Homestays in Gilgit Baltistan Heading */}
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-tight">
                 Authentic Homestays in <br />
-                <span className="text-[#22C55E] drop-shadow-sm font-black">Gilgit Baltistan</span>
+                <span className="text-white drop-shadow-sm font-black">Gilgit Baltistan</span>
               </h1>
 
               {/* Subheading */}
@@ -1057,7 +1071,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                   { label: '24/7 Support', icon: Headphones }
                 ].map((item, idx) => (
                   <div key={idx} className="flex items-center gap-2 text-white">
-                    <div className="w-8 h-8 rounded-full bg-[#22C55E]/20 flex items-center justify-center text-[#22C55E] shrink-0 border border-[#22C55E]/35">
+                    <div className="w-8 h-8 rounded-full bg-[#006F3C]/40 flex items-center justify-center text-white shrink-0 border border-[#006F3C]/40">
                       <item.icon className="w-4 h-4" />
                     </div>
                     <span className="text-xs font-bold leading-tight tracking-tight text-slate-100">{item.label}</span>
@@ -1080,9 +1094,9 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                     placeholder="Search destination, city or area"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-xs text-slate-800 font-semibold focus:outline-none focus:border-[#15803D] focus:bg-white transition-colors"
+                    className="w-full bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-xs text-slate-800 font-semibold focus:outline-none focus:border-[#006F3C] focus:bg-white transition-colors"
                   />
-                  <MapPin className="w-4 h-4 text-[#15803D] absolute left-3 top-3.5" />
+                  <MapPin className="w-4 h-4 text-[#006F3C] absolute left-3 top-3.5" />
                 </div>
               </div>
 
@@ -1091,7 +1105,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                 <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 font-sans">Check-in</p>
                 <div className="relative">
                   <div className="flex items-center gap-2 border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50 hover:bg-slate-100 transition-colors text-xs text-slate-800 font-semibold">
-                    <Calendar className="w-4 h-4 text-[#15803D] shrink-0" />
+                    <Calendar className="w-4 h-4 text-[#006F3C] shrink-0" />
                     <span>20 May 2025</span>
                   </div>
                 </div>
@@ -1102,7 +1116,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                 <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 font-sans">Check-out</p>
                 <div className="relative">
                   <div className="flex items-center gap-2 border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50 hover:bg-slate-100 transition-colors text-xs text-slate-800 font-semibold">
-                    <Calendar className="w-4 h-4 text-[#15803D] shrink-0" />
+                    <Calendar className="w-4 h-4 text-[#006F3C] shrink-0" />
                     <span>23 May 2025</span>
                   </div>
                 </div>
@@ -1113,7 +1127,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                 <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 font-sans">Guests & Rooms</p>
                 <div className="flex items-center justify-between border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50 hover:bg-slate-100 transition-colors text-xs text-slate-800 font-semibold">
                   <span className="flex items-center gap-2">
-                    <Users className="w-4 h-4 text-[#15803D] shrink-0" />
+                    <Users className="w-4 h-4 text-[#006F3C] shrink-0" />
                     <span>2 Guests, 1 Room</span>
                   </span>
                   <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
@@ -1127,7 +1141,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                     const resultsSection = document.getElementById('homestay-results-section');
                     resultsSection?.scrollIntoView({ behavior: 'smooth' });
                   }}
-                  className="w-full bg-[#15803D] hover:bg-[#0E5C2A] text-white font-extrabold py-3.5 rounded-xl text-xs uppercase tracking-wider flex items-center gap-2 justify-center shadow-lg hover:shadow-emerald-900/10 transition-all cursor-pointer border-0"
+                  className="w-full bg-[#006F3C] hover:bg-[#005C32] text-white font-extrabold py-3.5 rounded-xl text-xs uppercase tracking-wider flex items-center gap-2 justify-center shadow-lg hover:shadow-emerald-900/10 transition-all cursor-pointer border-0"
                 >
                   <Search className="w-4 h-4" />
                   <span>Search Homestays</span>
@@ -1151,7 +1165,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                 const Icon = item.icon;
                 return (
                   <div key={idx} className="flex items-start gap-3 p-1 rounded-xl hover:bg-slate-50 transition-all min-w-0">
-                    <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-[#15803D] shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-[#006F3C]/10 border border-[#006F3C]/20 flex items-center justify-center text-[#006F3C] shrink-0">
                       <Icon className="w-5 h-5" />
                     </div>
                     <div className="min-w-0">
@@ -1163,6 +1177,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
               })}
             </div>
           </div>
+
         </div>
 
         {/* 3. EXPLORE HOMESTAYS BY EXPERIENCE (5 customized category cards) */}
@@ -1180,7 +1195,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                 setSearchQuery('');
                 setPriceMax(100000);
               }}
-              className="text-xs font-extrabold text-[#15803D] uppercase tracking-wider flex items-center gap-1 hover:text-[#0E5C2A] transition-colors cursor-pointer bg-transparent border-0"
+              className="text-xs font-extrabold text-[#006F3C] uppercase tracking-wider flex items-center gap-1 hover:text-[#005C32] transition-colors cursor-pointer bg-transparent border-0"
             >
               <span>View all Homestays</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -1194,7 +1209,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                 desc: 'Wake up to stunning mountain views', 
                 image: 'https://images.unsplash.com/photo-1542718610-a1d656d1884c?auto=format&fit=crop&w=400&q=80', 
                 icon: Mountain,
-                color: 'bg-emerald-600'
+                color: 'bg-[#006F3C]'
               },
               { 
                 title: 'Family Friendly', 
@@ -1234,7 +1249,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                     setSelectedExperience(selectedExperience === exp.title ? null : exp.title);
                   }}
                   className={`relative rounded-2xl overflow-hidden aspect-[3/4] cursor-pointer group shadow-sm transition-all duration-300 ${
-                    isActive ? 'ring-4 ring-[#15803D] scale-[1.02] shadow-lg' : 'border border-slate-200 hover:scale-[1.01] hover:shadow-md'
+                    isActive ? 'ring-4 ring-[#006F3C] scale-[1.02] shadow-lg' : 'border border-slate-200 hover:scale-[1.01] hover:shadow-md'
                   }`}
                 >
                   <img 
@@ -1285,7 +1300,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
 
             {/* Sync connection */}
             <div className="flex items-center gap-2 bg-white px-3.5 py-1.5 rounded-xl border border-slate-200 self-start md:self-auto shadow-xs">
-              <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-[#006F3C] animate-pulse" />
               <span className="text-[10px] font-mono font-bold text-slate-600 uppercase tracking-wide">
                 Active Connection
               </span>
@@ -1303,7 +1318,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                 
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                   <span className="font-extrabold text-[#0F172A] flex items-center gap-1.5 text-xs uppercase tracking-wider">
-                    <SlidersHorizontal className="w-4 h-4 text-[#15803D]" /> Filters
+                    <SlidersHorizontal className="w-4 h-4 text-[#006F3C]" /> Filters
                   </span>
                   <button 
                     onClick={() => {
@@ -1312,7 +1327,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                       setSearchQuery('');
                       setSelectedExperience(null);
                     }}
-                    className="text-[10px] font-bold uppercase tracking-wider text-[#15803D] hover:underline cursor-pointer bg-transparent border-0"
+                    className="text-[10px] font-bold uppercase tracking-wider text-[#006F3C] hover:underline cursor-pointer bg-transparent border-0"
                   >
                     Clear All
                   </button>
@@ -1327,7 +1342,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                       placeholder="e.g. Hunza, Skardu..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs text-slate-800 font-semibold focus:outline-none focus:border-[#15803D] focus:bg-white transition-colors"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs text-slate-800 font-semibold focus:outline-none focus:border-[#006F3C] focus:bg-white transition-colors"
                     />
                     <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                   </div>
@@ -1337,7 +1352,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                 <div className="space-y-2 text-left">
                   <div className="flex justify-between text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
                     <span>Max Price</span>
-                    <span className="text-[#15803D]">PKR {priceMax.toLocaleString()}</span>
+                    <span className="text-[#006F3C]">PKR {priceMax.toLocaleString()}</span>
                   </div>
                   <input
                     type="range"
@@ -1346,7 +1361,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                     step="5000"
                     value={priceMax}
                     onChange={(e) => setPriceMax(Number(e.target.value))}
-                    className="w-full accent-[#15803D] bg-slate-100 h-1.5 rounded-lg cursor-pointer"
+                    className="w-full accent-[#006F3C] bg-slate-100 h-1.5 rounded-lg cursor-pointer"
                   />
                 </div>
 
@@ -1360,7 +1375,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                         onClick={() => setSelectedRating(selectedRating === star ? null : star)}
                         className={`flex-1 py-1 rounded-lg text-[9px] font-extrabold border transition-all cursor-pointer ${
                           selectedRating === star
-                            ? 'bg-[#15803D] border-[#15803D] text-white shadow-xs'
+                            ? 'bg-[#006F3C] border-[#006F3C] text-white shadow-xs'
                             : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                         }`}
                       >
@@ -1398,7 +1413,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                         setSearchQuery('');
                         setSelectedExperience(null);
                       }}
-                      className="bg-[#15803D] hover:bg-[#0E5C2A] text-white text-[11px] font-extrabold px-4 py-2 rounded-xl mt-4 uppercase tracking-wider transition-colors border-0 cursor-pointer"
+                      className="bg-[#006F3C] hover:bg-[#005C32] text-white text-[11px] font-extrabold px-4 py-2 rounded-xl mt-4 uppercase tracking-wider transition-colors border-0 cursor-pointer"
                     >
                       Reset All Filters
                     </button>
@@ -1437,10 +1452,10 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                           <div className="p-5 flex-1 flex flex-col justify-between text-left space-y-4">
                             <div className="space-y-1.5">
                               <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">
-                                <MapPin className="w-3.5 h-3.5 text-[#15803D] shrink-0" />
+                                <MapPin className="w-3.5 h-3.5 text-[#006F3C] shrink-0" />
                                 <span className="line-clamp-1">{listing.location}</span>
                               </div>
-                              <h4 className="text-base font-black text-slate-900 group-hover:text-[#15803D] transition-colors leading-snug line-clamp-2">
+                              <h4 className="text-base font-black text-slate-900 group-hover:text-[#006F3C] transition-colors leading-snug line-clamp-2">
                                 {listing.title}
                               </h4>
                               <p className="text-xs text-slate-500 leading-relaxed font-medium line-clamp-2">
@@ -1463,11 +1478,11 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                               <div className="flex items-center gap-4">
                                 <div className="text-right">
                                   <p className="text-slate-400 text-[8px] uppercase tracking-widest font-extrabold">Price per night</p>
-                                  <p className="text-base font-black text-[#15803D]">PKR {listing.price.toLocaleString()}</p>
+                                  <p className="text-base font-black text-[#006F3C]">PKR {listing.price.toLocaleString()}</p>
                                 </div>
                                 <button 
                                   onClick={(e) => { e.stopPropagation(); onSelectListing(listing); }}
-                                  className="bg-[#15803D] hover:bg-[#0E5C2A] text-white text-xs font-bold uppercase tracking-wider py-2 px-4 rounded-xl transition-all cursor-pointer shadow-sm active:scale-95 border-0"
+                                  className="bg-[#006F3C] hover:bg-[#005C32] text-white text-xs font-bold uppercase tracking-wider py-2 px-4 rounded-xl transition-all cursor-pointer shadow-sm active:scale-95 border-0"
                                 >
                                   Book
                                 </button>
@@ -1488,9 +1503,9 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                 <div className="absolute inset-0 z-0 bg-slate-50">
                   {/* Decorative topological contour lines and rivers */}
                   <svg className="w-full h-full opacity-15" viewBox="0 0 400 600" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M-50 100 Q100 50 150 200 T350 100 T500 300" fill="none" stroke="#15803D" strokeWidth="2" />
-                    <path d="M-50 250 Q120 180 200 350 T400 250 T500 450" fill="none" stroke="#15803D" strokeWidth="1.5" />
-                    <path d="M-50 400 Q80 450 180 380 T380 500 T550 400" fill="none" stroke="#15803D" strokeWidth="1" strokeDasharray="3 3" />
+                    <path d="M-50 100 Q100 50 150 200 T350 100 T500 300" fill="none" stroke="#006F3C" strokeWidth="2" />
+                    <path d="M-50 250 Q120 180 200 350 T400 250 T500 450" fill="none" stroke="#006F3C" strokeWidth="1.5" />
+                    <path d="M-50 400 Q80 450 180 380 T380 500 T550 400" fill="none" stroke="#006F3C" strokeWidth="1" strokeDasharray="3 3" />
                     {/* Blue Indus River */}
                     <path d="M 0 50 Q 150 150 180 300 T 400 550" fill="none" stroke="#3B82F6" strokeWidth="5" opacity="0.6" />
                   </svg>
@@ -1514,14 +1529,14 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                         {/* Price bubble */}
                         <div className={`px-2 py-1 rounded-lg text-[9px] font-black border tracking-tight shadow-md transition-colors ${
                           isSelected || isHovered 
-                            ? 'bg-[#15803D] text-white border-[#15803D]' 
+                            ? 'bg-[#006F3C] text-white border-[#006F3C]' 
                             : 'bg-white text-slate-800 border-slate-200'
                         }`}>
                           PKR {(l.price / 1000).toFixed(0)}k
                         </div>
                         {/* Pin needle */}
                         <div className={`w-2.5 h-2.5 rounded-full border-2 border-white shadow-md transition-colors -mt-1 ${
-                          isSelected || isHovered ? 'bg-red-500' : 'bg-[#15803D]'
+                          isSelected || isHovered ? 'bg-red-500' : 'bg-[#006F3C]'
                         }`} />
                       </button>
                     );
@@ -1535,7 +1550,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                     <p className="text-[9px] text-slate-400">Showing local homestays by coordinates</p>
                   </div>
                   <div className="flex gap-1">
-                    <span className="w-2 h-2 rounded-full bg-[#15803D]" />
+                    <span className="w-2 h-2 rounded-full bg-[#006F3C]" />
                     <span className="w-2 h-2 rounded-full bg-blue-500" />
                   </div>
                 </div>
@@ -1561,10 +1576,10 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                           </div>
                         </div>
                         <div className="flex justify-between items-baseline gap-2">
-                          <span className="font-bold text-xs text-[#15803D]">PKR {selectedMapListing.price.toLocaleString()}</span>
+                          <span className="font-bold text-xs text-[#006F3C]">PKR {selectedMapListing.price.toLocaleString()}</span>
                           <button 
                             onClick={() => onSelectListing(selectedMapListing)}
-                            className="bg-[#15803D] hover:bg-[#0E5C2A] text-white text-[9px] font-black uppercase tracking-wider py-1 px-2.5 rounded-lg transition-colors border-0 cursor-pointer"
+                            className="bg-[#006F3C] hover:bg-[#005C32] text-white text-[9px] font-black uppercase tracking-wider py-1 px-2.5 rounded-lg transition-colors border-0 cursor-pointer"
                           >
                             Book
                           </button>
@@ -1614,7 +1629,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
           {/* Hero Content Grid */}
           <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center flex-1">
             {/* Left Content Column */}
-            <div className="lg:col-span-8 space-y-6">
+            <div className="lg:col-span-8 space-y-3">
               {/* Luxury & Comfort. Elite Stays Pill */}
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-[#4F46E5]/30 backdrop-blur-md rounded-full text-xs font-semibold text-white border border-[#818CF8]/30 uppercase tracking-widest">
                 <Building2 className="w-3.5 h-3.5 text-[#818CF8]" />
@@ -2195,7 +2210,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
           {/* Hero Content Grid */}
           <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center flex-1">
             {/* Left Content Column */}
-            <div className="lg:col-span-8 space-y-6">
+            <div className="lg:col-span-8 space-y-3">
               {/* Adventure & Discovery. Premium Guided Tours Pill */}
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-[#7C3AED]/30 backdrop-blur-md rounded-full text-xs font-semibold text-white border border-[#A78BFA]/30 uppercase tracking-widest">
                 <Compass className="w-3.5 h-3.5 text-[#A78BFA] animate-spin-slow" />
@@ -2973,7 +2988,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
           </div>
 
           {/* Hero Content */}
-          <div className="relative z-10 space-y-5 max-w-2xl">
+          <div className="relative z-10 space-y-3 max-w-2xl">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-rose-600/30 backdrop-blur-md rounded-full text-xs font-semibold text-white border border-rose-500/30 uppercase tracking-widest">
               <Flame className="w-3.5 h-3.5 text-rose-500 animate-pulse" />
               <span>Limited Time Travel Privileges</span>
@@ -3376,7 +3391,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
 
           {/* Hero Content */}
           <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center flex-1">
-            <div className="lg:col-span-8 space-y-6">
+            <div className="lg:col-span-8 space-y-3">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-[#EA580C]/30 backdrop-blur-md rounded-full text-xs font-semibold text-white border border-[#F97316]/30 uppercase tracking-widest">
                 <Compass className="w-3.5 h-3.5 text-[#F97316]" />
                 <span>Legendary Locations. Pure Wonder.</span>
@@ -4121,7 +4136,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                     id={`btn-faq-trigger-${i}`}
                   >
                     <span className="font-bold text-slate-800 text-sm">{translatedQ}</span>
-                    {isOpen ? <ChevronUp className="w-4 h-4 text-[#0B5D3E]" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                    {isOpen ? <ChevronUp className="w-4 h-4 text-[#006F3C]" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
                   </button>
                   
                   <AnimatePresence>

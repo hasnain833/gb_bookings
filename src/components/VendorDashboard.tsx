@@ -24,7 +24,8 @@ export default function VendorDashboard({ setView }: VendorDashboardProps) {
     setLoading(true);
     try {
       const res = await fetch('/api/listings');
-      if (res.ok) {
+      const ct = res.headers.get('content-type') || '';
+      if (res.ok && ct.includes('application/json')) {
         const data = await res.json();
         setListings(data);
       }

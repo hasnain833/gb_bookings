@@ -130,14 +130,14 @@ export default function CheckoutFlow({ bookingParams, listing, onSuccess, onCanc
                   step === item.s 
                     ? 'bg-[#0F172A] text-white shadow-xs' 
                     : step > item.s 
-                      ? 'bg-[#0B5D3E]/10 text-[#0B5D3E] border border-[#0B5D3E]/20' 
+                      ? 'bg-[#006F3C]/10 text-[#006F3C] border border-[#006F3C]/20' 
                       : 'bg-slate-100 text-slate-400 border border-slate-200'
                 }`}>
                   {step > item.s ? '✓' : item.s === 4 ? 3 : item.s}
                 </div>
                 <span className={`text-[9px] sm:text-xs font-black uppercase tracking-wider ${step === item.s ? 'text-slate-900' : 'text-slate-400'} hidden min-[480px]:inline-block`}>{item.label}</span>
               </div>
-              {i < 2 && <div className={`flex-1 h-0.5 mx-2 sm:mx-4 ${step > item.s ? 'bg-[#0B5D3E]' : 'bg-slate-200'}`} />}
+              {i < 2 && <div className={`flex-1 h-0.5 mx-2 sm:mx-4 ${step > item.s ? 'bg-[#006F3C]' : 'bg-slate-200'}`} />}
             </React.Fragment>
           ))}
         </div>
@@ -204,9 +204,9 @@ export default function CheckoutFlow({ bookingParams, listing, onSuccess, onCanc
             
             {bookingParams.payAtHotel ? (
               <div className="text-right">
-                <span className="text-[10px] text-[#15803D] font-extrabold block uppercase tracking-wider">Oyo Pay At Stay</span>
+                <span className="text-[10px] text-[#006F3C] font-extrabold block uppercase tracking-wider">Oyo Pay At Stay</span>
                 <span className="text-sm font-bold text-slate-700 block">PKR {bookingParams.totalPrice.toLocaleString()} due later</span>
-                <span className="text-[9px] text-emerald-600 font-bold block uppercase tracking-wider mt-0.5">PKR 0 Due Online</span>
+                <span className="text-[9px] text-[#006F3C] font-bold block uppercase tracking-wider mt-0.5">PKR 0 Due Online</span>
               </div>
             ) : (
               <div className="text-right">
@@ -232,7 +232,7 @@ export default function CheckoutFlow({ bookingParams, listing, onSuccess, onCanc
           {bookingParams.payAtHotel ? (
             <div className="space-y-6 animate-fadeIn" id="pay-at-stay-confirmation-form">
               <div className="space-y-1.5">
-                <h3 className="text-xl font-bold text-[#15803D] uppercase tracking-tight flex items-center gap-1.5">
+                <h3 className="text-xl font-bold text-[#006F3C] uppercase tracking-tight flex items-center gap-1.5">
                   <ShieldCheck className="w-5 h-5" /> Pay At Stay Allotment Hold
                 </h3>
                 <p className="text-xs text-slate-500 leading-relaxed font-medium">
@@ -240,9 +240,9 @@ export default function CheckoutFlow({ bookingParams, listing, onSuccess, onCanc
                 </p>
               </div>
 
-              <div className="bg-emerald-50 border border-emerald-100 p-5 rounded-2xl space-y-3.5">
-                <h4 className="text-xs font-bold text-[#15803D] uppercase tracking-wider flex items-center gap-1"><Info className="w-4 h-4" /> Why book with Pay At Stay?</h4>
-                <ul className="space-y-2 text-xs text-[#15803D] font-semibold">
+              <div className="bg-[#006F3C]/5 border border-[#006F3C]/15 p-5 rounded-2xl space-y-3.5">
+                <h4 className="text-xs font-bold text-[#006F3C] uppercase tracking-wider flex items-center gap-1"><Info className="w-4 h-4" /> Why book with Pay At Stay?</h4>
+                <ul className="space-y-2 text-xs text-[#006F3C] font-semibold">
                   <li className="flex items-center gap-2">✓ No credit card or advance cash required today</li>
                   <li className="flex items-center gap-2">✓ Lock room inventory instantly on the official ledger</li>
                   <li className="flex items-center gap-2">✓ Pay at reception desk using JazzCash, Card, or local currency</li>
@@ -251,7 +251,7 @@ export default function CheckoutFlow({ bookingParams, listing, onSuccess, onCanc
               </div>
 
               <div className="space-y-2.5">
-                <label className="text-[10px] font-extrabold uppercase tracking-widest text-[#15803D] block">Confirm WhatsApp Hold Code</label>
+                <label className="text-[10px] font-extrabold uppercase tracking-widest text-[#006F3C] block">Confirm WhatsApp Hold Code</label>
                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 flex items-center justify-between">
                   <span className="text-xs font-medium text-slate-500">Host will verify hold via contact number:</span>
                   <span className="font-mono text-xs font-bold text-slate-800">{customerPhone}</span>
@@ -259,14 +259,14 @@ export default function CheckoutFlow({ bookingParams, listing, onSuccess, onCanc
               </div>
 
               <div className="flex items-start space-x-2.5 text-[10px] text-slate-500 font-medium">
-                <ShieldCheck className="w-4.5 h-4.5 text-[#15803D] shrink-0" />
+                <ShieldCheck className="w-4.5 h-4.5 text-[#006F3C] shrink-0" />
                 <span>By continuing, you authorize direct room blocking and agree to host stay policies.</span>
               </div>
 
               <button
                 id="btn-complete-payment-checkout"
                 onClick={startPaymentSimulation}
-                className="w-full bg-[#15803D] hover:bg-[#166534] text-white font-bold py-3.5 px-6 rounded-lg shadow-sm transition-all text-xs flex items-center justify-center space-x-1.5 cursor-pointer uppercase tracking-wider"
+                className="w-full bg-[#006F3C] hover:bg-[#005C32] text-white font-bold py-3.5 px-6 rounded-lg shadow-sm transition-all text-xs flex items-center justify-center space-x-1.5 cursor-pointer uppercase tracking-wider"
               >
                 <span>Authorize & Hold Room Allotment</span>
               </button>
@@ -483,8 +483,8 @@ export default function CheckoutFlow({ bookingParams, listing, onSuccess, onCanc
               <div>
                 {bookingParams.payAtHotel ? (
                   <>
-                    <p className="text-[10px] font-bold text-[#15803D] uppercase tracking-wider">Payable at stay Check-In</p>
-                    <p className="text-xl font-bold text-[#15803D] mt-0.5">PKR {createdBooking.totalPrice.toLocaleString()}</p>
+                    <p className="text-[10px] font-bold text-[#006F3C] uppercase tracking-wider">Payable at stay Check-In</p>
+                    <p className="text-xl font-bold text-[#006F3C] mt-0.5">PKR {createdBooking.totalPrice.toLocaleString()}</p>
                     <p className="text-[9.5px] font-bold text-slate-400 mt-0.5">PKR 0 paid today online</p>
                   </>
                 ) : (

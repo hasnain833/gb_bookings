@@ -172,19 +172,19 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/20" />
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-10 lg:px-12 pt-8 sm:pt-10 pb-28 sm:pb-32 flex flex-col justify-between h-full space-y-8">
-          <div>
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#062419]/80 border border-[#22c55e]/70 text-[#4ade80] text-xs font-bold backdrop-blur-md shadow-md">
-              <Car className="w-3.5 h-3.5 text-[#22c55e] shrink-0" />
-              <span className="tracking-tight text-white font-medium">Rugged 4x4 & Luxury Chauffeur Fleet</span>
-            </div>
-          </div>
+        <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-10 lg:px-12 pt-12 sm:pt-16 pb-28 sm:pb-32 flex flex-col justify-end h-full">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end">
+            <div className="lg:col-span-12 space-y-3 text-left">
+              <div>
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#006F3C]/80 border border-[#006F3C]/70 text-white text-xs font-bold backdrop-blur-md shadow-md">
+                  <Car className="w-3.5 h-3.5 text-white shrink-0" />
+                  <span className="tracking-tight text-white font-medium">Rugged 4x4 & Luxury Chauffeur Fleet</span>
+                </div>
+              </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end mt-2">
-            <div className="lg:col-span-12 space-y-4 text-left">
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl xl:text-6xl font-extrabold text-white tracking-tight leading-[1.12] drop-shadow-md">
                 Rent Premium 4x4 Vehicles in <br />
-                <span className="text-[#22c55e] font-black">Gilgit & Skardu</span>
+                <span className="text-[#006F3C] font-black">Gilgit & Skardu</span>
               </h1>
               <p className="text-slate-100/95 text-sm sm:text-base md:text-lg font-medium max-w-xl leading-relaxed drop-shadow-xs">
                 Explore Deosai, Khunjerab Pass & Babusar Top with insured 4x4 SUVs, experienced mountain drivers & zero hidden fees.
@@ -192,8 +192,8 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 pt-6 border-t border-white/15 divide-x-0 sm:divide-x divide-white/15" id="car-trust-factors">
                 <div className="flex items-center gap-2.5 text-white pr-2">
-                  <div className="w-9 h-9 rounded-full bg-[#10b981]/20 border border-[#10b981]/50 flex items-center justify-center shrink-0 shadow-inner">
-                    <User className="w-4 h-4 text-[#4ade80]" />
+                  <div className="w-9 h-9 rounded-full bg-[#006F3C]/40 border border-[#006F3C]/60 flex items-center justify-center shrink-0 shadow-inner">
+                    <User className="w-4 h-4 text-white" />
                   </div>
                   <div className="min-w-0">
                     <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">Expert Chauffeurs</span>
@@ -202,8 +202,8 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
                 </div>
 
                 <div className="flex items-center gap-2.5 text-white sm:pl-3 sm:pr-2">
-                  <div className="w-9 h-9 rounded-full bg-[#10b981]/20 border border-[#10b981]/50 flex items-center justify-center shrink-0 shadow-inner">
-                    <ShieldCheck className="w-4 h-4 text-[#4ade80]" />
+                  <div className="w-9 h-9 rounded-full bg-[#006F3C]/40 border border-[#006F3C]/60 flex items-center justify-center shrink-0 shadow-inner">
+                    <ShieldCheck className="w-4 h-4 text-white" />
                   </div>
                   <div className="min-w-0">
                     <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">Fully Insured</span>
@@ -212,8 +212,8 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
                 </div>
 
                 <div className="flex items-center gap-2.5 text-white sm:pl-3 sm:pr-2">
-                  <div className="w-9 h-9 rounded-full bg-[#10b981]/20 border border-[#10b981]/50 flex items-center justify-center shrink-0 shadow-inner">
-                    <Award className="w-4 h-4 text-[#4ade80]" />
+                  <div className="w-9 h-9 rounded-full bg-[#006F3C]/40 border border-[#006F3C]/60 flex items-center justify-center shrink-0 shadow-inner">
+                    <Award className="w-4 h-4 text-white" />
                   </div>
                   <div className="min-w-0">
                     <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">Zero Hidden Cost</span>
@@ -222,8 +222,8 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
                 </div>
 
                 <div className="flex items-center gap-2.5 text-white sm:pl-3">
-                  <div className="w-9 h-9 rounded-full bg-[#10b981]/20 border border-[#10b981]/50 flex items-center justify-center shrink-0 shadow-inner">
-                    <Headset className="w-4 h-4 text-[#4ade80]" />
+                  <div className="w-9 h-9 rounded-full bg-[#006F3C]/40 border border-[#006F3C]/60 flex items-center justify-center shrink-0 shadow-inner">
+                    <Headset className="w-4 h-4 text-white" />
                   </div>
                   <div className="min-w-0">
                     <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">Roadside Care</span>
@@ -240,8 +240,8 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
       <section className="-mt-20 sm:-mt-24 relative z-20 max-w-7xl mx-auto px-2 sm:px-4" id="car-search-console">
         <div className="bg-white rounded-3xl border border-[#E2E8F0] shadow-2xl overflow-visible">
           <div className="flex border-b border-[#F1F5F9] bg-[#FAFAFA] px-6 sm:px-8 gap-4 sm:gap-8 overflow-x-auto scrollbar-none rounded-t-3xl">
-            <div className="flex items-center gap-2.5 py-4 px-1 border-b-2 border-[#047857] text-[#047857] font-bold text-[13px] uppercase tracking-wider">
-              <Car className="w-4 h-4 text-[#047857]" />
+            <div className="flex items-center gap-2.5 py-4 px-1 border-b-2 border-[#006F3C] text-[#006F3C] font-bold text-[13px] uppercase tracking-wider">
+              <Car className="w-4 h-4 text-[#006F3C]" />
               <span>Find & Reserve 4x4 Vehicles</span>
             </div>
           </div>
@@ -287,7 +287,7 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
                         className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors"
                       >
                         <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-lg bg-emerald-50 text-[#047857] flex items-center justify-center shrink-0">
+                          <div className="w-7 h-7 rounded-lg bg-[#006F3C]/10 text-[#006F3C] flex items-center justify-center shrink-0">
                             <MapPin className="w-3.5 h-3.5" />
                           </div>
                           <div>
@@ -295,7 +295,7 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
                             <p className="text-[10px] text-slate-500 font-medium">{item.desc}</p>
                           </div>
                         </div>
-                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">{item.region}</span>
+                        <span className="text-[10px] font-bold text-[#006F3C] bg-[#006F3C]/10 px-2 py-0.5 rounded-full">{item.region}</span>
                       </div>
                     ))}
                   </div>
@@ -315,7 +315,7 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
               >
                 <label className="text-[11px] font-bold text-slate-700 tracking-tight cursor-pointer">Pick-up Date</label>
                 <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-slate-500 group-hover:text-[#047857] transition-colors shrink-0" />
+                  <Calendar className="w-4 h-4 text-slate-500 group-hover:text-[#006F3C] transition-colors shrink-0" />
                   <span className="text-[13px] font-bold text-slate-800 select-none whitespace-nowrap">
                     {formatDateDisplay(pickupDate)}
                   </span>
@@ -350,7 +350,7 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
               >
                 <label className="text-[11px] font-bold text-slate-700 tracking-tight cursor-pointer">Return Date</label>
                 <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-slate-500 group-hover:text-[#047857] transition-colors shrink-0" />
+                  <Calendar className="w-4 h-4 text-slate-500 group-hover:text-[#006F3C] transition-colors shrink-0" />
                   <span className="text-[13px] font-bold text-slate-800 select-none whitespace-nowrap">
                     {formatDateDisplay(returnDate)}
                   </span>
@@ -381,7 +381,7 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
                 <label className="text-[11px] font-bold text-slate-700 tracking-tight cursor-pointer">Vehicle & Driver Option</label>
                 <div className="flex items-center justify-between gap-1 cursor-pointer">
                   <div className="flex items-center gap-2 min-w-0">
-                    <Car className="w-4 h-4 text-slate-500 group-hover:text-[#047857] transition-colors shrink-0" />
+                    <Car className="w-4 h-4 text-slate-500 group-hover:text-[#006F3C] transition-colors shrink-0" />
                     <span className="text-[13px] font-bold text-slate-800 select-none whitespace-nowrap truncate">
                       {carType} • {withChauffeur ? 'With Driver' : 'Self Drive'}
                     </span>
@@ -403,7 +403,7 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
                             type="button"
                             onClick={() => setCarType(type)}
                             className={`p-2 rounded-xl text-xs font-bold text-left border ${
-                              carType === type ? 'bg-emerald-50 text-[#047857] border-emerald-300' : 'bg-slate-50 text-slate-700 border-slate-200'
+                              carType === type ? 'bg-[#006F3C]/10 text-[#006F3C] border-[#006F3C]/30' : 'bg-slate-50 text-slate-700 border-slate-200'
                             }`}
                           >
                             {type}
@@ -421,7 +421,7 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
                         type="button"
                         onClick={() => setWithChauffeur(!withChauffeur)}
                         className={`w-12 h-6 rounded-full p-1 transition-colors ${
-                          withChauffeur ? 'bg-[#047857]' : 'bg-slate-300'
+                          withChauffeur ? 'bg-[#006F3C]' : 'bg-slate-300'
                         }`}
                       >
                         <div className={`w-4 h-4 rounded-full bg-white transition-transform ${
@@ -434,7 +434,7 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
                       <button
                         type="button"
                         onClick={() => setShowTypePicker(false)}
-                        className="bg-[#047857] hover:bg-[#065f46] text-white text-xs font-bold px-4 py-1.5 rounded-lg transition-colors cursor-pointer"
+                        className="bg-[#006F3C] hover:bg-[#005C32] text-white text-xs font-bold px-4 py-1.5 rounded-lg transition-colors cursor-pointer"
                       >
                         Done
                       </button>
@@ -447,7 +447,7 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
               <div className="lg:col-span-2 flex items-stretch">
                 <button
                   type="submit"
-                  className="w-full h-full min-h-[50px] bg-gradient-to-r from-[#047857] to-[#059669] hover:from-[#065f46] hover:to-[#047857] text-white font-bold rounded-xl flex items-center justify-center gap-2 px-6 py-3.5 transition-all hover:scale-[1.01] active:scale-[0.99] text-[14px] cursor-pointer shadow-sm"
+                  className="w-full h-full min-h-[50px] bg-[#006F3C] hover:bg-[#005C32] text-white font-bold rounded-xl flex items-center justify-center gap-2 px-6 py-3.5 transition-all hover:scale-[1.01] active:scale-[0.99] text-[14px] cursor-pointer shadow-sm"
                 >
                   <Search className="w-4 h-4 stroke-[2.5] shrink-0" />
                   <span className="whitespace-nowrap font-extrabold text-[14px]">
@@ -466,8 +466,8 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
           <div className="bg-[#F8FAFC]/80 p-2 sm:p-3 rounded-b-3xl">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 lg:divide-x divide-slate-200/80 items-center">
               <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
-                <div className="w-10 h-10 rounded-full bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center text-[#047857] shrink-0">
-                  <User className="w-5 h-5 shrink-0 text-[#047857]" />
+                <div className="w-10 h-10 rounded-full bg-[#006F3C]/10 border border-[#006F3C]/20 flex items-center justify-center text-[#006F3C] shrink-0">
+                  <User className="w-5 h-5 shrink-0 text-[#006F3C]" />
                 </div>
                 <div className="min-w-0">
                   <h5 className="font-bold text-[13px] text-slate-800 leading-snug">Experienced Drivers</h5>
@@ -476,8 +476,8 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
               </div>
 
               <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
-                <div className="w-10 h-10 rounded-full bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center text-[#047857] shrink-0">
-                  <ShieldCheck className="w-5 h-5 shrink-0 text-[#047857]" />
+                <div className="w-10 h-10 rounded-full bg-[#006F3C]/10 border border-[#006F3C]/20 flex items-center justify-center text-[#006F3C] shrink-0">
+                  <ShieldCheck className="w-5 h-5 shrink-0 text-[#006F3C]" />
                 </div>
                 <div className="min-w-0">
                   <h5 className="font-bold text-[13px] text-slate-800 leading-snug">Insured Fleet</h5>
@@ -486,8 +486,8 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
               </div>
 
               <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
-                <div className="w-10 h-10 rounded-full bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center text-[#047857] shrink-0">
-                  <Gauge className="w-5 h-5 shrink-0 text-[#047857]" />
+                <div className="w-10 h-10 rounded-full bg-[#006F3C]/10 border border-[#006F3C]/20 flex items-center justify-center text-[#006F3C] shrink-0">
+                  <Gauge className="w-5 h-5 shrink-0 text-[#006F3C]" />
                 </div>
                 <div className="min-w-0">
                   <h5 className="font-bold text-[13px] text-slate-800 leading-snug">Unlimited Mileage</h5>
@@ -496,8 +496,8 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
               </div>
 
               <div className="flex items-center gap-3 text-slate-700 px-3 sm:px-5 py-2.5 min-w-0">
-                <div className="w-10 h-10 rounded-full bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center text-[#047857] shrink-0">
-                  <Headset className="w-5 h-5 shrink-0 text-[#047857]" />
+                <div className="w-10 h-10 rounded-full bg-[#006F3C]/10 border border-[#006F3C]/20 flex items-center justify-center text-[#006F3C] shrink-0">
+                  <Headset className="w-5 h-5 shrink-0 text-[#006F3C]" />
                 </div>
                 <div className="min-w-0">
                   <h5 className="font-bold text-[13px] text-slate-800 leading-snug">24/7 Road Dispatch</h5>
@@ -524,7 +524,7 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
           <button
             type="button"
             onClick={() => setSelectedCategory('All')}
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-[#047857] hover:text-[#065f46] hover:underline cursor-pointer"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-[#006F3C] hover:text-[#005C32] hover:underline cursor-pointer"
           >
             <span>View all Vehicles</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -541,7 +541,7 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
                 key={cat.id}
                 onClick={() => setSelectedCategory(isSelected ? 'All' : cat.title)}
                 className={`relative h-48 sm:h-52 rounded-2xl overflow-hidden cursor-pointer group shadow-2xs hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border-2 ${
-                  isSelected ? 'border-[#047857] ring-4 ring-emerald-500/20' : 'border-transparent'
+                  isSelected ? 'border-[#006F3C] ring-4 ring-[#006F3C]/20' : 'border-transparent'
                 }`}
               >
                 <img
@@ -555,7 +555,7 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
 
                 <div className="absolute inset-0 p-4 flex flex-col justify-between text-white z-10">
                   {isSelected && (
-                    <div className="self-start px-2.5 py-1 rounded-full bg-[#047857] text-white text-[10px] font-bold shadow-md">
+                    <div className="self-start px-2.5 py-1 rounded-full bg-[#006F3C] text-white text-[10px] font-bold shadow-md">
                       Filtered
                     </div>
                   )}
@@ -586,7 +586,7 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
           <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1">
-              <Filter className="w-3.5 h-3.5 text-[#047857]" /> Region:
+              <Filter className="w-3.5 h-3.5 text-[#006F3C]" /> Region:
             </span>
             {['All', 'Skardu', 'Gilgit', 'Hunza', 'Islamabad'].map((loc) => (
               <button
@@ -618,7 +618,7 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
                 <div
                   key={car.id}
                   onClick={() => onSelectListing(car)}
-                  className="bg-white rounded-2xl border border-slate-200/90 hover:border-emerald-500/60 overflow-hidden shadow-2xs hover:shadow-xl transition-all duration-300 group cursor-pointer flex flex-col justify-between"
+                  className="bg-white rounded-2xl border border-slate-200/90 hover:border-[#006F3C]/60 overflow-hidden shadow-2xs hover:shadow-xl transition-all duration-300 group cursor-pointer flex flex-col justify-between"
                 >
                   <div className="relative h-52 sm:h-56 overflow-hidden bg-slate-100">
                     <img
@@ -630,7 +630,7 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
                     />
 
                     <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#047857]/90 backdrop-blur-md text-white text-[11px] font-bold shadow-md">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#006F3C]/90 backdrop-blur-md text-white text-[11px] font-bold shadow-md">
                         <Car className="w-3 h-3" />
                         <span>{specs?.category || '4x4 Vehicle'}</span>
                       </span>
@@ -654,7 +654,7 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between text-xs">
                         <p className="text-slate-500 font-medium flex items-center gap-1 truncate">
-                          <MapPin className="w-3.5 h-3.5 text-[#047857] shrink-0" />
+                          <MapPin className="w-3.5 h-3.5 text-[#006F3C] shrink-0" />
                           <span className="truncate">{car.location}</span>
                         </p>
                         <div className="flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/60 shrink-0">
@@ -664,7 +664,7 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
                         </div>
                       </div>
 
-                      <h4 className="font-bold text-slate-900 text-lg group-hover:text-[#047857] transition-colors leading-snug line-clamp-1">
+                      <h4 className="font-bold text-slate-900 text-lg group-hover:text-[#006F3C] transition-colors leading-snug line-clamp-1">
                         {car.title}
                       </h4>
 
@@ -676,13 +676,13 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
                     {specs && (
                       <div className="flex flex-wrap gap-1.5 pt-1">
                         <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-semibold flex items-center gap-1">
-                          <Users className="w-3 h-3 text-[#047857]" /> {specs.seats} Seats
+                          <Users className="w-3 h-3 text-[#006F3C]" /> {specs.seats} Seats
                         </span>
                         <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-semibold flex items-center gap-1">
-                          <Gauge className="w-3 h-3 text-[#047857]" /> {specs.transmission}
+                          <Gauge className="w-3 h-3 text-[#006F3C]" /> {specs.transmission}
                         </span>
                         <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-semibold flex items-center gap-1">
-                          <Fuel className="w-3 h-3 text-[#047857]" /> {specs.fuelType}
+                          <Fuel className="w-3 h-3 text-[#006F3C]" /> {specs.fuelType}
                         </span>
                       </div>
                     )}
@@ -701,7 +701,7 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
                           e.stopPropagation();
                           onSelectListing(car);
                         }}
-                        className="px-4 py-2.5 rounded-xl bg-[#047857] hover:bg-[#065f46] text-white text-xs font-extrabold transition-all shadow-2xs group-hover:shadow-md flex items-center gap-1.5 cursor-pointer"
+                        className="px-4 py-2.5 rounded-xl bg-[#006F3C] hover:bg-[#005C32] text-white text-xs font-extrabold transition-all shadow-2xs group-hover:shadow-md flex items-center gap-1.5 cursor-pointer"
                       >
                         <span>Reserve Car</span>
                         <ArrowRight className="w-3.5 h-3.5" />
@@ -723,7 +723,7 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
                 setSelectedCategory('All');
                 setSelectedLocationFilter('All');
               }}
-              className="px-4 py-2 rounded-xl bg-[#047857] text-white text-xs font-bold"
+              className="px-4 py-2 rounded-xl bg-[#006F3C] hover:bg-[#005C32] text-white text-xs font-bold"
             >
               Reset Filters
             </button>
