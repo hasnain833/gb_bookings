@@ -303,7 +303,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
               {/* Find Your Perfect Ride Heading */}
               <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white tracking-tight leading-tight">
                 Find Your Perfect Ride in <br />
-                <span className="text-white drop-shadow-sm font-black">Gilgit Baltistan</span>
+                <span className="text-[#006F3C] drop-shadow-sm font-black">Gilgit Baltistan</span>
               </h1>
 
               {/* Subheading */}
@@ -1054,7 +1054,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
               {/* Authentic Homestays in Gilgit Baltistan Heading */}
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-tight">
                 Authentic Homestays in <br />
-                <span className="text-white drop-shadow-sm font-black">Gilgit Baltistan</span>
+                <span className="text-[#006F3C] drop-shadow-sm font-black">Gilgit Baltistan</span>
               </h1>
 
               {/* Subheading */}
@@ -1639,7 +1639,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
               {/* Premium Hotels & Resorts in Gilgit Baltistan Heading */}
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-tight">
                 Premium Hotels & Resorts in <br />
-                <span className="text-[#818CF8] drop-shadow-sm font-black">Gilgit Baltistan</span>
+                <span className="text-[#006F3C] drop-shadow-sm font-black">Gilgit Baltistan</span>
               </h1>
 
               {/* Subheading */}
@@ -2220,7 +2220,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
               {/* Premium Guided Tours in Gilgit Baltistan Heading */}
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-tight">
                 Premium Guided Tours in <br />
-                <span className="text-[#A78BFA] drop-shadow-sm font-black">Gilgit Baltistan</span>
+                <span className="text-[#006F3C] drop-shadow-sm font-black">Gilgit Baltistan</span>
               </h1>
 
               {/* Subheading */}

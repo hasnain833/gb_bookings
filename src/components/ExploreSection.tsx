@@ -370,8 +370,8 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
             <div className="lg:col-span-7 space-y-3 text-left" id="hero-left-content">
               {/* Top/Badge element matching image */}
               <div>
-                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#006F3C]/80 border border-[#006F3C]/70 text-[#006F3C] text-xs font-bold backdrop-blur-md shadow-md">
-                  <MapPin className="w-3.5 h-3.5 text-[#006F3C] shrink-0" />
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#006F3C]/80 border border-[#006F3C]/70 text-white text-xs font-bold backdrop-blur-md shadow-md">
+                  <MapPin className="w-3.5 h-3.5 text-white shrink-0" />
                   <span className="tracking-tight text-white font-medium">{t('hero.badge')}</span>
                 </div>
               </div>
@@ -388,7 +388,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 pt-6 border-t border-white/15 divide-x-0 sm:divide-x divide-white/15" id="hero-trust-factors">
                 <div className="flex items-center gap-2.5 text-white pr-2">
                   <div className="w-9 h-9 rounded-full bg-[#006F3C]/40 border border-[#006F3C]/60 flex items-center justify-center shrink-0 shadow-inner">
-                    <ShieldCheck className="w-4 h-4 text-[#006F3C]" />
+                    <ShieldCheck className="w-4 h-4 text-white" />
                   </div>
                   <div className="min-w-0">
                     <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">Best Price</span>
@@ -398,7 +398,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
 
                 <div className="flex items-center gap-2.5 text-white sm:pl-3 sm:pr-2">
                   <div className="w-9 h-9 rounded-full bg-[#006F3C]/40 border border-[#006F3C]/60 flex items-center justify-center shrink-0 shadow-inner">
-                    <Calendar className="w-4 h-4 text-[#006F3C]" />
+                    <Calendar className="w-4 h-4 text-white" />
                   </div>
                   <div className="min-w-0">
                     <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">Free</span>
@@ -408,7 +408,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
 
                 <div className="flex items-center gap-2.5 text-white sm:pl-3 sm:pr-2">
                   <div className="w-9 h-9 rounded-full bg-[#006F3C]/40 border border-[#006F3C]/60 flex items-center justify-center shrink-0 shadow-inner">
-                    <Headset className="w-4 h-4 text-[#006F3C]" />
+                    <Headset className="w-4 h-4 text-white" />
                   </div>
                   <div className="min-w-0">
                     <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">24/7</span>
@@ -418,7 +418,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
 
                 <div className="flex items-center gap-2.5 text-white sm:pl-3">
                   <div className="w-9 h-9 rounded-full bg-[#006F3C]/40 border border-[#006F3C]/60 flex items-center justify-center shrink-0 shadow-inner">
-                    <Star className="w-4 h-4 text-[#006F3C]" />
+                    <Star className="w-4 h-4 text-white" />
                   </div>
                   <div className="min-w-0">
                     <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">Trusted by</span>

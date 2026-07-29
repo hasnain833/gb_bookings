@@ -177,7 +177,7 @@ export default function ToursSection({ onSelectListing, onTriggerSearch }: Tours
 
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl xl:text-6xl font-extrabold text-white tracking-tight leading-[1.12] drop-shadow-md">
                 Guided Tour Packages in <br />
-                <span className="text-white font-black">Gilgit Baltistan</span>
+                <span className="text-[#006F3C] font-black">Gilgit Baltistan</span>
               </h1>
               <p className="text-slate-100/95 text-sm sm:text-base md:text-lg font-medium max-w-xl leading-relaxed drop-shadow-xs">
                 Handcrafted itineraries with stays at luxury resorts, private 4x4 Prado transportation, expert local guides & fort entry permits included.
