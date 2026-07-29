@@ -14,6 +14,7 @@ import UserDashboard from './components/UserDashboard';
 import VendorDashboard from './components/VendorDashboard';
 import AiPlanner from './components/AiPlanner';
 import SupportCentre from './components/SupportCentre';
+import Footer from './components/Footer';
 import { Listing, Booking } from './types';
 import { useLanguage } from './LanguageContext';
 
@@ -274,14 +275,7 @@ export default function App() {
       </main>
 
       {/* Footer Details */}
-      <footer className="bg-white border-t border-slate-200 py-8 text-center text-slate-400 text-xs flex-shrink-0 mt-auto">
-        <div className="w-full mx-auto px-4 sm:px-8 lg:px-12 xl:px-16 space-y-3 flex flex-col items-center">
-          <GBLogo size="sm" />
-          <p className={`text-slate-500 font-medium ${isRtl ? 'font-urdu text-sm' : 'text-xs'}`}>
-            {t('footer.description')}
-          </p>
-        </div>
-      </footer>
+      <Footer onNavigate={handleNavigation} />
 
     </div>
   );
