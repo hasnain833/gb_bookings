@@ -375,105 +375,109 @@ export default function Footer({ onNavigate }: FooterProps) {
 
           </div>
 
-          {/* 3. BOTTOM MULTI-WIDGET ROW */}
-          <div className="border-t border-[#0F4A3B] pt-8 mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
-            
-            {/* Widget 1: We Accept */}
-            <div className="bg-[#072D24]/60 border border-[#0F4A3B] p-4 rounded-2xl flex flex-col justify-between space-y-3">
-              <h5 className="text-white font-extrabold text-xs uppercase tracking-wider">We Accept</h5>
-              <div className="flex flex-wrap items-center gap-2">
-                {/* VISA */}
-                <div className="bg-white px-2.5 py-1.5 rounded-md border border-slate-200 flex items-center justify-center shadow-2xs">
-                  <span className="font-extrabold text-xs italic tracking-tighter text-[#1A1F71]">VISA</span>
-                </div>
-                {/* Mastercard */}
-                <div className="bg-white px-2.5 py-1.5 rounded-md border border-slate-200 flex items-center justify-center gap-0.5 shadow-2xs">
-                  <div className="w-3 h-3 rounded-full bg-[#EB001B]" />
-                  <div className="w-3 h-3 rounded-full bg-[#F79E1B] -ml-1.5 opacity-90" />
-                </div>
-                {/* UBL */}
-                <div className="bg-white px-2.5 py-1.5 rounded-md border border-slate-200 flex items-center justify-center shadow-2xs">
-                  <span className="font-black text-[10px] text-[#0055A5] uppercase tracking-tighter">UBL</span>
-                </div>
-                {/* Easypaisa */}
-                <div className="bg-[#00AA4F] px-2.5 py-1.5 rounded-md text-white flex items-center justify-center shadow-2xs">
-                  <span className="font-black text-[10px] lowercase">easypaisa</span>
-                </div>
-                {/* JazzCash */}
-                <div className="bg-[#800000] px-2.5 py-1.5 rounded-md text-amber-400 flex items-center justify-center shadow-2xs">
-                  <span className="font-black text-[10px] tracking-tight">Jazz Cash</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Widget 2: Download Our App */}
-            <div className="bg-[#072D24]/60 border border-[#0F4A3B] p-4 rounded-2xl flex flex-col justify-between space-y-2">
-              <div>
-                <h5 className="text-white font-extrabold text-xs uppercase tracking-wider">Download Our App</h5>
-                <p className="text-slate-400 text-[11px] mt-0.5">Book on the go and get exclusive app-only deals!</p>
-              </div>
-              <div className="flex items-center gap-2 pt-1">
-                <button 
-                  type="button"
-                  onClick={() => alert('GBBookings iOS App coming soon to App Store!')}
-                  className="bg-black border border-white/20 hover:border-white/40 text-white px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer text-left"
-                >
-                  <AppleIcon className="w-4 h-4 fill-white shrink-0" />
-                  <div>
-                    <span className="text-[8px] text-slate-400 uppercase block leading-none">Download on the</span>
-                    <span className="text-[10px] font-bold block leading-tight">App Store</span>
+          {/* 3. BOTTOM MULTI-WIDGET ROW - SINGLE BOX WITH DIVIDERS */}
+          <div className="border-t border-[#0F4A3B] pt-8 mt-4">
+            <div className="bg-[#072D24]/60 border border-[#0F4A3B] rounded-2xl p-5 sm:p-6 shadow-xl">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-[#0F4A3B]">
+                
+                {/* Widget 1: We Accept */}
+                <div className="flex flex-col justify-between space-y-3 pb-6 lg:pb-0 lg:pr-6">
+                  <h5 className="text-white font-extrabold text-xs uppercase tracking-wider">We Accept</h5>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* VISA */}
+                    <div className="bg-white px-2.5 py-1.5 rounded-md border border-slate-200 flex items-center justify-center shadow-2xs">
+                      <span className="font-extrabold text-xs italic tracking-tighter text-[#1A1F71]">VISA</span>
+                    </div>
+                    {/* Mastercard */}
+                    <div className="bg-white px-2.5 py-1.5 rounded-md border border-slate-200 flex items-center justify-center gap-0.5 shadow-2xs">
+                      <div className="w-3 h-3 rounded-full bg-[#EB001B]" />
+                      <div className="w-3 h-3 rounded-full bg-[#F79E1B] -ml-1.5 opacity-90" />
+                    </div>
+                    {/* UBL */}
+                    <div className="bg-white px-2.5 py-1.5 rounded-md border border-slate-200 flex items-center justify-center shadow-2xs">
+                      <span className="font-black text-[10px] text-[#0055A5] uppercase tracking-tighter">UBL</span>
+                    </div>
+                    {/* Easypaisa */}
+                    <div className="bg-[#00AA4F] px-2.5 py-1.5 rounded-md text-white flex items-center justify-center shadow-2xs">
+                      <span className="font-black text-[10px] lowercase">easypaisa</span>
+                    </div>
+                    {/* JazzCash */}
+                    <div className="bg-[#800000] px-2.5 py-1.5 rounded-md text-amber-400 flex items-center justify-center shadow-2xs">
+                      <span className="font-black text-[10px] tracking-tight">Jazz Cash</span>
+                    </div>
                   </div>
-                </button>
-                <button 
-                  type="button"
-                  onClick={() => alert('GBBookings Android App coming soon to Google Play!')}
-                  className="bg-black border border-white/20 hover:border-white/40 text-white px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer text-left"
-                >
-                  <PlayStoreIcon className="w-4 h-4 shrink-0" />
+                </div>
+
+                {/* Widget 2: Download Our App */}
+                <div className="flex flex-col justify-between space-y-2 py-6 lg:py-0 lg:px-6">
                   <div>
-                    <span className="text-[8px] text-slate-400 uppercase block leading-none">GET IT ON</span>
-                    <span className="text-[10px] font-bold block leading-tight">Google Play</span>
+                    <h5 className="text-white font-extrabold text-xs uppercase tracking-wider">Download Our App</h5>
+                    <p className="text-slate-400 text-[11px] mt-0.5">Book on the go and get exclusive app-only deals!</p>
                   </div>
-                </button>
+                  <div className="flex items-center gap-2 pt-1">
+                    <button 
+                      type="button"
+                      onClick={() => alert('GBBookings iOS App coming soon to App Store!')}
+                      className="bg-black border border-white/20 hover:border-white/40 text-white px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer text-left"
+                    >
+                      <AppleIcon className="w-4 h-4 fill-white shrink-0" />
+                      <div>
+                        <span className="text-[8px] text-slate-400 uppercase block leading-none">Download on the</span>
+                        <span className="text-[10px] font-bold block leading-tight">App Store</span>
+                      </div>
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => alert('GBBookings Android App coming soon to Google Play!')}
+                      className="bg-black border border-white/20 hover:border-white/40 text-white px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer text-left"
+                    >
+                      <PlayStoreIcon className="w-4 h-4 shrink-0" />
+                      <div>
+                        <span className="text-[8px] text-slate-400 uppercase block leading-none">GET IT ON</span>
+                        <span className="text-[10px] font-bold block leading-tight">Google Play</span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Widget 3: Contact Us */}
+                <div className="flex flex-col justify-between space-y-2 text-xs py-6 lg:py-0 lg:px-6">
+                  <h5 className="text-white font-extrabold text-xs uppercase tracking-wider">Contact Us</h5>
+                  <div className="space-y-1.5 text-slate-300">
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-3.5 h-3.5 text-[#10b981] shrink-0" />
+                      <span className="font-semibold">+92 300 1234567</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-3.5 h-3.5 text-[#10b981] shrink-0" />
+                      <span>info@gbbookings.com</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <MapPin className="w-3.5 h-3.5 text-[#10b981] shrink-0 mt-0.5" />
+                      <span>Skardu, Gilgit Baltistan, Pakistan</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Widget 4: We're Here 24/7 */}
+                <div className="flex flex-col justify-between space-y-2 pt-6 lg:pt-0 lg:pl-6">
+                  <div>
+                    <h5 className="text-white font-extrabold text-xs uppercase tracking-wider">We're Here 24/7</h5>
+                    <p className="text-slate-400 text-[11px] mt-0.5">Our team is always ready to help you plan your perfect trip.</p>
+                  </div>
+                  <a
+                    href="https://wa.me/923001234567"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-full bg-[#047857]/80 hover:bg-[#047857] border border-[#10b981]/50 text-white font-bold text-xs py-2 px-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm mt-1"
+                  >
+                    <MessageCircle className="w-4 h-4 text-[#10b981] fill-[#10b981]/20" />
+                    <span>Chat on WhatsApp</span>
+                  </a>
+                </div>
+
               </div>
             </div>
-
-            {/* Widget 3: Contact Us */}
-            <div className="bg-[#072D24]/60 border border-[#0F4A3B] p-4 rounded-2xl flex flex-col justify-between space-y-2 text-xs">
-              <h5 className="text-white font-extrabold text-xs uppercase tracking-wider">Contact Us</h5>
-              <div className="space-y-1.5 text-slate-300">
-                <div className="flex items-center gap-2">
-                  <Phone className="w-3.5 h-3.5 text-[#10b981] shrink-0" />
-                  <span className="font-semibold">+92 300 1234567</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Mail className="w-3.5 h-3.5 text-[#10b981] shrink-0" />
-                  <span>info@gbbookings.com</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <MapPin className="w-3.5 h-3.5 text-[#10b981] shrink-0 mt-0.5" />
-                  <span>Skardu, Gilgit Baltistan, Pakistan</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Widget 4: We're Here 24/7 */}
-            <div className="bg-[#072D24]/60 border border-[#0F4A3B] p-4 rounded-2xl flex flex-col justify-between space-y-2">
-              <div>
-                <h5 className="text-white font-extrabold text-xs uppercase tracking-wider">We're Here 24/7</h5>
-                <p className="text-slate-400 text-[11px] mt-0.5">Our team is always ready to help you plan your perfect trip.</p>
-              </div>
-              <a
-                href="https://wa.me/923001234567"
-                target="_blank"
-                rel="noreferrer"
-                className="w-full bg-[#047857]/80 hover:bg-[#047857] border border-[#10b981]/50 text-white font-bold text-xs py-2 px-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm mt-1"
-              >
-                <MessageCircle className="w-4 h-4 text-[#10b981] fill-[#10b981]/20" />
-                <span>Chat on WhatsApp</span>
-              </a>
-            </div>
-
           </div>
 
           {/* 4. COPYRIGHT & FOOTER BOTTOM BAR */}
