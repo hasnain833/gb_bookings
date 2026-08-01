@@ -174,62 +174,48 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-14 pb-24 sm:pb-28 flex flex-col justify-start items-start h-full text-left">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start w-full">
-            <div className="lg:col-span-8 space-y-3 text-left">
+            <div className="lg:col-span-10 space-y-4 text-left">
               <div>
-                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#006F3C]/80 border border-[#006F3C]/70 text-white text-xs font-bold backdrop-blur-md shadow-md">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/60 border border-white/20 text-white text-xs font-semibold backdrop-blur-md shadow-md">
                   <Car className="w-3.5 h-3.5 text-white shrink-0" />
-                  <span className="tracking-tight text-white font-medium">Rugged 4x4 & Luxury Chauffeur Fleet</span>
+                  <span className="tracking-tight text-white font-medium">Rugged 4x4 &amp; Luxury Chauffeur Fleet</span>
                 </div>
               </div>
 
-              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl xl:text-6xl font-extrabold text-white tracking-tight leading-[1.12] drop-shadow-md">
-                Rent Premium 4x4 Vehicles in <br />
-                <span className="text-[#006F3C] font-black">Gilgit</span><br />
-                <span className="text-[#006F3C] font-black">Baltistan</span>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-[1.15] drop-shadow-md">
+                Rent Premium 4x4 Vehicles in <span className="text-[#00A651] font-black">Gilgit Baltistan</span>
               </h1>
-              <p className="text-slate-100/95 text-sm sm:text-base md:text-lg font-medium max-w-xl leading-relaxed drop-shadow-xs">
-                Explore Deosai, Khunjerab Pass & Babusar Top with insured 4x4 SUVs, experienced mountain drivers & zero hidden fees.
+              <p className="text-slate-100/95 text-xs sm:text-sm md:text-base font-medium max-w-2xl leading-relaxed drop-shadow-xs">
+                Explore Deosai, Khunjerab Pass &amp; Babusar Top with insured 4x4 SUVs, experienced mountain drivers &amp; zero hidden fees.
               </p>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 pt-6 border-t border-white/15 divide-x-0 sm:divide-x divide-white/15 max-w-xl sm:max-w-2xl" id="car-trust-factors">
-                <div className="flex items-center gap-2.5 text-white pr-2">
-                  <div className="w-9 h-9 rounded-full bg-[#006F3C]/40 border border-[#006F3C]/60 flex items-center justify-center shrink-0 shadow-inner">
-                    <User className="w-4 h-4 text-white" />
+              <div className="flex flex-wrap items-center gap-4 sm:gap-6 pt-4 text-white" id="car-trust-factors">
+                <div className="flex items-center gap-2 text-white">
+                  <div className="w-7 h-7 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
+                    <User className="w-3.5 h-3.5 text-white" />
                   </div>
-                  <div className="min-w-0">
-                    <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">Expert Chauffeurs</span>
-                    <span className="text-[11px] font-medium text-slate-200 block leading-tight">Mountain Skilled</span>
-                  </div>
+                  <span className="text-xs sm:text-sm font-bold tracking-tight text-white">Expert Chauffeurs</span>
                 </div>
 
-                <div className="flex items-center gap-2.5 text-white sm:pl-3 sm:pr-2">
-                  <div className="w-9 h-9 rounded-full bg-[#006F3C]/40 border border-[#006F3C]/60 flex items-center justify-center shrink-0 shadow-inner">
-                    <ShieldCheck className="w-4 h-4 text-white" />
+                <div className="flex items-center gap-2 text-white">
+                  <div className="w-7 h-7 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
+                    <ShieldCheck className="w-3.5 h-3.5 text-white" />
                   </div>
-                  <div className="min-w-0">
-                    <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">Fully Insured</span>
-                    <span className="text-[11px] font-medium text-slate-200 block leading-tight">Backup Vehicle</span>
-                  </div>
+                  <span className="text-xs sm:text-sm font-bold tracking-tight text-white">Fully Insured</span>
                 </div>
 
-                <div className="flex items-center gap-2.5 text-white sm:pl-3 sm:pr-2">
-                  <div className="w-9 h-9 rounded-full bg-[#006F3C]/40 border border-[#006F3C]/60 flex items-center justify-center shrink-0 shadow-inner">
-                    <Award className="w-4 h-4 text-white" />
+                <div className="flex items-center gap-2 text-white">
+                  <div className="w-7 h-7 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
+                    <Award className="w-3.5 h-3.5 text-white" />
                   </div>
-                  <div className="min-w-0">
-                    <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">Zero Hidden Cost</span>
-                    <span className="text-[11px] font-medium text-slate-200 block leading-tight">Transparent Fuel</span>
-                  </div>
+                  <span className="text-xs sm:text-sm font-bold tracking-tight text-white">Zero Hidden Cost</span>
                 </div>
 
-                <div className="flex items-center gap-2.5 text-white sm:pl-3">
-                  <div className="w-9 h-9 rounded-full bg-[#006F3C]/40 border border-[#006F3C]/60 flex items-center justify-center shrink-0 shadow-inner">
-                    <Headset className="w-4 h-4 text-white" />
+                <div className="flex items-center gap-2 text-white">
+                  <div className="w-7 h-7 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
+                    <Headset className="w-3.5 h-3.5 text-white" />
                   </div>
-                  <div className="min-w-0">
-                    <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">Roadside Care</span>
-                    <span className="text-[11px] font-medium text-slate-200 block leading-tight">24/7 Dispatch</span>
-                  </div>
+                  <span className="text-xs sm:text-sm font-bold tracking-tight text-white">24/7 Roadside Care</span>
                 </div>
               </div>
             </div>

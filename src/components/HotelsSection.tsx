@@ -178,62 +178,48 @@ export default function HotelsSection({ onSelectListing, onTriggerSearch }: Hote
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-14 pb-24 sm:pb-28 flex flex-col justify-start items-start h-full text-left">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start w-full">
-            <div className="lg:col-span-8 space-y-3 text-left">
+            <div className="lg:col-span-10 space-y-4 text-left">
               <div>
-                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#006F3C]/80 border border-[#006F3C]/70 text-white text-xs font-bold backdrop-blur-md shadow-md">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/60 border border-white/20 text-white text-xs font-semibold backdrop-blur-md shadow-md">
                   <Building2 className="w-3.5 h-3.5 text-white shrink-0" />
                   <span className="tracking-tight text-white font-medium">World-Class Alpine Hospitality</span>
                 </div>
               </div>
 
-              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl xl:text-6xl font-extrabold text-white tracking-tight leading-[1.12] drop-shadow-md">
-                Luxury Hotels & Resorts in <br />
-                <span className="text-[#006F3C] font-black">Gilgit</span><br />
-                <span className="text-[#006F3C] font-black">Baltistan</span>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-[1.15] drop-shadow-md">
+                Luxury Hotels &amp; Resorts in <span className="text-[#00A651] font-black">Gilgit Baltistan</span>
               </h1>
-              <p className="text-slate-100/95 text-sm sm:text-base md:text-lg font-medium max-w-xl leading-relaxed drop-shadow-xs">
+              <p className="text-slate-100/95 text-xs sm:text-sm md:text-base font-medium max-w-2xl leading-relaxed drop-shadow-xs">
                 From heated infinity pools on turquoise lake edges to alpine ski lodges and heritage fort hotels.
               </p>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 pt-6 border-t border-white/15 divide-x-0 sm:divide-x divide-white/15 max-w-xl sm:max-w-2xl" id="hotel-trust-factors">
-                <div className="flex items-center gap-2.5 text-white pr-2">
-                  <div className="w-9 h-9 rounded-full bg-[#006F3C]/40 border border-[#006F3C]/60 flex items-center justify-center shrink-0 shadow-inner">
-                    <ShieldCheck className="w-4 h-4 text-white" />
+              <div className="flex flex-wrap items-center gap-4 sm:gap-6 pt-4 text-white" id="hotel-trust-factors">
+                <div className="flex items-center gap-2 text-white">
+                  <div className="w-7 h-7 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
+                    <ShieldCheck className="w-3.5 h-3.5 text-white" />
                   </div>
-                  <div className="min-w-0">
-                    <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">Best Rate</span>
-                    <span className="text-[11px] font-medium text-slate-200 block leading-tight">Guaranteed</span>
-                  </div>
+                  <span className="text-xs sm:text-sm font-bold tracking-tight text-white">Best Rate Guaranteed</span>
                 </div>
 
-                <div className="flex items-center gap-2.5 text-white sm:pl-3 sm:pr-2">
-                  <div className="w-9 h-9 rounded-full bg-[#006F3C]/40 border border-[#006F3C]/60 flex items-center justify-center shrink-0 shadow-inner">
-                    <Award className="w-4 h-4 text-white" />
+                <div className="flex items-center gap-2 text-white">
+                  <div className="w-7 h-7 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
+                    <Award className="w-3.5 h-3.5 text-white" />
                   </div>
-                  <div className="min-w-0">
-                    <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">5-Star Standards</span>
-                    <span className="text-[11px] font-medium text-slate-200 block leading-tight">Handpicked</span>
-                  </div>
+                  <span className="text-xs sm:text-sm font-bold tracking-tight text-white">5-Star Standards</span>
                 </div>
 
-                <div className="flex items-center gap-2.5 text-white sm:pl-3 sm:pr-2">
-                  <div className="w-9 h-9 rounded-full bg-[#006F3C]/40 border border-[#006F3C]/60 flex items-center justify-center shrink-0 shadow-inner">
-                    <Calendar className="w-4 h-4 text-white" />
+                <div className="flex items-center gap-2 text-white">
+                  <div className="w-7 h-7 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
+                    <Calendar className="w-3.5 h-3.5 text-white" />
                   </div>
-                  <div className="min-w-0">
-                    <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">Flexible Dates</span>
-                    <span className="text-[11px] font-medium text-slate-200 block leading-tight">Free Cancellation</span>
-                  </div>
+                  <span className="text-xs sm:text-sm font-bold tracking-tight text-white">Free Cancellation</span>
                 </div>
 
-                <div className="flex items-center gap-2.5 text-white sm:pl-3">
-                  <div className="w-9 h-9 rounded-full bg-[#006F3C]/40 border border-[#006F3C]/60 flex items-center justify-center shrink-0 shadow-inner">
-                    <Headset className="w-4 h-4 text-white" />
+                <div className="flex items-center gap-2 text-white">
+                  <div className="w-7 h-7 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
+                    <Headset className="w-3.5 h-3.5 text-white" />
                   </div>
-                  <div className="min-w-0">
-                    <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">Concierge Care</span>
-                    <span className="text-[11px] font-medium text-slate-200 block leading-tight">24/7 Dedicated</span>
-                  </div>
+                  <span className="text-xs sm:text-sm font-bold tracking-tight text-white">24/7 Support</span>
                 </div>
               </div>
             </div>

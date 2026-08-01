@@ -193,11 +193,10 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
                 </div>
               </div>
 
-              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl xl:text-6xl font-extrabold text-white tracking-tight leading-[1.12] drop-shadow-md">
-                Authentic Homestays in <br />
-                <span className="text-[#00A651] font-black">Gilgit Baltistan</span>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-[1.15] drop-shadow-md">
+                Authentic Homestays in <span className="text-[#00A651] font-black">Gilgit Baltistan</span>
               </h1>
-              <p className="text-slate-100/95 text-sm sm:text-base md:text-lg font-medium max-w-2xl leading-relaxed drop-shadow-xs">
+              <p className="text-slate-100/95 text-xs sm:text-sm md:text-base font-medium max-w-2xl leading-relaxed drop-shadow-xs">
                 Experience warm hospitality, local culture, and breathtaking views with our handpicked homestays.
               </p>
 

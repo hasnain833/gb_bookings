@@ -359,63 +359,49 @@ export default function OffersSection({ onSelectListing, onTriggerSearch }: Offe
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-14 pb-24 sm:pb-28 flex flex-col justify-start items-start h-full text-left">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start w-full">
-            <div className="lg:col-span-8 space-y-3 text-left">
+            <div className="lg:col-span-10 space-y-4 text-left">
               <div>
-                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#006F3C]/80 border border-[#006F3C]/70 text-white text-xs font-bold backdrop-blur-md shadow-md">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/60 border border-white/20 text-white text-xs font-semibold backdrop-blur-md shadow-md">
                   <Flame className="w-3.5 h-3.5 text-white shrink-0 fill-white/20" />
-                  <span className="tracking-tight text-white font-medium">Limited-Time Exclusive Travel Vouchers & Deals</span>
+                  <span className="tracking-tight text-white font-medium">Limited-Time Exclusive Travel Vouchers &amp; Deals</span>
                 </div>
               </div>
 
-              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl xl:text-6xl font-extrabold text-white tracking-tight leading-[1.12] drop-shadow-md">
-                Exclusive Travel Offers & Deals in <br />
-                <span className="text-[#006F3C] font-black">Gilgit</span><br />
-                <span className="text-[#006F3C] font-black">Baltistan</span>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-[1.15] drop-shadow-md">
+                Exclusive Travel Offers &amp; Deals in <span className="text-[#00A651] font-black">Gilgit Baltistan</span>
               </h1>
-              <p className="text-slate-100/95 text-sm sm:text-base md:text-lg font-medium max-w-xl leading-relaxed drop-shadow-xs">
+              <p className="text-slate-100/95 text-xs sm:text-sm md:text-base font-medium max-w-2xl leading-relaxed drop-shadow-xs">
                 Unlock seasonal price drops, exclusive promo vouchers, free 4x4 vehicle upgrades, and luxury stay discounts.
               </p>
 
               {/* 4-Column Hero Trust Factors */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 pt-6 border-t border-white/15 divide-x-0 sm:divide-x divide-white/15 max-w-xl sm:max-w-2xl" id="offers-trust-factors">
-                <div className="flex items-center gap-2.5 text-white pr-2">
-                  <div className="w-9 h-9 rounded-full bg-[#006F3C]/40 border border-[#006F3C]/60 flex items-center justify-center shrink-0 shadow-inner">
-                    <Percent className="w-4 h-4 text-white" />
+              <div className="flex flex-wrap items-center gap-4 sm:gap-6 pt-4 text-white" id="offers-trust-factors">
+                <div className="flex items-center gap-2 text-white">
+                  <div className="w-7 h-7 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
+                    <Percent className="w-3.5 h-3.5 text-white" />
                   </div>
-                  <div className="min-w-0">
-                    <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">Up to 35% Off</span>
-                    <span className="text-[11px] font-medium text-slate-200 block leading-tight">Verified Discounts</span>
-                  </div>
+                  <span className="text-xs sm:text-sm font-bold tracking-tight text-white">Up to 35% Off</span>
                 </div>
 
-                <div className="flex items-center gap-2.5 text-white sm:pl-3 sm:pr-2">
-                  <div className="w-9 h-9 rounded-full bg-[#006F3C]/40 border border-[#006F3C]/60 flex items-center justify-center shrink-0 shadow-inner">
-                    <Gift className="w-4 h-4 text-white" />
+                <div className="flex items-center gap-2 text-white">
+                  <div className="w-7 h-7 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
+                    <Gift className="w-3.5 h-3.5 text-white" />
                   </div>
-                  <div className="min-w-0">
-                    <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">Bonus VIP Perks</span>
-                    <span className="text-[11px] font-medium text-slate-200 block leading-tight">Free Boating & Meals</span>
-                  </div>
+                  <span className="text-xs sm:text-sm font-bold tracking-tight text-white">Bonus VIP Perks</span>
                 </div>
 
-                <div className="flex items-center gap-2.5 text-white sm:pl-3 sm:pr-2">
-                  <div className="w-9 h-9 rounded-full bg-[#006F3C]/40 border border-[#006F3C]/60 flex items-center justify-center shrink-0 shadow-inner">
-                    <Ticket className="w-4 h-4 text-white" />
+                <div className="flex items-center gap-2 text-white">
+                  <div className="w-7 h-7 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
+                    <Ticket className="w-3.5 h-3.5 text-white" />
                   </div>
-                  <div className="min-w-0">
-                    <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">Instant Vouchers</span>
-                    <span className="text-[11px] font-medium text-slate-200 block leading-tight">Zero Markup Fees</span>
-                  </div>
+                  <span className="text-xs sm:text-sm font-bold tracking-tight text-white">Instant Vouchers</span>
                 </div>
 
-                <div className="flex items-center gap-2.5 text-white sm:pl-3">
-                  <div className="w-9 h-9 rounded-full bg-[#006F3C]/40 border border-[#006F3C]/60 flex items-center justify-center shrink-0 shadow-inner">
-                    <Headset className="w-4 h-4 text-white" />
+                <div className="flex items-center gap-2 text-white">
+                  <div className="w-7 h-7 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
+                    <Headset className="w-3.5 h-3.5 text-white" />
                   </div>
-                  <div className="min-w-0">
-                    <span className="text-[12px] font-bold tracking-tight text-white block leading-tight">24/7 Deal Desk</span>
-                    <span className="text-[11px] font-medium text-slate-200 block leading-tight">Concierge Support</span>
-                  </div>
+                  <span className="text-xs sm:text-sm font-bold tracking-tight text-white">24/7 Deal Desk</span>
                 </div>
               </div>
             </div>

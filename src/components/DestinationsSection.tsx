@@ -126,22 +126,50 @@ export default function DestinationsSection({ onTriggerSearch, setView }: Destin
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-14 pb-24 sm:pb-28 flex flex-col justify-start items-start h-full text-left">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start w-full">
-            <div className="lg:col-span-8 space-y-3 text-left">
+            <div className="lg:col-span-10 space-y-4 text-left">
               <div>
-                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#006F3C]/80 border border-[#006F3C]/70 text-white text-xs font-bold backdrop-blur-md shadow-md">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/60 border border-white/20 text-white text-xs font-semibold backdrop-blur-md shadow-md">
                   <Compass className="w-3.5 h-3.5 text-white shrink-0" />
                   <span className="tracking-tight text-white font-medium">Explore Heaven on Earth</span>
                 </div>
               </div>
 
-              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl xl:text-6xl font-extrabold text-white tracking-tight leading-[1.12] drop-shadow-md">
-                Breathtaking Destinations in <br />
-                <span className="text-[#006F3C] font-black">Gilgit</span><br />
-                <span className="text-[#006F3C] font-black">Baltistan</span>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-[1.15] drop-shadow-md">
+                Breathtaking Destinations in <span className="text-[#00A651] font-black">Gilgit Baltistan</span>
               </h1>
-              <p className="text-slate-100/95 text-sm sm:text-base md:text-lg font-medium max-w-xl leading-relaxed drop-shadow-xs">
+              <p className="text-slate-100/95 text-xs sm:text-sm md:text-base font-medium max-w-2xl leading-relaxed drop-shadow-xs">
                 From the turquoise waters of Attabad Lake to the infinite plains of Deosai and ancient royal fort palaces.
               </p>
+
+              <div className="flex flex-wrap items-center gap-4 sm:gap-6 pt-4 text-white" id="dest-trust-factors">
+                <div className="flex items-center gap-2 text-white">
+                  <div className="w-7 h-7 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
+                    <Compass className="w-3.5 h-3.5 text-white" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-bold tracking-tight text-white">Top Alpine Valleys</span>
+                </div>
+
+                <div className="flex items-center gap-2 text-white">
+                  <div className="w-7 h-7 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
+                    <MapPin className="w-3.5 h-3.5 text-white" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-bold tracking-tight text-white">Historical Forts</span>
+                </div>
+
+                <div className="flex items-center gap-2 text-white">
+                  <div className="w-7 h-7 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
+                    <Star className="w-3.5 h-3.5 text-white" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-bold tracking-tight text-white">Turquoise Glacial Lakes</span>
+                </div>
+
+                <div className="flex items-center gap-2 text-white">
+                  <div className="w-7 h-7 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
+                    <ShieldCheck className="w-3.5 h-3.5 text-white" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-bold tracking-tight text-white">Verified Local Spots</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
