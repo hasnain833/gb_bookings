@@ -158,7 +158,7 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
     <div className="space-y-12 pb-20 text-left" id="cars-page-container">
       
       {/* 1. Full-Bleed Hero Banner matching Homepage ratios */}
-      <section className="relative -mx-4 sm:-mx-6 lg:-mx-8 -mt-8 md:-mt-12 overflow-hidden min-h-[500px] lg:min-h-[540px] shadow-2xl" id="car-hero-banner">
+      <section className="relative w-screen left-1/2 -translate-x-1/2 -mt-8 md:-mt-12 overflow-hidden min-h-[500px] lg:min-h-[540px] shadow-2xl" id="car-hero-banner">
         <div className="absolute inset-0 z-0">
           <img 
             src="https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=2000&q=80" 

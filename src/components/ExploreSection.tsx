@@ -346,7 +346,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
     <div id="explore-section" className="space-y-12 pb-20">
       
       {/* 1. Full-Bleed Sweeping Hero Section matching reference image */}
-      <section className="relative -mx-4 sm:-mx-6 lg:-mx-8 -mt-8 md:-mt-12 overflow-hidden min-h-[500px] lg:min-h-[540px] shadow-2xl" id="hero-banner">
+      <section className="relative w-screen left-1/2 -translate-x-1/2 -mt-8 md:-mt-12 overflow-hidden min-h-[500px] lg:min-h-[540px] shadow-2xl" id="hero-banner">
         {/* Sweeping Panoramic Mountain Background spanning edge-to-edge till the screen ends */}
         <div className="absolute inset-0 z-0">
           <img 
