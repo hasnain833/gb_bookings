@@ -151,7 +151,7 @@ export default function ToursSection({ onSelectListing, onTriggerSearch }: Tours
     <div className="space-y-12 pb-20 text-left" id="tours-page-container">
       
       {/* 1. Full-Bleed Hero Banner matching Homepage ratios */}
-      <section className="relative w-screen left-1/2 -translate-x-1/2 -mt-8 md:-mt-12 overflow-hidden min-h-[500px] lg:min-h-[540px] shadow-2xl" id="tour-hero-banner">
+      <section className="relative w-screen left-1/2 -translate-x-1/2 -mt-8 md:-mt-12 overflow-hidden min-h-[300px] sm:min-h-[330px] lg:min-h-[350px] shadow-xl" id="tour-hero-banner">
         <div className="absolute inset-0 z-0">
           <img 
             src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=2000&q=80" 
@@ -165,50 +165,50 @@ export default function ToursSection({ onSelectListing, onTriggerSearch }: Tours
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/20" />
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-14 pb-24 sm:pb-28 flex flex-col justify-start items-start h-full text-left">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start w-full">
-            <div className="lg:col-span-10 space-y-4 text-left">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 pb-16 sm:pb-18 flex flex-col justify-start items-start h-full text-left">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start w-full">
+            <div className="lg:col-span-10 space-y-2.5 text-left">
               <div>
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/60 border border-white/20 text-white text-xs font-semibold backdrop-blur-md shadow-md">
-                  <TourIcon className="w-3.5 h-3.5 text-white shrink-0" />
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/60 border border-white/20 text-white text-[11px] font-semibold backdrop-blur-md shadow-md">
+                  <TourIcon className="w-3 h-3 text-white shrink-0" />
                   <span className="tracking-tight text-white font-medium">All-Inclusive Tailored Mountain Expeditions</span>
                 </div>
               </div>
 
-              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-[1.15] drop-shadow-md">
+              <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-3xl font-extrabold text-white tracking-tight leading-snug drop-shadow-md">
                 Guided Tour Packages in <span className="text-[#00A651] font-black">Gilgit Baltistan</span>
               </h1>
-              <p className="text-slate-100/95 text-xs sm:text-sm md:text-base font-medium max-w-2xl leading-relaxed drop-shadow-xs">
+              <p className="text-slate-100/95 text-xs sm:text-sm font-medium max-w-xl leading-relaxed drop-shadow-xs">
                 Handcrafted itineraries with stays at luxury resorts, private 4x4 Prado transportation, expert local guides &amp; fort entry permits included.
               </p>
 
-              <div className="flex flex-wrap items-center gap-4 sm:gap-6 pt-4 text-white" id="tour-trust-factors">
-                <div className="flex items-center gap-2 text-white">
-                  <div className="w-7 h-7 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
-                    <ShieldCheck className="w-3.5 h-3.5 text-white" />
+              <div className="flex flex-wrap items-center gap-3 sm:gap-5 pt-1 text-white" id="tour-trust-factors">
+                <div className="flex items-center gap-1.5 text-white">
+                  <div className="w-6 h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
+                    <ShieldCheck className="w-3 h-3 text-white" />
                   </div>
-                  <span className="text-xs sm:text-sm font-bold tracking-tight text-white">All-Inclusive</span>
+                  <span className="text-[11px] sm:text-xs font-bold tracking-tight text-white">All-Inclusive</span>
                 </div>
 
-                <div className="flex items-center gap-2 text-white">
-                  <div className="w-7 h-7 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
-                    <User className="w-3.5 h-3.5 text-white" />
+                <div className="flex items-center gap-1.5 text-white">
+                  <div className="w-6 h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
+                    <User className="w-3 h-3 text-white" />
                   </div>
-                  <span className="text-xs sm:text-sm font-bold tracking-tight text-white">Licensed Local Guides</span>
+                  <span className="text-[11px] sm:text-xs font-bold tracking-tight text-white">Licensed Local Guides</span>
                 </div>
 
-                <div className="flex items-center gap-2 text-white">
-                  <div className="w-7 h-7 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
-                    <Award className="w-3.5 h-3.5 text-white" />
+                <div className="flex items-center gap-1.5 text-white">
+                  <div className="w-6 h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
+                    <Award className="w-3 h-3 text-white" />
                   </div>
-                  <span className="text-xs sm:text-sm font-bold tracking-tight text-white">Luxury Stays &amp; Meals</span>
+                  <span className="text-[11px] sm:text-xs font-bold tracking-tight text-white">Luxury Stays &amp; Meals</span>
                 </div>
 
-                <div className="flex items-center gap-2 text-white">
-                  <div className="w-7 h-7 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
-                    <Headset className="w-3.5 h-3.5 text-white" />
+                <div className="flex items-center gap-1.5 text-white">
+                  <div className="w-6 h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
+                    <Headset className="w-3 h-3 text-white" />
                   </div>
-                  <span className="text-xs sm:text-sm font-bold tracking-tight text-white">24/7 Trip Manager</span>
+                  <span className="text-[11px] sm:text-xs font-bold tracking-tight text-white">24/7 Trip Manager</span>
                 </div>
               </div>
             </div>
@@ -217,7 +217,7 @@ export default function ToursSection({ onSelectListing, onTriggerSearch }: Tours
       </section>
 
       {/* 2. Overlapping Booking Console */}
-      <section className="-mt-20 sm:-mt-24 relative z-20 w-full" id="tour-search-console">
+      <section className="-mt-12 sm:-mt-14 relative z-20 w-full" id="tour-search-console">
         <div className="bg-white rounded-3xl border border-[#E2E8F0] shadow-2xl overflow-visible">
           <div className="flex border-b border-[#F1F5F9] bg-[#FAFAFA] px-6 sm:px-8 gap-4 sm:gap-8 overflow-x-auto scrollbar-none rounded-t-3xl">
             <div className="flex items-center gap-2.5 py-4 px-1 border-b-2 border-[#006F3C] text-[#006F3C] font-bold text-[13px] uppercase tracking-wider">

@@ -346,7 +346,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
     <div id="explore-section" className="space-y-12 pb-20">
       
       {/* 1. Full-Bleed Sweeping Hero Section matching reference image */}
-      <section className="relative w-screen left-1/2 -translate-x-1/2 -mt-8 md:-mt-12 overflow-hidden min-h-[500px] lg:min-h-[540px] shadow-2xl" id="hero-banner">
+      <section className="relative w-screen left-1/2 -translate-x-1/2 -mt-8 md:-mt-12 overflow-hidden min-h-[300px] sm:min-h-[330px] lg:min-h-[350px] shadow-xl" id="hero-banner">
         {/* Sweeping Panoramic Mountain Background spanning edge-to-edge till the screen ends */}
         <div className="absolute inset-0 z-0">
           <img 
@@ -362,90 +362,90 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
         </div>
 
         {/* Inner Left-Aligned Content Wrapper */}
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-14 pb-24 sm:pb-28 flex flex-col justify-start items-start h-full text-left">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 pb-16 sm:pb-18 flex flex-col justify-start items-start h-full text-left">
           {/* Content & Promo Card split layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start w-full">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center w-full">
             
             {/* Left Hero Texts */}
-            <div className="lg:col-span-7 space-y-3.5 text-left" id="hero-left-content">
+            <div className="lg:col-span-7 space-y-2.5 text-left" id="hero-left-content">
               {/* Top/Badge element matching image */}
               <div>
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/60 border border-white/20 text-white text-xs font-semibold backdrop-blur-md shadow-md">
-                  <MapPin className="w-3.5 h-3.5 text-white shrink-0" />
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/60 border border-white/20 text-white text-[11px] font-semibold backdrop-blur-md shadow-md">
+                  <MapPin className="w-3 h-3 text-white shrink-0" />
                   <span className="tracking-tight text-white font-medium">{t('hero.badge')}</span>
                 </div>
               </div>
 
-              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-[1.15] drop-shadow-md">
+              <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-3xl font-extrabold text-white tracking-tight leading-snug drop-shadow-md">
                 {t('hero.title_part1')} {t('hero.title_part2')} <span className="text-[#00A651] font-black">Gilgit Baltistan</span>
               </h1>
-              <p className="text-slate-100/95 text-xs sm:text-sm md:text-base font-medium max-w-2xl leading-relaxed drop-shadow-xs">
+              <p className="text-slate-100/95 text-xs sm:text-sm font-medium max-w-xl leading-relaxed drop-shadow-xs">
                 {t('hero.subtitle')}
               </p>
 
               {/* Row of 4 Hero trust factors matching screenshot style */}
-              <div className="flex flex-wrap items-center gap-4 sm:gap-6 pt-3 text-white" id="hero-trust-factors">
-                <div className="flex items-center gap-2 text-white">
-                  <div className="w-7 h-7 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
-                    <ShieldCheck className="w-3.5 h-3.5 text-white" />
+              <div className="flex flex-wrap items-center gap-3 sm:gap-5 pt-1 text-white" id="hero-trust-factors">
+                <div className="flex items-center gap-1.5 text-white">
+                  <div className="w-6 h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
+                    <ShieldCheck className="w-3 h-3 text-white" />
                   </div>
-                  <span className="text-xs sm:text-sm font-bold tracking-tight text-white">Best Price Guarantee</span>
+                  <span className="text-[11px] sm:text-xs font-bold tracking-tight text-white">Best Price Guarantee</span>
                 </div>
 
-                <div className="flex items-center gap-2 text-white">
-                  <div className="w-7 h-7 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
-                    <Calendar className="w-3.5 h-3.5 text-white" />
+                <div className="flex items-center gap-1.5 text-white">
+                  <div className="w-6 h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
+                    <Calendar className="w-3 h-3 text-white" />
                   </div>
-                  <span className="text-xs sm:text-sm font-bold tracking-tight text-white">Free Cancellation</span>
+                  <span className="text-[11px] sm:text-xs font-bold tracking-tight text-white">Free Cancellation</span>
                 </div>
 
-                <div className="flex items-center gap-2 text-white">
-                  <div className="w-7 h-7 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
-                    <Headset className="w-3.5 h-3.5 text-white" />
+                <div className="flex items-center gap-1.5 text-white">
+                  <div className="w-6 h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
+                    <Headset className="w-3 h-3 text-white" />
                   </div>
-                  <span className="text-xs sm:text-sm font-bold tracking-tight text-white">24/7 Support</span>
+                  <span className="text-[11px] sm:text-xs font-bold tracking-tight text-white">24/7 Support</span>
                 </div>
 
-                <div className="flex items-center gap-2 text-white">
-                  <div className="w-7 h-7 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
-                    <Star className="w-3.5 h-3.5 text-white" />
+                <div className="flex items-center gap-1.5 text-white">
+                  <div className="w-6 h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
+                    <Star className="w-3 h-3 text-white" />
                   </div>
-                  <span className="text-xs sm:text-sm font-bold tracking-tight text-white">Trusted Stays</span>
+                  <span className="text-[11px] sm:text-xs font-bold tracking-tight text-white">Trusted Stays</span>
                 </div>
               </div>
             </div>
 
             {/* Right Promo Card (UP TO 40% OFF) matching the image */}
             <div className="lg:col-span-5" id="hero-promo-card">
-              <div className="bg-gradient-to-br from-[#006F3C] via-[#007D44] to-[#003D21] rounded-3xl p-5 border border-[#006F3C]/40 text-white shadow-2xl relative overflow-hidden flex justify-between gap-4 max-w-md mx-auto lg:ml-auto">
+              <div className="bg-gradient-to-br from-[#006F3C] via-[#007D44] to-[#003D21] rounded-2xl p-3.5 border border-[#006F3C]/40 text-white shadow-xl relative overflow-hidden flex justify-between gap-3 max-w-sm mx-auto lg:ml-auto">
                 
                 {/* Promo details */}
-                <div className="flex flex-col justify-between z-10 py-1 space-y-3">
+                <div className="flex flex-col justify-between z-10 py-0.5 space-y-2">
                   <div>
-                    <span className="inline-block bg-gradient-to-r from-[#FF7D29] to-[#EA580C] text-white text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider mb-2.5 shadow-sm">
+                    <span className="inline-block bg-gradient-to-r from-[#FF7D29] to-[#EA580C] text-white text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider mb-1.5 shadow-sm">
                       {t('hero.promo.tag')}
                     </span>
-                    <p className="text-white/80 text-[11px] font-bold tracking-widest uppercase">{t('hero.promo.upto')}</p>
-                    <h3 className="text-4xl font-black text-white tracking-tighter leading-none mt-0.5">{t('hero.promo.discount')}</h3>
-                    <p className="text-white/80 text-xs font-semibold mt-1.5">{t('hero.promo.on_hotels')}</p>
+                    <p className="text-white/80 text-[10px] font-bold tracking-widest uppercase">{t('hero.promo.upto')}</p>
+                    <h3 className="text-2xl font-black text-white tracking-tighter leading-none mt-0.5">{t('hero.promo.discount')}</h3>
+                    <p className="text-white/80 text-[11px] font-semibold mt-1">{t('hero.promo.on_hotels')}</p>
                   </div>
                   
                   {/* Styled Button inside the Deal Card */}
                   <button 
                     onClick={() => setView('offers')}
-                    className="bg-[#002816]/90 hover:bg-[#006F3C] border border-[#006F3C]/50 text-white px-4 py-2 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-md transition-all cursor-pointer hover:scale-[1.02] active:scale-95 group w-fit"
+                    className="bg-[#002816]/90 hover:bg-[#006F3C] border border-[#006F3C]/50 text-white px-3 py-1.5 rounded-lg text-[11px] font-bold inline-flex items-center gap-1 shadow-sm transition-all cursor-pointer hover:scale-[1.02] active:scale-95 group w-fit"
                   >
                     <span>Explore Deals</span>
-                    <ChevronRight className="w-3.5 h-3.5 text-white/90 transition-transform group-hover:translate-x-0.5" />
+                    <ChevronRight className="w-3 h-3 text-white/90 transition-transform group-hover:translate-x-0.5" />
                   </button>
                 </div>
 
                 {/* Promo Chalet image with rounded overlay */}
-                <div className="relative w-40 h-36 shrink-0 rounded-2xl overflow-hidden shadow-lg border border-white/15 z-10 self-center">
+                <div className="relative w-32 h-28 shrink-0 rounded-xl overflow-hidden shadow-md border border-white/15 z-10 self-center">
                   <img 
                     src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=400&q=80" 
                     alt="Promo alpine chalet" 
-                    className="w-full h-full object-cover rounded-2xl"
+                    className="w-full h-full object-cover rounded-xl"
                     referrerPolicy="no-referrer"
                     onError={handleImageError}
                   />
@@ -453,7 +453,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                 </div>
 
                 {/* Ambient green radial lights */}
-                <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-[#006F3C]/20 rounded-full blur-2xl pointer-events-none" />
+                <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-[#006F3C]/20 rounded-full blur-xl pointer-events-none" />
               </div>
             </div>
 
@@ -462,7 +462,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
       </section>
 
       {/* 2. Overlapping Booking / Search Widget Console */}
-      <section className="-mt-20 sm:-mt-24 relative z-20 w-full" id="search-console">
+      <section className="-mt-12 sm:-mt-14 relative z-20 w-full" id="search-console">
         <div className="bg-white rounded-3xl border border-[#E2E8F0] shadow-2xl overflow-visible">
           
           {/* Tabs header matching the image: Hotels, Homestays, Cars, Tours */}

@@ -110,7 +110,7 @@ export default function DestinationsSection({ onTriggerSearch, setView }: Destin
     <div className="space-y-12 pb-20 text-left" id="destinations-page-container">
       
       {/* 1. Full-Bleed Hero Banner matching Homepage ratios */}
-      <section className="relative w-screen left-1/2 -translate-x-1/2 -mt-8 md:-mt-12 overflow-hidden min-h-[500px] lg:min-h-[540px] shadow-2xl" id="dest-hero-banner">
+      <section className="relative w-screen left-1/2 -translate-x-1/2 -mt-8 md:-mt-12 overflow-hidden min-h-[300px] sm:min-h-[330px] lg:min-h-[350px] shadow-xl" id="dest-hero-banner">
         <div className="absolute inset-0 z-0">
           <img 
             src="https://images.unsplash.com/photo-1542718610-a1d656d1884c?auto=format&fit=crop&w=2000&q=80" 
@@ -124,50 +124,50 @@ export default function DestinationsSection({ onTriggerSearch, setView }: Destin
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/20" />
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-14 pb-24 sm:pb-28 flex flex-col justify-start items-start h-full text-left">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start w-full">
-            <div className="lg:col-span-10 space-y-4 text-left">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 pb-16 sm:pb-18 flex flex-col justify-start items-start h-full text-left">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start w-full">
+            <div className="lg:col-span-10 space-y-2.5 text-left">
               <div>
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/60 border border-white/20 text-white text-xs font-semibold backdrop-blur-md shadow-md">
-                  <Compass className="w-3.5 h-3.5 text-white shrink-0" />
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/60 border border-white/20 text-white text-[11px] font-semibold backdrop-blur-md shadow-md">
+                  <Compass className="w-3 h-3 text-white shrink-0" />
                   <span className="tracking-tight text-white font-medium">Explore Heaven on Earth</span>
                 </div>
               </div>
 
-              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-[1.15] drop-shadow-md">
+              <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-3xl font-extrabold text-white tracking-tight leading-snug drop-shadow-md">
                 Breathtaking Destinations in <span className="text-[#00A651] font-black">Gilgit Baltistan</span>
               </h1>
-              <p className="text-slate-100/95 text-xs sm:text-sm md:text-base font-medium max-w-2xl leading-relaxed drop-shadow-xs">
+              <p className="text-slate-100/95 text-xs sm:text-sm font-medium max-w-xl leading-relaxed drop-shadow-xs">
                 From the turquoise waters of Attabad Lake to the infinite plains of Deosai and ancient royal fort palaces.
               </p>
 
-              <div className="flex flex-wrap items-center gap-4 sm:gap-6 pt-4 text-white" id="dest-trust-factors">
-                <div className="flex items-center gap-2 text-white">
-                  <div className="w-7 h-7 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
-                    <Compass className="w-3.5 h-3.5 text-white" />
+              <div className="flex flex-wrap items-center gap-3 sm:gap-5 pt-1 text-white" id="dest-trust-factors">
+                <div className="flex items-center gap-1.5 text-white">
+                  <div className="w-6 h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
+                    <Compass className="w-3 h-3 text-white" />
                   </div>
-                  <span className="text-xs sm:text-sm font-bold tracking-tight text-white">Top Alpine Valleys</span>
+                  <span className="text-[11px] sm:text-xs font-bold tracking-tight text-white">Top Alpine Valleys</span>
                 </div>
 
-                <div className="flex items-center gap-2 text-white">
-                  <div className="w-7 h-7 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
-                    <MapPin className="w-3.5 h-3.5 text-white" />
+                <div className="flex items-center gap-1.5 text-white">
+                  <div className="w-6 h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
+                    <MapPin className="w-3 h-3 text-white" />
                   </div>
-                  <span className="text-xs sm:text-sm font-bold tracking-tight text-white">Historical Forts</span>
+                  <span className="text-[11px] sm:text-xs font-bold tracking-tight text-white">Historical Forts</span>
                 </div>
 
-                <div className="flex items-center gap-2 text-white">
-                  <div className="w-7 h-7 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
-                    <Star className="w-3.5 h-3.5 text-white" />
+                <div className="flex items-center gap-1.5 text-white">
+                  <div className="w-6 h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
+                    <Star className="w-3 h-3 text-white" />
                   </div>
-                  <span className="text-xs sm:text-sm font-bold tracking-tight text-white">Turquoise Glacial Lakes</span>
+                  <span className="text-[11px] sm:text-xs font-bold tracking-tight text-white">Turquoise Glacial Lakes</span>
                 </div>
 
-                <div className="flex items-center gap-2 text-white">
-                  <div className="w-7 h-7 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
-                    <ShieldCheck className="w-3.5 h-3.5 text-white" />
+                <div className="flex items-center gap-1.5 text-white">
+                  <div className="w-6 h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
+                    <ShieldCheck className="w-3 h-3 text-white" />
                   </div>
-                  <span className="text-xs sm:text-sm font-bold tracking-tight text-white">Verified Local Spots</span>
+                  <span className="text-[11px] sm:text-xs font-bold tracking-tight text-white">Verified Local Spots</span>
                 </div>
               </div>
             </div>
@@ -176,7 +176,7 @@ export default function DestinationsSection({ onTriggerSearch, setView }: Destin
       </section>
 
       {/* 2. Overlapping Search & Filter Console */}
-      <section className="-mt-20 sm:-mt-24 relative z-20 w-full" id="dest-search-console">
+      <section className="-mt-12 sm:-mt-14 relative z-20 w-full" id="dest-search-console">
         <div className="bg-white rounded-3xl border border-[#E2E8F0] shadow-2xl p-4 sm:p-6">
           <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
             
