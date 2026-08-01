@@ -110,7 +110,7 @@ export default function DestinationsSection({ onTriggerSearch, setView }: Destin
     <div className="space-y-12 pb-20 text-left" id="destinations-page-container">
       
       {/* 1. Full-Bleed Hero Banner matching Homepage ratios */}
-      <section className="relative -mx-4 sm:-mx-8 lg:-mx-12 xl:-mx-16 -mt-8 md:-mt-12 overflow-hidden min-h-[500px] lg:min-h-[540px] shadow-2xl" id="dest-hero-banner">
+      <section className="relative -mx-4 sm:-mx-6 lg:-mx-8 -mt-8 md:-mt-12 overflow-hidden min-h-[500px] lg:min-h-[540px] shadow-2xl" id="dest-hero-banner">
         <div className="absolute inset-0 z-0">
           <img 
             src="https://images.unsplash.com/photo-1542718610-a1d656d1884c?auto=format&fit=crop&w=2000&q=80" 
@@ -124,9 +124,9 @@ export default function DestinationsSection({ onTriggerSearch, setView }: Destin
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/20" />
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-10 lg:px-12 pt-12 sm:pt-16 pb-28 sm:pb-32 flex flex-col justify-end h-full">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end">
-            <div className="lg:col-span-12 space-y-3 text-left">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-14 pb-24 sm:pb-28 flex flex-col justify-start items-start h-full text-left">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start w-full">
+            <div className="lg:col-span-8 space-y-3 text-left">
               <div>
                 <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#006F3C]/80 border border-[#006F3C]/70 text-white text-xs font-bold backdrop-blur-md shadow-md">
                   <Compass className="w-3.5 h-3.5 text-white shrink-0" />
@@ -136,7 +136,8 @@ export default function DestinationsSection({ onTriggerSearch, setView }: Destin
 
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl xl:text-6xl font-extrabold text-white tracking-tight leading-[1.12] drop-shadow-md">
                 Breathtaking Destinations in <br />
-                <span className="text-[#006F3C] font-black">Gilgit Baltistan</span>
+                <span className="text-[#006F3C] font-black">Gilgit</span><br />
+                <span className="text-[#006F3C] font-black">Baltistan</span>
               </h1>
               <p className="text-slate-100/95 text-sm sm:text-base md:text-lg font-medium max-w-xl leading-relaxed drop-shadow-xs">
                 From the turquoise waters of Attabad Lake to the infinite plains of Deosai and ancient royal fort palaces.
@@ -147,20 +148,29 @@ export default function DestinationsSection({ onTriggerSearch, setView }: Destin
       </section>
 
       {/* 2. Overlapping Search & Filter Console */}
-      <section className="-mt-20 sm:-mt-24 relative z-20 max-w-7xl mx-auto px-2 sm:px-4" id="dest-search-console">
+      <section className="-mt-20 sm:-mt-24 relative z-20 w-full" id="dest-search-console">
         <div className="bg-white rounded-3xl border border-[#E2E8F0] shadow-2xl p-4 sm:p-6">
           <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
             
-            {/* Search Input */}
-            <div className="relative w-full md:w-96">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search valley, fort, lake or region..."
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-3 text-xs font-bold text-slate-800 focus:outline-none focus:border-[#006F3C]"
-              />
+            {/* Search Input with Search Destinations Button */}
+            <div className="relative w-full md:w-auto flex-1 flex flex-col sm:flex-row gap-2.5 items-stretch">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search valley, fort, lake or region..."
+                  className="w-full h-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-3 text-xs font-bold text-slate-800 focus:outline-none focus:border-[#006F3C]"
+                />
+              </div>
+              <button
+                type="button"
+                className="bg-[#006F3C] hover:bg-[#005C32] text-white font-extrabold text-xs px-5 py-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 shrink-0 shadow-sm"
+              >
+                <Search className="w-4 h-4 stroke-[2.5]" />
+                <span className="whitespace-nowrap font-extrabold text-[13px]">Search Destinations</span>
+              </button>
             </div>
 
             {/* Region Filter Buttons */}

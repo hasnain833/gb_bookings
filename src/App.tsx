@@ -15,6 +15,7 @@ import UserDashboard from './components/UserDashboard';
 import VendorDashboard from './components/VendorDashboard';
 import AiPlanner from './components/AiPlanner';
 import SupportCentre from './components/SupportCentre';
+import AuthModal from './components/AuthModal';
 import Footer from './components/Footer';
 import { Listing, Booking } from './types';
 import { useLanguage } from './LanguageContext';
@@ -46,7 +47,31 @@ export default function App() {
     withDriver?: boolean;
   } | null>(null);
 
+  // Auth state
+  const [isLoggedIn, setIsLoggedIn] = useState(true);
   const [userEmail, setUserEmail] = useState('ibtesaam0@gmail.com');
+  const [userName, setUserName] = useState('Ibtesaam Raza');
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<'signin' | 'register'>('signin');
+
+  const handleOpenAuthModal = (mode: 'signin' | 'register' = 'signin') => {
+    setAuthModalMode(mode);
+    setShowAuthModal(true);
+  };
+
+  const handleSuccessLogin = (email: string, name?: string) => {
+    setUserEmail(email);
+    if (name) setUserName(name);
+    setIsLoggedIn(true);
+    setView('user-dashboard');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSignOut = () => {
+    setIsLoggedIn(false);
+    setUserEmail('');
+    setUserName('');
+  };
 
   useEffect(() => {
     const handleNavToType = (e: any) => {
@@ -121,16 +146,20 @@ export default function App() {
         } 
         setView={handleNavigation} 
         userEmail={userEmail}
+        userName={userName}
+        isLoggedIn={isLoggedIn}
         notificationsCount={2}
         unreadNotifications={true}
         onOpenNotifications={() => {
           setView('user-dashboard');
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
+        onOpenAuthModal={handleOpenAuthModal}
+        onSignOut={handleSignOut}
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 w-full mx-auto px-4 sm:px-8 lg:px-12 xl:px-16 pt-20 sm:pt-24 md:pt-28 pb-8 md:pb-12">
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 md:pt-28 pb-8 md:pb-12">
         {view === 'explore' && (
           <ExploreSection 
             setView={handleNavigation}
@@ -284,6 +313,14 @@ export default function App() {
 
       {/* Footer Details */}
       <Footer onNavigate={handleNavigation} />
+
+      {/* Authentication Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        initialMode={authModalMode}
+        onSuccessLogin={handleSuccessLogin}
+      />
 
     </div>
   );

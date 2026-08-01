@@ -278,7 +278,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
       <div id="listings-search-view" className="space-y-10 pb-16 text-left -mt-4">
         
         {/* 1. GORGEOUS MOUNTAIN HERO BLOCK WITH PARALLAX SCENIC ROAD & PREMIUM SUV */}
-        <div className="relative rounded-3xl overflow-hidden bg-slate-900 border border-slate-800 shadow-2xl min-h-[540px] md:min-h-[580px] flex flex-col justify-between p-6 sm:p-10 lg:p-12">
+        <div className="relative rounded-3xl overflow-hidden bg-slate-900 border border-slate-800 shadow-2xl min-h-[480px] flex flex-col justify-start items-start p-6 sm:p-10 lg:p-12 text-left">
           {/* Panoramic Karakoram Mountain Background */}
           <div className="absolute inset-0 z-0">
             <img 
@@ -291,19 +291,22 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
           </div>
 
           {/* Hero Content Grid */}
-          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center flex-1">
+          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start w-full flex-1">
             {/* Left Content Column */}
             <div className="lg:col-span-7 space-y-3">
               {/* Reliable Cars Pill */}
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full text-xs font-semibold text-white border border-white/20 uppercase tracking-widest">
-                <Car className="w-3.5 h-3.5 text-white" />
-                <span>Reliable Cars. Unforgettable Journeys.</span>
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full text-xs font-semibold text-white border border-white/20 uppercase tracking-widest">
+                  <Car className="w-3.5 h-3.5 text-white" />
+                  <span>Reliable Cars. Unforgettable Journeys.</span>
+                </div>
               </div>
 
               {/* Find Your Perfect Ride Heading */}
               <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white tracking-tight leading-tight">
                 Find Your Perfect Ride in <br />
-                <span className="text-[#006F3C] drop-shadow-sm font-black">Gilgit Baltistan</span>
+                <span className="text-[#006F3C] drop-shadow-sm font-black">Gilgit</span><br />
+                <span className="text-[#006F3C] drop-shadow-sm font-black">Baltistan</span>
               </h1>
 
               {/* Subheading */}
@@ -312,7 +315,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
               </p>
 
               {/* 5 Small Hero Badges */}
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-2">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-2 max-w-xl sm:max-w-2xl">
                 {[
                   { label: 'Verified Vehicles', icon: ShieldCheck },
                   { label: 'Best Price Guarantee', icon: Tag },
@@ -320,7 +323,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                   { label: 'Instant Booking', icon: Zap },
                   { label: '24/7 Support', icon: Headphones }
                 ].map((item, idx) => (
-                  <div key={idx} className="flex flex-col items-center sm:items-start text-center sm:text-left space-y-1 bg-slate-950/30 backdrop-blur-xs p-2 rounded-xl border border-white/5">
+                  <div key={idx} className="flex flex-col items-start text-left space-y-1 bg-slate-950/30 backdrop-blur-xs p-2 rounded-xl border border-white/5">
                     <div className="w-7 h-7 rounded-full bg-[#006F3C]/40 border border-[#006F3C]/60 flex items-center justify-center text-white">
                       <item.icon className="w-4 h-4" />
                     </div>
@@ -1028,7 +1031,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
       <div id="listings-search-view" className="space-y-12 pb-16 text-left -mt-4 animate-fadeIn">
         
         {/* 1. GORGEOUS MOUNTAIN HERO BLOCK WITH Scenic Cabin */}
-        <div className="relative rounded-3xl overflow-hidden bg-slate-900 border border-slate-800 shadow-2xl min-h-[520px] lg:min-h-[580px] flex flex-col justify-between p-6 sm:p-10 lg:p-12">
+        <div className="relative rounded-3xl overflow-hidden bg-slate-900 border border-slate-800 shadow-2xl min-h-[480px] flex flex-col justify-start items-start p-6 sm:p-10 lg:p-12 text-left">
           {/* Panoramic cabin mountain background from image */}
           <div className="absolute inset-0 z-0">
             <img 
@@ -1042,19 +1045,22 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
           </div>
 
           {/* Hero Content Grid */}
-          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center flex-1">
+          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start w-full flex-1">
             {/* Left Content Column */}
             <div className="lg:col-span-8 space-y-3">
               {/* Stay Local. Feel at Home Pill */}
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-[#006F3C]/60 backdrop-blur-md rounded-full text-xs font-semibold text-white border border-[#006F3C]/40 uppercase tracking-widest">
-                <Home className="w-3.5 h-3.5 text-white" />
-                <span>Stay Local. Feel at Home.</span>
+              <div>
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-[#006F3C]/60 backdrop-blur-md rounded-full text-xs font-semibold text-white border border-[#006F3C]/40 uppercase tracking-widest">
+                  <Home className="w-3.5 h-3.5 text-white" />
+                  <span>Stay Local. Feel at Home.</span>
+                </div>
               </div>
 
               {/* Authentic Homestays in Gilgit Baltistan Heading */}
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-tight">
                 Authentic Homestays in <br />
-                <span className="text-[#006F3C] drop-shadow-sm font-black">Gilgit Baltistan</span>
+                <span className="text-[#006F3C] drop-shadow-sm font-black">Gilgit</span><br />
+                <span className="text-[#006F3C] drop-shadow-sm font-black">Baltistan</span>
               </h1>
 
               {/* Subheading */}
@@ -1063,7 +1069,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
               </p>
 
               {/* 4 Bullet Reassurance Items from the Image */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-white/10" id="homestays-hero-bullets">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-white/10 max-w-xl sm:max-w-2xl" id="homestays-hero-bullets">
                 {[
                   { label: 'Verified Homestays', icon: ShieldCheck },
                   { label: 'Local Hosts', icon: Users },
@@ -4094,8 +4100,8 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
 
       {/* Frequently Asked Questions (FAQ) Accordion - Only shown for Tours */}
       {type === 'tour' && (
-        <section className="max-w-3xl mx-auto space-y-6 pt-12 border-t border-slate-200 mt-12 pb-6" id="faq-section">
-          <div className="text-center space-y-2">
+        <section className="max-w-3xl space-y-6 pt-12 border-t border-slate-200 mt-12 pb-6 text-left" id="faq-section">
+          <div className="text-left space-y-2">
             <h3 className="text-xl font-bold tracking-tight text-slate-900 uppercase">
               {isRtl ? 'عام سوالات' : 'Got Questions?'}
             </h3>

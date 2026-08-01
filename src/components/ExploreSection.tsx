@@ -346,7 +346,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
     <div id="explore-section" className="space-y-12 pb-20">
       
       {/* 1. Full-Bleed Sweeping Hero Section matching reference image */}
-      <section className="relative -mx-4 sm:-mx-8 lg:-mx-12 xl:-mx-16 -mt-8 md:-mt-12 overflow-hidden min-h-[500px] lg:min-h-[540px] shadow-2xl" id="hero-banner">
+      <section className="relative -mx-4 sm:-mx-6 lg:-mx-8 -mt-8 md:-mt-12 overflow-hidden min-h-[500px] lg:min-h-[540px] shadow-2xl" id="hero-banner">
         {/* Sweeping Panoramic Mountain Background spanning edge-to-edge till the screen ends */}
         <div className="absolute inset-0 z-0">
           <img 
@@ -361,10 +361,10 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/20" />
         </div>
 
-        {/* Inner Centered Content Wrapper */}
-        <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-10 lg:px-12 pt-12 sm:pt-16 pb-28 sm:pb-32 flex flex-col justify-end h-full">
+        {/* Inner Left-Aligned Content Wrapper */}
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-14 pb-24 sm:pb-28 flex flex-col justify-start items-start h-full text-left">
           {/* Content & Promo Card split layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start w-full">
             
             {/* Left Hero Texts */}
             <div className="lg:col-span-7 space-y-3 text-left" id="hero-left-content">
@@ -378,14 +378,15 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
 
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl xl:text-6xl font-extrabold text-white tracking-tight leading-[1.12] drop-shadow-md">
                 {t('hero.title_part1')}<br />
-                {t('hero.title_part2')} <span className="text-[#006F3C] font-black">{t('hero.title_highlight')}</span>
+                {t('hero.title_part2')} <span className="text-[#006F3C] font-black">Gilgit</span><br />
+                <span className="text-[#006F3C] font-black">Baltistan</span>
               </h1>
               <p className="text-slate-100/95 text-sm sm:text-base md:text-lg font-medium max-w-xl leading-relaxed drop-shadow-xs">
                 {t('hero.subtitle')}
               </p>
 
               {/* Row of 4 Hero trust factors matching image with subtle dividers */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 pt-6 border-t border-white/15 divide-x-0 sm:divide-x divide-white/15" id="hero-trust-factors">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 pt-6 border-t border-white/15 divide-x-0 sm:divide-x divide-white/15 max-w-xl sm:max-w-2xl" id="hero-trust-factors">
                 <div className="flex items-center gap-2.5 text-white pr-2">
                   <div className="w-9 h-9 rounded-full bg-[#006F3C]/40 border border-[#006F3C]/60 flex items-center justify-center shrink-0 shadow-inner">
                     <ShieldCheck className="w-4 h-4 text-white" />
@@ -475,7 +476,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
       </section>
 
       {/* 2. Overlapping Booking / Search Widget Console */}
-      <section className="-mt-20 sm:-mt-24 relative z-20 max-w-7xl mx-auto px-2 sm:px-4" id="search-console">
+      <section className="-mt-20 sm:-mt-24 relative z-20 w-full" id="search-console">
         <div className="bg-white rounded-3xl border border-[#E2E8F0] shadow-2xl overflow-visible">
           
           {/* Tabs header matching the image: Hotels, Homestays, Cars, Tours */}
@@ -736,7 +737,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                 >
                   <Search className="w-4 h-4 stroke-[2.5] shrink-0" />
                   <span className="whitespace-nowrap font-extrabold text-[14px]">
-                    Search Now
+                    {activeTab === 'hotels' ? 'Search Hotels' : activeTab === 'homestays' ? 'Search Homestays' : activeTab === 'cars' ? 'Search Cars' : activeTab === 'tours' ? 'Search Tours' : 'Search'}
                   </span>
                 </button>
               </div>

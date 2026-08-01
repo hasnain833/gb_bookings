@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronDown, Globe, User, Bell, Bot, CalendarDays, Key, Compass as TourIcon, Sparkles, MessageCircle, Building2, Home, Car, MapPin, Flame } from 'lucide-react';
+import { ChevronDown, Globe, User, Bell, Bot, CalendarDays, Key, Compass as TourIcon, Sparkles, MessageCircle, Building2, Home, Car, MapPin, Flame, LogOut, Heart } from 'lucide-react';
 import { useLanguage } from '../LanguageContext';
 import GBLogo from './GBLogo';
 
@@ -10,7 +10,11 @@ interface NavbarProps {
   notificationsCount: number;
   unreadNotifications: boolean;
   userEmail: string;
+  userName?: string;
+  isLoggedIn: boolean;
   onOpenNotifications: () => void;
+  onOpenAuthModal: (mode?: 'signin' | 'register') => void;
+  onSignOut: () => void;
 }
 
 export default function Navbar({
@@ -19,11 +23,21 @@ export default function Navbar({
   notificationsCount,
   unreadNotifications,
   userEmail,
-  onOpenNotifications
+  userName,
+  isLoggedIn,
+  onOpenNotifications,
+  onOpenAuthModal,
+  onSignOut
 }: NavbarProps) {
-   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const { language, requestLanguageChange, t, isRtl } = useLanguage();
+
+  const userInitials = userName 
+    ? userName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+    : (userEmail ? userEmail.substring(0, 2).toUpperCase() : 'US');
+
+  const displayName = userName || (userEmail ? userEmail.split('@')[0] : 'User');
 
   const handleLinkClick = (id: string) => {
     if (id === 'hotels') {
@@ -147,31 +161,101 @@ export default function Navbar({
 
           <div className="hidden sm:block h-6 w-px bg-slate-200 shrink-0"></div>
 
-          {/* Interactive Sign In / Register Buttons with perfect spacing */}
-          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 flex-nowrap">
-            {/* Sign In Button */}
-            <button
-              id="btn-sign-in"
-              onClick={() => {
-                setView('dashboard-user');
-              }}
-              className="border border-[#CBD5E1] hover:border-[#006F3C] text-slate-800 font-bold text-[11px] sm:text-[14px] px-2.5 sm:px-5 py-1.5 sm:py-2.5 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-95 cursor-pointer whitespace-nowrap shrink-0"
-            >
-              {isRtl ? 'لاگ ان' : 'Sign In'}
-            </button>
+          {/* Interactive Sign In / Register Buttons or Logged-in Profile Menu */}
+          {isLoggedIn ? (
+            <div className="relative shrink-0">
+              <button
+                id="btn-user-profile-menu"
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                onBlur={() => setTimeout(() => setShowProfileMenu(false), 200)}
+                className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200/90 py-1.5 px-3 rounded-xl transition-all cursor-pointer hover:border-[#006F3C]/40"
+              >
+                <div className="w-8 h-8 rounded-lg bg-[#006F3C] text-white font-black text-xs flex items-center justify-center shadow-xs shrink-0">
+                  {userInitials}
+                </div>
+                <div className="hidden sm:flex flex-col text-left">
+                  <span className="text-xs font-extrabold text-slate-800 leading-tight max-w-[110px] truncate">
+                    {displayName}
+                  </span>
+                  <span className="text-[10px] font-semibold text-emerald-700 leading-tight">
+                    {isRtl ? 'لاگ ان شدہ' : 'Signed In'}
+                  </span>
+                </div>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+              </button>
 
-            {/* Register Button */}
-            <button
-              id="btn-register"
-              onClick={() => {
-                setView('dashboard-user');
-              }}
-              className="bg-[#006F3C] hover:bg-[#005C32] text-white font-bold text-[11px] sm:text-[14px] px-2.5 sm:px-5 py-1.5 sm:py-2.5 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-95 cursor-pointer flex items-center gap-1 sm:gap-2 shadow-xs whitespace-nowrap shrink-0"
-            >
-              <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 stroke-[2.5]" />
-              <span className="hidden sm:inline">{isRtl ? 'رجسٹر کریں' : 'Register'}</span>
-            </button>
-          </div>
+              {/* Logged-in User Profile Dropdown */}
+              {showProfileMenu && (
+                <div className="absolute right-0 mt-2 w-64 bg-white border border-slate-200/90 rounded-2xl shadow-2xl py-2 z-50 animate-fadeIn text-left" id="nav-profile-dropdown">
+                  <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/60 rounded-t-2xl">
+                    <p className="text-xs font-bold text-slate-900 truncate">{displayName}</p>
+                    <p className="text-[11px] text-slate-500 truncate mt-0.5">{userEmail}</p>
+                    <span className="inline-block mt-1.5 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200/60 text-[10px] font-bold">
+                      Verified Account
+                    </span>
+                  </div>
+
+                  <div className="py-1">
+                    <button
+                      onClick={() => { setView('dashboard-user'); setShowProfileMenu(false); }}
+                      className="w-full text-left px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-[#006F3C] flex items-center gap-2.5 cursor-pointer"
+                    >
+                      <User className="w-4 h-4 text-slate-500" />
+                      <span>{t('nav.user_dashboard')}</span>
+                    </button>
+                    <button
+                      onClick={() => { setView('dashboard-user'); setShowProfileMenu(false); }}
+                      className="w-full text-left px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-[#006F3C] flex items-center gap-2.5 cursor-pointer"
+                    >
+                      <Heart className="w-4 h-4 text-rose-500" />
+                      <span>Saved Wishlist</span>
+                    </button>
+                    <button
+                      onClick={() => { setView('dashboard-vendor'); setShowProfileMenu(false); }}
+                      className="w-full text-left px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-[#006F3C] flex items-center gap-2.5 cursor-pointer"
+                    >
+                      <Sparkles className="w-4 h-4 text-[#006F3C]" />
+                      <span>{t('nav.vendor_dashboard')}</span>
+                    </button>
+                  </div>
+
+                  <div className="border-t border-slate-100 pt-1">
+                    <button
+                      onClick={() => {
+                        onSignOut();
+                        setShowProfileMenu(false);
+                      }}
+                      className="w-full text-left px-4 py-2.5 text-xs font-bold text-rose-600 hover:bg-rose-50 flex items-center gap-2.5 cursor-pointer"
+                    >
+                      <LogOut className="w-4 h-4 text-rose-500" />
+                      <span>{isRtl ? 'سائن آؤٹ کریں' : 'Sign Out'}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 flex-nowrap">
+              {/* Sign In Button */}
+              <button
+                id="btn-sign-in"
+                onClick={() => onOpenAuthModal('signin')}
+                className="border border-[#CBD5E1] hover:border-[#006F3C] text-slate-800 font-bold text-[11px] sm:text-[14px] px-2.5 sm:px-5 py-1.5 sm:py-2.5 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-95 cursor-pointer whitespace-nowrap shrink-0"
+              >
+                {isRtl ? 'لاگ ان' : 'Sign In'}
+              </button>
+
+              {/* Register Button */}
+              <button
+                id="btn-register"
+                onClick={() => onOpenAuthModal('register')}
+                className="bg-[#006F3C] hover:bg-[#005C32] text-white font-bold text-[11px] sm:text-[14px] px-2.5 sm:px-5 py-1.5 sm:py-2.5 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-95 cursor-pointer flex items-center gap-1 sm:gap-2 shadow-xs whitespace-nowrap shrink-0"
+              >
+                <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 stroke-[2.5]" />
+                <span className="hidden sm:inline">{isRtl ? 'رجسٹر کریں' : 'Register'}</span>
+              </button>
+            </div>
+          )}
 
         </div>
       </div>

@@ -343,7 +343,7 @@ export default function OffersSection({ onSelectListing, onTriggerSearch }: Offe
     <div className="space-y-12 pb-20 text-left" id="offers-page-container">
       
       {/* 1. Full-Bleed Hero Banner matching Hotels Section Ratios */}
-      <section className="relative -mx-4 sm:-mx-8 lg:-mx-12 xl:-mx-16 -mt-8 md:-mt-12 overflow-hidden min-h-[500px] lg:min-h-[540px] shadow-2xl" id="offers-hero-banner">
+      <section className="relative -mx-4 sm:-mx-6 lg:-mx-8 -mt-8 md:-mt-12 overflow-hidden min-h-[500px] lg:min-h-[540px] shadow-2xl" id="offers-hero-banner">
         <div className="absolute inset-0 z-0">
           <img 
             src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=2000&q=80" 
@@ -357,9 +357,9 @@ export default function OffersSection({ onSelectListing, onTriggerSearch }: Offe
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/20" />
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-10 lg:px-12 pt-12 sm:pt-16 pb-28 sm:pb-32 flex flex-col justify-end h-full">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end">
-            <div className="lg:col-span-12 space-y-3 text-left">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-14 pb-24 sm:pb-28 flex flex-col justify-start items-start h-full text-left">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start w-full">
+            <div className="lg:col-span-8 space-y-3 text-left">
               <div>
                 <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#006F3C]/80 border border-[#006F3C]/70 text-white text-xs font-bold backdrop-blur-md shadow-md">
                   <Flame className="w-3.5 h-3.5 text-white shrink-0 fill-white/20" />
@@ -369,14 +369,15 @@ export default function OffersSection({ onSelectListing, onTriggerSearch }: Offe
 
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl xl:text-6xl font-extrabold text-white tracking-tight leading-[1.12] drop-shadow-md">
                 Exclusive Travel Offers & Deals in <br />
-                <span className="text-[#006F3C] font-black">Gilgit Baltistan</span>
+                <span className="text-[#006F3C] font-black">Gilgit</span><br />
+                <span className="text-[#006F3C] font-black">Baltistan</span>
               </h1>
               <p className="text-slate-100/95 text-sm sm:text-base md:text-lg font-medium max-w-xl leading-relaxed drop-shadow-xs">
                 Unlock seasonal price drops, exclusive promo vouchers, free 4x4 vehicle upgrades, and luxury stay discounts.
               </p>
 
               {/* 4-Column Hero Trust Factors */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 pt-6 border-t border-white/15 divide-x-0 sm:divide-x divide-white/15" id="offers-trust-factors">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 pt-6 border-t border-white/15 divide-x-0 sm:divide-x divide-white/15 max-w-xl sm:max-w-2xl" id="offers-trust-factors">
                 <div className="flex items-center gap-2.5 text-white pr-2">
                   <div className="w-9 h-9 rounded-full bg-[#006F3C]/40 border border-[#006F3C]/60 flex items-center justify-center shrink-0 shadow-inner">
                     <Percent className="w-4 h-4 text-white" />
@@ -423,7 +424,7 @@ export default function OffersSection({ onSelectListing, onTriggerSearch }: Offe
       </section>
 
       {/* 2. Overlapping Booking / Search Console */}
-      <section className="-mt-20 sm:-mt-24 relative z-20 max-w-7xl mx-auto px-2 sm:px-4" id="offers-search-console">
+      <section className="-mt-20 sm:-mt-24 relative z-20 w-full" id="offers-search-console">
         <div className="bg-white rounded-3xl border border-[#E2E8F0] shadow-2xl overflow-visible">
           <div className="flex border-b border-[#F1F5F9] bg-[#FAFAFA] px-6 sm:px-8 gap-4 sm:gap-8 overflow-x-auto scrollbar-none rounded-t-3xl">
             <div className="flex items-center gap-2.5 py-4 px-1 border-b-2 border-[#006F3C] text-[#006F3C] font-bold text-[13px] uppercase tracking-wider">
@@ -797,8 +798,8 @@ export default function OffersSection({ onSelectListing, onTriggerSearch }: Offe
             })}
           </div>
         ) : (
-          <div className="text-center py-12 bg-white rounded-2xl border border-slate-200 p-8 space-y-3">
-            <Flame className="w-12 h-12 text-slate-300 mx-auto" />
+          <div className="text-left py-12 bg-white rounded-2xl border border-slate-200 p-8 space-y-3">
+            <Flame className="w-12 h-12 text-slate-300" />
             <h4 className="font-bold text-slate-800 text-base">No promotional offers match your filter</h4>
             <p className="text-xs text-slate-500">Try changing your location or category selection above.</p>
             <button
