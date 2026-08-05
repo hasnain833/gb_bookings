@@ -294,7 +294,6 @@ export default function Navbar({
               onClick={() => setShowMoreMenu(!showMoreMenu)}
               className="flex items-center gap-1 font-bold text-slate-800 hover:text-[#00A651] py-1 cursor-pointer whitespace-nowrap"
             >
-              <MoreVertical className="w-4 h-4 text-slate-600" />
               <span>{isRtl ? 'مزید' : 'More'}</span>
               <ChevronDown className="w-3.5 h-3.5 text-slate-500 shrink-0" />
             </button>

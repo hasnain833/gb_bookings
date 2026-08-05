@@ -362,21 +362,21 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
         </div>
 
         {/* Inner Left-Aligned Content Wrapper */}
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 pb-16 sm:pb-18 flex flex-col justify-start items-start h-full text-left">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-14 md:pt-16 pb-14 sm:pb-16 flex flex-col justify-start items-start h-full text-left">
           {/* Content & Promo Card split layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center w-full">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end w-full">
             
             {/* Left Hero Texts */}
-            <div className="lg:col-span-7 space-y-2.5 text-left" id="hero-left-content" style={{ height: '100px' }}>
+            <div className="lg:col-span-7 space-y-3.5 text-left" id="hero-left-content">
               {/* Top/Badge element matching image */}
               <div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/60 border border-white/20 text-white text-[11px] font-semibold backdrop-blur-md shadow-md">
-                  <MapPin className="w-3 h-3 text-white shrink-0" />
+                <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-900/60 border border-white/20 text-white text-[11px] font-semibold backdrop-blur-md shadow-md">
+                  <MapPin className="w-3.5 h-3.5 text-white shrink-0" />
                   <span className="tracking-tight text-white font-medium">{t('hero.badge')}</span>
                 </div>
               </div>
 
-              <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-3xl font-extrabold text-white tracking-tight leading-snug drop-shadow-md">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight leading-snug drop-shadow-md">
                 {t('hero.title_part1')} {t('hero.title_part2')} <span className="text-[#00A651] font-black">Gilgit Baltistan</span>
               </h1>
               <p className="text-slate-100/95 text-xs sm:text-sm font-medium max-w-xl leading-relaxed drop-shadow-xs">
@@ -384,7 +384,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
               </p>
 
               {/* Row of 4 Hero trust factors matching screenshot style */}
-              <div className="flex flex-wrap items-center gap-3 sm:gap-5 pt-1 text-white" id="hero-trust-factors" style={{ marginBottom: '0px' }}>
+              <div className="flex flex-wrap items-center gap-3.5 sm:gap-6 pt-2 text-white" id="hero-trust-factors">
                 <div className="flex items-center gap-1.5 text-white">
                   <div className="w-6 h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
                     <ShieldCheck className="w-3 h-3 text-white" />
@@ -415,9 +415,9 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
               </div>
             </div>
 
-            {/* Right Promo Card (UP TO 40% OFF) matching the image */}
-            <div className="lg:col-span-5" id="hero-promo-card">
-              <div className="bg-gradient-to-br from-[#006F3C] via-[#007D44] to-[#003D21] rounded-2xl p-3.5 border border-[#006F3C]/40 text-white shadow-xl relative overflow-hidden flex justify-between gap-3 max-w-sm mx-auto lg:ml-auto" style={{ height: '165px', marginTop: '0px' }}>
+            {/* Right Promo Card (UP TO 40% OFF) positioned at bottom right */}
+            <div className="lg:col-span-5 lg:self-end flex justify-end" id="hero-promo-card">
+              <div className="bg-gradient-to-br from-[#006F3C] via-[#007D44] to-[#003D21] rounded-2xl p-3.5 border border-[#006F3C]/40 text-white shadow-xl relative overflow-hidden flex justify-between gap-3 max-w-sm w-full">
                 
                 {/* Promo details */}
                 <div className="flex flex-col justify-between z-10 py-0.5 space-y-2">

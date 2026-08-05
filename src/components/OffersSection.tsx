@@ -357,17 +357,17 @@ export default function OffersSection({ onSelectListing, onTriggerSearch }: Offe
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/20" />
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 pb-16 sm:pb-18 flex flex-col justify-start items-start h-full text-left">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-14 md:pt-16 pb-14 sm:pb-16 flex flex-col justify-start items-start h-full text-left">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start w-full">
-            <div className="lg:col-span-10 space-y-2.5 text-left" id="offers-left-content" style={{ height: '100px' }}>
+            <div className="lg:col-span-10 space-y-3.5 text-left" id="offers-left-content">
               <div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/60 border border-white/20 text-white text-[11px] font-semibold backdrop-blur-md shadow-md">
-                  <Flame className="w-3 h-3 text-white shrink-0 fill-white/20" />
+                <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-900/60 border border-white/20 text-white text-[11px] font-semibold backdrop-blur-md shadow-md">
+                  <Flame className="w-3.5 h-3.5 text-white shrink-0 fill-white/20" />
                   <span className="tracking-tight text-white font-medium">Limited-Time Exclusive Travel Vouchers &amp; Deals</span>
                 </div>
               </div>
 
-              <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-3xl font-extrabold text-white tracking-tight leading-snug drop-shadow-md">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight leading-snug drop-shadow-md">
                 Exclusive Travel Offers &amp; Deals in <span className="text-[#00A651] font-black">Gilgit Baltistan</span>
               </h1>
               <p className="text-slate-100/95 text-xs sm:text-sm font-medium max-w-xl leading-relaxed drop-shadow-xs">
@@ -375,7 +375,7 @@ export default function OffersSection({ onSelectListing, onTriggerSearch }: Offe
               </p>
 
               {/* 4-Column Hero Trust Factors */}
-              <div className="flex flex-wrap items-center gap-3 sm:gap-5 pt-1 text-white" id="offers-trust-factors" style={{ marginBottom: '0px' }}>
+              <div className="flex flex-wrap items-center gap-3.5 sm:gap-6 pt-2 text-white" id="offers-trust-factors">
                 <div className="flex items-center gap-1.5 text-white">
                   <div className="w-6 h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
                     <Percent className="w-3 h-3 text-white" />
