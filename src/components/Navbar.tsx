@@ -92,7 +92,7 @@ export default function Navbar({
     { id: 'hotels', label: t('nav.hotels') || 'Hotels', icon: Building2, mega: 'hotels' as const },
     { id: 'homestays', label: t('search.homestay_tab') || 'Homestays', icon: Home, mega: 'homestays' as const },
     { id: 'cars', label: t('nav.cars') || 'Cars', icon: Car, mega: 'cars' as const },
-    { id: 'tours', label: t('nav.tours') || 'Tours & Packages', icon: TourIcon, mega: 'tours' as const },
+    { id: 'tours', label: t('nav.tours') || 'Tours', icon: TourIcon, mega: 'tours' as const },
     { id: 'destinations', label: isRtl ? 'مقامات' : 'Destinations', icon: MapPin, mega: 'destinations' as const },
     { id: 'offers', label: isRtl ? 'آفرز' : 'Offers', icon: Tag, isHot: true, mega: 'offers' as const },
   ];
@@ -102,7 +102,7 @@ export default function Navbar({
       
       {/* 1. TOP UTILITY HEADER BAR (Dark Navy matching exact reference image) */}
       <div className="bg-[#0A182E] text-slate-200 text-xs py-2 px-3 sm:px-4 lg:px-6 border-b border-slate-800/80 hidden sm:block">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
+        <div className="w-full max-w-[1440px] mx-auto flex items-center justify-between gap-2 sm:gap-4">
           
           {/* Top Bar Left: Key Trust Factors */}
           <div className="flex items-center gap-3 lg:gap-5 text-[11px] lg:text-[12px] font-medium text-slate-300">
@@ -239,27 +239,28 @@ export default function Navbar({
 
       {/* 2. MAIN NAVIGATION BAR */}
       <div 
-        className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 h-16 sm:h-18 flex items-center justify-between gap-1.5 lg:gap-2 xl:gap-4 relative"
+        className="w-full max-w-[1440px] mx-auto px-3 sm:px-4 lg:px-6 h-16 sm:h-18 flex items-center justify-between gap-1.5 lg:gap-2 xl:gap-3 relative"
         onMouseLeave={handleNavLeave}
       >
         
         {/* Left Side: Brand Logo */}
         <div 
           onClick={() => setView('explore')} 
-          className="flex items-center cursor-pointer group shrink-0"
+          className="flex items-center cursor-pointer group shrink-0 pr-1 lg:pr-2"
           id="nav-logo"
         >
           <GBLogo size="md" />
         </div>
 
         {/* Center: Desktop Navigation Items */}
-        <nav className="hidden lg:flex items-center gap-1 lg:gap-1.5 xl:gap-4 text-[12px] lg:text-[13px] xl:text-[14px] font-semibold text-slate-800 shrink-0" id="nav-desktop-links">
+        <nav className="hidden lg:flex items-center gap-0.5 lg:gap-1 xl:gap-2 text-[12px] lg:text-[13px] xl:text-[14px] font-semibold text-slate-800 shrink-0" id="nav-desktop-links">
           {navItems.map((item) => {
             const isActive = currentView === item.id || 
               (item.id === 'hotels' && (currentView === 'hotels' || currentView === 'browse-hotels')) ||
               (item.id === 'homestays' && (currentView === 'homestays' || currentView === 'browse-homestays')) ||
               (item.id === 'cars' && (currentView === 'cars' || currentView === 'browse-cars')) ||
               (item.id === 'tours' && (currentView === 'tours' || currentView === 'browse-tours')) ||
+              (item.id === 'destinations' && (currentView === 'destinations' || currentView === 'browse-destinations')) ||
               (item.id === 'offers' && (currentView === 'offers' || currentView === 'browse-offers'));
 
             return (
@@ -271,7 +272,7 @@ export default function Navbar({
                 <button
                   id={`nav-link-${item.id}`}
                   onClick={() => handleLinkClick(item.id)}
-                  className={`flex items-center gap-1 transition-all duration-150 font-bold cursor-pointer relative whitespace-nowrap py-1 px-1 lg:px-1.5 xl:px-2 ${
+                  className={`flex items-center gap-1 xl:gap-1.5 transition-all duration-150 font-bold cursor-pointer relative whitespace-nowrap py-1 px-1 lg:px-1.5 xl:px-2 ${
                     isActive ? 'text-[#00A651] border-b-2 border-[#00A651]' : 'text-slate-800 hover:text-[#00A651]'
                   }`}
                 >
@@ -327,12 +328,12 @@ export default function Navbar({
         </nav>
 
         {/* Right Action Buttons */}
-        <div className="flex items-center gap-1.5 lg:gap-2 xl:gap-3 shrink-0" id="nav-actions">
+        <div className="flex items-center gap-1.5 lg:gap-2 xl:gap-3 shrink-0 ml-auto" id="nav-actions">
           
           {/* AI Planner Button */}
           <button
             onClick={() => setView('ai-planner')}
-            className="hidden sm:flex items-center gap-1 xl:gap-1.5 border border-[#00A651]/50 hover:border-[#00A651] text-[#00A651] hover:bg-[#00A651]/5 text-xs font-extrabold px-2 lg:px-2.5 xl:px-3.5 py-1.5 xl:py-2 rounded-xl transition-all shadow-xs cursor-pointer whitespace-nowrap"
+            className="hidden md:flex items-center gap-1 xl:gap-1.5 border border-[#00A651]/50 hover:border-[#00A651] text-[#00A651] hover:bg-[#00A651]/5 text-xs font-extrabold px-2 lg:px-2.5 xl:px-3.5 py-1.5 xl:py-2 rounded-xl transition-all shadow-xs cursor-pointer whitespace-nowrap shrink-0"
           >
             <Sparkles className="w-3.5 h-3.5 text-[#00A651]" />
             <span>AI Planner</span>
