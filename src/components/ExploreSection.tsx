@@ -367,7 +367,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center w-full">
             
             {/* Left Hero Texts */}
-            <div className="lg:col-span-7 space-y-2.5 text-left" id="hero-left-content">
+            <div className="lg:col-span-7 space-y-2.5 text-left" id="hero-left-content" style={{ height: '100px' }}>
               {/* Top/Badge element matching image */}
               <div>
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/60 border border-white/20 text-white text-[11px] font-semibold backdrop-blur-md shadow-md">
@@ -384,7 +384,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
               </p>
 
               {/* Row of 4 Hero trust factors matching screenshot style */}
-              <div className="flex flex-wrap items-center gap-3 sm:gap-5 pt-1 text-white" id="hero-trust-factors">
+              <div className="flex flex-wrap items-center gap-3 sm:gap-5 pt-1 text-white" id="hero-trust-factors" style={{ marginBottom: '0px' }}>
                 <div className="flex items-center gap-1.5 text-white">
                   <div className="w-6 h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
                     <ShieldCheck className="w-3 h-3 text-white" />
@@ -417,7 +417,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
 
             {/* Right Promo Card (UP TO 40% OFF) matching the image */}
             <div className="lg:col-span-5" id="hero-promo-card">
-              <div className="bg-gradient-to-br from-[#006F3C] via-[#007D44] to-[#003D21] rounded-2xl p-3.5 border border-[#006F3C]/40 text-white shadow-xl relative overflow-hidden flex justify-between gap-3 max-w-sm mx-auto lg:ml-auto">
+              <div className="bg-gradient-to-br from-[#006F3C] via-[#007D44] to-[#003D21] rounded-2xl p-3.5 border border-[#006F3C]/40 text-white shadow-xl relative overflow-hidden flex justify-between gap-3 max-w-sm mx-auto lg:ml-auto" style={{ height: '165px', marginTop: '0px' }}>
                 
                 {/* Promo details */}
                 <div className="flex flex-col justify-between z-10 py-0.5 space-y-2">

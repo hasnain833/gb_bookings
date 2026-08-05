@@ -185,7 +185,7 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 pb-16 sm:pb-18 flex flex-col justify-start items-start h-full text-left">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start w-full">
             {/* Left Texts */}
-            <div className="lg:col-span-10 space-y-2.5 text-left">
+            <div className="lg:col-span-10 space-y-2.5 text-left" id="homestay-left-content" style={{ height: '100px' }}>
               <div>
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/60 border border-white/20 text-white text-[11px] font-semibold backdrop-blur-md shadow-md">
                   <Home className="w-3 h-3 text-white shrink-0" />
@@ -201,7 +201,7 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
               </p>
 
               {/* 4 Feature Bullets Row matching screenshot */}
-              <div className="flex flex-wrap items-center gap-3 sm:gap-5 pt-1 text-white" id="homestay-trust-factors">
+              <div className="flex flex-wrap items-center gap-3 sm:gap-5 pt-1 text-white" id="homestay-trust-factors" style={{ marginBottom: '0px' }}>
                 <div className="flex items-center gap-1.5 text-white">
                   <div className="w-6 h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
                     <ShieldCheck className="w-3 h-3 text-white" />
