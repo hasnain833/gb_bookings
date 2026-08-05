@@ -438,7 +438,7 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
                 >
                   <Search className="w-4 h-4 stroke-[2.5] shrink-0" />
                   <span className="whitespace-nowrap font-extrabold text-[14px]">
-                    Search Cars
+                    {isRtl ? 'گاڑیاں تلاش کریں' : 'Search Cars'}
                   </span>
                 </button>
               </div>

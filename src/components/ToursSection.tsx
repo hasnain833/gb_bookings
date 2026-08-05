@@ -429,7 +429,7 @@ export default function ToursSection({ onSelectListing, onTriggerSearch }: Tours
                 >
                   <Search className="w-4 h-4 stroke-[2.5] shrink-0" />
                   <span className="whitespace-nowrap font-extrabold text-[14px]">
-                    Search Tours
+                    {isRtl ? 'ٹورز تلاش کریں' : 'Search Tours'}
                   </span>
                 </button>
               </div>

@@ -723,7 +723,15 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                 >
                   <Search className="w-4 h-4 stroke-[2.5] shrink-0" />
                   <span className="whitespace-nowrap font-extrabold text-[14px]">
-                    {activeTab === 'hotels' ? 'Search Hotels' : activeTab === 'homestays' ? 'Search Homestays' : activeTab === 'cars' ? 'Search Cars' : activeTab === 'tours' ? 'Search Tours' : 'Search'}
+                    {activeTab === 'hotel' || activeTab === 'hotels'
+                      ? (isRtl ? 'ہوٹل تلاش کریں' : 'Search Hotels')
+                      : activeTab === 'homestay' || activeTab === 'homestays'
+                      ? (isRtl ? 'ہوم اسٹے تلاش کریں' : 'Search Homestays')
+                      : activeTab === 'car' || activeTab === 'cars'
+                      ? (isRtl ? 'گاڑیاں تلاش کریں' : 'Search Cars')
+                      : activeTab === 'tour' || activeTab === 'tours'
+                      ? (isRtl ? 'ٹورز تلاش کریں' : 'Search Tours')
+                      : (isRtl ? 'تلاش کریں' : 'Search')}
                   </span>
                 </button>
               </div>

@@ -101,11 +101,11 @@ export default function Navbar({
     <header id="app-navbar" className="fixed top-0 left-0 right-0 z-50 w-full bg-white shadow-md border-b border-[#E2E8F0]">
       
       {/* 1. TOP UTILITY HEADER BAR (Dark Navy matching exact reference image) */}
-      <div className="bg-[#0A182E] text-slate-200 text-xs py-2 px-4 sm:px-6 lg:px-8 border-b border-slate-800/80 hidden sm:block">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+      <div className="bg-[#0A182E] text-slate-200 text-xs py-2 px-3 sm:px-4 lg:px-6 border-b border-slate-800/80 hidden sm:block">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
           
           {/* Top Bar Left: Key Trust Factors */}
-          <div className="flex items-center gap-5 text-[12px] font-medium text-slate-300">
+          <div className="flex items-center gap-3 lg:gap-5 text-[11px] lg:text-[12px] font-medium text-slate-300">
             <div className="flex items-center gap-1.5 hover:text-white transition-colors cursor-pointer">
               <ShieldCheck className="w-3.5 h-3.5 text-white" />
               <span>{isRtl ? 'بہترین قیمت کی ضمانت' : 'Best Price Guarantee'}</span>
@@ -123,7 +123,7 @@ export default function Navbar({
           </div>
 
           {/* Top Bar Right: Utility Links & Account Controls */}
-          <div className="flex items-center gap-4 text-[12px] font-semibold text-slate-200">
+          <div className="flex items-center gap-3 lg:gap-4 text-[11px] lg:text-[12px] font-semibold text-slate-200">
             
             {/* Download App */}
             <button 
@@ -239,7 +239,7 @@ export default function Navbar({
 
       {/* 2. MAIN NAVIGATION BAR */}
       <div 
-        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-18 flex items-center justify-between gap-4 relative"
+        className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 h-16 sm:h-18 flex items-center justify-between gap-1.5 lg:gap-2 xl:gap-4 relative"
         onMouseLeave={handleNavLeave}
       >
         
@@ -253,7 +253,7 @@ export default function Navbar({
         </div>
 
         {/* Center: Desktop Navigation Items */}
-        <nav className="hidden lg:flex items-center gap-6 xl:gap-8 text-[14px] font-semibold text-slate-800" id="nav-desktop-links">
+        <nav className="hidden lg:flex items-center gap-1 lg:gap-1.5 xl:gap-4 text-[12px] lg:text-[13px] xl:text-[14px] font-semibold text-slate-800 shrink-0" id="nav-desktop-links">
           {navItems.map((item) => {
             const isActive = currentView === item.id || 
               (item.id === 'hotels' && (currentView === 'hotels' || currentView === 'browse-hotels')) ||
@@ -271,14 +271,14 @@ export default function Navbar({
                 <button
                   id={`nav-link-${item.id}`}
                   onClick={() => handleLinkClick(item.id)}
-                  className={`flex items-center gap-1.5 transition-all duration-150 font-bold cursor-pointer relative whitespace-nowrap py-1 ${
+                  className={`flex items-center gap-1 transition-all duration-150 font-bold cursor-pointer relative whitespace-nowrap py-1 px-1 lg:px-1.5 xl:px-2 ${
                     isActive ? 'text-[#00A651] border-b-2 border-[#00A651]' : 'text-slate-800 hover:text-[#00A651]'
                   }`}
                 >
-                  {item.icon && <item.icon className="w-4 h-4 shrink-0 text-[#00A651]" />}
+                  {item.icon && <item.icon className="w-3.5 h-3.5 xl:w-4 xl:h-4 shrink-0 text-[#00A651]" />}
                   <span>{item.label}</span>
                   {item.isHot && (
-                    <span className="bg-[#FF3B30] text-white text-[9px] font-black px-1.5 py-0.2 rounded-md uppercase tracking-tight shadow-xs ml-0.5">
+                    <span className="bg-[#FF3B30] text-white text-[8px] xl:text-[9px] font-black px-1 xl:px-1.5 py-0.2 rounded-md uppercase tracking-tight shadow-xs ml-0.5">
                       HOT
                     </span>
                   )}
@@ -292,7 +292,7 @@ export default function Navbar({
             <button
               id="nav-link-more"
               onClick={() => setShowMoreMenu(!showMoreMenu)}
-              className="flex items-center gap-1 font-bold text-slate-800 hover:text-[#00A651] py-1 cursor-pointer whitespace-nowrap"
+              className="flex items-center gap-1 font-bold text-slate-800 hover:text-[#00A651] py-1 px-1 lg:px-1.5 xl:px-2 cursor-pointer whitespace-nowrap"
             >
               <span>{isRtl ? 'مزید' : 'More'}</span>
               <ChevronDown className="w-3.5 h-3.5 text-slate-500 shrink-0" />
@@ -327,12 +327,12 @@ export default function Navbar({
         </nav>
 
         {/* Right Action Buttons */}
-        <div className="flex items-center gap-3 shrink-0" id="nav-actions">
+        <div className="flex items-center gap-1.5 lg:gap-2 xl:gap-3 shrink-0" id="nav-actions">
           
           {/* AI Planner Button */}
           <button
             onClick={() => setView('ai-planner')}
-            className="hidden sm:flex items-center gap-1.5 border border-[#00A651]/50 hover:border-[#00A651] text-[#00A651] hover:bg-[#00A651]/5 text-xs font-extrabold px-3.5 py-2 rounded-xl transition-all shadow-xs cursor-pointer whitespace-nowrap"
+            className="hidden sm:flex items-center gap-1 xl:gap-1.5 border border-[#00A651]/50 hover:border-[#00A651] text-[#00A651] hover:bg-[#00A651]/5 text-xs font-extrabold px-2 lg:px-2.5 xl:px-3.5 py-1.5 xl:py-2 rounded-xl transition-all shadow-xs cursor-pointer whitespace-nowrap"
           >
             <Sparkles className="w-3.5 h-3.5 text-[#00A651]" />
             <span>AI Planner</span>
@@ -341,9 +341,9 @@ export default function Navbar({
           {/* List Your Property Button */}
           <button
             onClick={() => setView('vendor-dashboard')}
-            className="bg-[#00A651] hover:bg-[#008E45] text-white text-xs font-extrabold px-4 py-2 sm:py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer whitespace-nowrap hover:scale-[1.02] active:scale-95"
+            className="bg-[#00A651] hover:bg-[#008E45] text-white text-xs font-extrabold px-2.5 lg:px-3 xl:px-4 py-1.5 xl:py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-1 lg:gap-1.5 cursor-pointer whitespace-nowrap hover:scale-[1.02] active:scale-95 shrink-0"
           >
-            <Building2 className="w-4 h-4 shrink-0" />
+            <Building2 className="w-3.5 h-3.5 xl:w-4 xl:h-4 shrink-0" />
             <span>List Your Property</span>
           </button>
         </div>

@@ -454,7 +454,7 @@ export default function HotelsSection({ onSelectListing, onTriggerSearch }: Hote
                 >
                   <Search className="w-4 h-4 stroke-[2.5] shrink-0" />
                   <span className="whitespace-nowrap font-extrabold text-[14px]">
-                    Search Hotels
+                    {isRtl ? 'ہوٹل تلاش کریں' : 'Search Hotels'}
                   </span>
                 </button>
               </div>

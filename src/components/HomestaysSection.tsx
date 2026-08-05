@@ -464,7 +464,7 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
                 >
                   <Search className="w-4 h-4 stroke-[2.5] shrink-0" />
                   <span className="whitespace-nowrap font-extrabold text-[14px]">
-                    Search Homestays
+                    {isRtl ? 'ہوم اسٹے تلاش کریں' : 'Search Homestays'}
                   </span>
                 </button>
               </div>
