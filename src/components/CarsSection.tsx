@@ -102,7 +102,7 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
       title: 'Budget Hatchbacks',
       subtitle: 'Economical city & local road drives',
       icon: Fuel,
-      bgImage: 'https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&w=800&q=80',
+      bgImage: 'https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&w=800&q=80',
       iconBg: 'bg-amber-500/20 text-amber-400 border-amber-400/40'
     },
     {

@@ -207,16 +207,17 @@ export const INITIAL_LISTINGS: Listing[] = [
   {
     id: 'c-1',
     type: 'car',
-    title: 'Toyota Land Cruiser',
+    title: 'Toyota Land Cruiser V8 4x4',
     location: 'Skardu, Gilgit Baltistan',
     price: 32000,
     rating: 4.9,
     reviewsCount: 156,
-    image: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=1200&q=80',
+    image: 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=1200&q=80',
     images: [
+      'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=1200&q=80',
       'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=1200&q=80'
     ],
-    description: 'The ultimate luxury rugged SUV, perfect for Skardu, Hunza and any rough terrain. Best Seller status with elite features.',
+    description: 'The ultimate luxury rugged 4x4 SUV, perfect for Skardu, Hunza, Deosai Plains, and any mountain terrain. Equipped with off-road suspension and climate control.',
     featured: true,
     carSpecs: {
       category: 'SUV',
@@ -229,16 +230,17 @@ export const INITIAL_LISTINGS: Listing[] = [
   {
     id: 'c-2',
     type: 'car',
-    title: 'Toyota Fortuner',
+    title: 'Toyota Fortuner Sigma 4',
     location: 'Skardu, Gilgit Baltistan',
     price: 18000,
     rating: 4.8,
     reviewsCount: 198,
     image: 'https://images.unsplash.com/photo-1606016159991-dfe4f974be5c?auto=format&fit=crop&w=1200&q=80',
     images: [
-      'https://images.unsplash.com/photo-1606016159991-dfe4f974be5c?auto=format&fit=crop&w=1200&q=80'
+      'https://images.unsplash.com/photo-1606016159991-dfe4f974be5c?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=1200&q=80'
     ],
-    description: 'A powerful and popular companion for mountain drives, combining comfort and high terrain capability.',
+    description: 'A powerful and popular 4x4 companion for Karakoram mountain drives, combining modern interior luxury and high terrain capability.',
     featured: true,
     carSpecs: {
       category: 'SUV',
@@ -260,7 +262,7 @@ export const INITIAL_LISTINGS: Listing[] = [
     images: [
       'https://images.unsplash.com/photo-1520050206274-a1ae446cb3cc?auto=format&fit=crop&w=1200&q=80'
     ],
-    description: 'A spacious, executive, and highly comfortable grand cabin van. Ideal for groups, tours, and inter-city travel.',
+    description: 'A spacious, executive, and highly comfortable grand cabin van. Ideal for group tours, family trips, and long inter-city mountain road trips.',
     featured: false,
     carSpecs: {
       category: 'Van',
@@ -273,16 +275,16 @@ export const INITIAL_LISTINGS: Listing[] = [
   {
     id: 'c-4',
     type: 'car',
-    title: 'Suzuki Cultus',
+    title: 'Suzuki Cultus VXL',
     location: 'Skardu, Gilgit Baltistan',
     price: 3500,
     rating: 4.6,
     reviewsCount: 98,
-    image: 'https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&w=1200&q=80',
+    image: 'https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&w=1200&q=80',
     images: [
-      'https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&w=1200&q=80'
+      'https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&w=1200&q=80'
     ],
-    description: 'Highly economical and compact hatchback, perfect for city travel and budget-conscious travelers.',
+    description: 'Highly economical and compact hatchback, perfect for smooth city travel, market runs, and budget-conscious travelers.',
     featured: false,
     carSpecs: {
       category: 'Hatchback',
@@ -295,7 +297,7 @@ export const INITIAL_LISTINGS: Listing[] = [
   {
     id: 'c-5',
     type: 'car',
-    title: 'Honda Civic',
+    title: 'Honda Civic Oriel',
     location: 'Skardu, Gilgit Baltistan',
     price: 7500,
     rating: 4.5,
@@ -304,7 +306,7 @@ export const INITIAL_LISTINGS: Listing[] = [
     images: [
       'https://images.unsplash.com/photo-1606220588913-b3aacb4d2f46?auto=format&fit=crop&w=1200&q=80'
     ],
-    description: 'A stylish, high-performing standard sedan. Ideal for inter-city travel and smooth paved highways.',
+    description: 'A stylish, high-performing luxury sedan. Ideal for inter-city travel and smooth paved Karakoram highways with sunroof and climate control.',
     featured: false,
     carSpecs: {
       category: 'Sedan',

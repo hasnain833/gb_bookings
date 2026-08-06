@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   ChevronDown, Globe, User, Bell, Bot, Calendar, Headset, 
@@ -11,6 +11,7 @@ import {
   Award, Moon, Wallet, Key, Camera
 } from 'lucide-react';
 import { useLanguage } from '../LanguageContext';
+import { handleImageError } from '../types';
 import GBLogo from './GBLogo';
 
 interface NavbarProps {
@@ -25,6 +26,75 @@ interface NavbarProps {
   onOpenAuthModal: (mode?: 'signin' | 'register') => void;
   onSignOut: () => void;
 }
+
+const CAR_BRAND_LOGOS: Record<string, { primary: string; secondary: string }> = {
+  toyota: {
+    primary: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/toyota.svg',
+    secondary: 'https://upload.wikimedia.org/wikipedia/commons/e/e7/Toyota.svg'
+  },
+  nissan: {
+    primary: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/nissan.svg',
+    secondary: 'https://upload.wikimedia.org/wikipedia/commons/8/8c/Nissan_2020_logo.svg'
+  },
+  honda: {
+    primary: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/honda.svg',
+    secondary: 'https://upload.wikimedia.org/wikipedia/commons/7/7b/Honda_Logo.svg'
+  },
+  suzuki: {
+    primary: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/suzuki.svg',
+    secondary: 'https://upload.wikimedia.org/wikipedia/commons/1/12/Suzuki_logo.svg'
+  },
+  mitsubishi: {
+    primary: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/mitsubishi.svg',
+    secondary: 'https://upload.wikimedia.org/wikipedia/commons/b/b7/Mitsubishi-logo.svg'
+  },
+  hyundai: {
+    primary: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/hyundai.svg',
+    secondary: 'https://upload.wikimedia.org/wikipedia/commons/4/44/Hyundai_Motor_Company_logo.svg'
+  },
+  kia: {
+    primary: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/kia.svg',
+    secondary: 'https://upload.wikimedia.org/wikipedia/commons/4/47/KIA_logo2.svg'
+  },
+  'land rover': {
+    primary: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/landrover.svg',
+    secondary: 'https://upload.wikimedia.org/wikipedia/commons/f/f4/LandRover.svg'
+  },
+  mg: {
+    primary: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/mg.svg',
+    secondary: 'https://upload.wikimedia.org/wikipedia/commons/6/6b/MG_Motor_2021_logo.svg'
+  },
+  bmw: {
+    primary: 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/bmw.svg',
+    secondary: 'https://upload.wikimedia.org/wikipedia/commons/4/44/BMW.svg'
+  }
+};
+
+const CarBrandLogo = ({ brand }: { brand: string }) => {
+  const brandKey = Object.keys(CAR_BRAND_LOGOS).find(k => brand.toLowerCase().includes(k));
+  const info = brandKey ? CAR_BRAND_LOGOS[brandKey] : null;
+
+  if (!info) {
+    return <Shield className="w-3.5 h-3.5 text-slate-400 shrink-0" />;
+  }
+
+  return (
+    <div className="w-4 h-4 flex items-center justify-center shrink-0 bg-slate-100 rounded-xs p-0.5 border border-slate-200/60 shadow-2xs">
+      <img
+        src={info.primary}
+        alt={`${brand} logo`}
+        referrerPolicy="no-referrer"
+        onError={(e) => {
+          const target = e.currentTarget;
+          if (target.src !== info.secondary) {
+            target.src = info.secondary;
+          }
+        }}
+        className="w-full h-full object-contain filter contrast-125"
+      />
+    </div>
+  );
+};
 
 export default function Navbar({
   currentView,
@@ -47,6 +117,23 @@ export default function Navbar({
   const [showLangDropdown, setShowLangDropdown] = useState(false);
 
   const megaMenuTimeoutRef = useRef<any>(null);
+  const navRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(event.target as Node)) {
+        setShowCurrencyDropdown(false);
+        setShowLangDropdown(false);
+        setShowMoreMenu(false);
+        setShowProfileMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const { language, requestLanguageChange, t, isRtl } = useLanguage();
 
@@ -98,7 +185,7 @@ export default function Navbar({
   ];
 
   return (
-    <header id="app-navbar" className="fixed top-0 left-0 right-0 z-50 w-full bg-white shadow-md border-b border-[#E2E8F0]">
+    <header ref={navRef} id="app-navbar" className="fixed top-0 left-0 right-0 z-50 w-full bg-white shadow-md border-b border-[#E2E8F0]">
       
       {/* 1. TOP UTILITY HEADER BAR (Dark Navy matching exact reference image) */}
       <div className="bg-[#0A182E] text-slate-200 text-xs py-2 px-3 sm:px-4 lg:px-6 border-b border-slate-800/80 hidden sm:block">
@@ -686,7 +773,7 @@ export default function Navbar({
                               onClick={() => { setView('cars'); setShowMegaMenu(false); }}
                               className="w-full text-left py-0.5 hover:text-[#00A651] flex items-center gap-1.5 transition-colors cursor-pointer"
                             >
-                              <Shield className="w-3 h-3 text-slate-400 shrink-0" />
+                              <CarBrandLogo brand={brand} />
                               <span className="truncate">{brand}</span>
                             </button>
                           </li>
@@ -732,22 +819,24 @@ export default function Navbar({
                       </h4>
                       <div className="space-y-2">
                         {[
-                          { name: 'Toyota Prado', img: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=120&q=80' },
-                          { name: 'Toyota Land Cruiser', img: 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=120&q=80' },
-                          { name: 'Toyota Fortuner', img: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=120&q=80' },
-                          { name: 'Honda BR-V', img: 'https://images.unsplash.com/photo-1590362891991-f776e747a588?auto=format&fit=crop&w=120&q=80' },
-                          { name: 'Toyota Hiace', img: 'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?auto=format&fit=crop&w=120&q=80' },
-                          { name: 'Suzuki Alto', img: 'https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&w=120&q=80' },
+                          { name: 'Toyota Prado', img: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=300&q=80' },
+                          { name: 'Toyota Land Cruiser', img: 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=300&q=80' },
+                          { name: 'Toyota Fortuner', img: 'https://images.unsplash.com/photo-1606016159991-dfe4f974be5c?auto=format&fit=crop&w=300&q=80' },
+                          { name: 'Honda BR-V', img: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=300&q=80' },
+                          { name: 'Toyota Hiace', img: 'https://images.unsplash.com/photo-1520050206274-a1ae446cb3cc?auto=format&fit=crop&w=300&q=80' },
+                          { name: 'Suzuki Alto', img: 'https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&w=300&q=80' },
                         ].map((car) => (
                           <div 
                             key={car.name}
                             onClick={() => { setView('cars'); setShowMegaMenu(false); }}
-                            className="flex items-center gap-2 cursor-pointer group hover:bg-slate-50 p-0.5 rounded transition-all"
+                            className="flex items-center gap-2.5 cursor-pointer group hover:bg-emerald-50/60 p-1 rounded-lg transition-all"
                           >
                             <img 
                               src={car.img} 
                               alt={car.name} 
-                              className="w-10 h-8 object-cover rounded shrink-0 border border-slate-200" 
+                              referrerPolicy="no-referrer"
+                              onError={handleImageError}
+                              className="w-12 h-9 object-cover rounded-md shrink-0 border border-slate-200/90 shadow-2xs group-hover:border-[#00A651]/40 transition-colors" 
                             />
                             <h5 className="text-[11px] font-bold text-slate-900 group-hover:text-[#00A651] truncate">{car.name}</h5>
                           </div>
