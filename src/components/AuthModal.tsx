@@ -21,9 +21,9 @@ export default function AuthModal({
 }: AuthModalProps) {
   const { isRtl } = useLanguage();
   const [mode, setMode] = useState<'signin' | 'register'>(initialMode);
-  const [email, setEmail] = useState('ibtesaam0@gmail.com');
-  const [password, setPassword] = useState('password123');
-  const [fullName, setFullName] = useState('Ibtesaam Raza');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
@@ -38,7 +38,8 @@ export default function AuthModal({
     e.preventDefault();
     setErrorMessage('');
     
-    if (!email || !email.includes('@')) {
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!trimmedEmail || !trimmedEmail.includes('@')) {
       setErrorMessage(isRtl ? 'براہ کرم صحیح ای میل درج کریں' : 'Please enter a valid email address');
       return;
     }
@@ -51,16 +52,63 @@ export default function AuthModal({
     setIsLoading(true);
 
     setTimeout(() => {
-      setIsLoading(false);
-      setIsSuccess(true);
+      try {
+        const rawUsers = localStorage.getItem('gb_registered_users');
+        const users: Array<{ email: string; name: string; password?: string }> = rawUsers ? JSON.parse(rawUsers) : [];
 
-      setTimeout(() => {
-        setIsSuccess(false);
-        const nameToUse = mode === 'register' && fullName ? fullName : email.split('@')[0];
-        onSuccessLogin(email, nameToUse);
+        if (mode === 'register') {
+          const existingUser = users.find(u => u.email.toLowerCase() === trimmedEmail);
+          if (existingUser) {
+            setIsLoading(false);
+            setErrorMessage(isRtl ? 'اس ای میل کے ساتھ اکاؤنٹ پہلے سے موجود ہے' : 'An account with this email already exists. Please sign in.');
+            return;
+          }
+
+          const newUserName = fullName.trim() || trimmedEmail.split('@')[0];
+          users.push({ email: trimmedEmail, name: newUserName, password });
+          localStorage.setItem('gb_registered_users', JSON.stringify(users));
+
+          setIsLoading(false);
+          setIsSuccess(true);
+
+          setTimeout(() => {
+            setIsSuccess(false);
+            onSuccessLogin(trimmedEmail, newUserName);
+            onClose();
+          }, 600);
+        } else {
+          // Sign in mode
+          const foundUser = users.find(u => u.email.toLowerCase() === trimmedEmail);
+          if (foundUser && foundUser.password && foundUser.password !== password) {
+            setIsLoading(false);
+            setErrorMessage(isRtl ? 'غلط پاس ورڈ۔ براہ کرم دوبارہ کوشش کریں' : 'Incorrect password. Please verify and try again.');
+            return;
+          }
+
+          const userDisplayName = foundUser ? foundUser.name : (fullName.trim() || trimmedEmail.split('@')[0]);
+          
+          if (!foundUser) {
+            // Save newly signed in user
+            users.push({ email: trimmedEmail, name: userDisplayName, password });
+            localStorage.setItem('gb_registered_users', JSON.stringify(users));
+          }
+
+          setIsLoading(false);
+          setIsSuccess(true);
+
+          setTimeout(() => {
+            setIsSuccess(false);
+            onSuccessLogin(trimmedEmail, userDisplayName);
+            onClose();
+          }, 600);
+        }
+      } catch (err) {
+        setIsLoading(false);
+        const fallbackName = fullName.trim() || trimmedEmail.split('@')[0];
+        onSuccessLogin(trimmedEmail, fallbackName);
         onClose();
-      }, 1000);
-    }, 800);
+      }
+    }, 500);
   };
 
   const handleSocialLogin = (provider: string) => {
@@ -70,10 +118,12 @@ export default function AuthModal({
       setIsSuccess(true);
       setTimeout(() => {
         setIsSuccess(false);
-        onSuccessLogin(`user.${provider.toLowerCase()}@gmail.com`, `${provider} User`);
+        const socialEmail = email.trim() || `traveler@${provider.toLowerCase().replace(/\s+/g, '')}.com`;
+        const socialName = fullName.trim() || `${provider} Traveler`;
+        onSuccessLogin(socialEmail, socialName);
         onClose();
-      }, 1000);
-    }, 800);
+      }, 600);
+    }, 500);
   };
 
   const handleForgotPassword = () => {

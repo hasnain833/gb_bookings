@@ -47,10 +47,35 @@ export default function App() {
     withDriver?: boolean;
   } | null>(null);
 
-  // Auth state
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
-  const [userEmail, setUserEmail] = useState('ibtesaam0@gmail.com');
-  const [userName, setUserName] = useState('Ibtesaam Raza');
+  // Auth state (clean state without mock credentials)
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
+    try {
+      const savedUser = localStorage.getItem('gb_current_user');
+      return !!savedUser;
+    } catch {
+      return false;
+    }
+  });
+  const [userEmail, setUserEmail] = useState<string>(() => {
+    try {
+      const savedUser = localStorage.getItem('gb_current_user');
+      if (savedUser) {
+        const parsed = JSON.parse(savedUser);
+        return parsed.email || '';
+      }
+    } catch {}
+    return '';
+  });
+  const [userName, setUserName] = useState<string>(() => {
+    try {
+      const savedUser = localStorage.getItem('gb_current_user');
+      if (savedUser) {
+        const parsed = JSON.parse(savedUser);
+        return parsed.name || '';
+      }
+    } catch {}
+    return '';
+  });
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'signin' | 'register'>('signin');
 
@@ -60,9 +85,13 @@ export default function App() {
   };
 
   const handleSuccessLogin = (email: string, name?: string) => {
+    const finalName = name || email.split('@')[0];
     setUserEmail(email);
-    if (name) setUserName(name);
+    setUserName(finalName);
     setIsLoggedIn(true);
+    try {
+      localStorage.setItem('gb_current_user', JSON.stringify({ email, name: finalName }));
+    } catch {}
     setView('user-dashboard');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -71,6 +100,10 @@ export default function App() {
     setIsLoggedIn(false);
     setUserEmail('');
     setUserName('');
+    try {
+      localStorage.removeItem('gb_current_user');
+    } catch {}
+    setView('homestays');
   };
 
   useEffect(() => {
@@ -243,6 +276,8 @@ export default function App() {
           <CheckoutFlow 
             bookingParams={bookingParams}
             listing={selectedListing}
+            userEmail={userEmail}
+            userName={userName}
             onCancel={() => setView('details')}
             onSuccess={(booking) => {
               setView('user-dashboard');
@@ -254,6 +289,7 @@ export default function App() {
         {view === 'user-dashboard' && (
           <UserDashboard 
             userEmail={userEmail}
+            userName={userName}
             setView={(v) => {
                setView(v);
                window.scrollTo({ top: 0, behavior: 'smooth' });

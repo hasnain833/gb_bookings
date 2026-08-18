@@ -6,12 +6,13 @@ import { Calendar, Wallet, Award, Share2, Printer, AlertTriangle, MessageSquare,
 
 interface UserDashboardProps {
   userEmail: string;
+  userName?: string;
   setView: (v: string) => void;
   onSelectBooking: (booking: Booking) => void;
   onSelectListing: (listing: Listing) => void;
 }
 
-export default function UserDashboard({ userEmail, setView, onSelectBooking, onSelectListing }: UserDashboardProps) {
+export default function UserDashboard({ userEmail, userName, setView, onSelectBooking, onSelectListing }: UserDashboardProps) {
   const { language, t, isRtl } = useLanguage();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -117,6 +118,13 @@ export default function UserDashboard({ userEmail, setView, onSelectBooking, onS
   };
 
   const activeBookingsCount = bookings.filter(b => b.status === 'confirmed').length;
+  const displayName = userName || (userEmail ? userEmail.split('@')[0] : 'Traveler');
+  const userInitials = displayName
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .substring(0, 2)
+    .toUpperCase() || 'GB';
 
   return (
     <div id="user-dashboard-view" className="space-y-8 pb-16">
@@ -125,14 +133,14 @@ export default function UserDashboard({ userEmail, setView, onSelectBooking, onS
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-6 rounded-2xl border border-slate-200 shadow-xs" id="user-profile-header">
         <div className="flex items-center space-x-4">
           <div className="w-16 h-16 rounded-lg bg-[#0F172A] flex items-center justify-center font-bold text-white text-2xl shadow-xs">
-            AR
+            {userInitials}
           </div>
           <div>
             <h2 className="text-xl md:text-2xl font-bold text-slate-900 flex items-center gap-2 uppercase tracking-tight">
-              Ahmad Raza
+              {displayName}
               <span className="bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">Gold Loyalty Level</span>
             </h2>
-            <p className="text-xs text-slate-500 mt-0.5">{userEmail} • Verified Traveler</p>
+            <p className="text-xs text-slate-500 mt-0.5">{userEmail || 'traveler@gbbookings.com'} • Verified Traveler</p>
           </div>
         </div>
 

@@ -17,24 +17,27 @@ interface CheckoutFlowProps {
     cancellationPolicy?: string;
   };
   listing: Listing;
+  userEmail?: string;
+  userName?: string;
   onSuccess: (booking: any) => void;
   onCancel: () => void;
 }
 
-export default function CheckoutFlow({ bookingParams, listing, onSuccess, onCancel }: CheckoutFlowProps) {
+export default function CheckoutFlow({ bookingParams, listing, userEmail = '', userName = '', onSuccess, onCancel }: CheckoutFlowProps) {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1); // 1: Contact, 2: Payment, 3: Processing, 4: Receipt
   
-  // Contacts
-  const [customerName, setCustomerName] = useState('Ahmad Raza');
-  const [customerEmail, setCustomerEmail] = useState('ibtesaam0@gmail.com');
-  const [customerPhone, setCustomerPhone] = useState('03001234567');
+  // Contacts (initialized from logged-in user if available, otherwise empty)
+  const [customerName, setCustomerName] = useState(userName || '');
+  const [customerEmail, setCustomerEmail] = useState(userEmail || '');
+  const [customerPhone, setCustomerPhone] = useState('');
   
   // Payment
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'jazzcash' | 'easypaisa' | 'pay_at_hotel'>(
     bookingParams.payAtHotel ? 'pay_at_hotel' : 'card'
   );
-  const [cardNumber, setCardNumber] = useState('4242 4242 4242 4242');
-  const [walletNumber, setWalletNumber] = useState('03001234567');
+  const [cardHolderName, setCardHolderName] = useState(userName || '');
+  const [cardNumber, setCardNumber] = useState('');
+  const [walletNumber, setWalletNumber] = useState('');
   
   // Processing messages
   const [processingMsg, setProcessingMsg] = useState('Initiating payment gateway secure handshake...');
@@ -314,7 +317,9 @@ export default function CheckoutFlow({ bookingParams, listing, onSuccess, onCanc
                       <input
                         type="text"
                         required
-                        placeholder="Ahmad Raza"
+                        value={cardHolderName}
+                        onChange={(e) => setCardHolderName(e.target.value)}
+                        placeholder="e.g. Cardholder Name"
                         className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-[#0F172A]"
                       />
                     </div>
