@@ -1542,7 +1542,7 @@ export default function Navbar({
 
                       <button
                         onClick={() => { setView('tours'); setShowMegaMenu(false); }}
-                        className="relative z-10 border border-white/40 hover:border-white bg-white/10 hover:bg-white/20 text-white text-xs font-bold px-3 py-2 rounded-lg inline-flex items-center gap-1.5 w-fit transition-all cursor-pointer mt-4"
+                        className="relative z-10 bg-[#00A651] hover:bg-[#008E45] text-white text-xs font-bold px-3.5 py-2 rounded-xl inline-flex items-center gap-1.5 w-fit transition-all cursor-pointer mt-4 shadow-md"
                       >
                         <span>Explore Packages</span>
                         <ArrowRight className="w-3.5 h-3.5" />
@@ -1764,7 +1764,7 @@ export default function Navbar({
 
                       <button
                         onClick={() => { setView('vendor-dashboard'); setShowMegaMenu(false); }}
-                        className="relative z-10 border border-white/40 hover:border-white bg-white/10 hover:bg-white/20 text-white text-xs font-bold px-3 py-2 rounded-lg inline-flex items-center gap-1.5 w-fit transition-all cursor-pointer mt-4"
+                        className="relative z-10 bg-[#00A651] hover:bg-[#008E45] text-white text-xs font-bold px-3.5 py-2 rounded-xl inline-flex items-center gap-1.5 w-fit transition-all cursor-pointer mt-4 shadow-md"
                       >
                         <span>List Your Hotel</span>
                         <ArrowRight className="w-3.5 h-3.5" />
