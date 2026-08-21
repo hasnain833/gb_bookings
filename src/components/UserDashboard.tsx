@@ -130,39 +130,39 @@ export default function UserDashboard({ userEmail, userName, setView, onSelectBo
     <div id="user-dashboard-view" className="space-y-8 pb-16">
       
       {/* Header Profile Summary */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-6 rounded-2xl border border-slate-200 shadow-xs" id="user-profile-header">
-        <div className="flex items-center space-x-4">
-          <div className="w-16 h-16 rounded-lg bg-[#0F172A] flex items-center justify-center font-bold text-white text-2xl shadow-xs">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 sm:gap-6 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-xs" id="user-profile-header">
+        <div className="flex items-center space-x-3.5 sm:space-x-4">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg bg-[#0F172A] flex items-center justify-center font-bold text-white text-xl sm:text-2xl shadow-xs shrink-0">
             {userInitials}
           </div>
-          <div>
-            <h2 className="text-xl md:text-2xl font-bold text-slate-900 flex items-center gap-2 uppercase tracking-tight">
-              {displayName}
-              <span className="bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">Gold Loyalty Level</span>
+          <div className="min-w-0">
+            <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 flex flex-wrap items-center gap-2 uppercase tracking-tight">
+              <span>{displayName}</span>
+              <span className="bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">Gold Loyalty</span>
             </h2>
-            <p className="text-xs text-slate-500 mt-0.5">{userEmail || 'traveler@gbbookings.com'} • Verified Traveler</p>
+            <p className="text-xs text-slate-500 mt-0.5 truncate">{userEmail || 'traveler@gbbookings.com'} • Verified Traveler</p>
           </div>
         </div>
 
         {/* Dynamic Metric cards inside Header */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4" id="dashboard-metrics-summary">
-          <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-lg text-center shadow-xs">
+        <div className="grid grid-cols-2 min-[480px]:grid-cols-3 gap-2.5 sm:gap-4" id="dashboard-metrics-summary">
+          <div className="bg-slate-50 border border-slate-200 p-3 sm:p-3.5 rounded-lg text-center shadow-xs">
             <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Active Bookings</span>
-            <span className="text-sm font-bold text-slate-800 mt-1 block font-mono">{activeBookingsCount} Active</span>
+            <span className="text-xs sm:text-sm font-bold text-slate-800 mt-0.5 sm:mt-1 block font-mono">{activeBookingsCount} Active</span>
           </div>
-          <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-lg text-center shadow-xs">
+          <div className="bg-slate-50 border border-slate-200 p-3 sm:p-3.5 rounded-lg text-center shadow-xs">
             <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Wallet Balance</span>
-            <span className="text-sm font-bold text-indigo-600 mt-1 block font-mono">PKR 14,500</span>
+            <span className="text-xs sm:text-sm font-bold text-indigo-600 mt-0.5 sm:mt-1 block font-mono">PKR 14,500</span>
           </div>
-          <div className="hidden md:block bg-slate-50 border border-slate-200 p-3.5 rounded-lg text-center shadow-xs">
+          <div className="col-span-2 min-[480px]:col-span-1 bg-slate-50 border border-slate-200 p-3 sm:p-3.5 rounded-lg text-center shadow-xs">
             <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Loyalty Coins</span>
-            <span className="text-sm font-bold text-amber-600 mt-1 block font-mono">1,250 LC</span>
+            <span className="text-xs sm:text-sm font-bold text-amber-600 mt-0.5 sm:mt-1 block font-mono">1,250 LC</span>
           </div>
         </div>
       </div>
 
       {/* Tabs Controller */}
-      <div className="flex border-b border-slate-200 pb-1.5 space-x-6 overflow-x-auto scrollbar-none" id="dashboard-tabs-bar">
+      <div className="flex border-b border-slate-200 pb-1.5 space-x-3 sm:space-x-6 overflow-x-auto touch-scroll-x scrollbar-none" id="dashboard-tabs-bar">
         {[
           { id: 'trips', label: 'My Bookings', icon: Calendar },
           { id: 'wishlist', label: 'Saved Wishlist', icon: Heart, count: wishlistItems.length },
@@ -177,11 +177,11 @@ export default function UserDashboard({ userEmail, userName, setView, onSelectBo
               key={tab.id}
               id={`tab-dash-${tab.id}`}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`pb-3 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center space-x-2 relative whitespace-nowrap ${
+              className={`min-h-[44px] px-2 sm:px-3 pb-3 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center space-x-2 relative whitespace-nowrap shrink-0 ${
                 isActive ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-900'
               }`}
             >
-              <Icon className="w-4 h-4" />
+              <Icon className="w-4 h-4 shrink-0" />
               <span>{tab.label}</span>
               {tab.count !== undefined && tab.count > 0 && (
                 <span className="bg-rose-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full font-mono">{tab.count}</span>
@@ -394,19 +394,26 @@ export default function UserDashboard({ userEmail, userName, setView, onSelectBo
 
               {/* Transaction Logs */}
               <div className="space-y-3" id="dash-wallet-transactions">
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Transaction Records</h4>
-                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden divide-y divide-slate-200 shadow-xs">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Transaction Records</h4>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{transactions.length} Total</span>
+                </div>
+                <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden divide-y divide-slate-100 shadow-xs">
                   {transactions.map((tx) => (
-                    <div key={tx.id} className="p-4 flex items-center justify-between text-xs" id={`tx-item-${tx.id}`}>
-                      <div>
-                        <p className="font-bold text-slate-800">{tx.description}</p>
-                        <p className="text-[10px] text-slate-400 font-medium mt-0.5">{tx.createdAt} • ID: {tx.id}</p>
+                    <div key={tx.id} className="p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 text-xs hover:bg-slate-50/50 transition-colors" id={`tx-item-${tx.id}`}>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-bold text-slate-900 text-xs sm:text-sm truncate">{tx.description}</p>
+                        <p className="text-[10px] text-slate-400 font-medium mt-0.5">{tx.createdAt} • ID: <span className="font-mono">{tx.id}</span></p>
                       </div>
-                      <div className="text-right">
-                        <span className={`font-mono font-bold ${tx.type === 'deposit' ? 'text-indigo-600' : 'text-slate-600'}`}>
+                      <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center shrink-0 pt-1 sm:pt-0 border-t sm:border-t-0 border-slate-50">
+                        <span className={`font-mono font-bold text-xs sm:text-sm ${tx.type === 'deposit' ? 'text-emerald-600' : 'text-slate-800'}`}>
                           {tx.type === 'deposit' ? '+' : '-'} PKR {tx.amount.toLocaleString()}
                         </span>
-                        <span className="block text-[9px] text-slate-400 uppercase font-bold mt-0.5">{tx.status}</span>
+                        <span className={`inline-block text-[9px] uppercase font-bold px-1.5 py-0.5 rounded mt-0.5 ${
+                          tx.status === 'completed' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-100 text-slate-600'
+                        }`}>
+                          {tx.status}
+                        </span>
                       </div>
                     </div>
                   ))}
@@ -417,26 +424,26 @@ export default function UserDashboard({ userEmail, userName, setView, onSelectBo
 
           {/* TAB 3: Rewards & Referral Link */}
           {activeTab === 'rewards' && (
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-6 shadow-xs animate-fadeIn" id="dash-rewards-pane">
+            <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 space-y-5 sm:space-y-6 shadow-xs animate-fadeIn" id="dash-rewards-pane">
               <div className="space-y-2">
-                <h3 className="text-xl font-bold text-[#0F172A] uppercase tracking-tight">Invite Friends, Travel for Free</h3>
+                <h3 className="text-lg sm:text-xl font-bold text-[#0F172A] uppercase tracking-tight">Invite Friends, Travel for Free</h3>
                 <p className="text-xs text-slate-500 leading-relaxed font-medium">
                   Refer your peers to GBBookings. When they book their first luxury Hunza stay, we credit PKR 5,000 instantly into your virtual wallet and award them 10% off.
                 </p>
               </div>
 
               {/* Referral Code link */}
-              <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex items-center justify-between shadow-xs" id="referral-box">
-                <div>
+              <div className="bg-slate-50 border border-slate-200 p-3.5 sm:p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs" id="referral-box">
+                <div className="min-w-0">
                   <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Personal Referral Code</span>
-                  <span className="text-sm font-bold text-slate-700 mt-1 block">https://gbbookings.com/invite/AR105</span>
+                  <span className="text-xs sm:text-sm font-bold text-slate-700 mt-1 block truncate">https://gbbookings.com/invite/AR105</span>
                 </div>
                 <button
                   id="btn-copy-referral"
                   onClick={() => {
                     alert('Referral invitation code copied to clipboard!');
                   }}
-                  className="bg-[#0F172A] hover:bg-slate-800 text-white font-bold py-2.5 px-4 rounded-lg text-xs uppercase tracking-wider flex items-center space-x-1.5 cursor-pointer shadow-xs"
+                  className="bg-[#0F172A] hover:bg-slate-800 text-white font-bold py-2.5 px-4 rounded-lg text-xs uppercase tracking-wider flex items-center justify-center space-x-1.5 cursor-pointer shadow-xs shrink-0"
                 >
                   <Share2 className="w-3.5 h-3.5" />
                   <span>Copy Code</span>
@@ -444,18 +451,18 @@ export default function UserDashboard({ userEmail, userName, setView, onSelectBo
               </div>
 
               {/* Rewards metrics */}
-              <div className="grid grid-cols-3 gap-4 text-center" id="referral-metrics">
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-xs">
+              <div className="grid grid-cols-1 min-[480px]:grid-cols-3 gap-3 sm:gap-4 text-center" id="referral-metrics">
+                <div className="bg-slate-50 p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-xs">
                   <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Total Referred</span>
-                  <span className="text-lg font-bold text-[#0F172A] mt-1 block font-mono">12 Friends</span>
+                  <span className="text-base sm:text-lg font-bold text-[#0F172A] mt-1 block font-mono">12 Friends</span>
                 </div>
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-xs">
+                <div className="bg-slate-50 p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-xs">
                   <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Bookings Cleared</span>
-                  <span className="text-lg font-bold text-[#0F172A] mt-1 block font-mono">1 Approved</span>
+                  <span className="text-base sm:text-lg font-bold text-[#0F172A] mt-1 block font-mono">1 Approved</span>
                 </div>
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-xs">
+                <div className="bg-slate-50 p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-xs">
                   <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Total Earnings</span>
-                  <span className="text-lg font-bold text-indigo-600 mt-1 block font-mono">PKR 5,000</span>
+                  <span className="text-base sm:text-lg font-bold text-indigo-600 mt-1 block font-mono">PKR 5,000</span>
                 </div>
               </div>
             </div>

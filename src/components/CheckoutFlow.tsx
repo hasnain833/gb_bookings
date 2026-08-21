@@ -148,9 +148,9 @@ export default function CheckoutFlow({ bookingParams, listing, userEmail = '', u
 
       {/* STEP 1: Contacts Information */}
       {step === 1 && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-6 shadow-xs animate-fadeIn" id="checkout-step-1">
+        <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-6 shadow-xs animate-fadeIn" id="checkout-step-1">
           <div>
-            <h3 className="text-xl font-bold text-[#0F172A] uppercase tracking-tight">Traveler Details</h3>
+            <h3 className="text-lg sm:text-xl font-bold text-[#0F172A] uppercase tracking-tight">Traveler Details</h3>
             <p className="text-xs text-slate-500 mt-1">Please provide accurate contact coordinates for immigration and hospitality desks.</p>
           </div>
 
@@ -164,7 +164,7 @@ export default function CheckoutFlow({ bookingParams, listing, userEmail = '', u
                   id="checkout-name"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-[#0F172A] focus:bg-white"
+                  className="w-full min-h-[44px] bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-[#0F172A] focus:bg-white"
                 />
               </div>
 
@@ -176,7 +176,7 @@ export default function CheckoutFlow({ bookingParams, listing, userEmail = '', u
                   id="checkout-email"
                   value={customerEmail}
                   onChange={(e) => setCustomerEmail(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-[#0F172A] focus:bg-white"
+                  className="w-full min-h-[44px] bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-[#0F172A] focus:bg-white"
                 />
               </div>
             </div>
@@ -190,31 +190,31 @@ export default function CheckoutFlow({ bookingParams, listing, userEmail = '', u
                 value={customerPhone}
                 onChange={(e) => setCustomerPhone(e.target.value)}
                 placeholder="e.g. 03001234567"
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-[#0F172A] focus:bg-white"
+                className="w-full min-h-[44px] bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-[#0F172A] focus:bg-white"
               />
             </div>
           </div>
 
           {/* Booking Summary Box */}
-          <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex items-center justify-between shadow-xs">
+          <div className="bg-slate-50 border border-slate-200 p-3.5 sm:p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
             <div className="flex items-center space-x-3 text-left">
-              <img src={listing.image} alt="" className="w-16 h-12 object-cover rounded-lg" referrerPolicy="no-referrer" onError={handleImageError} />
-              <div>
-                <h4 className="text-xs font-bold text-slate-800">{listing.title}</h4>
-                <p className="text-[10px] text-slate-500 flex items-center mt-0.5"><Calendar className="w-3 h-3 mr-0.5 text-indigo-600" /> {bookingParams.startDate} to {bookingParams.endDate}</p>
+              <img src={listing.image} alt="" className="w-16 h-12 object-cover rounded-lg shrink-0" referrerPolicy="no-referrer" onError={handleImageError} />
+              <div className="min-w-0">
+                <h4 className="text-xs font-bold text-slate-800 truncate">{listing.title}</h4>
+                <p className="text-[10px] text-slate-500 flex items-center mt-0.5"><Calendar className="w-3 h-3 mr-0.5 text-indigo-600 shrink-0" /> {bookingParams.startDate} to {bookingParams.endDate}</p>
               </div>
             </div>
             
             {bookingParams.payAtHotel ? (
-              <div className="text-right">
+              <div className="text-left sm:text-right pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200">
                 <span className="text-[10px] text-[#006F3C] font-extrabold block uppercase tracking-wider">Oyo Pay At Stay</span>
-                <span className="text-sm font-bold text-slate-700 block">PKR {bookingParams.totalPrice.toLocaleString()} due later</span>
+                <span className="text-xs sm:text-sm font-bold text-slate-700 block">PKR {bookingParams.totalPrice.toLocaleString()} due later</span>
                 <span className="text-[9px] text-[#006F3C] font-bold block uppercase tracking-wider mt-0.5">PKR 0 Due Online</span>
               </div>
             ) : (
-              <div className="text-right">
+              <div className="text-left sm:text-right pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200">
                 <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Total Due</span>
-                <span className="text-sm font-bold text-indigo-600">PKR {bookingParams.totalPrice.toLocaleString()}</span>
+                <span className="text-xs sm:text-sm font-bold text-indigo-600">PKR {bookingParams.totalPrice.toLocaleString()}</span>
               </div>
             )}
           </div>
@@ -222,7 +222,7 @@ export default function CheckoutFlow({ bookingParams, listing, userEmail = '', u
           <button
             id="btn-checkout-to-payment"
             onClick={() => setStep(2)}
-            className="w-full bg-[#0F172A] hover:bg-slate-800 text-white font-bold py-3.5 px-6 rounded-lg shadow-xs transition-all text-xs flex items-center justify-center space-x-1.5 cursor-pointer uppercase tracking-wider"
+            className="w-full min-h-[46px] bg-[#0F172A] hover:bg-slate-800 text-white font-bold py-3.5 px-6 rounded-xl shadow-xs transition-all text-xs sm:text-sm flex items-center justify-center space-x-2 cursor-pointer uppercase tracking-wider"
           >
             <span>{bookingParams.payAtHotel ? 'Secure Reservation Hold' : 'Proceed to Payment Option'}</span> <ArrowRight className="w-4 h-4" />
           </button>
@@ -231,19 +231,19 @@ export default function CheckoutFlow({ bookingParams, listing, userEmail = '', u
 
       {/* STEP 2: Secure Payment Options or Pay-at-hotel hold card */}
       {step === 2 && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-6 shadow-xs animate-fadeIn" id="checkout-step-2">
+        <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-6 shadow-xs animate-fadeIn" id="checkout-step-2">
           {bookingParams.payAtHotel ? (
-            <div className="space-y-6 animate-fadeIn" id="pay-at-stay-confirmation-form">
+            <div className="space-y-5 sm:space-y-6 animate-fadeIn" id="pay-at-stay-confirmation-form">
               <div className="space-y-1.5">
-                <h3 className="text-xl font-bold text-[#006F3C] uppercase tracking-tight flex items-center gap-1.5">
-                  <ShieldCheck className="w-5 h-5" /> Pay At Stay Allotment Hold
+                <h3 className="text-lg sm:text-xl font-bold text-[#006F3C] uppercase tracking-tight flex items-center gap-1.5">
+                  <ShieldCheck className="w-5 h-5 shrink-0" /> Pay At Stay Allotment Hold
                 </h3>
                 <p className="text-xs text-slate-500 leading-relaxed font-medium">
                   We are securing this booking slot under our **PKR 0 online advance** policy. Your space is held until 6:00 PM on check-in day.
                 </p>
               </div>
 
-              <div className="bg-[#006F3C]/5 border border-[#006F3C]/15 p-5 rounded-2xl space-y-3.5">
+              <div className="bg-[#006F3C]/5 border border-[#006F3C]/15 p-4 sm:p-5 rounded-2xl space-y-3.5">
                 <h4 className="text-xs font-bold text-[#006F3C] uppercase tracking-wider flex items-center gap-1"><Info className="w-4 h-4" /> Why book with Pay At Stay?</h4>
                 <ul className="space-y-2 text-xs text-[#006F3C] font-semibold">
                   <li className="flex items-center gap-2">✓ No credit card or advance cash required today</li>
@@ -255,14 +255,14 @@ export default function CheckoutFlow({ bookingParams, listing, userEmail = '', u
 
               <div className="space-y-2.5">
                 <label className="text-[10px] font-extrabold uppercase tracking-widest text-[#006F3C] block">Confirm WhatsApp Hold Code</label>
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 flex items-center justify-between">
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
                   <span className="text-xs font-medium text-slate-500">Host will verify hold via contact number:</span>
                   <span className="font-mono text-xs font-bold text-slate-800">{customerPhone}</span>
                 </div>
               </div>
 
               <div className="flex items-start space-x-2.5 text-[10px] text-slate-500 font-medium">
-                <ShieldCheck className="w-4.5 h-4.5 text-[#006F3C] shrink-0" />
+                <ShieldCheck className="w-4.5 h-4.5 text-[#006F3C] shrink-0 mt-0.5" />
                 <span>By continuing, you authorize direct room blocking and agree to host stay policies.</span>
               </div>
 
@@ -275,14 +275,14 @@ export default function CheckoutFlow({ bookingParams, listing, userEmail = '', u
               </button>
             </div>
           ) : (
-            <div className="space-y-6" id="digital-payments-confirmation-form">
+            <div className="space-y-5 sm:space-y-6" id="digital-payments-confirmation-form">
               <div>
-                <h3 className="text-xl font-bold text-[#0F172A] uppercase tracking-tight">Payment Options</h3>
+                <h3 className="text-lg sm:text-xl font-bold text-[#0F172A] uppercase tracking-tight">Payment Options</h3>
                 <p className="text-xs text-slate-500 mt-1">Select your preferred transaction mechanism. Local digital wallets are authorized instantly.</p>
               </div>
 
               {/* Payment Method Selector Grid */}
-              <div className="grid grid-cols-3 gap-3" id="payment-gateways-selector">
+              <div className="grid grid-cols-3 gap-2 sm:gap-3" id="payment-gateways-selector">
                 {[
                   { id: 'card', label: 'Credit Card', icon: CreditCard },
                   { id: 'jazzcash', label: 'JazzCash', icon: Wallet },
@@ -295,21 +295,21 @@ export default function CheckoutFlow({ bookingParams, listing, userEmail = '', u
                       key={method.id}
                       id={`btn-gateway-${method.id}`}
                       onClick={() => setPaymentMethod(method.id as any)}
-                      className={`p-3 rounded-xl border flex flex-col items-center justify-center space-y-2 cursor-pointer transition-all ${
+                      className={`p-2.5 sm:p-3 rounded-xl border flex flex-col items-center justify-center space-y-1.5 sm:space-y-2 cursor-pointer transition-all ${
                         isSelected 
                           ? 'border-[#0F172A] bg-slate-50 text-[#0F172A] font-bold' 
                           : 'border-slate-200 bg-white text-slate-500 hover:text-slate-900 shadow-xs'
                       }`}
                     >
-                      <Icon className="w-5 h-5" />
-                      <span className="text-[11px] font-bold uppercase tracking-wider">{method.label}</span>
+                      <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+                      <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">{method.label}</span>
                     </button>
                   );
                 })}
               </div>
 
               {/* Payment Form Fields */}
-              <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-4" id="payment-gateway-form">
+              <div className="bg-slate-50 p-4 sm:p-5 rounded-xl border border-slate-200 space-y-4" id="payment-gateway-form">
                 {paymentMethod === 'card' ? (
                   <div className="space-y-4 animate-fadeIn" id="card-inputs-subform">
                     <div className="space-y-1.5">
@@ -320,7 +320,7 @@ export default function CheckoutFlow({ bookingParams, listing, userEmail = '', u
                         value={cardHolderName}
                         onChange={(e) => setCardHolderName(e.target.value)}
                         placeholder="e.g. Cardholder Name"
-                        className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-[#0F172A]"
+                        className="w-full min-h-[44px] bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-[#0F172A]"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -330,17 +330,18 @@ export default function CheckoutFlow({ bookingParams, listing, userEmail = '', u
                         required
                         value={cardNumber}
                         onChange={(e) => setCardNumber(e.target.value)}
-                        className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-[#0F172A] font-mono"
+                        placeholder="•••• •••• •••• ••••"
+                        className="w-full min-h-[44px] bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-[#0F172A] font-mono"
                       />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       <div className="space-y-1.5">
                         <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Expiry Date</label>
                         <input
                           type="text"
                           required
                           placeholder="MM/YY"
-                          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-[#0F172A]"
+                          className="w-full min-h-[44px] bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-[#0F172A]"
                         />
                       </div>
                       <div className="space-y-1.5">
@@ -348,9 +349,9 @@ export default function CheckoutFlow({ bookingParams, listing, userEmail = '', u
                         <input
                           type="password"
                           required
-                          placeholder="***"
-                          maxLength={3}
-                          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-[#0F172A]"
+                          placeholder="•••"
+                          maxLength={4}
+                          className="w-full min-h-[44px] bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-[#0F172A]"
                         />
                       </div>
                     </div>
@@ -368,7 +369,7 @@ export default function CheckoutFlow({ bookingParams, listing, userEmail = '', u
                         value={walletNumber}
                         onChange={(e) => setWalletNumber(e.target.value)}
                         placeholder="e.g. 03001234567"
-                        className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-[#0F172A] font-mono"
+                        className="w-full min-h-[44px] bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-[#0F172A] font-mono"
                       />
                     </div>
                   </div>
@@ -384,7 +385,7 @@ export default function CheckoutFlow({ bookingParams, listing, userEmail = '', u
               <button
                 id="btn-complete-payment-checkout"
                 onClick={startPaymentSimulation}
-                className="w-full bg-[#0F172A] hover:bg-slate-800 text-white font-bold py-3.5 px-6 rounded-lg shadow-xs transition-all text-xs flex items-center justify-center space-x-1.5 cursor-pointer uppercase tracking-wider"
+                className="w-full min-h-[46px] bg-[#0F172A] hover:bg-slate-800 text-white font-bold py-3.5 px-6 rounded-xl shadow-xs transition-all text-xs sm:text-sm flex items-center justify-center space-x-2 cursor-pointer uppercase tracking-wider"
               >
                 <span>Confirm & Authorize PKR {bookingParams.totalPrice.toLocaleString()}</span>
               </button>
@@ -428,15 +429,15 @@ export default function CheckoutFlow({ bookingParams, listing, userEmail = '', u
           {/* Printable Ticket Receipt Card */}
           <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs relative" id="printable-ticket-receipt">
             {/* Design cutouts for ticket look */}
-            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-8 bg-[#FAFAFA] rounded-r-full border-r border-slate-200" />
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-8 bg-[#FAFAFA] rounded-l-full border-l border-slate-200" />
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-3 sm:w-4 h-6 sm:h-8 bg-[#FAFAFA] rounded-r-full border-r border-slate-200" />
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 sm:w-4 h-6 sm:h-8 bg-[#FAFAFA] rounded-l-full border-l border-slate-200" />
 
-            <div className="bg-slate-50 p-5 border-b border-dashed border-slate-200 flex items-center justify-between">
+            <div className="bg-slate-50 p-4 sm:p-5 border-b border-dashed border-slate-200 flex flex-wrap items-center justify-between gap-2">
               <div>
                 <p className={`text-[10px] font-bold tracking-widest ${bookingParams.payAtHotel ? 'text-emerald-600' : 'text-indigo-600'} uppercase`}>
                   {bookingParams.payAtHotel ? 'Official Hold Voucher Invoice' : 'Official Booking Invoice'}
                 </p>
-                <h4 className="text-sm font-semibold text-slate-800 mt-0.5">GBBookings Ledger Desk</h4>
+                <h4 className="text-xs sm:text-sm font-semibold text-slate-800 mt-0.5">GBBookings Ledger Desk</h4>
               </div>
               <div className="text-right">
                 <span className={`bg-indigo-50 border border-indigo-100 text-indigo-600 text-[10px] font-bold px-2.5 py-1 rounded-md`}>
@@ -445,10 +446,10 @@ export default function CheckoutFlow({ bookingParams, listing, userEmail = '', u
               </div>
             </div>
 
-            <div className="p-6 grid grid-cols-2 gap-y-4 gap-x-6 text-xs border-b border-dashed border-slate-200">
+            <div className="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 gap-y-3 sm:gap-y-4 gap-x-4 sm:gap-x-6 text-xs border-b border-dashed border-slate-200">
               <div>
                 <span className="text-slate-400 uppercase font-bold text-[9px] block tracking-wider">Customer Name</span>
-                <span className="font-bold text-slate-800">{createdBooking.customerName}</span>
+                <span className="font-bold text-slate-800 break-words">{createdBooking.customerName}</span>
               </div>
               <div>
                 <span className="text-slate-400 uppercase font-bold text-[9px] block tracking-wider">Contact Number</span>
@@ -456,7 +457,7 @@ export default function CheckoutFlow({ bookingParams, listing, userEmail = '', u
               </div>
               <div>
                 <span className="text-slate-400 uppercase font-bold text-[9px] block tracking-wider">Property Space</span>
-                <span className="font-bold text-slate-800">{createdBooking.listingTitle}</span>
+                <span className="font-bold text-slate-800 break-words">{createdBooking.listingTitle}</span>
               </div>
               <div>
                 <span className="text-slate-400 uppercase font-bold text-[9px] block tracking-wider">Location</span>
@@ -484,26 +485,26 @@ export default function CheckoutFlow({ bookingParams, listing, userEmail = '', u
               </div>
             </div>
 
-            <div className="p-6 bg-slate-50/80 flex items-center justify-between">
+            <div className="p-4 sm:p-6 bg-slate-50/80 flex flex-wrap items-center justify-between gap-3">
               <div>
                 {bookingParams.payAtHotel ? (
                   <>
                     <p className="text-[10px] font-bold text-[#006F3C] uppercase tracking-wider">Payable at stay Check-In</p>
-                    <p className="text-xl font-bold text-[#006F3C] mt-0.5">PKR {createdBooking.totalPrice.toLocaleString()}</p>
+                    <p className="text-lg sm:text-xl font-bold text-[#006F3C] mt-0.5">PKR {createdBooking.totalPrice.toLocaleString()}</p>
                     <p className="text-[9.5px] font-bold text-slate-400 mt-0.5">PKR 0 paid today online</p>
                   </>
                 ) : (
                   <>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Paid Total (Net PKR)</p>
-                    <p className="text-xl font-bold text-slate-800 mt-0.5">PKR {createdBooking.totalPrice.toLocaleString()}</p>
+                    <p className="text-lg sm:text-xl font-bold text-slate-800 mt-0.5">PKR {createdBooking.totalPrice.toLocaleString()}</p>
                   </>
                 )}
               </div>
 
               {/* Barcode representation */}
               <div className="text-center space-y-1">
-                <div className="h-8 w-28 bg-[repeating-linear-gradient(90deg,transparent,transparent_2px,#0f172a_2px,#0f172a_4px,#64748b_4px,#64748b_5px)] opacity-85" />
-                <span className="text-[9px] font-bold text-slate-400 block uppercase tracking-wider">
+                <div className="h-8 w-24 sm:w-28 bg-[repeating-linear-gradient(90deg,transparent,transparent_2px,#0f172a_2px,#0f172a_4px,#64748b_4px,#64748b_5px)] opacity-85" />
+                <span className="text-[8px] sm:text-[9px] font-bold text-slate-400 block uppercase tracking-wider">
                   {bookingParams.payAtHotel ? 'SECURE_HOLD_TICKET' : 'SECURE_LEDGER_TICKET'}
                 </span>
               </div>
@@ -511,7 +512,7 @@ export default function CheckoutFlow({ bookingParams, listing, userEmail = '', u
           </div>
 
           {/* Post Actions */}
-          <div className="grid grid-cols-2 gap-4" id="checkout-completed-actions">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4" id="checkout-completed-actions">
             <button
               onClick={() => {
                 alert('Sent PDF print request. Checking local spool queues.');

@@ -124,23 +124,23 @@ export default function SupportCentre() {
     <div id="support-centre-view" className="space-y-8 pb-16">
       
       {/* Intro Header */}
-      <div className="flex items-center space-x-3 bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
-        <div className="w-12 h-12 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0">
-          <LifeBuoy className="w-6 h-6 text-indigo-600" />
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3.5 sm:gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
+        <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0">
+          <LifeBuoy className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" />
         </div>
-        <div>
-          <h2 className="text-xl md:text-2xl font-bold text-[#0F172A] uppercase tracking-tight">24/7 Operations Support</h2>
-          <p className="text-xs text-slate-500 mt-0.5">Real-time support coordination with regional operators, mountain guides, and payment clearing offices.</p>
+        <div className="min-w-0">
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-[#0F172A] uppercase tracking-tight">24/7 Operations Support</h2>
+          <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">Real-time support coordination with regional operators, mountain guides, and payment clearing offices.</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8" id="support-main-grid">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8" id="support-main-grid">
         
         {/* Left Column: Tickets List and Filing form */}
         <aside className="lg:col-span-4 space-y-6" id="support-left-sidebar">
           
           {/* Support Ticket File Form */}
-          <form onSubmit={handleCreateTicket} className="bg-white rounded-xl border border-slate-200 p-5 space-y-4 shadow-xs" id="form-file-ticket">
+          <form onSubmit={handleCreateTicket} className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 space-y-4 shadow-xs" id="form-file-ticket">
             <h3 className="text-xs font-bold uppercase text-[#0F172A] border-b border-slate-100 pb-2.5 flex items-center gap-1.5 tracking-wider">
               File Support Ticket
             </h3>
@@ -154,7 +154,7 @@ export default function SupportCentre() {
                 placeholder="e.g. Booking b-991 Airport Shuttle"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-[#0F172A] focus:bg-white"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-[#0F172A] focus:bg-white min-h-[44px]"
               />
             </div>
 
@@ -164,7 +164,7 @@ export default function SupportCentre() {
                 id="ticket-category"
                 value={category}
                 onChange={(e: any) => setCategory(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:border-[#0F172A] focus:bg-white"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-[#0F172A] focus:bg-white min-h-[44px] cursor-pointer"
               >
                 <option value="booking">🏨 Hotel / Stay Booking</option>
                 <option value="payment">💳 Wallet or Card Payment</option>
@@ -182,7 +182,7 @@ export default function SupportCentre() {
                 placeholder="Elaborate your request details. Include booking IDs for rapid response clearance..."
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-[#0F172A] focus:bg-white"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-[#0F172A] focus:bg-white resize-none"
               />
             </div>
 
@@ -190,9 +190,9 @@ export default function SupportCentre() {
               type="submit"
               id="btn-file-ticket"
               disabled={submittingTicket}
-              className="w-full bg-[#0F172A] hover:bg-slate-800 text-white font-bold py-2.5 px-6 rounded-lg text-xs flex items-center justify-center space-x-1.5 cursor-pointer uppercase tracking-wider"
+              className="w-full bg-[#0F172A] hover:bg-slate-800 text-white font-bold py-3 px-6 rounded-xl text-xs sm:text-sm flex items-center justify-center space-x-2 cursor-pointer uppercase tracking-wider min-h-[44px] transition-colors shadow-xs"
             >
-              <span>{submittingTicket ? 'Filing...' : 'Transmit Ticket'}</span> <ArrowRight className="w-3.5 h-3.5" />
+              <span>{submittingTicket ? 'Filing...' : 'Transmit Ticket'}</span> <ArrowRight className="w-4 h-4" />
             </button>
           </form>
 
@@ -212,13 +212,13 @@ export default function SupportCentre() {
                       key={t.id}
                       id={`ticket-selector-btn-${t.id}`}
                       onClick={() => setSelectedTicket(t)}
-                      className={`w-full text-left p-4 rounded-lg border flex flex-col justify-between transition-all cursor-pointer shadow-xs ${
+                      className={`w-full text-left p-3.5 sm:p-4 rounded-xl border flex flex-col justify-between transition-all cursor-pointer shadow-xs ${
                         isSelected 
                           ? 'border-indigo-600 bg-indigo-50/40' 
                           : 'border-slate-200 bg-white hover:bg-slate-50'
                       }`}
                     >
-                      <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center justify-between w-full gap-2">
                         <span className="text-[10px] font-bold bg-slate-100 border border-slate-200 text-slate-600 px-2 py-0.5 rounded">ID: {t.id}</span>
                         <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase border ${
                           t.status === 'open' 
@@ -226,7 +226,7 @@ export default function SupportCentre() {
                             : 'bg-slate-100 text-slate-500 border-slate-200'
                         }`}>{t.status}</span>
                       </div>
-                      <h4 className="text-xs font-bold text-slate-800 mt-2 line-clamp-1">{t.subject}</h4>
+                      <h4 className="text-xs font-bold text-slate-800 mt-2 line-clamp-1 break-words">{t.subject}</h4>
                       <p className="text-[10px] text-slate-400 mt-1 font-mono">{new Date(t.createdAt).toLocaleDateString()}</p>
                     </button>
                   );
@@ -239,29 +239,29 @@ export default function SupportCentre() {
         {/* Right Column: Live Chat Operator Desk */}
         <main className="lg:col-span-8 flex flex-col justify-between" id="chat-operator-desk">
           {selectedTicket ? (
-            <div className="bg-white rounded-xl border border-slate-200 flex flex-col justify-between h-[540px] shadow-xs relative" id="ticket-chat-frame">
+            <div className="bg-white rounded-2xl border border-slate-200 flex flex-col justify-between min-h-[440px] sm:min-h-[500px] h-[520px] shadow-xs relative overflow-hidden" id="ticket-chat-frame">
               {/* Chat Header */}
-              <div className="bg-slate-50 px-5 py-4 border-b border-slate-200 flex items-center justify-between">
-                <div>
-                  <h4 className="text-sm font-bold text-slate-800 flex items-center">
-                    <Clock className="w-4 h-4 mr-1.5 text-indigo-600" />
+              <div className="bg-slate-50 px-4 sm:px-5 py-3.5 sm:py-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <h4 className="text-xs sm:text-sm font-bold text-slate-800 flex items-center truncate">
+                    <Clock className="w-4 h-4 mr-1.5 text-indigo-600 shrink-0" />
                     Operator Connection: {selectedTicket.id}
                   </h4>
                   <p className="text-[10px] text-slate-500 mt-0.5 font-bold uppercase tracking-wider">Category: {selectedTicket.category.toUpperCase()} • Status: {selectedTicket.status.toUpperCase()}</p>
                 </div>
-                <div className="flex items-center space-x-2 text-xs text-slate-500 font-bold uppercase tracking-wider">
-                  <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse" />
+                <div className="flex items-center space-x-2 text-[11px] sm:text-xs text-slate-500 font-bold uppercase tracking-wider shrink-0">
+                  <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse shrink-0" />
                   <span>Operations Desk Online</span>
                 </div>
               </div>
 
               {/* Chat messages viewport */}
-              <div className="p-6 flex-1 overflow-y-auto space-y-4" id="chat-messages-viewport">
+              <div className="p-4 sm:p-6 flex-1 overflow-y-auto space-y-4" id="chat-messages-viewport">
                 
                 {/* Initial Query Card */}
-                <div className="flex items-start space-x-3 max-w-lg">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white font-bold text-xs flex items-center justify-center shrink-0">AR</div>
-                  <div className="bg-indigo-50/50 border border-indigo-100 p-3.5 rounded-xl">
+                <div className="flex items-start space-x-2.5 sm:space-x-3 max-w-[95%] sm:max-w-lg">
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-indigo-600 text-white font-bold text-[11px] sm:text-xs flex items-center justify-center shrink-0">AR</div>
+                  <div className="bg-indigo-50/50 border border-indigo-100 p-3 sm:p-3.5 rounded-xl break-words">
                     <p className="text-[10px] font-bold text-indigo-600 font-mono uppercase tracking-wider">Original Inquiry</p>
                     <p className="text-xs text-slate-700 mt-1">{selectedTicket.message}</p>
                     <p className="text-[9px] text-slate-400 font-mono mt-1.5">{new Date(selectedTicket.createdAt).toLocaleTimeString()}</p>
@@ -275,13 +275,13 @@ export default function SupportCentre() {
                     <div 
                       key={rep.id} 
                       id={`msg-bubble-${rep.id}`}
-                      className={`flex items-start space-x-3 ${isOperator ? 'justify-start' : 'justify-end'}`}
+                      className={`flex items-start space-x-2.5 sm:space-x-3 ${isOperator ? 'justify-start' : 'justify-end'}`}
                     >
                       {isOperator && (
-                        <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-xs shrink-0 font-bold text-indigo-400">🌐</div>
+                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-slate-800 flex items-center justify-center text-xs shrink-0 font-bold text-indigo-400">🌐</div>
                       )}
                       
-                      <div className={`p-3.5 rounded-xl max-w-md ${
+                      <div className={`p-3 sm:p-3.5 rounded-xl max-w-[85%] sm:max-w-md break-words ${
                         isOperator 
                           ? 'bg-slate-50 border border-slate-200 text-slate-700' 
                           : 'bg-indigo-50 border border-indigo-100 text-slate-800'
@@ -296,7 +296,7 @@ export default function SupportCentre() {
                       </div>
 
                       {!isOperator && (
-                        <div className="w-8 h-8 rounded-lg bg-[#0F172A] text-white font-bold text-xs flex items-center justify-center shrink-0">AR</div>
+                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-[#0F172A] text-white font-bold text-[11px] sm:text-xs flex items-center justify-center shrink-0">AR</div>
                       )}
                     </div>
                   );
@@ -304,7 +304,7 @@ export default function SupportCentre() {
               </div>
 
               {/* Chat Input form */}
-              <form onSubmit={handleSendReply} className="p-4 bg-slate-50 border-t border-slate-200 flex gap-3" id="form-chat-send">
+              <form onSubmit={handleSendReply} className="p-3 sm:p-4 bg-slate-50 border-t border-slate-200 flex gap-2 sm:gap-3" id="form-chat-send">
                 <input
                   type="text"
                   required
@@ -312,22 +312,23 @@ export default function SupportCentre() {
                   placeholder="Type your message to operations..."
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
-                  className="flex-1 bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-indigo-600"
+                  className="flex-1 bg-white border border-slate-200 rounded-xl px-3 sm:px-4 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-indigo-600 min-h-[42px]"
                 />
                 <button
                   type="submit"
                   id="btn-chat-send"
                   disabled={sendingReply}
-                  className="bg-[#0F172A] hover:bg-slate-800 text-white font-bold py-2.5 px-4 rounded-lg text-xs flex items-center justify-center cursor-pointer shadow-xs"
+                  className="bg-[#0F172A] hover:bg-slate-800 text-white font-bold py-2.5 px-3.5 sm:px-4 rounded-xl text-xs flex items-center justify-center cursor-pointer shadow-xs min-h-[42px] min-w-[42px]"
+                  aria-label="Send message"
                 >
                   <Send className="w-4 h-4" />
                 </button>
               </form>
             </div>
           ) : (
-            <div className="bg-white rounded-xl border border-slate-200 p-12 text-center flex flex-col items-center justify-center h-[540px] shadow-xs" id="chat-desk-empty">
-              <MessageSquare className="w-12 h-12 text-slate-400 mb-4" />
-              <h4 className="font-bold text-[#0F172A] uppercase tracking-tight">Select Coordinates To Initiate</h4>
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-12 text-center flex flex-col items-center justify-center min-h-[360px] h-[520px] shadow-xs" id="chat-desk-empty">
+              <MessageSquare className="w-10 h-10 sm:w-12 sm:h-12 text-slate-400 mb-3 sm:mb-4" />
+              <h4 className="font-bold text-sm sm:text-base text-[#0F172A] uppercase tracking-tight">Select Coordinates To Initiate</h4>
               <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed mt-1">Select one of your support coordinate tickets on the left sidebar to communicate directly with our regional desks.</p>
             </div>
           )}

@@ -504,22 +504,22 @@ export default function AiPlanner({ setView, onSelectListing }: AiPlannerProps) 
         }
         case 'table': {
           return (
-            <div key={index} className="overflow-x-auto my-6 border border-slate-200/80 rounded-xl shadow-xs bg-white">
-              <table className="min-w-full divide-y divide-slate-200">
-                <thead className="bg-slate-50/70">
+            <div key={index} className="w-full max-w-full overflow-x-auto my-6 border border-slate-200/80 rounded-xl shadow-xs bg-white scrollbar-thin">
+              <table className="w-full min-w-[480px] sm:min-w-full divide-y divide-slate-200 text-left">
+                <thead className="bg-slate-50/80">
                   <tr>
                     {block.headers.map((h, hIdx) => (
-                      <th key={hIdx} className="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                      <th key={hIdx} className="px-3 sm:px-4 py-2.5 sm:py-3 text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
                         {h}
                       </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 bg-white text-xs text-slate-700">
+                <tbody className="divide-y divide-slate-100 bg-white text-[11px] sm:text-xs text-slate-700">
                   {block.rows.map((row, rIdx) => (
                     <tr key={rIdx} className="hover:bg-slate-50/60 transition-colors">
                       {row.map((cell, cIdx) => (
-                        <td key={cIdx} className="px-4 py-3 leading-relaxed font-medium">
+                        <td key={cIdx} className="px-3 sm:px-4 py-2.5 sm:py-3 leading-relaxed font-medium">
                           {formatBold(cell)}
                         </td>
                       ))}
@@ -623,7 +623,7 @@ export default function AiPlanner({ setView, onSelectListing }: AiPlannerProps) 
                   setDestination(e.target.value);
                   setSelectedStopIdx(0);
                 }}
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-[#0F172A] focus:bg-white"
+                className="w-full min-h-[44px] bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-[#0F172A] focus:bg-white cursor-pointer"
               >
                 <option value="Hunza Valley">Hunza Valley (Lakes & Peaks)</option>
                 <option value="Skardu Plains">Skardu & Deosai plains</option>
@@ -646,7 +646,7 @@ export default function AiPlanner({ setView, onSelectListing }: AiPlannerProps) 
                       setBudgetTier(b);
                       setBudgetAmount(b === 'Economy' ? '45000' : b === 'Business' ? '90000' : '180000');
                     }}
-                    className={`py-2 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
+                    className={`min-h-[42px] py-2 px-1 rounded-xl text-[10px] sm:text-[11px] font-bold border transition-all cursor-pointer truncate ${
                       budgetTier === b
                         ? 'bg-indigo-50 border-indigo-500 text-indigo-600 shadow-2xs'
                         : 'bg-slate-50 border-slate-200 text-slate-400 hover:text-slate-800'
@@ -667,21 +667,21 @@ export default function AiPlanner({ setView, onSelectListing }: AiPlannerProps) 
                   id="ai-budget-amount"
                   value={budgetAmount}
                   onChange={(e) => setBudgetAmount(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-8 pr-4 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-[#0F172A] focus:bg-white font-mono"
+                  className="w-full min-h-[44px] bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2.5 text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-[#0F172A] focus:bg-white font-mono"
                 />
-                <DollarSign className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
+                <DollarSign className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             </div>
 
             {/* Duration and Travelers */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Duration (Days)</label>
                 <select
                   id="ai-duration"
                   value={duration}
                   onChange={(e) => setDuration(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-[#0F172A] focus:bg-white"
+                  className="w-full min-h-[44px] bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-[#0F172A] focus:bg-white cursor-pointer"
                 >
                   {[3, 4, 5, 6, 7, 10].map(d => (
                     <option key={d} value={d}>{d} Days</option>
@@ -695,7 +695,7 @@ export default function AiPlanner({ setView, onSelectListing }: AiPlannerProps) 
                   id="ai-travelers"
                   value={travelers}
                   onChange={(e) => setTravelers(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-[#0F172A] focus:bg-white"
+                  className="w-full min-h-[44px] bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-[#0F172A] focus:bg-white cursor-pointer"
                 >
                   {[1, 2, 4, 6, 8, 12].map(t => (
                     <option key={t} value={t}>{t} {t === 1 ? 'Person' : 'People'}</option>
@@ -713,7 +713,7 @@ export default function AiPlanner({ setView, onSelectListing }: AiPlannerProps) 
                 value={interests}
                 onChange={(e) => setInterests(e.target.value)}
                 placeholder="e.g. Stargazing in dunes, historic forts walk, balti apricot soup, shopping authentic gems..."
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-[#0F172A] focus:bg-white"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-[#0F172A] focus:bg-white resize-none"
               />
             </div>
 
@@ -721,9 +721,9 @@ export default function AiPlanner({ setView, onSelectListing }: AiPlannerProps) 
               type="submit"
               id="btn-ai-generate-blueprint"
               disabled={loading}
-              className="w-full bg-[#0F172A] hover:bg-slate-800 text-white font-bold py-3 px-6 rounded-lg shadow-xs transition-all text-xs flex items-center justify-center space-x-1.5 cursor-pointer uppercase tracking-wider"
+              className="w-full min-h-[46px] bg-[#0F172A] hover:bg-slate-800 text-white font-bold py-3 px-6 rounded-xl shadow-xs transition-all text-xs sm:text-sm flex items-center justify-center space-x-2 cursor-pointer uppercase tracking-wider"
             >
-              <Send className="w-3.5 h-3.5 stroke-[2.25]" />
+              <Send className="w-4 h-4 stroke-[2.25]" />
               <span>{loading ? 'Synthesizing...' : 'Generate My Dream Itinerary'}</span>
             </button>
           </form>

@@ -383,7 +383,7 @@ export default function HotelsSection({ onSelectListing, onTriggerSearch }: Hote
                 {showGuestPicker && (
                   <div 
                     onClick={(e) => e.stopPropagation()}
-                    className="absolute top-full left-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 p-4 space-y-4"
+                    className="absolute top-full left-0 sm:left-auto right-0 sm:right-auto mt-2 w-[calc(100vw-32px)] max-w-[320px] bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 p-4 space-y-4"
                   >
                     <div className="flex items-center justify-between">
                       <div>
@@ -534,7 +534,7 @@ export default function HotelsSection({ onSelectListing, onTriggerSearch }: Hote
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
           {categories.map((cat) => {
             const isSelected = selectedCategory === cat.title;
             const Icon = cat.icon;
@@ -543,7 +543,7 @@ export default function HotelsSection({ onSelectListing, onTriggerSearch }: Hote
               <div
                 key={cat.id}
                 onClick={() => setSelectedCategory(isSelected ? 'All' : cat.title)}
-                className={`relative h-48 sm:h-52 rounded-2xl overflow-hidden cursor-pointer group shadow-2xs hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border-2 ${
+                className={`relative h-44 sm:h-52 rounded-2xl overflow-hidden cursor-pointer group shadow-2xs hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border-2 ${
                   isSelected ? 'border-[#006F3C] ring-4 ring-emerald-500/20' : 'border-transparent'
                 }`}
               >
@@ -556,25 +556,25 @@ export default function HotelsSection({ onSelectListing, onTriggerSearch }: Hote
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-900/40 to-transparent" />
 
-                <div className="absolute inset-0 p-4 flex flex-col justify-between text-white z-10">
+                <div className="absolute inset-0 p-3 sm:p-4 flex flex-col justify-between text-white z-10">
                   {isSelected && (
-                    <div className="self-start px-2.5 py-1 rounded-full bg-[#006F3C] text-white text-[10px] font-bold shadow-md">
+                    <div className="self-start px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-[#006F3C] text-white text-[9px] sm:text-[10px] font-bold shadow-md">
                       Filtered
                     </div>
                   )}
 
-                  <div className="mt-auto flex items-end justify-between gap-2">
-                    <div className="space-y-0.5 pr-2">
-                      <h4 className="font-extrabold text-white text-base sm:text-lg leading-snug">
+                  <div className="mt-auto flex items-end justify-between gap-1.5 sm:gap-2">
+                    <div className="space-y-0.5 pr-1 min-w-0">
+                      <h4 className="font-extrabold text-white text-sm sm:text-base lg:text-lg leading-snug truncate">
                         {cat.title}
                       </h4>
-                      <p className="text-slate-200 text-[11px] font-normal leading-tight line-clamp-2">
+                      <p className="text-slate-200 text-[10px] sm:text-[11px] font-normal leading-tight line-clamp-2">
                         {cat.subtitle}
                       </p>
                     </div>
 
-                    <div className={`p-2 rounded-full backdrop-blur-md border shrink-0 ${cat.iconBg}`}>
-                      <Icon className="w-4 h-4" />
+                    <div className={`p-1.5 sm:p-2 rounded-full backdrop-blur-md border shrink-0 ${cat.iconBg}`}>
+                      <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </div>
                   </div>
                 </div>
@@ -613,7 +613,7 @@ export default function HotelsSection({ onSelectListing, onTriggerSearch }: Hote
         </div>
 
         {hotelListings.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {hotelListings.map((hotel) => {
               const specs = hotel.hotelSpecs;
 
@@ -623,7 +623,7 @@ export default function HotelsSection({ onSelectListing, onTriggerSearch }: Hote
                   onClick={() => onSelectListing(hotel)}
                   className="bg-white rounded-2xl border border-slate-200/90 hover:border-emerald-500/60 overflow-hidden shadow-2xs hover:shadow-xl transition-all duration-300 group cursor-pointer flex flex-col justify-between"
                 >
-                  <div className="relative h-52 sm:h-56 overflow-hidden bg-slate-100">
+                  <div className="relative h-48 sm:h-52 md:h-56 overflow-hidden bg-slate-100 shrink-0">
                     <img
                       src={hotel.image}
                       alt={hotel.title}
@@ -655,9 +655,9 @@ export default function HotelsSection({ onSelectListing, onTriggerSearch }: Hote
                     )}
                   </div>
 
-                  <div className="p-5 space-y-3 flex-1 flex flex-col justify-between">
+                  <div className="p-4 sm:p-5 space-y-3 flex-1 flex flex-col justify-between">
                     <div className="space-y-1.5">
-                      <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center justify-between text-xs gap-2">
                         <p className="text-slate-500 font-medium flex items-center gap-1 truncate">
                           <MapPin className="w-3.5 h-3.5 text-[#006F3C] shrink-0" />
                           <span className="truncate">{hotel.location}</span>
@@ -669,7 +669,7 @@ export default function HotelsSection({ onSelectListing, onTriggerSearch }: Hote
                         </div>
                       </div>
 
-                      <h4 className="font-bold text-slate-900 text-lg group-hover:text-[#006F3C] transition-colors leading-snug line-clamp-1">
+                      <h4 className="font-bold text-slate-900 text-base sm:text-lg group-hover:text-[#006F3C] transition-colors leading-snug line-clamp-1 break-words">
                         {hotel.title}
                       </h4>
 
@@ -691,10 +691,10 @@ export default function HotelsSection({ onSelectListing, onTriggerSearch }: Hote
                       </div>
                     )}
 
-                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                      <div>
+                    <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+                      <div className="min-w-0">
                         <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Per Night</p>
-                        <p className="text-base font-black text-slate-900">
+                        <p className="text-sm sm:text-base font-black text-slate-900">
                           PKR {hotel.price.toLocaleString()} <span className="text-xs font-normal text-slate-500">/ night</span>
                         </p>
                       </div>
@@ -705,7 +705,7 @@ export default function HotelsSection({ onSelectListing, onTriggerSearch }: Hote
                           e.stopPropagation();
                           onSelectListing(hotel);
                         }}
-                        className="px-4 py-2.5 rounded-xl bg-[#006F3C] hover:bg-[#005C32] text-white text-xs font-extrabold transition-all shadow-2xs group-hover:shadow-md flex items-center gap-1.5 cursor-pointer"
+                        className="min-h-[42px] px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-[#006F3C] hover:bg-[#005C32] text-white text-xs font-extrabold transition-all shadow-2xs group-hover:shadow-md flex items-center gap-1.5 cursor-pointer shrink-0"
                       >
                         <span>Book Room</span>
                         <ArrowRight className="w-3.5 h-3.5" />

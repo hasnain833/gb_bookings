@@ -417,10 +417,10 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
       </div>
 
       {/* Main Grid: Left details column, right booking sidebar */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8" id="details-cols-container">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8" id="details-cols-container">
         
         {/* Left Column (8 cols): Photo Gallery & Core Details */}
-        <div className="lg:col-span-8 space-y-8" id="details-content-column">
+        <div className="lg:col-span-8 space-y-6 sm:space-y-8" id="details-content-column">
           
           {/* Header Metadata */}
           <div className="space-y-2">
@@ -430,12 +430,12 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
               </span>
               {listing.type === 'hotel' && (
                 <span className="bg-emerald-50 border border-emerald-100 text-emerald-700 text-[10px] font-bold px-2.5 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5" /> OYO CLEAN & HYGIENIC CERTIFIED
+                  <ShieldCheck className="w-3.5 h-3.5 shrink-0" /> OYO CLEAN & HYGIENIC CERTIFIED
                 </span>
               )}
             </div>
-            <h1 className="text-2xl md:text-3.5xl font-extrabold text-slate-950 uppercase tracking-tight leading-none">{listing.title}</h1>
-            <p className="text-xs md:text-sm text-slate-500 flex items-center font-medium"><MapPin className="w-4 h-4 mr-1 text-rose-500 shrink-0" /> {listing.location}</p>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-950 uppercase tracking-tight leading-tight break-words">{listing.title}</h1>
+            <p className="text-xs sm:text-sm text-slate-500 flex items-center font-medium"><MapPin className="w-4 h-4 mr-1 text-rose-500 shrink-0" /> {listing.location}</p>
           </div>
 
           {/* Interactive Photo Gallery Component */}
@@ -728,12 +728,12 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
             </div>
 
             {/* Review Submission Form */}
-            <form onSubmit={handleAddReview} className="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-4" id="form-submit-review">
+            <form onSubmit={handleAddReview} className="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 space-y-4" id="form-submit-review">
               <h4 className="text-xs font-bold text-[#0F172A] uppercase tracking-wider flex items-center">
                 <Sparkles className="w-4 h-4 mr-1.5 text-indigo-600" /> Write a Review
               </h4>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Full Name</label>
                   <input
@@ -743,7 +743,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
                     placeholder="e.g. Ahmad Raza"
                     value={newAuthor}
                     onChange={(e) => setNewAuthor(e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-[#0F172A]"
+                    className="w-full min-h-[44px] bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-[#0F172A]"
                   />
                 </div>
 
@@ -753,7 +753,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
                     id="input-review-rating"
                     value={newRating}
                     onChange={(e) => setNewRating(Number(e.target.value))}
-                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-800 focus:outline-none focus:border-[#0F172A]"
+                    className="w-full min-h-[44px] bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-medium text-slate-800 focus:outline-none focus:border-[#0F172A] cursor-pointer"
                   >
                     <option value="5">⭐⭐⭐⭐⭐ 5 Stars</option>
                     <option value="4">⭐⭐⭐⭐ 4 Stars</option>
@@ -773,7 +773,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
                   placeholder="Tell us about the facilities, scenic views, and hospitality..."
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-[#0F172A]"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-[#0F172A] resize-none"
                 />
               </div>
 
@@ -781,9 +781,9 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
                 type="submit"
                 id="btn-post-review"
                 disabled={submittingReview}
-                className="bg-[#0F172A] hover:bg-slate-800 text-white font-bold py-2.5 px-5 rounded-lg text-xs flex items-center justify-center space-x-1.5 cursor-pointer uppercase tracking-wider"
+                className="w-full sm:w-auto min-h-[44px] bg-[#0F172A] hover:bg-slate-800 text-white font-bold py-2.5 px-6 rounded-xl text-xs sm:text-sm flex items-center justify-center space-x-2 cursor-pointer uppercase tracking-wider transition-colors shadow-xs"
               >
-                <Send className="w-3.5 h-3.5" />
+                <Send className="w-4 h-4" />
                 <span>{submittingReview ? 'Submitting...' : 'Post Review'}</span>
               </button>
             </form>
@@ -792,19 +792,19 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
 
         {/* Right Column (4 cols): Live Booking Reservation Widget (Booking.com style) */}
         <div className="lg:col-span-4" id="details-booking-column">
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-6 sticky top-24 shadow-sm">
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 md:p-6 space-y-5 sm:space-y-6 sticky top-24 shadow-sm">
             <div>
               <span className="text-[9px] font-bold text-slate-400 block uppercase tracking-wider">Prices start from</span>
-              <div className="flex items-baseline space-x-1.5 mt-1">
-                <span className="text-3xl font-extrabold text-[#0F172A]">PKR {listing.price.toLocaleString()}</span>
+              <div className="flex items-baseline flex-wrap gap-1.5 mt-1">
+                <span className="text-2xl sm:text-3xl font-extrabold text-[#0F172A]">PKR {listing.price.toLocaleString()}</span>
                 <span className="text-xs text-slate-500 font-medium">/{listing.type === 'hotel' ? 'night' : listing.type === 'car' ? 'day' : 'tour'}</span>
               </div>
             </div>
 
             {/* Date and Guest Pickers */}
             <div className="space-y-4" id="form-booking-dates">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
                     <Calendar className="w-3.5 h-3.5 text-indigo-600" /> Start Date
                   </label>
@@ -814,11 +814,11 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
                     id="booking-start-date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-[11px] text-slate-800 focus:outline-none focus:border-[#0F172A] focus:bg-white font-medium"
+                    className="w-full min-h-[44px] bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-[#0F172A] focus:bg-white font-medium cursor-pointer"
                   />
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
                     <Calendar className="w-3.5 h-3.5 text-indigo-600" /> End Date
                   </label>
@@ -828,13 +828,13 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
                     id="booking-end-date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-[11px] text-slate-800 focus:outline-none focus:border-[#0F172A] focus:bg-white font-medium"
+                    className="w-full min-h-[44px] bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-[#0F172A] focus:bg-white font-medium cursor-pointer"
                   />
                 </div>
               </div>
 
               {listing.type !== 'car' && (
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
                     <Users className="w-3.5 h-3.5 text-indigo-600" /> Total Guests
                   </label>
@@ -842,7 +842,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
                     id="booking-guests-count"
                     value={guests}
                     onChange={(e) => setGuests(Number(e.target.value))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-800 focus:outline-none focus:border-[#0F172A] focus:bg-white"
+                    className="w-full min-h-[44px] bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-[#0F172A] focus:bg-white cursor-pointer"
                   >
                     {[1, 2, 3, 4, 6, 8, 12].map((g) => (
                       <option key={g} value={g}>{g} {g === 1 ? 'Guest' : 'Guests'}</option>
@@ -853,7 +853,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
 
               {/* Car Specific: Driver Selection */}
               {listing.type === 'car' && listing.carSpecs?.withDriver && (
-                <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                <div className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200 rounded-xl min-h-[44px]">
                   <div>
                     <p className="text-xs font-bold text-slate-800">Request Local Driver</p>
                     <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-wide">+PKR 3,000/day guides</p>
@@ -863,7 +863,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
                     id="booking-checkbox-driver"
                     checked={withDriver}
                     onChange={(e) => setWithDriver(e.target.checked)}
-                    className="w-4.5 h-4.5 rounded text-indigo-600 bg-white border-slate-300 accent-indigo-600"
+                    className="w-5 h-5 rounded text-indigo-600 bg-white border-slate-300 accent-indigo-600 cursor-pointer"
                   />
                 </div>
               )}
@@ -956,12 +956,12 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
                   placeholder="e.g. WELCOME10"
                   value={couponCode}
                   onChange={(e) => setCouponCode(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-bold focus:outline-none focus:border-[#0F172A] focus:bg-white flex-1 placeholder:font-normal"
+                  className="bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 min-h-[44px] text-xs text-slate-800 font-bold focus:outline-none focus:border-[#0F172A] focus:bg-white flex-1 placeholder:font-normal"
                 />
                 <button
                   type="submit"
                   id="btn-apply-promo"
-                  className="bg-[#0F172A] hover:bg-slate-800 text-white font-bold px-3 py-1.5 rounded-lg text-xs uppercase tracking-wider cursor-pointer"
+                  className="bg-[#0F172A] hover:bg-slate-800 text-white font-bold px-4 py-2.5 min-h-[44px] rounded-xl text-xs uppercase tracking-wider cursor-pointer shadow-xs transition-colors shrink-0"
                 >
                   Apply
                 </button>
@@ -1189,12 +1189,12 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
                 placeholder={`Ask ${hostName} anything...`}
                 value={chatMessage}
                 onChange={(e) => setChatMessage(e.target.value)}
-                className="bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-indigo-600 focus:bg-white flex-1"
+                className="bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-indigo-600 focus:bg-white flex-1 min-h-[44px]"
               />
               <button
                 type="submit"
                 id="btn-send-host-chat"
-                className="bg-indigo-600 hover:bg-indigo-700 text-white p-2.5 rounded-xl cursor-pointer shadow-xs shrink-0 flex items-center justify-center"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white p-2.5 rounded-xl cursor-pointer shadow-xs shrink-0 flex items-center justify-center min-h-[44px] min-w-[44px]"
               >
                 <Send className="w-4 h-4" />
               </button>

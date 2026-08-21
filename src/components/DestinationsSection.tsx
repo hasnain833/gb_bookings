@@ -225,13 +225,13 @@ export default function DestinationsSection({ onTriggerSearch, setView }: Destin
 
       {/* 3. DESTINATIONS BENTO CARDS GRID */}
       <section className="space-y-6 pt-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 lg:gap-8">
           {filteredDestinations.map((dest) => (
             <div
               key={dest.id}
-              className="bg-white rounded-3xl border border-slate-200/90 overflow-hidden shadow-2xs hover:shadow-xl transition-all duration-300 group flex flex-col justify-between"
+              className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 overflow-hidden shadow-2xs hover:shadow-xl transition-all duration-300 group flex flex-col justify-between"
             >
-              <div className="relative h-60 overflow-hidden bg-slate-100">
+              <div className="relative h-48 sm:h-56 md:h-60 overflow-hidden bg-slate-100 shrink-0">
                 <img
                   src={dest.image}
                   alt={dest.name}
@@ -239,32 +239,32 @@ export default function DestinationsSection({ onTriggerSearch, setView }: Destin
                   referrerPolicy="no-referrer"
                   onError={handleImageError}
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/25 to-transparent" />
 
-                <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
-                  <span className="px-3 py-1 rounded-full bg-[#006F3C] text-white text-[11px] font-extrabold shadow-md">
+                <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2">
+                  <span className="px-2.5 sm:px-3 py-1 rounded-full bg-[#006F3C] text-white text-[10px] sm:text-[11px] font-extrabold shadow-md truncate">
                     {dest.region}
                   </span>
-                  <span className="px-2.5 py-1 rounded-full bg-slate-900/80 backdrop-blur-md text-slate-200 text-[10px] font-semibold border border-white/20">
+                  <span className="px-2.5 py-1 rounded-full bg-slate-900/80 backdrop-blur-md text-slate-200 text-[10px] font-semibold border border-white/20 shrink-0">
                     Elev: {dest.elevation}
                   </span>
                 </div>
 
-                <div className="absolute bottom-3 left-4 right-4 text-white">
-                  <h3 className="text-2xl font-black text-white leading-tight drop-shadow-sm">
+                <div className="absolute bottom-3 left-3.5 sm:left-4 right-3.5 sm:right-4 text-white">
+                  <h3 className="text-xl sm:text-2xl font-black text-white leading-tight drop-shadow-sm break-words line-clamp-1">
                     {dest.name}
                   </h3>
-                  <p className="text-xs text-slate-200 font-medium">{dest.title}</p>
+                  <p className="text-[11px] sm:text-xs text-slate-200 font-medium truncate">{dest.title}</p>
                 </div>
               </div>
 
-              <div className="p-6 space-y-4 flex-1 flex flex-col justify-between">
-                <p className="text-slate-600 text-xs leading-relaxed">
+              <div className="p-4 sm:p-6 space-y-3.5 sm:space-y-4 flex-1 flex flex-col justify-between">
+                <p className="text-slate-600 text-xs leading-relaxed line-clamp-3">
                   {dest.description}
                 </p>
 
                 {/* Attractions List */}
-                <div className="space-y-1.5 bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                <div className="space-y-1.5 bg-slate-50 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border border-slate-100">
                   <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Top Attractions:</p>
                   <div className="flex flex-wrap gap-1.5">
                     {dest.topAttractions.map((att, i) => (
@@ -276,8 +276,8 @@ export default function DestinationsSection({ onTriggerSearch, setView }: Destin
                 </div>
 
                 <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
-                  <span className="font-bold text-[#006F3C]">{dest.hotelsCount}</span>
-                  <span className="font-medium text-slate-400">Best: {dest.bestTime}</span>
+                  <span className="font-bold text-[#006F3C] truncate">{dest.hotelsCount}</span>
+                  <span className="font-medium text-slate-400 shrink-0 ml-2">Best: {dest.bestTime}</span>
                 </div>
 
                 <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
@@ -293,10 +293,10 @@ export default function DestinationsSection({ onTriggerSearch, setView }: Destin
                         });
                       }
                     }}
-                    className="w-full py-3 rounded-xl bg-[#006F3C] hover:bg-[#005C32] text-white text-xs font-extrabold transition-all shadow-2xs flex items-center justify-center gap-2 cursor-pointer"
+                    className="w-full min-h-[44px] py-2.5 sm:py-3 rounded-xl bg-[#006F3C] hover:bg-[#005C32] text-white text-xs font-extrabold transition-all shadow-2xs flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <span>Search Stays in {dest.name}</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
+                    <ArrowRight className="w-3.5 h-3.5 shrink-0" />
                   </button>
                 </div>
               </div>

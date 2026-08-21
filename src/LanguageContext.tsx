@@ -671,43 +671,43 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 15 }}
               transition={{ type: 'spring', duration: 0.4, bounce: 0.15 }}
-              className="relative w-full max-w-md bg-white rounded-3xl border border-slate-100 shadow-2xl p-6 sm:p-8 space-y-6 text-left overflow-hidden z-10"
+              className="relative w-full max-w-md bg-white rounded-2xl sm:rounded-3xl border border-slate-100 shadow-2xl p-4 sm:p-6 space-y-4 sm:space-y-5 text-left overflow-hidden z-10 my-4"
               dir="ltr"
             >
               {/* Pattern Header Accent */}
               <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-emerald-500 via-teal-500 to-indigo-500" />
               
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0">
-                  <Globe className="w-6 h-6 text-emerald-600 animate-pulse" />
+              <div className="flex items-start gap-3 sm:gap-4">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0">
+                  <Globe className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600 animate-pulse" />
                 </div>
-                <div className="space-y-1">
-                  <h3 className="text-lg font-bold text-slate-950 flex items-center gap-2">
+                <div className="space-y-0.5">
+                  <h3 className="text-base sm:text-lg font-bold text-slate-950 flex flex-wrap items-center gap-1.5 sm:gap-2">
                     <span>Language Permission</span>
-                    <span className="text-slate-300">|</span>
+                    <span className="text-slate-300 hidden sm:inline">|</span>
                     <span className="font-urdu font-medium text-emerald-700">اردو زبان</span>
                   </h3>
                   <p className="text-[10px] uppercase font-extrabold tracking-wider text-emerald-600">Urdu Language Request</p>
                 </div>
               </div>
 
-              <div className="space-y-4 py-1 text-slate-600 text-xs sm:text-sm leading-relaxed">
-                <p className="font-medium text-slate-900 border-b border-slate-100 pb-3">
+              <div className="space-y-3 py-0.5 text-slate-600 text-xs sm:text-sm leading-relaxed">
+                <p className="font-medium text-slate-900 border-b border-slate-100 pb-2.5">
                   Would you like to experience GBBookings.com in beautifully rendered, hand-crafted Urdu typography?
                 </p>
-                <p className="font-urdu font-medium text-slate-700 text-sm sm:text-base leading-relaxed bg-slate-50 p-4 rounded-2xl border border-slate-100 text-right" dir="rtl">
+                <p className="font-urdu font-medium text-slate-700 text-xs sm:text-base leading-relaxed bg-slate-50 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-100 text-right" dir="rtl">
                   کیا آپ ویب سائٹ کو شاندار اور پڑھنے میں انتہائی آسان اردو رسم الخط میں دیکھنا چاہتے ہیں؟
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 pt-1">
                 <button
                   id="btn-confirm-language-cancel"
                   onClick={() => {
                     setShowPermissionModal(false);
                     setPendingLanguage(null);
                   }}
-                  className="w-full py-3 px-4 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all text-xs font-bold uppercase tracking-wider cursor-pointer text-center"
+                  className="w-full py-2.5 sm:py-3 px-4 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all text-xs font-bold uppercase tracking-wider cursor-pointer text-center min-h-[42px] flex items-center justify-center"
                 >
                   Cancel / منسوخ
                 </button>
@@ -720,7 +720,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                     setShowPermissionModal(false);
                     setPendingLanguage(null);
                   }}
-                  className="w-full py-3 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white transition-all text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md shadow-emerald-700/10 hover:shadow-emerald-700/20 cursor-pointer flex justify-center text-center"
+                  className="w-full py-2.5 sm:py-3 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white transition-all text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md shadow-emerald-700/10 hover:shadow-emerald-700/20 cursor-pointer text-center min-h-[42px]"
                 >
                   Yes, Switch / تبدیل کریں
                 </button>

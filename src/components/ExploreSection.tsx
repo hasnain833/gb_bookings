@@ -267,9 +267,41 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
     item.desc.toLowerCase().includes((destQuery || destination).toLowerCase())
   );
 
-  // States for Countdown timer & Testimonials matching the second image
   const [timeLeft, setTimeLeft] = useState({ days: 2, hours: 14, minutes: 36, seconds: 45 });
   const [testimonialIdx, setTestimonialIdx] = useState(0);
+
+  // Popular Destinations Carousel Ref & Scrolling State
+  const destCarouselRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const checkDestScroll = () => {
+    if (destCarouselRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = destCarouselRef.current;
+      setCanScrollLeft(scrollLeft > 10);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+    }
+  };
+
+  useEffect(() => {
+    const el = destCarouselRef.current;
+    if (el) {
+      el.addEventListener('scroll', checkDestScroll, { passive: true });
+      checkDestScroll();
+      return () => el.removeEventListener('scroll', checkDestScroll);
+    }
+  }, []);
+
+  const handleScrollDestinations = (direction: 'left' | 'right') => {
+    if (destCarouselRef.current) {
+      const scrollAmount = 280;
+      destCarouselRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+      setTimeout(checkDestScroll, 350);
+    }
+  };
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -332,13 +364,110 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
     }
   };
 
-  const destinations = [
-    { name: 'Hunza Valley', region: 'Gilgit-Baltistan', image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=600&q=80', tag: 'Autumn & Lakes' },
-    { name: 'Skardu', region: 'Karakoram Peakway', image: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=600&q=80', tag: 'Cold Desert & K2' },
-    { name: 'Swat Valley', region: 'Khyber Pakhtunkhwa', image: 'https://images.unsplash.com/photo-1518098268026-4e43a1a009de?auto=format&fit=crop&w=600&q=80', tag: 'Alpine & Ski' },
-    { name: 'Islamabad', region: 'Margalla Foothills', image: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=600&q=80', tag: 'Modern Capital' },
-    { name: 'Lahore', region: 'Punjab Heritage', image: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=600&q=80', tag: 'Mughal History' }
+  const popularDestinations = [
+    {
+      id: 'skardu',
+      name: 'Skardu',
+      urName: 'سکردو',
+      properties: '320+ Properties',
+      urProperties: '320+ جائیدادیں',
+      icon: Heart,
+      image: 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&w=800&q=80',
+      searchTerm: 'Skardu'
+    },
+    {
+      id: 'hunza-valley',
+      name: 'Hunza Valley',
+      urName: 'وادی ہنزہ',
+      properties: '450+ Properties',
+      urProperties: '450+ جائیدادیں',
+      icon: Users,
+      image: 'https://images.unsplash.com/photo-1542718610-a1d656d1884c?auto=format&fit=crop&w=800&q=80',
+      searchTerm: 'Hunza'
+    },
+    {
+      id: 'deosai-plains',
+      name: 'Deosai Plains',
+      urName: 'دیوسائی کے میدان',
+      properties: '120+ Properties',
+      urProperties: '120+ جائیدادیں',
+      icon: Clock,
+      image: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=800&q=80',
+      searchTerm: 'Deosai'
+    },
+    {
+      id: 'khaplu',
+      name: 'Khaplu',
+      urName: 'خپلو',
+      properties: '80+ Properties',
+      urProperties: '80+ جائیدادیں',
+      icon: Building2,
+      image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80',
+      searchTerm: 'Khaplu'
+    },
+    {
+      id: 'basho-valley',
+      name: 'Basho Valley',
+      urName: 'وادی باشو',
+      properties: '60+ Properties',
+      urProperties: '60+ جائیدادیں',
+      icon: Mountain,
+      image: 'https://images.unsplash.com/photo-1510312305653-8ed496efae75?auto=format&fit=crop&w=800&q=80',
+      searchTerm: 'Basho'
+    },
+    {
+      id: 'nagar-valley',
+      name: 'Nagar Valley',
+      urName: 'وادی نگر',
+      properties: '75+ Properties',
+      urProperties: '75+ جائیدادیں',
+      icon: Compass,
+      image: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80',
+      searchTerm: 'Nagar'
+    },
+    {
+      id: 'fairy-meadows',
+      name: 'Fairy Meadows',
+      urName: 'فیری میڈوز',
+      properties: '65+ Properties',
+      urProperties: '65+ جائیدادیں',
+      icon: Mountain,
+      image: 'https://images.unsplash.com/photo-1551632811-561732d1e306?auto=format&fit=crop&w=800&q=80',
+      searchTerm: 'Fairy Meadows'
+    },
+    {
+      id: 'naltar-valley',
+      name: 'Naltar Valley',
+      urName: 'وادی نلتر',
+      properties: '55+ Properties',
+      urProperties: '55+ جائیدادیں',
+      icon: Waves,
+      image: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800&q=80',
+      searchTerm: 'Naltar'
+    },
+    {
+      id: 'attabad-lake',
+      name: 'Attabad Lake',
+      urName: 'عطا آباد جھیل',
+      properties: '90+ Properties',
+      urProperties: '90+ جائیدادیں',
+      icon: Waves,
+      image: 'https://images.unsplash.com/photo-1518098268026-4e43a1a009de?auto=format&fit=crop&w=800&q=80',
+      searchTerm: 'Attabad'
+    },
+    {
+      id: 'phander-valley',
+      name: 'Phander Valley',
+      urName: 'وادی پھندر',
+      properties: '45+ Properties',
+      urProperties: '45+ جائیدادیں',
+      icon: Compass,
+      image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=800&q=80',
+      searchTerm: 'Phander'
+    }
   ];
+
+  const destinations = popularDestinations;
 
   const featuredListings = INITIAL_LISTINGS.filter(l => l.featured).map(l => tListing(l, isRtl));
 
@@ -965,17 +1094,22 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
 
       </section>
 
-      {/* 4. Editorial Locations Grid */}
-      <section className="space-y-6 pt-4" id="section-destinations">
-        <div className="flex items-end justify-between flex-wrap gap-4">
+      {/* 4. Popular Destinations Component matching reference design */}
+      <section className="space-y-4 sm:space-y-5 pt-4" id="section-popular-destinations">
+        {/* Section Header */}
+        <div className="flex items-end justify-between flex-wrap gap-3">
           <div>
-            <h3 className="text-xl font-bold tracking-tight text-slate-900 uppercase">
-              {isRtl ? 'مشہور ترین منازل' : 'Legendary Destinations'}
-            </h3>
-            <p className="text-sm text-slate-500 mt-1">
-              {isRtl ? 'عالمی معیار کی سہولیات سے لیس بہترین تفریحی مقامات۔' : 'Handpicked landscapes offering world-class standard facilities.'}
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-1.5">
+              <span>{isRtl ? 'مشہور' : 'Popular'}</span>
+              <span className="text-[#00A651]">{isRtl ? 'منازل' : 'Destinations'}</span>
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
+              {isRtl 
+                ? 'گلگت بلتستان کے سب سے زیادہ مقبول اور دلکش تفریحی مقامات دریافت کریں' 
+                : 'Explore the most popular places in Gilgit Baltistan'}
             </p>
           </div>
+
           <button 
             id="btn-all-destinations"
             onClick={() => { 
@@ -983,71 +1117,90 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
               setSearchFilters({ destination: '', startDate: '', endDate: '', extra: {} }); 
               setView('destinations'); 
             }} 
-            className="text-xs font-bold text-emerald-700 uppercase tracking-wider flex items-center gap-1 hover:text-emerald-800 transition-colors cursor-pointer"
+            className="text-xs sm:text-sm font-bold text-[#00A651] hover:text-[#008E45] flex items-center gap-1.5 transition-colors cursor-pointer group pb-0.5"
           >
-            <span>{isRtl ? 'تمام مقامات دیکھیں' : 'Browse All Locations'}</span> <ArrowRight className="w-3.5 h-3.5" />
+            <span>{isRtl ? 'تمام مقامات دیکھیں' : 'View all Destinations'}</span>
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </button>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4" id="destinations-grid">
-          {destinations.map((dest, i) => {
-            // Translate destination names & regions
-            const translatedName = isRtl
-              ? dest.name.includes('Hunza') ? 'وادی ہنزہ'
-                : dest.name.includes('Skardu') ? 'سکردو'
-                : dest.name.includes('Swat') ? 'وادی سوات'
-                : dest.name.includes('Islamabad') ? 'اسلام آباد'
-                : dest.name.includes('Lahore') ? 'لاہور'
-                : dest.name
-              : dest.name;
+        {/* Carousel Row with Interactive Floating Scroll Controls */}
+        <div className="relative group/carousel">
+          {/* Floating Left Arrow Button (shows when scrolled) */}
+          {canScrollLeft && (
+            <button
+              type="button"
+              id="btn-popular-dest-scroll-left"
+              onClick={() => handleScrollDestinations('left')}
+              className="absolute left-1 sm:-left-3.5 top-1/2 -translate-y-1/2 z-30 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white shadow-xl border border-slate-200/90 text-[#00A651] hover:text-[#008E45] hover:bg-slate-50 flex items-center justify-center cursor-pointer transition-all hover:scale-110 active:scale-95"
+              aria-label="Scroll left"
+            >
+              <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
+            </button>
+          )}
 
-            const translatedRegion = isRtl
-              ? dest.region.includes('Gilgit') ? 'گلگت بلتستان'
-                : dest.region.includes('Karakoram') ? 'شاہراہ قراقرم'
-                : dest.region.includes('Khyber') ? 'خیبر پختونخوا'
-                : dest.region.includes('Margalla') ? 'مارگلہ کی پہاڑیاں'
-                : dest.region.includes('Punjab') ? 'پنجاب کا ورثہ'
-                : dest.region
-              : dest.region;
+          {/* Cards Carousel Container */}
+          <div
+            ref={destCarouselRef}
+            className="flex gap-3.5 sm:gap-4 lg:gap-4.5 overflow-x-auto scrollbar-none scroll-smooth pb-3 pt-1 -mx-1 px-1 snap-x snap-mandatory"
+            id="popular-destinations-carousel"
+          >
+            {popularDestinations.map((dest) => {
+              const Icon = dest.icon;
+              return (
+                <div
+                  key={dest.id}
+                  id={`popular-dest-card-${dest.id}`}
+                  onClick={() => {
+                    setDestination(dest.searchTerm);
+                    setSearchFilters({ destination: dest.searchTerm, startDate: '', endDate: '', extra: {} });
+                    setView(activeTab === 'car' ? 'browse-cars' : activeTab === 'tour' ? 'browse-tours' : 'browse-hotels');
+                  }}
+                  className="shrink-0 w-[195px] min-[400px]:w-[215px] sm:w-[225px] md:w-[235px] lg:w-[245px] xl:w-[250px] aspect-[3/4.2] relative rounded-2xl sm:rounded-3xl overflow-hidden cursor-pointer group shadow-md hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border border-slate-200/60 bg-slate-900 snap-start"
+                >
+                  {/* Background Destination Photo */}
+                  <img
+                    src={dest.image}
+                    alt={dest.name}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
+                    referrerPolicy="no-referrer"
+                    onError={handleImageError}
+                  />
 
-            const translatedTag = isRtl
-              ? dest.tag.includes('Autumn') ? 'خزاں اور جھیلیں'
-                : dest.tag.includes('Cold') ? 'سرد صحرا اور کے ٹو'
-                : dest.tag.includes('Alpine') ? 'برفباری اور اسکیئنگ'
-                : dest.tag.includes('Modern') ? 'جدید دارالحکومت'
-                : dest.tag.includes('Mughal') ? 'مغلیہ تاریخ'
-                : dest.tag
-              : dest.tag;
+                  {/* Gradient Shadow Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-transparent pointer-events-none" />
 
-            return (
-              <div
-                key={dest.name}
-                id={`dest-card-${i}`}
-                onClick={() => {
-                  setDestination(dest.name.split(' ')[0]);
-                  setSearchFilters({ destination: dest.name.split(' ')[0], startDate: '', endDate: '', extra: {} });
-                  setView(activeTab === 'car' ? 'browse-cars' : activeTab === 'tour' ? 'browse-tours' : 'browse-hotels');
-                }}
-                className="relative rounded-2xl overflow-hidden aspect-[3/4] cursor-pointer group shadow-sm border border-[#E2E8F0] bg-white"
-              >
-                <img 
-                  src={dest.image} 
-                  alt={dest.name} 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 rounded-2xl"
-                  referrerPolicy="no-referrer"
-                  onError={handleImageError}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
-                <div className="absolute top-3 right-3 bg-white/90 border border-slate-100 px-2.5 py-1 rounded-full text-[9px] font-bold text-slate-800 uppercase backdrop-blur-xs shadow-xs">
-                  {translatedTag}
+                  {/* Bottom Text Content Matching Reference */}
+                  <div className="absolute bottom-0 left-0 right-0 p-3.5 sm:p-4 text-left pointer-events-none">
+                    {/* Location Name with Pin */}
+                    <div className="flex items-center gap-1.5 text-white font-extrabold text-[15px] sm:text-base tracking-tight drop-shadow-sm">
+                      <MapPin className="w-4 h-4 text-white shrink-0 fill-white/20 stroke-[2.2]" />
+                      <span className="truncate">{isRtl ? dest.urName : dest.name}</span>
+                    </div>
+
+                    {/* Property Count Badge */}
+                    <div className="flex items-center gap-1.5 text-white/90 text-xs font-semibold mt-1 drop-shadow-xs">
+                      <Icon className="w-3.5 h-3.5 text-white/80 shrink-0 stroke-[2]" />
+                      <span className="truncate">{isRtl ? dest.urProperties : dest.properties}</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="absolute bottom-4 left-4 right-4 text-left">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">{translatedRegion}</p>
-                  <h4 className="text-base font-bold text-white mt-0.5">{translatedName}</h4>
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
+
+          {/* Floating Right Arrow Button Matching Reference Image */}
+          {canScrollRight && (
+            <button
+              type="button"
+              id="btn-popular-dest-scroll-right"
+              onClick={() => handleScrollDestinations('right')}
+              className="absolute right-1 sm:-right-3.5 top-1/2 -translate-y-1/2 z-30 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white shadow-xl border border-slate-200/90 text-[#00A651] hover:text-[#008E45] hover:bg-slate-50 flex items-center justify-center cursor-pointer transition-all hover:scale-110 active:scale-95"
+              aria-label="Scroll right"
+            >
+              <ArrowRight className="w-5 h-5 stroke-[2.5]" />
+            </button>
+          )}
         </div>
       </section>
 
@@ -1062,15 +1215,15 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6" id="exclusives-grid">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6" id="exclusives-grid">
           {featuredListings.slice(0, 3).map((listing, index) => (
             <div
               key={listing.id}
               id={`exclusive-card-${listing.id}`}
-              className="bg-white rounded-2xl overflow-hidden border border-slate-200 flex flex-col h-full group hover:border-emerald-300 transition-all shadow-md"
+              className="bg-white rounded-2xl overflow-hidden border border-slate-200 flex flex-col justify-between h-full group hover:border-emerald-300 transition-all shadow-md"
             >
               {/* Photo Area */}
-              <div className="relative aspect-[16/10] overflow-hidden rounded-t-2xl bg-slate-100">
+              <div className="relative aspect-[16/10] overflow-hidden rounded-t-2xl bg-slate-100 shrink-0">
                 <img 
                   src={listing.image} 
                   alt={listing.title} 
@@ -1091,18 +1244,20 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
               </div>
 
               {/* Text Info */}
-              <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+              <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-4">
                 <div className="space-y-2 text-left">
                   <p className="text-xs font-bold text-[#006F3C] uppercase tracking-wider flex items-center">
-                    <MapPin className="w-3.5 h-3.5 mr-1 text-[#006F3C]" /> 
-                    {isRtl 
-                      ? (listing.location.includes('Hunza') ? 'وادی ہنزہ' 
-                          : listing.location.includes('Skardu') ? 'سکردو کا علاقہ' 
-                          : listing.location.includes('Swat') ? 'وادی سوات' 
-                          : listing.location)
-                      : listing.location}
+                    <MapPin className="w-3.5 h-3.5 mr-1 text-[#006F3C] shrink-0" /> 
+                    <span className="truncate">
+                      {isRtl 
+                        ? (listing.location.includes('Hunza') ? 'وادی ہنزہ' 
+                            : listing.location.includes('Skardu') ? 'سکردو کا علاقہ' 
+                            : listing.location.includes('Swat') ? 'وادی سوات' 
+                            : listing.location)
+                        : listing.location}
+                    </span>
                   </p>
-                  <h4 className="text-base font-bold text-slate-900 group-hover:text-[#006F3C] transition-colors leading-snug">
+                  <h4 className="text-sm sm:text-base font-bold text-slate-900 group-hover:text-[#006F3C] transition-colors leading-snug line-clamp-2">
                     {isRtl 
                       ? (listing.title.includes('Resort') ? listing.title.replace('Resort', 'ریزارٹ')
                           : listing.title.includes('Hotel') ? listing.title.replace('Hotel', 'ہوٹل')
@@ -1112,12 +1267,12 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                   <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">{listing.description}</p>
                 </div>
 
-                <div className="flex items-center justify-between pt-4 border-slate-100">
-                  <div className="text-left">
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-4 border-t border-slate-100">
+                  <div className="text-left min-w-0">
                     <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">
                       {isRtl ? 'ابتدائی قیمت' : 'Prices starting from'}
                     </span>
-                    <span className="text-base font-bold text-slate-900">{isRtl ? 'روپے' : 'PKR'} {listing.price.toLocaleString()}</span>
+                    <span className="text-sm sm:text-base font-bold text-slate-900">{isRtl ? 'روپے' : 'PKR'} {listing.price.toLocaleString()}</span>
                     <span className="text-[10px] text-slate-400">
                       /{listing.type === 'hotel' 
                         ? (isRtl ? 'رات' : 'night') 
@@ -1129,7 +1284,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                   <button
                     id={`btn-view-exclusive-${listing.id}`}
                     onClick={() => onSelectListing(listing)}
-                    className="bg-[#006F3C] hover:bg-[#005C32] text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-transform active:scale-95 cursor-pointer flex items-center gap-1 shadow-sm"
+                    className="min-h-[42px] bg-[#006F3C] hover:bg-[#005C32] text-white px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-transform active:scale-95 cursor-pointer flex items-center gap-1 shadow-sm shrink-0"
                   >
                     <span>{isRtl ? 'تفصیلات دیکھیں' : 'View Spaces'}</span> <ArrowRight className="w-3 h-3" />
                   </button>
@@ -1164,7 +1319,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5" id="featured-hotels-grid">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-5" id="featured-hotels-grid">
           {[
             {
               id: 'h-4',
@@ -1314,7 +1469,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
           </button>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4" id="popular-destinations-grid">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4" id="popular-destinations-grid">
           {[
             { name: 'Skardu', count: '320+ Properties', image: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=400&q=80' },
             { name: 'Hunza Valley', count: '450+ Properties', image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=400&q=80' },
@@ -1376,7 +1531,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5" id="trending-tours-grid">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5" id="trending-tours-grid">
           {[
             {
               title: 'Hunza Valley Explorer',
@@ -1528,7 +1683,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-5" id="premium-cars-grid">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-5" id="premium-cars-grid">
           {[
             {
               title: 'Toyota Land Cruiser',

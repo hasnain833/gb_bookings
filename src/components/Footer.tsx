@@ -61,9 +61,9 @@ export default function Footer({ onNavigate }: FooterProps) {
   return (
     <footer className="w-full font-sans overflow-hidden">
       {/* 1. TOP VALUE PROPS BAR */}
-      <div className="bg-[#F3F6F5] border-y border-slate-200/90 py-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 lg:gap-4 items-center">
+      <div className="bg-[#F3F6F5] border-y border-slate-200/90 py-5 sm:py-6">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6 lg:gap-4 items-center">
             
             {/* Prop 1 */}
             <div className="flex items-center gap-3">
@@ -125,8 +125,8 @@ export default function Footer({ onNavigate }: FooterProps) {
       </div>
 
       {/* 2. MAIN DARK FOOTER */}
-      <div className="bg-[#002816] text-slate-300 pt-12 pb-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="bg-[#002816] text-slate-300 pt-10 sm:pt-12 pb-8">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-6 pb-10">
             

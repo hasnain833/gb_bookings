@@ -70,33 +70,36 @@ export const CalendarPickerDropdown: React.FC<CalendarPickerDropdownProps> = ({
   return (
     <div 
       onClick={(e) => e.stopPropagation()}
-      className="absolute top-full left-0 mt-2 w-72 sm:w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 p-4 animate-in fade-in zoom-in-95 duration-150"
+      className="absolute top-full left-1/2 -translate-x-1/2 sm:translate-x-0 sm:left-0 mt-2 w-[calc(100vw-24px)] max-w-[320px] sm:w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 p-3 sm:p-4 animate-in fade-in zoom-in-95 duration-150"
     >
       {/* Header */}
       <div className="flex items-center justify-between pb-3 border-b border-slate-100">
         <div>
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{title}</span>
-          <h4 className="text-sm font-extrabold text-slate-800">{format(viewMonth, 'MMMM yyyy')}</h4>
+          <h4 className="text-xs sm:text-sm font-extrabold text-slate-800">{format(viewMonth, 'MMMM yyyy')}</h4>
         </div>
         <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={handlePrevMonth}
-            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer"
+            className="p-2 rounded-lg hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
+            aria-label="Previous month"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
           <button
             type="button"
             onClick={handleNextMonth}
-            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer"
+            className="p-2 rounded-lg hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
+            aria-label="Next month"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors ml-1 cursor-pointer"
+            className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors ml-0.5 cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
+            aria-label="Close calendar"
           >
             <X className="w-4 h-4" />
           </button>
@@ -127,7 +130,7 @@ export const CalendarPickerDropdown: React.FC<CalendarPickerDropdownProps> = ({
               type="button"
               disabled={isDisabled}
               onClick={(e) => handleSelectDay(day, e)}
-              className={`h-8 w-full rounded-lg text-xs font-bold flex items-center justify-center transition-all cursor-pointer ${
+              className={`h-8 sm:h-9 w-full rounded-lg text-xs font-bold flex items-center justify-center transition-all cursor-pointer ${
                 !isCurrentMonth ? 'text-slate-300' : ''
               } ${
                 isDisabled ? 'opacity-30 cursor-not-allowed text-slate-300' : ''

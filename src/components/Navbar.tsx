@@ -8,7 +8,7 @@ import {
   Wifi, Coffee, Mountain, Waves, Utensils, Plane, Snowflake,
   LayoutGrid, Crown, Dog, Briefcase, Lock, Users, Building,
   Smartphone, Sun, Landmark, Trees, Flower2, Gift, Zap, Clock, CreditCard,
-  Award, Moon, Wallet, Key, Camera
+  Award, Moon, Wallet, Key, Camera, Menu, X, Phone
 } from 'lucide-react';
 import { useLanguage } from '../LanguageContext';
 import { handleImageError } from '../types';
@@ -111,6 +111,7 @@ export default function Navbar({
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showMegaMenu, setShowMegaMenu] = useState(false);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [activeMegaTab, setActiveMegaTab] = useState<'hotels' | 'homestays' | 'cars' | 'tours' | 'destinations' | 'offers'>('hotels');
   const [currency, setCurrency] = useState<'PKR' | 'USD'>('PKR');
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
@@ -326,17 +327,29 @@ export default function Navbar({
 
       {/* 2. MAIN NAVIGATION BAR */}
       <div 
-        className="w-full max-w-[1440px] mx-auto px-3 sm:px-4 lg:px-6 h-16 sm:h-18 flex items-center justify-between gap-1.5 lg:gap-2 xl:gap-3 relative"
+        className="w-full max-w-[1440px] mx-auto px-3 sm:px-4 lg:px-6 h-16 sm:h-18 flex items-center justify-between gap-1.5 sm:gap-2 lg:gap-3 relative"
         onMouseLeave={handleNavLeave}
       >
         
-        {/* Left Side: Brand Logo */}
-        <div 
-          onClick={() => setView('explore')} 
-          className="flex items-center cursor-pointer group shrink-0 pr-1 lg:pr-2"
-          id="nav-logo"
-        >
-          <GBLogo size="md" />
+        {/* Left Side: Hamburger (Mobile) + Brand Logo */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <button
+            type="button"
+            id="btn-navbar-mobile-toggle"
+            aria-label="Toggle mobile menu"
+            onClick={() => setMobileDrawerOpen(!mobileDrawerOpen)}
+            className="lg:hidden w-10 h-10 -ml-1 rounded-xl flex items-center justify-center text-slate-700 hover:bg-slate-100 active:bg-slate-200 transition-colors cursor-pointer"
+          >
+            {mobileDrawerOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+          
+          <div 
+            onClick={() => { setView('explore'); setMobileDrawerOpen(false); }} 
+            className="flex items-center cursor-pointer group shrink-0 pr-1 lg:pr-2"
+            id="nav-logo"
+          >
+            <GBLogo size="md" />
+          </div>
         </div>
 
         {/* Center: Desktop Navigation Items */}
@@ -415,9 +428,19 @@ export default function Navbar({
         </nav>
 
         {/* Right Action Buttons */}
-        <div className="flex items-center gap-1.5 lg:gap-2 xl:gap-3 shrink-0 ml-auto" id="nav-actions">
+        <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 shrink-0 ml-auto" id="nav-actions">
           
-          {/* AI Planner Button */}
+          {/* AI Planner Icon (Mobile Only) */}
+          <button
+            onClick={() => { setView('ai-planner'); setMobileDrawerOpen(false); }}
+            className="flex md:hidden w-9 h-9 items-center justify-center rounded-xl border border-[#00A651]/40 text-[#00A651] bg-[#00A651]/5 hover:bg-[#00A651]/10 cursor-pointer transition-colors"
+            title="AI Trip Planner"
+            aria-label="AI Trip Planner"
+          >
+            <Sparkles className="w-4 h-4" />
+          </button>
+
+          {/* AI Planner Button (Tablet/Desktop) */}
           <button
             onClick={() => setView('ai-planner')}
             className="hidden md:flex items-center gap-1 xl:gap-1.5 border border-[#00A651]/50 hover:border-[#00A651] text-[#00A651] hover:bg-[#00A651]/5 text-xs font-extrabold px-2 lg:px-2.5 xl:px-3.5 py-1.5 xl:py-2 rounded-xl transition-all shadow-xs cursor-pointer whitespace-nowrap shrink-0"
@@ -428,12 +451,32 @@ export default function Navbar({
 
           {/* List Your Property Button */}
           <button
-            onClick={() => setView('vendor-dashboard')}
-            className="bg-[#00A651] hover:bg-[#008E45] text-white text-xs font-extrabold px-2.5 lg:px-3 xl:px-4 py-1.5 xl:py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-1 lg:gap-1.5 cursor-pointer whitespace-nowrap hover:scale-[1.02] active:scale-95 shrink-0"
+            onClick={() => { setView('vendor-dashboard'); setMobileDrawerOpen(false); }}
+            className="bg-[#00A651] hover:bg-[#008E45] text-white text-[11px] sm:text-xs font-extrabold px-2.5 sm:px-3 xl:px-4 py-1.5 sm:py-2 xl:py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-1 lg:gap-1.5 cursor-pointer whitespace-nowrap hover:scale-[1.02] active:scale-95 shrink-0"
           >
             <Building2 className="w-3.5 h-3.5 xl:w-4 xl:h-4 shrink-0" />
-            <span>List Your Property</span>
+            <span className="hidden min-[380px]:inline">List Your Property</span>
+            <span className="inline min-[380px]:hidden">List</span>
           </button>
+
+          {/* User Account Button (Mobile Only) */}
+          {isLoggedIn ? (
+            <button
+              onClick={() => { setView('user-dashboard'); setMobileDrawerOpen(false); }}
+              className="lg:hidden w-9 h-9 rounded-xl bg-[#0A182E] text-white font-black text-xs flex items-center justify-center shadow-xs cursor-pointer"
+              title="My Dashboard"
+            >
+              {userInitials}
+            </button>
+          ) : (
+            <button
+              onClick={() => onOpenAuthModal('signin')}
+              className="lg:hidden w-9 h-9 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center justify-center cursor-pointer"
+              title="Sign In"
+            >
+              <User className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
       </div>
@@ -1843,7 +1886,7 @@ export default function Navbar({
       </AnimatePresence>
 
       {/* 4. MOBILE SCROLLABLE NAV */}
-      <div className="lg:hidden border-t border-slate-200 bg-slate-50 px-4 py-2 flex gap-2 items-center overflow-x-auto scrollbar-none" id="nav-mobile-scroll">
+      <div className="lg:hidden border-t border-slate-200 bg-slate-50/90 px-3 sm:px-4 py-2 flex gap-2 items-center overflow-x-auto scrollbar-none" id="nav-mobile-scroll">
         {[
           { id: 'hotels', label: t('nav.hotels') || 'Hotels', icon: Building2 },
           { id: 'homestays', label: t('search.homestay_tab') || 'Homestays', icon: Home },
@@ -1855,14 +1898,14 @@ export default function Navbar({
         ].map((item) => {
           const isCurrent = currentView === item.id;
           const buttonClass = isCurrent
-            ? 'bg-[#00A651] text-white border-[#00A651]'
-            : 'bg-white text-slate-700 border-slate-200 hover:text-[#00A651]';
+            ? 'bg-[#00A651] text-white border-[#00A651] shadow-xs'
+            : 'bg-white text-slate-700 border-slate-200 hover:text-[#00A651] hover:border-slate-300';
 
           return (
             <button
               key={item.id}
               onClick={() => handleLinkClick(item.id)}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all border cursor-pointer ${buttonClass}`}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border cursor-pointer min-h-[38px] ${buttonClass}`}
             >
               {item.icon && <item.icon className="w-3.5 h-3.5 shrink-0" />}
               <span>{item.label}</span>
@@ -1870,6 +1913,257 @@ export default function Navbar({
           );
         })}
       </div>
+
+      {/* 5. MOBILE FULL-SCREEN / SLIDE-IN NAVIGATION DRAWER */}
+      <AnimatePresence>
+        {mobileDrawerOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileDrawerOpen(false)}
+              className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-xs z-50"
+            />
+
+            {/* Drawer Content */}
+            <motion.div
+              initial={{ x: isRtl ? '100%' : '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: isRtl ? '100%' : '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 260 }}
+              className={`lg:hidden fixed inset-y-0 ${isRtl ? 'right-0' : 'left-0'} w-[88%] max-w-[360px] bg-white z-50 shadow-2xl flex flex-col justify-between overflow-y-auto border-r border-slate-200`}
+            >
+              {/* Drawer Top Header with Brand & Close */}
+              <div className="flex items-center justify-between p-4 border-b border-slate-200/80 bg-white sticky top-0 z-10">
+                <div 
+                  onClick={() => { setView('explore'); setMobileDrawerOpen(false); }} 
+                  className="flex items-center cursor-pointer"
+                >
+                  <GBLogo size="sm" />
+                </div>
+                <button
+                  type="button"
+                  aria-label="Close navigation menu"
+                  onClick={() => setMobileDrawerOpen(false)}
+                  className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-100 active:bg-slate-200 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Drawer Scrollable Body */}
+              <div className="p-4 space-y-5 flex-1">
+                
+                {/* Account Section */}
+                <div className="bg-slate-50 rounded-2xl p-3.5 border border-slate-200/80 space-y-3">
+                  {isLoggedIn ? (
+                    <div className="space-y-2.5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-[#00A651] text-white font-black text-sm flex items-center justify-center shrink-0 shadow-xs">
+                          {userInitials}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-bold text-xs text-slate-900 truncate">{displayName}</p>
+                          <p className="text-[10px] text-slate-500 truncate">{userEmail || 'traveler@gbbookings.com'}</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-200">
+                        <button
+                          onClick={() => { setView('user-dashboard'); setMobileDrawerOpen(false); }}
+                          className="w-full min-h-[44px] py-2 bg-white rounded-lg border border-slate-200 text-xs font-bold text-slate-700 hover:text-[#00A651] flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                        >
+                          <User className="w-3.5 h-3.5 text-[#00A651]" />
+                          <span>My Profile</span>
+                        </button>
+                        <button
+                          onClick={() => { onSignOut(); setMobileDrawerOpen(false); }}
+                          className="w-full min-h-[44px] py-2 bg-rose-50 rounded-lg border border-rose-100 text-xs font-bold text-rose-600 hover:bg-rose-100 flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          <LogOut className="w-3.5 h-3.5" />
+                          <span>Sign Out</span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-xs font-bold text-slate-800">Sign in to unlock secret deals & manage bookings</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => { onOpenAuthModal('signin'); setMobileDrawerOpen(false); }}
+                          className="w-full min-h-[44px] py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 hover:bg-slate-100 flex items-center justify-center cursor-pointer shadow-2xs"
+                        >
+                          Sign In
+                        </button>
+                        <button
+                          onClick={() => { onOpenAuthModal('register'); setMobileDrawerOpen(false); }}
+                          className="w-full min-h-[44px] py-2.5 bg-[#00A651] hover:bg-[#008E45] text-white rounded-xl text-xs font-bold flex items-center justify-center cursor-pointer shadow-sm"
+                        >
+                          Register
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Primary Navigation Menu */}
+                <div className="space-y-1">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 px-2 block">
+                    Explore Gilgit-Baltistan
+                  </span>
+
+                  {[
+                    { id: 'hotels', label: t('nav.hotels') || 'Hotels & Resorts', icon: Building2, count: '350+ Stays' },
+                    { id: 'homestays', label: t('search.homestay_tab') || 'Authentic Homestays', icon: Home, count: '120+ Stays' },
+                    { id: 'cars', label: t('nav.cars') || 'Car & 4x4 Jeep Rentals', icon: Car, count: '45+ Fleets' },
+                    { id: 'tours', label: t('nav.tours') || 'Tours & Packages', icon: TourIcon, count: '80+ Tours' },
+                    { id: 'destinations', label: 'Destinations & Valleys', icon: MapPin, count: 'Top 8 Valleys' },
+                    { id: 'offers', label: 'Special Offers & Deals', icon: Tag, isHot: true, count: 'Up to 50% Off' },
+                    { id: 'ai-planner', label: 'AI Trip Planner', icon: Sparkles, badge: 'Smart AI' },
+                  ].map((nav) => {
+                    const Icon = nav.icon;
+                    const isActive = currentView === nav.id;
+                    return (
+                      <button
+                        key={nav.id}
+                        onClick={() => { handleLinkClick(nav.id); setMobileDrawerOpen(false); }}
+                        className={`w-full min-h-[46px] flex items-center justify-between p-2.5 rounded-xl text-left transition-colors cursor-pointer ${
+                          isActive 
+                            ? 'bg-emerald-50 text-[#00A651] font-extrabold border border-emerald-200/60' 
+                            : 'text-slate-700 hover:bg-slate-50 font-bold'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isActive ? 'bg-[#00A651] text-white' : 'bg-slate-100 text-slate-600'}`}>
+                            <Icon className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <span className="text-xs block leading-tight">{nav.label}</span>
+                            {nav.count && <span className="text-[10px] text-slate-400 block font-normal">{nav.count}</span>}
+                          </div>
+                        </div>
+
+                        {nav.isHot ? (
+                          <span className="bg-[#FF3B30] text-white text-[9px] font-black px-1.5 py-0.5 rounded-md">HOT</span>
+                        ) : nav.badge ? (
+                          <span className="bg-[#00A651] text-white text-[9px] font-black px-1.5 py-0.5 rounded-md">{nav.badge}</span>
+                        ) : (
+                          <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Secondary Links & Services */}
+                <div className="space-y-1 pt-2 border-t border-slate-100">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 px-2 block">
+                    Services & Tools
+                  </span>
+
+                  <button
+                    onClick={() => { setView('vendor-dashboard'); setMobileDrawerOpen(false); }}
+                    className="w-full min-h-[44px] flex items-center justify-between p-2.5 rounded-xl text-left hover:bg-slate-50 text-slate-700 font-bold text-xs cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-50 text-[#00A651] flex items-center justify-center">
+                        <Building2 className="w-4 h-4" />
+                      </div>
+                      <span>List Your Property (Vendor)</span>
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
+                  </button>
+
+                  <button
+                    onClick={() => { setView('support'); setMobileDrawerOpen(false); }}
+                    className="w-full min-h-[44px] flex items-center justify-between p-2.5 rounded-xl text-left hover:bg-slate-50 text-slate-700 font-bold text-xs cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                        <Headset className="w-4 h-4" />
+                      </div>
+                      <span>24/7 Support Center</span>
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
+                  </button>
+                </div>
+
+                {/* Language & Currency Controls */}
+                <div className="pt-2 border-t border-slate-100 space-y-3">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 px-2 block">
+                    Preferences
+                  </span>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* Currency Switch */}
+                    <div className="bg-slate-50 rounded-xl p-2 border border-slate-200">
+                      <p className="text-[10px] font-bold text-slate-500 mb-1.5">Currency</p>
+                      <div className="grid grid-cols-2 gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setCurrency('PKR')}
+                          className={`min-h-[36px] py-1.5 rounded-lg text-xs font-bold cursor-pointer ${
+                            currency === 'PKR' ? 'bg-[#00A651] text-white shadow-2xs' : 'bg-white text-slate-600 hover:bg-slate-100'
+                          }`}
+                        >
+                          PKR (₨)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCurrency('USD')}
+                          className={`min-h-[36px] py-1.5 rounded-lg text-xs font-bold cursor-pointer ${
+                            currency === 'USD' ? 'bg-[#00A651] text-white shadow-2xs' : 'bg-white text-slate-600 hover:bg-slate-100'
+                          }`}
+                        >
+                          USD ($)
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Language Switch */}
+                    <div className="bg-slate-50 rounded-xl p-2 border border-slate-200">
+                      <p className="text-[10px] font-bold text-slate-500 mb-1.5">Language</p>
+                      <div className="grid grid-cols-2 gap-1">
+                        <button
+                          type="button"
+                          onClick={() => requestLanguageChange('en')}
+                          className={`min-h-[36px] py-1.5 rounded-lg text-xs font-bold cursor-pointer ${
+                            language === 'en' ? 'bg-[#00A651] text-white shadow-2xs' : 'bg-white text-slate-600 hover:bg-slate-100'
+                          }`}
+                        >
+                          English
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => requestLanguageChange('ur')}
+                          className={`min-h-[36px] py-1.5 rounded-lg text-xs font-bold cursor-pointer ${
+                            language === 'ur' ? 'bg-[#00A651] text-white shadow-2xs' : 'bg-white text-slate-600 hover:bg-slate-100'
+                          }`}
+                        >
+                          اردو
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Drawer Footer / Helpline */}
+              <div className="p-4 bg-slate-50 border-t border-slate-200 space-y-2">
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
+                  <Phone className="w-3.5 h-3.5 text-[#00A651]" />
+                  <span>24/7 Helpline: +92 5811 920000</span>
+                </div>
+                <p className="text-[10px] text-slate-400">
+                  © 2026 GBBookings (Pvt) Ltd. All rights reserved.
+                </p>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </header>
   );
 }

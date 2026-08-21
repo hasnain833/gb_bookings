@@ -393,7 +393,7 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
                 {showGuestPicker && (
                   <div 
                     onClick={(e) => e.stopPropagation()}
-                    className="absolute top-full left-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 p-4 space-y-4"
+                    className="absolute top-full left-0 sm:left-auto right-0 sm:right-auto mt-2 w-[calc(100vw-32px)] max-w-[320px] bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 p-4 space-y-4"
                   >
                     <div className="flex items-center justify-between">
                       <div>
@@ -561,7 +561,7 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
         </div>
 
         {/* 5 Experience Cards Grid matching screenshot */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
           {experiences.map((exp) => {
             const IconComp = exp.icon;
             return (
@@ -573,7 +573,7 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
                     onTriggerSearch({ type: 'homestay', experience: exp.title });
                   }
                 }}
-                className="relative h-56 rounded-3xl overflow-hidden cursor-pointer group shadow-md hover:shadow-2xl transition-all duration-300 flex flex-col justify-between p-4"
+                className="relative h-48 sm:h-56 rounded-2xl sm:rounded-3xl overflow-hidden cursor-pointer group shadow-md hover:shadow-2xl transition-all duration-300 flex flex-col justify-between p-3 sm:p-4"
               >
                 {/* Image Background */}
                 <img
@@ -588,18 +588,18 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
                 <div className="relative z-10" />
 
                 {/* Bottom Content: Left texts, Right icon badge */}
-                <div className="relative z-10 flex items-end justify-between gap-2">
+                <div className="relative z-10 flex items-end justify-between gap-1.5 sm:gap-2">
                   <div className="min-w-0 space-y-0.5 text-white">
-                    <h4 className="font-extrabold text-sm text-white leading-tight">
+                    <h4 className="font-extrabold text-xs sm:text-sm text-white leading-tight truncate">
                       {exp.title}
                     </h4>
-                    <p className="text-[11px] text-slate-200 font-medium line-clamp-2 leading-tight">
+                    <p className="text-[10px] sm:text-[11px] text-slate-200 font-medium line-clamp-2 leading-tight">
                       {exp.subtitle}
                     </p>
                   </div>
 
-                  <div className="w-9 h-9 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-white shrink-0 group-hover:bg-[#00A651] group-hover:border-[#00A651] transition-colors">
-                    <IconComp className="w-4 h-4 text-white" />
+                  <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-white shrink-0 group-hover:bg-[#00A651] group-hover:border-[#00A651] transition-colors">
+                    <IconComp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
                   </div>
                 </div>
               </div>
@@ -636,7 +636,7 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
         </div>
 
         {/* Featured Homestays Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 min-[480px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-4">
           {[
             {
               id: 'hs-ft-1',
@@ -714,7 +714,7 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
               }}
               className="bg-white rounded-2xl border border-slate-200/90 hover:border-emerald-500/60 overflow-hidden shadow-2xs hover:shadow-xl transition-all duration-300 group cursor-pointer flex flex-col justify-between"
             >
-              <div className="relative h-44 overflow-hidden bg-slate-100">
+              <div className="relative h-40 sm:h-44 overflow-hidden bg-slate-100 shrink-0">
                 <img
                   src={item.image}
                   alt={item.title}
@@ -734,9 +734,9 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
                 </button>
               </div>
 
-              <div className="p-3.5 space-y-2 flex-1 flex flex-col justify-between">
+              <div className="p-3 sm:p-3.5 space-y-2 flex-1 flex flex-col justify-between">
                 <div>
-                  <h4 className="font-bold text-slate-900 text-sm group-hover:text-[#006F3C] transition-colors leading-snug line-clamp-1">
+                  <h4 className="font-bold text-slate-900 text-sm group-hover:text-[#006F3C] transition-colors leading-snug line-clamp-1 break-words">
                     {item.title}
                   </h4>
                   <p className="text-slate-500 text-[11px] font-medium flex items-center gap-1 mt-0.5 truncate">
@@ -752,7 +752,7 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
                 </div>
 
                 <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                  <span className="text-xs font-black text-slate-900">
+                  <span className="text-xs font-black text-slate-900 truncate">
                     PKR {item.price.toLocaleString()} <span className="text-[10px] font-normal text-slate-500">/night</span>
                   </span>
                 </div>

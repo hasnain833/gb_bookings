@@ -2,10 +2,19 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --font-display: "Space Grotesk", sans-serif;
   --font-urdu: "Harmattan", "Noto Naskh Arabic", "Noto Nastaliq Urdu", "Inter", sans-serif;
+
+  /* Screen Breakpoint Extensions for Tailored Mobile & Ultra-wide Scaling */
+  --breakpoint-xs: 20rem;      /* 320px */
+  --breakpoint-sm: 40rem;      /* 640px */
+  --breakpoint-md: 48rem;      /* 768px */
+  --breakpoint-lg: 64rem;      /* 1024px */
+  --breakpoint-xl: 80rem;      /* 1280px */
+  --breakpoint-2xl: 96rem;     /* 1536px */
+  --breakpoint-3xl: 120rem;    /* 1920px */
 
   /* Custom Brand Theme Colors extracted from user image (#006F3C) */
   --color-forest-950: #002816;
@@ -31,23 +40,96 @@
 }
 
 @layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+    scroll-padding-top: 80px;
+    width: 100%;
+    min-height: 100%;
+  }
+
   body {
     font-family: var(--font-sans);
     background-color: #FAFAFA;
     color: #1A1A1A;
+    min-height: 100%;
+    width: 100%;
+    overflow-x: hidden;
+    position: relative;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    touch-action: manipulation;
   }
-  
+
+  /* Media & Image Global Safety Defaults */
+  img,
+  svg,
+  video,
+  canvas,
+  audio,
+  iframe,
+  embed,
+  object {
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Form & Interactive Elements Safety */
+  input,
+  button,
+  textarea,
+  select {
+    font: inherit;
+    color: inherit;
+    max-width: 100%;
+  }
+
+  /* Typography Safe Word Breaking */
+  p, h1, h2, h3, h4, h5, h6, span, a, label, li, dt, dd {
+    overflow-wrap: break-word;
+    word-break: normal;
+  }
+
+  /* Urdu Typography Rules */
   body.font-urdu {
     font-family: var(--font-urdu);
     line-height: 1.8;
   }
-  
-  /* Disable letter-spacing / tracking in Urdu as it breaks ligatures and makes Urdu text look broken or default-AI-generated */
+
   body.font-urdu,
   body.font-urdu * {
     letter-spacing: 0px !important;
     word-spacing: 0.05em;
   }
+}
+
+/* Responsive Container Utilities */
+.responsive-container {
+  width: 100%;
+  max-width: 80rem; /* 1280px */
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: clamp(0.75rem, 3vw, 2rem);
+  padding-right: clamp(0.75rem, 3vw, 2rem);
+}
+
+/* Touch-optimized horizontal scroll wrapper */
+.touch-scroll-x {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
 }
 
 /* RTL layout helpers */
@@ -63,33 +145,33 @@
 .glass-panel {
   background: rgba(15, 23, 42, 0.65);
   backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .glass-card {
   background: rgba(30, 41, 59, 0.45);
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 /* Custom scrollbars - Premium modern light-theme */
-html {
-  scroll-behavior: smooth;
-  scroll-padding-top: 100px;
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
 ::-webkit-scrollbar-track {
   background: #FAFAFA;
 }
+
 ::-webkit-scrollbar-thumb {
   background: #D1D5DB;
-  border: 3px solid #FAFAFA;
+  border: 2px solid #FAFAFA;
   border-radius: 9999px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: #9CA3AF;
 }
@@ -103,6 +185,60 @@ html {
 @keyframes marquee-right {
   0% { transform: translateX(-50%); }
   100% { transform: translateX(0%); }
+}
+
+/* Fluid Typography Utilities using CSS clamp() */
+.text-fluid-hero {
+  font-size: clamp(1.5rem, 4vw + 0.75rem, 3.25rem);
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+}
+
+.text-fluid-h1 {
+  font-size: clamp(1.35rem, 3vw + 0.6rem, 2.5rem);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.text-fluid-h2 {
+  font-size: clamp(1.15rem, 2.2vw + 0.5rem, 1.875rem);
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+}
+
+.text-fluid-h3 {
+  font-size: clamp(1rem, 1.5vw + 0.45rem, 1.35rem);
+  line-height: 1.35;
+}
+
+.text-fluid-body {
+  font-size: clamp(0.8125rem, 0.5vw + 0.75rem, 0.9375rem);
+  line-height: 1.6;
+}
+
+.text-fluid-caption {
+  font-size: clamp(0.6875rem, 0.4vw + 0.625rem, 0.8125rem);
+  line-height: 1.4;
+}
+
+/* Responsive button & badge text wrapping safeguards */
+.btn-responsive-text {
+  white-space: nowrap;
+  font-size: clamp(0.75rem, 1vw + 0.5rem, 0.875rem);
+}
+
+.badge-responsive-text {
+  font-size: clamp(0.625rem, 0.8vw + 0.4rem, 0.75rem);
+  line-height: 1.2;
+}
+
+/* Fluid Padding & Gap Utilities */
+.p-fluid-card {
+  padding: clamp(0.875rem, 2.5vw, 1.75rem);
+}
+
+.gap-fluid-grid {
+  gap: clamp(0.75rem, 2vw, 1.5rem);
 }
 
 @keyframes float-subtle-1 {
@@ -171,6 +307,37 @@ html {
 .group-pause:hover .animate-marquee-right,
 .group-pause:hover .animate-spin-revolve {
   animation-play-state: paused;
+}
+
+/* Safe Area Inset Support for Modern Mobile Viewports */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.mb-safe {
+  margin-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Accessible Focus-Visible outlines */
+*:focus-visible {
+  outline: 2px solid #006F3C;
+  outline-offset: 2px;
+}
+
+/* User reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 
