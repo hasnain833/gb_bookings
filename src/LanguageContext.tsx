@@ -671,7 +671,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 15 }}
               transition={{ type: 'spring', duration: 0.4, bounce: 0.15 }}
-              className="relative w-full max-w-md bg-white rounded-2xl sm:rounded-3xl border border-slate-100 shadow-2xl p-4 sm:p-6 space-y-4 sm:space-y-5 text-left overflow-hidden z-10 my-4"
+              className="relative w-full max-w-md bg-white rounded-2xl sm:rounded-3xl border border-slate-100 shadow-2xl p-4 sm:p-6 space-y-4 sm:space-y-5 text-left overflow-y-auto max-h-[calc(100vh-2rem)] z-10 my-auto mx-auto"
               dir="ltr"
             >
               {/* Pattern Header Accent */}
@@ -707,7 +707,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                     setShowPermissionModal(false);
                     setPendingLanguage(null);
                   }}
-                  className="w-full py-2.5 sm:py-3 px-4 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all text-xs font-bold uppercase tracking-wider cursor-pointer text-center min-h-[42px] flex items-center justify-center"
+                  className="w-full py-2.5 sm:py-3 px-4 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all text-xs font-bold uppercase tracking-wider cursor-pointer text-center min-h-[44px] flex items-center justify-center"
                 >
                   Cancel / منسوخ
                 </button>
@@ -720,7 +720,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                     setShowPermissionModal(false);
                     setPendingLanguage(null);
                   }}
-                  className="w-full py-2.5 sm:py-3 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white transition-all text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md shadow-emerald-700/10 hover:shadow-emerald-700/20 cursor-pointer text-center min-h-[42px]"
+                  className="w-full py-2.5 sm:py-3 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white transition-all text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md shadow-emerald-700/10 hover:shadow-emerald-700/20 cursor-pointer text-center min-h-[44px]"
                 >
                   Yes, Switch / تبدیل کریں
                 </button>

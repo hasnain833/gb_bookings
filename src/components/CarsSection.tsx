@@ -182,40 +182,40 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
                 </div>
               </div>
 
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight leading-snug drop-shadow-md">
+              <h1 className="text-xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight leading-snug drop-shadow-md">
                 Rent Premium 4x4 Vehicles in <span className="text-[#00A651] font-black">Gilgit Baltistan</span>
               </h1>
               <p className="text-slate-100/95 text-xs sm:text-sm font-medium max-w-xl leading-relaxed drop-shadow-xs">
                 Explore Deosai, Khunjerab Pass &amp; Babusar Top with insured 4x4 SUVs, experienced mountain drivers &amp; zero hidden fees.
               </p>
 
-              <div className="flex flex-wrap items-center gap-3.5 sm:gap-6 pt-2 text-white" id="car-trust-factors">
+              <div className="flex flex-wrap items-center gap-2.5 sm:gap-6 pt-2 text-white" id="car-trust-factors">
                 <div className="flex items-center gap-1.5 text-white">
                   <div className="w-6 h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
                     <User className="w-3 h-3 text-white" />
                   </div>
-                  <span className="text-[11px] sm:text-xs font-bold tracking-tight text-white">Expert Chauffeurs</span>
+                  <span className="text-[10px] sm:text-xs font-bold tracking-tight text-white">Expert Chauffeurs</span>
                 </div>
 
                 <div className="flex items-center gap-1.5 text-white">
                   <div className="w-6 h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
                     <ShieldCheck className="w-3 h-3 text-white" />
                   </div>
-                  <span className="text-[11px] sm:text-xs font-bold tracking-tight text-white">Fully Insured</span>
+                  <span className="text-[10px] sm:text-xs font-bold tracking-tight text-white">Fully Insured</span>
                 </div>
 
                 <div className="flex items-center gap-1.5 text-white">
                   <div className="w-6 h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
                     <Award className="w-3 h-3 text-white" />
                   </div>
-                  <span className="text-[11px] sm:text-xs font-bold tracking-tight text-white">Zero Hidden Cost</span>
+                  <span className="text-[10px] sm:text-xs font-bold tracking-tight text-white">Zero Hidden Cost</span>
                 </div>
 
                 <div className="flex items-center gap-1.5 text-white">
                   <div className="w-6 h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
                     <Headset className="w-3 h-3 text-white" />
                   </div>
-                  <span className="text-[11px] sm:text-xs font-bold tracking-tight text-white">24/7 Roadside Care</span>
+                  <span className="text-[10px] sm:text-xs font-bold tracking-tight text-white">24/7 Roadside Care</span>
                 </div>
               </div>
             </div>

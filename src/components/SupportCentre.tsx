@@ -239,7 +239,7 @@ export default function SupportCentre() {
         {/* Right Column: Live Chat Operator Desk */}
         <main className="lg:col-span-8 flex flex-col justify-between" id="chat-operator-desk">
           {selectedTicket ? (
-            <div className="bg-white rounded-2xl border border-slate-200 flex flex-col justify-between min-h-[440px] sm:min-h-[500px] h-[520px] shadow-xs relative overflow-hidden" id="ticket-chat-frame">
+            <div className="bg-white rounded-2xl border border-slate-200 flex flex-col justify-between min-h-[420px] sm:min-h-[500px] h-[460px] sm:h-[520px] shadow-xs relative overflow-hidden" id="ticket-chat-frame">
               {/* Chat Header */}
               <div className="bg-slate-50 px-4 sm:px-5 py-3.5 sm:py-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="min-w-0">
@@ -312,13 +312,13 @@ export default function SupportCentre() {
                   placeholder="Type your message to operations..."
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
-                  className="flex-1 bg-white border border-slate-200 rounded-xl px-3 sm:px-4 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-indigo-600 min-h-[42px]"
+                  className="flex-1 bg-white border border-slate-200 rounded-xl px-3 sm:px-4 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-indigo-600 min-h-[44px]"
                 />
                 <button
                   type="submit"
                   id="btn-chat-send"
                   disabled={sendingReply}
-                  className="bg-[#0F172A] hover:bg-slate-800 text-white font-bold py-2.5 px-3.5 sm:px-4 rounded-xl text-xs flex items-center justify-center cursor-pointer shadow-xs min-h-[42px] min-w-[42px]"
+                  className="bg-[#0F172A] hover:bg-slate-800 text-white font-bold py-2.5 px-3.5 sm:px-4 rounded-xl text-xs flex items-center justify-center cursor-pointer shadow-xs min-h-[44px] min-w-[44px]"
                   aria-label="Send message"
                 >
                   <Send className="w-4 h-4" />
@@ -326,7 +326,7 @@ export default function SupportCentre() {
               </form>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-12 text-center flex flex-col items-center justify-center min-h-[360px] h-[520px] shadow-xs" id="chat-desk-empty">
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-12 text-center flex flex-col items-center justify-center min-h-[340px] h-[460px] sm:h-[520px] shadow-xs" id="chat-desk-empty">
               <MessageSquare className="w-10 h-10 sm:w-12 sm:h-12 text-slate-400 mb-3 sm:mb-4" />
               <h4 className="font-bold text-sm sm:text-base text-[#0F172A] uppercase tracking-tight">Select Coordinates To Initiate</h4>
               <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed mt-1">Select one of your support coordinate tickets on the left sidebar to communicate directly with our regional desks.</p>

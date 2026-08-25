@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Booking, Notification, WalletTransaction, Listing, handleImageError } from '../types';
 import { useLanguage } from '../LanguageContext';
 import { DashboardSkeleton } from './SkeletonLoader';
-import { Calendar, Wallet, Award, Share2, Printer, AlertTriangle, MessageSquare, Bell, Check, Trash, Heart, Eye, MapPin } from 'lucide-react';
+import { Calendar, Wallet, Award, Share2, Printer, AlertTriangle, MessageSquare, Bell, Check, Trash, Heart, Eye, MapPin, X } from 'lucide-react';
 
 interface UserDashboardProps {
   userEmail: string;
@@ -74,12 +74,13 @@ export default function UserDashboard({ userEmail, userName, setView, onSelectBo
     loadDashboardData();
   }, [userEmail, activeTab]);
 
+  const [cancelBookingConfirmId, setCancelBookingConfirmId] = useState<string | null>(null);
+  const [cancellingInProgress, setCancellingInProgress] = useState(false);
+
   // Cancel Booking Action
   const handleCancelBooking = async (bookingId: string) => {
-    const confirm = window.confirm('Are you absolutely sure you want to cancel this booking? This will process an automatic refund to your wallet.');
-    if (!confirm) return;
-
     try {
+      setCancellingInProgress(true);
       const res = await fetch(`/api/bookings/${bookingId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -87,11 +88,13 @@ export default function UserDashboard({ userEmail, userName, setView, onSelectBo
       });
 
       if (res.ok) {
-        // Reload
+        setCancelBookingConfirmId(null);
         await loadDashboardData();
       }
     } catch (err) {
       console.error(err);
+    } finally {
+      setCancellingInProgress(false);
     }
   };
 
@@ -255,23 +258,23 @@ export default function UserDashboard({ userEmail, userName, setView, onSelectBo
                         </div>
 
                         {/* Actions */}
-                        <div className="flex flex-wrap gap-2 w-full md:w-auto">
+                        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
                           <button
                             id={`btn-dash-view-${booking.id}`}
                             onClick={() => onSelectBooking(booking)}
-                            className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider cursor-pointer flex items-center gap-1 shadow-xs"
+                            className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-3.5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer flex items-center gap-1.5 shadow-xs min-h-[44px]"
                           >
-                            <Printer className="w-3.5 h-3.5 text-slate-400" />
+                            <Printer className="w-4 h-4 text-slate-400 shrink-0" />
                             <span>Invoice</span>
                           </button>
 
                           {booking.status !== 'cancelled' && (
                             <button
                               id={`btn-dash-cancel-${booking.id}`}
-                              onClick={() => handleCancelBooking(booking.id)}
-                              className="bg-rose-50 border border-rose-100 text-rose-600 hover:bg-rose-100 px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider cursor-pointer flex items-center gap-1"
+                              onClick={() => setCancelBookingConfirmId(booking.id)}
+                              className="bg-rose-50 border border-rose-100 text-rose-600 hover:bg-rose-100 px-3.5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer flex items-center gap-1.5 min-h-[44px]"
                             >
-                              <AlertTriangle className="w-3.5 h-3.5" />
+                              <AlertTriangle className="w-4 h-4 shrink-0" />
                               <span>Cancel Trip</span>
                             </button>
                           )}
@@ -318,8 +321,9 @@ export default function UserDashboard({ userEmail, userName, setView, onSelectBo
                         <button
                           id={`btn-remove-wishlist-dash-${item.id}`}
                           onClick={() => handleRemoveWishlistItem(item.id)}
-                          className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-xs text-rose-600 hover:text-rose-700 rounded-full shadow-xs cursor-pointer"
+                          className="absolute top-3 right-3 p-2 bg-white/95 backdrop-blur-xs text-rose-600 hover:text-rose-700 rounded-full shadow-md cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center transition-transform hover:scale-105"
                           title="Remove from favorites"
+                          aria-label="Remove from favorites"
                         >
                           <Trash className="w-4 h-4" />
                         </button>
@@ -339,18 +343,18 @@ export default function UserDashboard({ userEmail, userName, setView, onSelectBo
                           <p className="text-[10px] text-slate-400 font-bold uppercase flex items-center gap-0.5"><MapPin className="w-3 h-3 text-rose-500 shrink-0" /> {item.location}</p>
                         </div>
 
-                        <div className="flex items-center justify-between border-t border-slate-100 pt-3">
-                          <div>
-                            <span className="text-[9px] text-slate-400 font-bold uppercase block tracking-wider">Starting Rate</span>
+                        <div className="flex items-center justify-between border-t border-slate-100 pt-3 gap-2">
+                          <div className="min-w-0">
+                            <span className="text-[9px] text-slate-400 font-bold uppercase block tracking-wider truncate">Starting Rate</span>
                             <span className="text-xs font-mono font-extrabold text-slate-800">PKR {item.price.toLocaleString()}</span>
                           </div>
                           
                           <button
                             id={`btn-wishlist-view-details-${item.id}`}
                             onClick={() => onSelectListing(item)}
-                            className="bg-[#0F172A] hover:bg-slate-800 text-white font-bold py-2 px-3 rounded-lg text-[10px] uppercase tracking-wider flex items-center gap-1 cursor-pointer"
+                            className="bg-[#0F172A] hover:bg-slate-800 text-white font-bold py-2.5 px-3.5 rounded-xl text-[10px] uppercase tracking-wider flex items-center gap-1.5 cursor-pointer min-h-[44px] shrink-0 shadow-xs"
                           >
-                            <Eye className="w-3.5 h-3.5" /> <span>View Stay</span>
+                            <Eye className="w-3.5 h-3.5 shrink-0" /> <span>View Stay</span>
                           </button>
                         </div>
                       </div>
@@ -364,18 +368,18 @@ export default function UserDashboard({ userEmail, userName, setView, onSelectBo
           {/* TAB 2: Wallet Details */}
           {activeTab === 'wallet' && (
             <div className="space-y-6 animate-fadeIn" id="dash-wallet-pane">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 {/* Credit balance card */}
-                <div className="bg-white border border-slate-200 p-6 flex flex-col justify-between h-44 rounded-2xl shadow-xs">
+                <div className="bg-white border border-slate-200 p-5 sm:p-6 flex flex-col justify-between min-h-48 sm:h-48 rounded-2xl shadow-xs space-y-4 sm:space-y-0">
                   <div>
                     <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Traveler Virtual Wallet</span>
-                    <span className="text-3xl font-bold text-[#0F172A] mt-2 block font-mono">PKR 14,500</span>
+                    <span className="text-2xl sm:text-3xl font-bold text-[#0F172A] mt-2 block font-mono">PKR 14,500</span>
                   </div>
-                  <div className="flex space-x-2">
-                    <button id="btn-topup-wallet" onClick={() => alert('Secure payment integration active')} className="bg-[#0F172A] hover:bg-slate-800 text-white font-bold py-2.5 px-4 rounded-lg text-xs uppercase tracking-wider cursor-pointer shadow-xs">
+                  <div className="flex flex-wrap gap-2.5 sm:space-x-2">
+                    <button id="btn-topup-wallet" onClick={() => alert('Secure payment integration active')} className="bg-[#0F172A] hover:bg-slate-800 text-white font-bold py-2.5 px-4 rounded-xl text-xs uppercase tracking-wider cursor-pointer shadow-xs min-h-[44px] flex items-center justify-center">
                       Top-Up Balance
                     </button>
-                    <button id="btn-withdraw-wallet" className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold py-2.5 px-4 rounded-lg text-xs uppercase tracking-wider cursor-pointer shadow-xs">
+                    <button id="btn-withdraw-wallet" className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold py-2.5 px-4 rounded-xl text-xs uppercase tracking-wider cursor-pointer shadow-xs min-h-[44px] flex items-center justify-center">
                       Cash-Out
                     </button>
                   </div>
@@ -508,6 +512,63 @@ export default function UserDashboard({ userEmail, userName, setView, onSelectBo
             </div>
           )}
 
+        </div>
+      )}
+
+      {/* Cancel Booking Confirmation Modal Dialog */}
+      {cancelBookingConfirmId && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150"
+          id="modal-cancel-booking-confirmation"
+          onClick={() => !cancellingInProgress && setCancelBookingConfirmId(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md bg-white rounded-2xl sm:rounded-3xl border border-slate-200 shadow-2xl p-5 sm:p-6 space-y-4 text-left animate-in zoom-in-95 duration-150 max-h-[calc(100vh-2rem)] overflow-y-auto"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600 shrink-0">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <button
+                type="button"
+                aria-label="Close dialog"
+                disabled={cancellingInProgress}
+                onClick={() => setCancelBookingConfirmId(null)}
+                className="w-9 h-9 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-1.5">
+              <h3 className="text-base sm:text-lg font-black text-slate-900">
+                Cancel Trip Reservation?
+              </h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Are you sure you want to cancel booking <span className="font-mono font-bold text-slate-800">#{cancelBookingConfirmId}</span>? An automatic full/partial refund will be credited instantly back to your virtual wallet balance.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                disabled={cancellingInProgress}
+                onClick={() => setCancelBookingConfirmId(null)}
+                className="w-full min-h-[44px] py-2.5 px-4 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer flex items-center justify-center"
+              >
+                Keep Booking
+              </button>
+              <button
+                type="button"
+                disabled={cancellingInProgress}
+                onClick={() => handleCancelBooking(cancelBookingConfirmId)}
+                className="w-full min-h-[44px] py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
+              >
+                {cancellingInProgress ? 'Cancelling...' : 'Confirm Cancel'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

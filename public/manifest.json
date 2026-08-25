@@ -1,0 +1,20 @@
+{
+  "name": "GBBookings — Gilgit-Baltistan Travel App",
+  "short_name": "GBBookings",
+  "description": "Premier mobile travel app for verified hotels, authentic homestays, 4x4 mountain jeeps, and curated expeditions across Gilgit-Baltistan.",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FAFAFA",
+  "theme_color": "#006F3C",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ],
+  "categories": ["travel", "lifestyle", "navigation"]
+}

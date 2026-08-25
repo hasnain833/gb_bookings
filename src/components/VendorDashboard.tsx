@@ -331,7 +331,7 @@ export default function VendorDashboard({ setView }: VendorDashboardProps) {
               </div>
 
               {/* Chart Graphics SVG */}
-              <svg className="w-full h-full pl-8 sm:pl-10 pb-6 pr-2 sm:pr-4" viewBox="0 0 500 200" id="svg-chart-revenue">
+              <svg className="w-full h-full pl-6 sm:pl-10 pb-2 sm:pb-4 pr-2 sm:pr-4" viewBox="0 0 500 235" preserveAspectRatio="xMidYMid meet" id="svg-chart-revenue">
                 {/* Gridlines */}
                 <line x1="0" y1="50" x2="500" y2="50" stroke="#e2e8f0" strokeWidth="0.5" strokeDasharray="3" />
                 <line x1="0" y1="100" x2="500" y2="100" stroke="#e2e8f0" strokeWidth="0.5" strokeDasharray="3" />
@@ -357,11 +357,11 @@ export default function VendorDashboard({ setView }: VendorDashboardProps) {
                 <circle cx="500" cy="30" r="5" fill="#4f46e5" stroke="#ffffff" strokeWidth="2" />
 
                 {/* X-axis labels */}
-                <text x="0" y="215" fill="#64748b" fontSize="10" fontWeight="bold" fontFamily="monospace">APRIL</text>
-                <text x="125" y="215" fill="#64748b" fontSize="10" fontWeight="bold" fontFamily="monospace">MAY</text>
-                <text x="250" y="215" fill="#64748b" fontSize="10" fontWeight="bold" fontFamily="monospace">JUNE (Active)</text>
-                <text x="375" y="215" fill="#64748b" fontSize="10" fontWeight="bold" fontFamily="monospace">JULY (Est)</text>
-                <text x="470" y="215" fill="#64748b" fontSize="10" fontWeight="bold" fontFamily="monospace">AUG</text>
+                <text x="0" y="222" fill="#64748b" fontSize="10" fontWeight="bold" fontFamily="monospace">APR</text>
+                <text x="125" y="222" fill="#64748b" fontSize="10" fontWeight="bold" fontFamily="monospace">MAY</text>
+                <text x="240" y="222" fill="#4f46e5" fontSize="10" fontWeight="bold" fontFamily="monospace">JUN (Active)</text>
+                <text x="365" y="222" fill="#64748b" fontSize="10" fontWeight="bold" fontFamily="monospace">JUL (Est)</text>
+                <text x="465" y="222" fill="#64748b" fontSize="10" fontWeight="bold" fontFamily="monospace">AUG</text>
 
                 {/* Gradient Definition */}
                 <defs>
@@ -373,9 +373,9 @@ export default function VendorDashboard({ setView }: VendorDashboardProps) {
               </svg>
 
               {/* Hover Tooltip Overlay */}
-              <div className="absolute right-4 sm:right-12 top-4 sm:top-10 bg-[#0F172A] border border-indigo-600 p-1.5 sm:p-2 rounded-lg text-[8px] sm:text-[9px] font-bold tracking-wider shadow-xs text-white uppercase">
-                <span className="block text-indigo-400 font-bold">EST REVENUE PKRS</span>
-                <span>JULY: PKR 245,000</span>
+              <div className="absolute right-2 sm:right-12 top-2 sm:top-6 bg-[#0F172A] border border-indigo-600/60 p-1.5 sm:p-2 rounded-lg text-[8px] sm:text-[9px] font-bold tracking-wider shadow-md text-white uppercase max-w-[130px] sm:max-w-none">
+                <span className="block text-indigo-400 font-bold">EST REVENUE</span>
+                <span className="font-mono text-white">JUL: PKR 245,000</span>
               </div>
             </div>
           </div>

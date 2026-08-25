@@ -175,40 +175,40 @@ export default function ToursSection({ onSelectListing, onTriggerSearch }: Tours
                 </div>
               </div>
 
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight leading-snug drop-shadow-md">
+              <h1 className="text-xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight leading-snug drop-shadow-md">
                 Guided Tour Packages in <span className="text-[#00A651] font-black">Gilgit Baltistan</span>
               </h1>
               <p className="text-slate-100/95 text-xs sm:text-sm font-medium max-w-xl leading-relaxed drop-shadow-xs">
                 Handcrafted itineraries with stays at luxury resorts, private 4x4 Prado transportation, expert local guides &amp; fort entry permits included.
               </p>
 
-              <div className="flex flex-wrap items-center gap-3.5 sm:gap-6 pt-2 text-white" id="tour-trust-factors">
+              <div className="flex flex-wrap items-center gap-2.5 sm:gap-6 pt-2 text-white" id="tour-trust-factors">
                 <div className="flex items-center gap-1.5 text-white">
                   <div className="w-6 h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
                     <ShieldCheck className="w-3 h-3 text-white" />
                   </div>
-                  <span className="text-[11px] sm:text-xs font-bold tracking-tight text-white">All-Inclusive</span>
+                  <span className="text-[10px] sm:text-xs font-bold tracking-tight text-white">All-Inclusive</span>
                 </div>
 
                 <div className="flex items-center gap-1.5 text-white">
                   <div className="w-6 h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
                     <User className="w-3 h-3 text-white" />
                   </div>
-                  <span className="text-[11px] sm:text-xs font-bold tracking-tight text-white">Licensed Local Guides</span>
+                  <span className="text-[10px] sm:text-xs font-bold tracking-tight text-white">Licensed Local Guides</span>
                 </div>
 
                 <div className="flex items-center gap-1.5 text-white">
                   <div className="w-6 h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
                     <Award className="w-3 h-3 text-white" />
                   </div>
-                  <span className="text-[11px] sm:text-xs font-bold tracking-tight text-white">Luxury Stays &amp; Meals</span>
+                  <span className="text-[10px] sm:text-xs font-bold tracking-tight text-white">Luxury Stays &amp; Meals</span>
                 </div>
 
                 <div className="flex items-center gap-1.5 text-white">
                   <div className="w-6 h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
                     <Headset className="w-3 h-3 text-white" />
                   </div>
-                  <span className="text-[11px] sm:text-xs font-bold tracking-tight text-white">24/7 Trip Manager</span>
+                  <span className="text-[10px] sm:text-xs font-bold tracking-tight text-white">24/7 Trip Manager</span>
                 </div>
               </div>
             </div>
@@ -337,7 +337,7 @@ export default function ToursSection({ onSelectListing, onTriggerSearch }: Tours
                 {showDurationPicker && (
                   <div 
                     onClick={(e) => e.stopPropagation()}
-                    className="absolute top-full left-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 p-2 space-y-1"
+                    className="absolute top-full left-0 sm:left-auto right-0 sm:right-auto mt-2 w-[calc(100vw-32px)] max-w-[240px] bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 p-2 space-y-1"
                   >
                     {['3 Days / 2 Nights', '5 Days / 4 Nights', '7 Days / 6 Nights', '10 Days / 9 Nights'].map((dur) => (
                       <div
@@ -382,7 +382,7 @@ export default function ToursSection({ onSelectListing, onTriggerSearch }: Tours
                 {showTravelerPicker && (
                   <div 
                     onClick={(e) => e.stopPropagation()}
-                    className="absolute top-full left-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 p-4 space-y-4"
+                    className="absolute top-full left-0 sm:left-auto right-0 sm:right-auto mt-2 w-[calc(100vw-32px)] max-w-[320px] bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 p-4 space-y-4"
                   >
                     <div className="flex items-center justify-between">
                       <div>

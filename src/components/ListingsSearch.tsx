@@ -303,19 +303,18 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
               </div>
 
               {/* Find Your Perfect Ride Heading */}
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white tracking-tight leading-tight">
+              <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold text-white tracking-tight leading-tight">
                 Find Your Perfect Ride in <br />
-                <span className="text-[#006F3C] drop-shadow-sm font-black">Gilgit</span><br />
-                <span className="text-[#006F3C] drop-shadow-sm font-black">Baltistan</span>
+                <span className="text-[#006F3C] drop-shadow-sm font-black">Gilgit Baltistan</span>
               </h1>
 
               {/* Subheading */}
-              <p className="text-sm sm:text-base text-slate-200 max-w-xl leading-relaxed font-sans">
+              <p className="text-xs sm:text-base text-slate-200 max-w-xl leading-relaxed font-sans">
                 Choose from a wide range of vehicles and explore the breathtaking beauty of Northern Pakistan with comfort and ease.
               </p>
 
               {/* 5 Small Hero Badges */}
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-2 max-w-xl sm:max-w-2xl">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-3 pt-2 max-w-xl sm:max-w-2xl">
                 {[
                   { label: 'Verified Vehicles', icon: ShieldCheck },
                   { label: 'Best Price Guarantee', icon: Tag },
@@ -323,11 +322,11 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                   { label: 'Instant Booking', icon: Zap },
                   { label: '24/7 Support', icon: Headphones }
                 ].map((item, idx) => (
-                  <div key={idx} className="flex flex-col items-start text-left space-y-1 bg-slate-950/30 backdrop-blur-xs p-2 rounded-xl border border-white/5">
-                    <div className="w-7 h-7 rounded-full bg-[#006F3C]/40 border border-[#006F3C]/60 flex items-center justify-center text-white">
-                      <item.icon className="w-4 h-4" />
+                  <div key={idx} className="flex flex-col items-start text-left space-y-1 bg-slate-950/30 backdrop-blur-xs p-1.5 sm:p-2 rounded-xl border border-white/5">
+                    <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#006F3C]/40 border border-[#006F3C]/60 flex items-center justify-center text-white shrink-0">
+                      <item.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </div>
-                    <span className="text-[10px] font-extrabold text-white leading-tight uppercase tracking-wider">{item.label}</span>
+                    <span className="text-[9px] sm:text-[10px] font-extrabold text-white leading-tight uppercase tracking-wider">{item.label}</span>
                   </div>
                 ))}
               </div>

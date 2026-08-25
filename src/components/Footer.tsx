@@ -147,13 +147,13 @@ export default function Footer({ onNavigate }: FooterProps) {
               </p>
 
               {/* Social Icons */}
-              <div className="flex items-center gap-2 pt-1">
+              <div className="flex items-center flex-wrap gap-2 pt-1">
                 <a 
                   href="https://facebook.com" 
                   target="_blank" 
                   rel="noreferrer" 
                   aria-label="Facebook"
-                  className="w-8 h-8 rounded-full bg-[#003D21] border border-[#006F3C] hover:bg-[#006F3C] flex items-center justify-center text-white transition-colors cursor-pointer"
+                  className="w-10 h-10 rounded-full bg-[#003D21] border border-[#006F3C] hover:bg-[#006F3C] flex items-center justify-center text-white transition-colors cursor-pointer"
                 >
                   <Facebook className="w-4 h-4" />
                 </a>
@@ -162,7 +162,7 @@ export default function Footer({ onNavigate }: FooterProps) {
                   target="_blank" 
                   rel="noreferrer" 
                   aria-label="Instagram"
-                  className="w-8 h-8 rounded-full bg-[#003D21] border border-[#006F3C] hover:bg-[#006F3C] flex items-center justify-center text-white transition-colors cursor-pointer"
+                  className="w-10 h-10 rounded-full bg-[#003D21] border border-[#006F3C] hover:bg-[#006F3C] flex items-center justify-center text-white transition-colors cursor-pointer"
                 >
                   <Instagram className="w-4 h-4" />
                 </a>
@@ -171,7 +171,7 @@ export default function Footer({ onNavigate }: FooterProps) {
                   target="_blank" 
                   rel="noreferrer" 
                   aria-label="YouTube"
-                  className="w-8 h-8 rounded-full bg-[#003D21] border border-[#006F3C] hover:bg-[#006F3C] flex items-center justify-center text-white transition-colors cursor-pointer"
+                  className="w-10 h-10 rounded-full bg-[#003D21] border border-[#006F3C] hover:bg-[#006F3C] flex items-center justify-center text-white transition-colors cursor-pointer"
                 >
                   <Youtube className="w-4 h-4" />
                 </a>
@@ -180,7 +180,7 @@ export default function Footer({ onNavigate }: FooterProps) {
                   target="_blank" 
                   rel="noreferrer" 
                   aria-label="WhatsApp"
-                  className="w-8 h-8 rounded-full bg-[#003D21] border border-[#006F3C] hover:bg-[#006F3C] flex items-center justify-center text-white transition-colors cursor-pointer"
+                  className="w-10 h-10 rounded-full bg-[#003D21] border border-[#006F3C] hover:bg-[#006F3C] flex items-center justify-center text-white transition-colors cursor-pointer"
                 >
                   <MessageCircle className="w-4 h-4" />
                 </a>
@@ -189,7 +189,7 @@ export default function Footer({ onNavigate }: FooterProps) {
                   target="_blank" 
                   rel="noreferrer" 
                   aria-label="TikTok"
-                  className="w-8 h-8 rounded-full bg-[#003D21] border border-[#006F3C] hover:bg-[#006F3C] flex items-center justify-center text-white transition-colors cursor-pointer"
+                  className="w-10 h-10 rounded-full bg-[#003D21] border border-[#006F3C] hover:bg-[#006F3C] flex items-center justify-center text-white transition-colors cursor-pointer"
                 >
                   <Video className="w-4 h-4" />
                 </a>
@@ -201,18 +201,18 @@ export default function Footer({ onNavigate }: FooterProps) {
                 <p className="text-slate-400 text-xs leading-snug">
                   Get the best travel deals, tips & inspiration straight to your inbox.
                 </p>
-                <form onSubmit={handleSubscribe} className="flex items-center pt-1">
+                <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-0 pt-1 w-full">
                   <input
                     type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Enter your email address"
-                    className="bg-[#003D21] border border-[#006F3C] text-white text-xs px-3.5 py-2.5 rounded-l-xl w-full focus:outline-none focus:border-[#006F3C] placeholder-slate-400"
+                    className="bg-[#003D21] border border-[#006F3C] text-white text-xs px-3.5 py-2.5 rounded-xl sm:rounded-r-none sm:rounded-l-xl w-full min-h-[44px] focus:outline-none focus:border-[#006F3C] placeholder-slate-400"
                   />
                   <button
                     type="submit"
-                    className="bg-[#006F3C] hover:bg-[#005C32] text-white text-xs font-bold px-4 py-2.5 rounded-r-xl flex items-center gap-1.5 shrink-0 transition-colors cursor-pointer"
+                    className="bg-[#006F3C] hover:bg-[#005C32] text-white text-xs font-bold px-4 py-2.5 rounded-xl sm:rounded-l-none sm:rounded-r-xl min-h-[44px] flex items-center justify-center gap-1.5 shrink-0 transition-colors cursor-pointer"
                   >
                     <span>Subscribe</span>
                     <Send className="w-3.5 h-3.5" />

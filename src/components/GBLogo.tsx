@@ -24,7 +24,7 @@ export default function GBLogo({ className = '', size = 'md', showText = true, l
   };
 
   return (
-    <div className={`inline-flex ${layout === 'vertical' ? 'flex-col items-start text-left gap-1' : 'items-center gap-2.5'} ${className}`}>
+    <div className={`inline-flex shrink-0 max-w-full ${layout === 'vertical' ? 'flex-col items-start text-left gap-1' : 'items-center gap-1.5 sm:gap-2.5'} ${className}`}>
       {/* Mountain + Target Sun Graphic SVG matching reference logo */}
       <svg className={`${svgDimensions[size]} shrink-0 overflow-visible`} viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg">
         <defs>

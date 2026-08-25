@@ -309,6 +309,112 @@
   animation-play-state: paused;
 }
 
+/* Native Mobile App Design System Tokens & Classes */
+.mobile-app-shell {
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+}
+
+@media (min-width: 1024px) {
+  .mobile-app-shell {
+    max-width: 1200px;
+  }
+}
+
+/* Mobile App Screen Container */
+.mobile-screen-pad {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+@media (min-width: 640px) {
+  .mobile-screen-pad {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+}
+
+/* Native Mobile Card Pattern */
+.mobile-card {
+  background-color: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #f1f5f9;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.mobile-card:active {
+  transform: scale(0.99);
+}
+
+/* Mobile Standard Touch-sized Action Buttons (Min 48px height) */
+.btn-primary-mobile {
+  min-height: 48px;
+  background-color: #006F3C;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 15px;
+  border-radius: 14px;
+  padding: 0 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.15s ease;
+  border: none;
+  cursor: pointer;
+  user-select: none;
+}
+.btn-primary-mobile:hover {
+  background-color: #005C32;
+}
+.btn-primary-mobile:active {
+  transform: scale(0.98);
+  background-color: #004827;
+}
+
+.btn-secondary-mobile {
+  min-height: 48px;
+  background-color: #f8fafc;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
+  font-weight: 600;
+  font-size: 15px;
+  border-radius: 14px;
+  padding: 0 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  user-select: none;
+}
+.btn-secondary-mobile:active {
+  transform: scale(0.98);
+  background-color: #f1f5f9;
+}
+
+/* Native Mobile Bottom Sheet Styles */
+.mobile-bottom-sheet {
+  background-color: #ffffff;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.15);
+  max-height: 90vh;
+  overflow-y: auto;
+  padding-bottom: max(env(safe-area-inset-bottom, 16px), 24px);
+}
+
+.sheet-drag-handle {
+  width: 40px;
+  height: 5px;
+  background-color: #cbd5e1;
+  border-radius: 9999px;
+  margin: 10px auto 14px auto;
+}
+
 /* Safe Area Inset Support for Modern Mobile Viewports */
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -320,6 +426,45 @@
 
 .mb-safe {
   margin-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Mobile App Native Shell Optimizations */
+html, body {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  overscroll-behavior-y: none;
+}
+
+/* Native Mobile App Glass Bottom Nav Bar */
+.mobile-bottom-nav {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.92);
+  border-top: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
+}
+
+/* Native App Tap Feedback */
+.app-tap {
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.15s ease;
+}
+.app-tap:active {
+  transform: scale(0.96);
+  opacity: 0.85;
+}
+
+/* Minimum accessible interactive tap target helper */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Prevent text cut-off on mobile browsers */
+.text-balance-mobile {
+  text-wrap: balance;
 }
 
 /* Accessible Focus-Visible outlines */

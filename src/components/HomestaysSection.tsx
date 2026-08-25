@@ -193,7 +193,7 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
                 </div>
               </div>
 
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight leading-snug drop-shadow-md">
+              <h1 className="text-xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight leading-snug drop-shadow-md">
                 Authentic Homestays in <span className="text-[#00A651] font-black">Gilgit Baltistan</span>
               </h1>
               <p className="text-slate-100/95 text-xs sm:text-sm font-medium max-w-xl leading-relaxed drop-shadow-xs">
@@ -201,33 +201,33 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
               </p>
 
               {/* 4 Feature Bullets Row matching screenshot */}
-              <div className="flex flex-wrap items-center gap-3.5 sm:gap-6 pt-2 text-white" id="homestay-trust-factors">
+              <div className="flex flex-wrap items-center gap-2.5 sm:gap-6 pt-2 text-white" id="homestay-trust-factors">
                 <div className="flex items-center gap-1.5 text-white">
                   <div className="w-6 h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
                     <ShieldCheck className="w-3 h-3 text-white" />
                   </div>
-                  <span className="text-[11px] sm:text-xs font-bold tracking-tight text-white">Verified Homestays</span>
+                  <span className="text-[10px] sm:text-xs font-bold tracking-tight text-white">Verified Homestays</span>
                 </div>
 
                 <div className="flex items-center gap-1.5 text-white">
                   <div className="w-6 h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
                     <User className="w-3 h-3 text-white" />
                   </div>
-                  <span className="text-[11px] sm:text-xs font-bold tracking-tight text-white">Local Hosts</span>
+                  <span className="text-[10px] sm:text-xs font-bold tracking-tight text-white">Local Hosts</span>
                 </div>
 
                 <div className="flex items-center gap-1.5 text-white">
                   <div className="w-6 h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
                     <Award className="w-3 h-3 text-white" />
                   </div>
-                  <span className="text-[11px] sm:text-xs font-bold tracking-tight text-white">Best Price Guarantee</span>
+                  <span className="text-[10px] sm:text-xs font-bold tracking-tight text-white">Best Price Guarantee</span>
                 </div>
 
                 <div className="flex items-center gap-1.5 text-white">
                   <div className="w-6 h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
                     <Headset className="w-3 h-3 text-white" />
                   </div>
-                  <span className="text-[11px] sm:text-xs font-bold tracking-tight text-white">24/7 Support</span>
+                  <span className="text-[10px] sm:text-xs font-bold tracking-tight text-white">24/7 Support</span>
                 </div>
               </div>
             </div>

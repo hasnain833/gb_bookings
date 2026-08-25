@@ -17,6 +17,8 @@ import AiPlanner from './components/AiPlanner';
 import SupportCentre from './components/SupportCentre';
 import AuthModal from './components/AuthModal';
 import Footer from './components/Footer';
+import MobileAppBottomNav from './components/MobileAppBottomNav';
+import MobileInstallPrompt from './components/MobileInstallPrompt';
 import { Listing, Booking } from './types';
 import { useLanguage } from './LanguageContext';
 
@@ -162,7 +164,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] text-[#1A1A1A] flex flex-col font-sans selection:bg-indigo-500 selection:text-white overflow-x-hidden">
+    <div className="min-h-screen bg-[#FAFAFA] text-[#1A1A1A] flex flex-col font-sans selection:bg-[#006F3C] selection:text-white overflow-x-hidden w-full relative">
       
       {/* Top Navigation Bar */}
       <Navbar 
@@ -192,7 +194,7 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 pt-20 sm:pt-24 md:pt-28 lg:pt-32 pb-8 md:pb-12 min-w-0">
+      <main className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 pt-16 sm:pt-20 md:pt-24 lg:pt-28 pb-24 sm:pb-28 md:pb-12 min-w-0">
         {view === 'explore' && (
           <ExploreSection 
             setView={handleNavigation}
@@ -357,6 +359,18 @@ export default function App() {
         initialMode={authModalMode}
         onSuccessLogin={handleSuccessLogin}
       />
+
+      {/* Native-grade Mobile App Bottom Tab Navigation */}
+      <MobileAppBottomNav 
+        currentView={view}
+        setView={handleNavigation}
+        isLoggedIn={isLoggedIn}
+        onOpenAuthModal={handleOpenAuthModal}
+        unreadNotifications={true}
+      />
+
+      {/* Mobile PWA App Installation / Add to Home Screen Prompt */}
+      <MobileInstallPrompt />
 
     </div>
   );

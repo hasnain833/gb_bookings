@@ -664,7 +664,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
             <button
               id="btn-trigger-host-chat"
               onClick={handleOpenHostChat}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-5 rounded-lg text-xs flex items-center justify-center space-x-1.5 cursor-pointer uppercase tracking-wider shadow-xs w-full md:w-auto"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-5 rounded-xl text-xs sm:text-sm min-h-[44px] flex items-center justify-center space-x-1.5 cursor-pointer uppercase tracking-wider shadow-xs w-full md:w-auto"
             >
               <MessageSquare className="w-4 h-4" />
               <span>Message Host</span>
@@ -1082,7 +1082,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
             <button
               onClick={handleBookingSubmit}
               id="btn-checkout-proceed"
-              className="w-full bg-[#0F172A] hover:bg-slate-800 text-white font-bold py-3.5 px-6 rounded-lg shadow-sm transition-all text-xs flex items-center justify-center space-x-1.5 cursor-pointer uppercase tracking-wider"
+              className="w-full min-h-[46px] bg-[#0F172A] hover:bg-slate-800 text-white font-bold py-3.5 px-6 rounded-xl shadow-xs transition-all text-xs sm:text-sm flex items-center justify-center space-x-1.5 cursor-pointer uppercase tracking-wider"
             >
               <span>{payAtHotel ? 'Book via Pay At Stay' : 'Proceed to Checkout'}</span>
             </button>
@@ -1102,8 +1102,16 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
 
       {/* Airbnb Interactive Host Live Chat Modal overlay drawer (Airbnb Feature) */}
       {showHostChat && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex justify-end z-50 animate-fadeIn" id="host-chat-drawer-overlay">
-          <div className="w-full max-w-md bg-white h-full flex flex-col shadow-2xl animate-slideLeft" id="host-chat-drawer-container">
+        <div 
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex justify-end z-50 animate-fadeIn" 
+          id="host-chat-drawer-overlay"
+          onClick={() => setShowHostChat(false)}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md bg-white h-full flex flex-col shadow-2xl animate-slideLeft border-l border-slate-200" 
+            id="host-chat-drawer-container"
+          >
             
             {/* Header */}
             <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-900 text-white">
@@ -1118,8 +1126,9 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
               </div>
               <button 
                 id="btn-close-host-chat"
+                aria-label="Close host chat"
                 onClick={() => setShowHostChat(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-full hover:bg-slate-800 cursor-pointer"
+                className="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-slate-800 cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>

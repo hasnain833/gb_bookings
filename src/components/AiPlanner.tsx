@@ -910,12 +910,12 @@ export default function AiPlanner({ setView, onSelectListing }: AiPlannerProps) 
                           </div>
 
                           {/* Prev/Next buttons */}
-                          <div className="flex items-center justify-between pt-1">
+                          <div className="flex items-center justify-between pt-1 gap-2">
                             <button
                               type="button"
                               disabled={selectedStopIdx === 0}
                               onClick={() => setSelectedStopIdx(prev => Math.max(0, prev - 1))}
-                              className="bg-white hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white text-slate-700 text-xs font-bold px-3.5 py-1.5 rounded-lg border border-slate-200 transition-all cursor-pointer flex items-center gap-1"
+                              className="bg-white hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white text-slate-700 text-xs font-bold px-4 py-2.5 rounded-xl border border-slate-200 transition-all cursor-pointer flex items-center gap-1.5 min-h-[44px]"
                             >
                               <ChevronLeft className="w-4 h-4" />
                               <span>Previous</span>
@@ -925,7 +925,7 @@ export default function AiPlanner({ setView, onSelectListing }: AiPlannerProps) 
                               type="button"
                               disabled={selectedStopIdx === currentRoute.stops.length - 1}
                               onClick={() => setSelectedStopIdx(prev => Math.min(currentRoute.stops.length - 1, prev + 1))}
-                              className="bg-[#006F3C] hover:bg-[#005C32] disabled:opacity-40 disabled:hover:bg-[#006F3C] text-white text-xs font-bold px-3.5 py-1.5 rounded-lg border border-[#006F3C] transition-all cursor-pointer flex items-center gap-1 shadow-xs"
+                              className="bg-[#006F3C] hover:bg-[#005C32] disabled:opacity-40 disabled:hover:bg-[#006F3C] text-white text-xs font-bold px-4 py-2.5 rounded-xl border border-[#006F3C] transition-all cursor-pointer flex items-center gap-1.5 shadow-xs min-h-[44px]"
                             >
                               <span>Next Stop</span>
                               <ChevronRight className="w-4 h-4" />

@@ -433,7 +433,7 @@ export default function Navbar({
           {/* AI Planner Icon (Mobile Only) */}
           <button
             onClick={() => { setView('ai-planner'); setMobileDrawerOpen(false); }}
-            className="flex md:hidden w-9 h-9 items-center justify-center rounded-xl border border-[#00A651]/40 text-[#00A651] bg-[#00A651]/5 hover:bg-[#00A651]/10 cursor-pointer transition-colors"
+            className="flex md:hidden w-10 h-10 min-w-[40px] items-center justify-center rounded-xl border border-[#00A651]/40 text-[#00A651] bg-[#00A651]/5 hover:bg-[#00A651]/10 cursor-pointer transition-colors"
             title="AI Trip Planner"
             aria-label="AI Trip Planner"
           >
@@ -443,7 +443,7 @@ export default function Navbar({
           {/* AI Planner Button (Tablet/Desktop) */}
           <button
             onClick={() => setView('ai-planner')}
-            className="hidden md:flex items-center gap-1 xl:gap-1.5 border border-[#00A651]/50 hover:border-[#00A651] text-[#00A651] hover:bg-[#00A651]/5 text-xs font-extrabold px-2 lg:px-2.5 xl:px-3.5 py-1.5 xl:py-2 rounded-xl transition-all shadow-xs cursor-pointer whitespace-nowrap shrink-0"
+            className="hidden md:flex items-center gap-1 xl:gap-1.5 border border-[#00A651]/50 hover:border-[#00A651] text-[#00A651] hover:bg-[#00A651]/5 text-xs font-extrabold px-2.5 lg:px-3 xl:px-3.5 py-2 xl:py-2.5 rounded-xl transition-all shadow-xs cursor-pointer whitespace-nowrap shrink-0 min-h-[40px]"
           >
             <Sparkles className="w-3.5 h-3.5 text-[#00A651]" />
             <span>AI Planner</span>
@@ -452,7 +452,7 @@ export default function Navbar({
           {/* List Your Property Button */}
           <button
             onClick={() => { setView('vendor-dashboard'); setMobileDrawerOpen(false); }}
-            className="bg-[#00A651] hover:bg-[#008E45] text-white text-[11px] sm:text-xs font-extrabold px-2.5 sm:px-3 xl:px-4 py-1.5 sm:py-2 xl:py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-1 lg:gap-1.5 cursor-pointer whitespace-nowrap hover:scale-[1.02] active:scale-95 shrink-0"
+            className="bg-[#00A651] hover:bg-[#008E45] text-white text-[11px] sm:text-xs font-extrabold px-2.5 sm:px-3 xl:px-4 py-2 sm:py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-1 lg:gap-1.5 cursor-pointer whitespace-nowrap hover:scale-[1.02] active:scale-95 shrink-0 min-h-[40px]"
           >
             <Building2 className="w-3.5 h-3.5 xl:w-4 xl:h-4 shrink-0" />
             <span className="hidden min-[380px]:inline">List Your Property</span>
@@ -463,7 +463,7 @@ export default function Navbar({
           {isLoggedIn ? (
             <button
               onClick={() => { setView('user-dashboard'); setMobileDrawerOpen(false); }}
-              className="lg:hidden w-9 h-9 rounded-xl bg-[#0A182E] text-white font-black text-xs flex items-center justify-center shadow-xs cursor-pointer"
+              className="lg:hidden w-10 h-10 min-w-[40px] rounded-xl bg-[#0A182E] text-white font-black text-xs flex items-center justify-center shadow-xs cursor-pointer"
               title="My Dashboard"
             >
               {userInitials}
@@ -471,7 +471,7 @@ export default function Navbar({
           ) : (
             <button
               onClick={() => onOpenAuthModal('signin')}
-              className="lg:hidden w-9 h-9 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center justify-center cursor-pointer"
+              className="lg:hidden w-10 h-10 min-w-[40px] rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center justify-center cursor-pointer"
               title="Sign In"
             >
               <User className="w-4 h-4" />
