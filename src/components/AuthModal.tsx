@@ -137,14 +137,14 @@ export default function AuthModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
+      <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
         {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs transition-opacity"
+          className="fixed inset-0 bg-slate-950/75 backdrop-blur-xs transition-opacity"
         />
 
         {/* Bottom Sheet Modal Container */}
@@ -153,7 +153,8 @@ export default function AuthModal({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 100 }}
           transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-          className="relative w-full max-w-lg bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-10 text-left max-h-[92vh] sm:max-h-[calc(100vh-3rem)] flex flex-col pb-safe"
+          className="relative w-full max-w-lg bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-10 text-left max-h-[88vh] sm:max-h-[calc(100vh-3rem)] flex flex-col"
+          style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 12px)' }}
         >
           {/* Mobile Drag Handle */}
           <div className="sm:hidden sheet-drag-handle" />
@@ -217,7 +218,7 @@ export default function AuthModal({
           </div>
 
           {/* Form Content */}
-          <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto flex-1">
+          <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto flex-1 pb-10 sm:pb-6">
             {/* Success Message Overlay */}
             {isSuccess ? (
               <div className="py-8 text-center space-y-3">
@@ -262,7 +263,7 @@ export default function AuthModal({
                 {/* Divider */}
                 <div className="relative flex items-center justify-center my-3">
                   <div className="border-t border-slate-200 w-full" />
-                  <span className="bg-white px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider relative">
+                  <span className="bg-white px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider relative whitespace-nowrap">
                     Or with email
                   </span>
                 </div>
@@ -378,7 +379,8 @@ export default function AuthModal({
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full btn-primary-mobile mt-2"
+                    id="btn-auth-submit"
+                    className="w-full min-h-[50px] bg-[#006F3C] hover:bg-[#005c32] active:bg-[#004d2a] text-white font-bold text-sm sm:text-base rounded-xl shadow-lg shadow-emerald-900/20 flex items-center justify-center gap-2 cursor-pointer transition-all mt-3 app-tap"
                   >
                     {isLoading ? (
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />

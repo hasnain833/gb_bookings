@@ -1,10 +1,10 @@
 import React from 'react';
 import { 
+  Building2,
   Home, 
-  Compass, 
-  CalendarCheck, 
-  User, 
-  Sparkles
+  Sparkles,
+  Car, 
+  Compass
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useLanguage } from '../LanguageContext';
@@ -36,21 +36,22 @@ export default function MobileAppBottomNav({
     hasBadge?: boolean;
   }
 
-  // Mobile app navigation tabs: Home, Explore, AI Trip (Elevated), Bookings, Profile
+  // 4 Core Categories + AI Trip in Center:
+  // HOTELS | HOMESTAYS | [ AI TRIP ] | CARS | TOURS
   const navItems: NavItem[] = [
     {
-      id: 'home',
-      matchViews: ['hotels', 'homestays', 'home'],
-      label: isRtl ? 'ہوم' : 'Home',
-      icon: Home,
+      id: 'hotels',
+      matchViews: ['hotels', 'browse-hotels'],
+      label: isRtl ? 'ہوٹلز' : 'Hotels',
+      icon: Building2,
       action: () => setView('hotels')
     },
     {
-      id: 'explore',
-      matchViews: ['explore', 'browse-hotels', 'browse-homestays', 'browse-cars', 'browse-tours', 'destinations', 'offers', 'cars', 'tours'],
-      label: isRtl ? 'دریافت' : 'Explore',
-      icon: Compass,
-      action: () => setView('explore')
+      id: 'homestays',
+      matchViews: ['homestays', 'browse-homestays'],
+      label: isRtl ? 'ہوم اسٹیز' : 'Homestays',
+      icon: Home,
+      action: () => setView('homestays')
     },
     {
       id: 'ai-planner',
@@ -61,31 +62,18 @@ export default function MobileAppBottomNav({
       highlight: true
     },
     {
-      id: 'bookings',
-      matchViews: ['bookings', 'checkout'],
-      label: isRtl ? 'بکنگز' : 'Bookings',
-      icon: CalendarCheck,
-      action: () => {
-        if (!isLoggedIn) {
-          onOpenAuthModal('signin');
-        } else {
-          setView('user-dashboard');
-        }
-      }
+      id: 'cars',
+      matchViews: ['cars', 'browse-cars'],
+      label: isRtl ? 'گاڑیاں' : 'Cars',
+      icon: Car,
+      action: () => setView('cars')
     },
     {
-      id: 'profile',
-      matchViews: ['user-dashboard', 'vendor-dashboard', 'profile'],
-      label: isRtl ? 'پروفائل' : 'Profile',
-      icon: User,
-      action: () => {
-        if (!isLoggedIn) {
-          onOpenAuthModal('signin');
-        } else {
-          setView('user-dashboard');
-        }
-      },
-      hasBadge: unreadNotifications
+      id: 'tours',
+      matchViews: ['tours', 'browse-tours', 'destinations', 'offers'],
+      label: isRtl ? 'ٹورز' : 'Tours',
+      icon: Compass,
+      action: () => setView('tours')
     }
   ];
 
@@ -96,7 +84,7 @@ export default function MobileAppBottomNav({
       className="md:hidden fixed bottom-0 left-0 right-0 z-50 mobile-bottom-nav pb-safe pointer-events-auto select-none bg-white/95 backdrop-blur-lg border-t border-slate-200/80 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]"
       style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 8px)' }}
     >
-      <div className="flex items-center justify-around px-2 py-1.5 max-w-lg mx-auto min-h-[58px]">
+      <div className="grid grid-cols-5 items-end px-1 py-1 max-w-md mx-auto min-h-[58px] relative">
         {navItems.map((item) => {
           const isActive = item.matchViews.includes(currentView) || currentView === item.id;
           const Icon = item.icon;
@@ -107,26 +95,31 @@ export default function MobileAppBottomNav({
                 key={item.id}
                 id={`tab-${item.id}`}
                 onClick={item.action}
-                className="relative flex flex-col items-center justify-center -top-3 app-tap focus:outline-hidden cursor-pointer"
+                className="relative flex flex-col items-center justify-end w-full h-full pb-1 app-tap focus:outline-hidden cursor-pointer"
                 aria-label={item.label}
               >
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg transition-all ${
-                  isActive 
-                    ? 'bg-[#006F3C] text-white shadow-emerald-900/30 ring-3 ring-white'
-                    : 'bg-gradient-to-tr from-[#0A182E] to-[#1E3A8A] text-white shadow-slate-900/25 ring-2 ring-white'
-                }`}>
-                  <Icon className="w-5 h-5" />
+                <div className="relative -top-2 flex flex-col items-center">
+                  <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shadow-md transition-all ${
+                    isActive 
+                      ? 'bg-[#006F3C] text-white shadow-emerald-900/30 ring-2 ring-white scale-105'
+                      : 'bg-gradient-to-tr from-slate-900 to-emerald-950 text-emerald-300 shadow-slate-900/20 ring-2 ring-white hover:scale-105'
+                  }`}>
+                    <Icon className="w-5 h-5" />
+                  </div>
                 </div>
-                <span className={`text-[10px] font-bold mt-1 tracking-tight ${
-                  isActive ? 'text-[#006F3C]' : 'text-slate-700'
+                <span className={`text-[10px] tracking-tight transition-colors -mt-1 ${
+                  isActive ? 'text-[#006F3C] font-bold' : 'text-slate-600 font-medium'
                 }`}>
                   {item.label}
                 </span>
-                {isActive && (
+                {isActive ? (
                   <motion.div 
-                    layoutId="mobileNavIndicatorHighlight"
-                    className="w-1.5 h-1.5 bg-[#006F3C] rounded-full mt-0.5"
+                    layoutId="mobileNavIndicator"
+                    className="w-4 h-0.5 bg-[#006F3C] rounded-full mt-0.5"
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
                   />
+                ) : (
+                  <div className="w-4 h-0.5 mt-0.5 opacity-0" />
                 )}
               </button>
             );
@@ -137,28 +130,30 @@ export default function MobileAppBottomNav({
               key={item.id}
               id={`tab-${item.id}`}
               onClick={item.action}
-              className="relative flex flex-col items-center justify-center flex-1 py-1 px-1 app-tap focus:outline-hidden cursor-pointer min-w-0"
+              className="relative flex flex-col items-center justify-end w-full h-full pb-1 app-tap focus:outline-hidden cursor-pointer"
               aria-label={item.label}
             >
-              <div className="relative">
-                <Icon className={`w-5 h-5 transition-colors ${
-                  isActive ? 'text-[#006F3C] stroke-[2.5]' : 'text-slate-400 hover:text-slate-600'
+              <div className="relative h-6 flex items-center justify-center mb-1">
+                <Icon className={`w-5 h-5 transition-all ${
+                  isActive ? 'text-[#006F3C] stroke-[2.5] scale-105' : 'text-slate-400 hover:text-slate-600'
                 }`} />
                 {item.hasBadge && (
-                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full ring-2 ring-white" />
+                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white" />
                 )}
               </div>
-              <span className={`text-[10px] font-semibold mt-0.5 tracking-tight truncate max-w-full transition-colors ${
-                isActive ? 'text-[#006F3C] font-black' : 'text-slate-500'
+              <span className={`text-[10px] tracking-tight truncate max-w-full transition-colors ${
+                isActive ? 'text-[#006F3C] font-bold' : 'text-slate-500 font-medium'
               }`}>
                 {item.label}
               </span>
-              {isActive && (
+              {isActive ? (
                 <motion.div 
                   layoutId="mobileNavIndicator"
-                  className="w-5 h-0.5 bg-[#006F3C] rounded-full mt-0.5"
+                  className="w-4 h-0.5 bg-[#006F3C] rounded-full mt-0.5"
                   transition={{ type: "spring", stiffness: 400, damping: 30 }}
                 />
+              ) : (
+                <div className="w-4 h-0.5 mt-0.5 opacity-0" />
               )}
             </button>
           );

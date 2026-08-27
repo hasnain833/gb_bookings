@@ -594,8 +594,8 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
       <section className="-mt-12 sm:-mt-14 relative z-20 w-full" id="search-console">
         <div className="bg-white rounded-3xl border border-[#E2E8F0] shadow-2xl overflow-visible">
           
-          {/* Tabs header matching the image: Hotels, Homestays, Cars, Tours */}
-          <div className="flex border-b border-[#F1F5F9] bg-[#FAFAFA] px-6 sm:px-8 gap-4 sm:gap-8 overflow-x-auto scrollbar-none rounded-t-3xl" id="booking-tabs">
+          {/* Tabs header: Hotels, Homestays, Cars, Tours - Proportional Responsive Tabs (Homestays gets extra room, Cars is compact) */}
+          <div className="grid grid-cols-[1.05fr_1.45fr_0.85fr_0.95fr] sm:grid-cols-4 w-full border-b border-[#F1F5F9] bg-[#FAFAFA] px-1 sm:px-6 md:px-8 rounded-t-3xl" id="booking-tabs">
             {[
               { id: 'hotel', label: t('search.hotel_tab'), icon: Building2 },
               { id: 'homestay', label: t('search.homestay_tab'), icon: Home },
@@ -609,14 +609,14 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                   key={tab.id}
                   id={`tab-search-${tab.id}`}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center gap-2.5 py-4 px-1 border-b-2 font-bold text-[13px] uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
+                  className={`flex items-center justify-center gap-1 sm:gap-2 py-3.5 sm:py-4 px-1 sm:px-2 border-b-2 font-bold text-[10.5px] xs:text-[11px] sm:text-[13px] uppercase tracking-tight sm:tracking-wider transition-all cursor-pointer whitespace-nowrap min-w-0 ${
                     isActive
                       ? 'border-[#006F3C] text-[#006F3C]'
                       : 'border-transparent text-slate-500 hover:text-slate-800'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-[#006F3C]' : 'text-slate-400'}`} />
-                  <span>{tab.label}</span>
+                  <Icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${isActive ? 'text-[#006F3C]' : 'text-slate-400'}`} />
+                  <span className="whitespace-nowrap font-bold">{tab.label}</span>
                 </button>
               );
             })}

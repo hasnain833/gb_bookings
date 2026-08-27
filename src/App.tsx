@@ -24,7 +24,7 @@ import { useLanguage } from './LanguageContext';
 
 export default function App() {
   const { t, isRtl } = useLanguage();
-  const [view, setView] = useState<string>('homestays'); // 'explore' | 'homestays' | 'search' | 'details' | 'checkout' | 'user-dashboard' | 'vendor-dashboard' | 'ai-planner' | 'support'
+  const [view, setView] = useState<string>('explore'); // 'explore' (Homepage) | 'homestays' | 'hotels' | 'cars' | 'tours' | 'destinations' | 'offers' | 'search' | 'details' | 'checkout' | 'user-dashboard' | 'vendor-dashboard' | 'ai-planner' | 'support'
   const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   

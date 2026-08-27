@@ -335,7 +335,7 @@ export default function Navbar({
         {/* Left Side: Dynamic Mobile Header (Back Button on subpages, Logo on Home) + Desktop Logo */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {/* Subpage Back Button for Mobile */}
-          {currentView !== 'hotels' && currentView !== 'homestays' ? (
+          {currentView !== 'explore' ? (
             <div className="flex lg:hidden items-center gap-2">
               <button
                 type="button"
@@ -343,17 +343,18 @@ export default function Navbar({
                 aria-label="Go back"
                 onClick={() => {
                   if (currentView === 'checkout') setView('details');
-                  else if (currentView === 'details') setView('search');
-                  else setView('hotels');
+                  else if (currentView === 'details') setView('explore');
+                  else setView('explore');
                 }}
                 className="w-10 h-10 -ml-1 rounded-xl flex items-center justify-center text-slate-800 hover:bg-slate-100 active:bg-slate-200 transition-colors cursor-pointer app-tap"
               >
                 <ArrowLeft className="w-5 h-5 text-slate-800 stroke-[2.5]" />
               </button>
               <span className="font-extrabold text-sm text-slate-900 truncate max-w-[170px] sm:max-w-[240px]">
-                {currentView === 'cars' ? (isRtl ? 'گاڑیاں اور جیپیں' : '4x4 Jeeps & Cars') :
+                {currentView === 'hotels' ? (isRtl ? 'ہوٹلز' : 'Hotels & Resorts') :
+                 currentView === 'homestays' ? (isRtl ? 'ہوم اسٹیز' : 'Traditional Homestays') :
+                 currentView === 'cars' ? (isRtl ? 'گاڑیاں اور جیپیں' : '4x4 Jeeps & Cars') :
                  currentView === 'tours' ? (isRtl ? 'ٹورز اور ٹریکس' : 'Expeditions & Tours') :
-                 currentView === 'explore' ? (isRtl ? 'دریافت کریں' : 'Explore GB') :
                  currentView === 'destinations' ? (isRtl ? 'مقامات' : 'Top Destinations') :
                  currentView === 'offers' ? (isRtl ? 'خصوصی آفرز' : 'Special Deals') :
                  currentView === 'ai-planner' ? (isRtl ? 'اے آئی ٹرپ' : 'AI Trip Planner') :
@@ -379,7 +380,7 @@ export default function Navbar({
           
           <div 
             onClick={() => { setView('explore'); setMobileDrawerOpen(false); }} 
-            className={`flex items-center cursor-pointer group shrink-0 pr-1 lg:pr-2 ${currentView !== 'hotels' && currentView !== 'homestays' ? 'hidden lg:flex' : 'flex'}`}
+            className={`flex items-center cursor-pointer group shrink-0 pr-1 lg:pr-2 ${currentView !== 'explore' ? 'hidden lg:flex' : 'flex'}`}
             id="nav-logo"
           >
             <GBLogo size="md" />
