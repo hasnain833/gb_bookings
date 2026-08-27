@@ -593,15 +593,18 @@ export default function AiPlanner({ setView, onSelectListing }: AiPlannerProps) 
     <div id="ai-planner-view" className="space-y-8 pb-16">
       
       {/* Intro Header */}
-      <div className="flex items-center space-x-3 bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
-        <div className="w-12 h-12 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0">
+      <div className="flex items-center space-x-3 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
+        <div className="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0">
           <Bot className="w-6 h-6 text-indigo-600" />
         </div>
-        <div>
-          <h2 className="text-xl md:text-2xl font-bold text-[#0F172A] uppercase tracking-tight flex items-center gap-1.5">
-            GBBookings AI Companion <span className="text-[10px] bg-indigo-50 border border-indigo-100 text-indigo-600 font-mono px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Active Gemini</span>
+        <div className="min-w-0">
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-[#0F172A] uppercase tracking-tight flex flex-wrap items-center gap-2">
+            <span>{isRtl ? 'جی بی بکنگز اے آئی ٹریول پلانر' : 'GBBookings AI Companion'}</span>
+            <span className="text-[10px] bg-indigo-50 border border-indigo-100 text-indigo-600 font-mono px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">Active Gemini</span>
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">Let our localized travel intelligence build a luxury travel map of Pakistan in seconds.</p>
+          <p className="text-xs text-slate-500 mt-0.5">
+            {isRtl ? 'گلگت بلتستان کے لیے آرٹیفیشل انٹیلیجنس پر مبنی پرتعیش ٹرپ روٹ سیکنڈوں میں بنائیں' : 'Let our localized travel intelligence build a luxury travel map of Pakistan in seconds.'}
+          </p>
         </div>
       </div>
 

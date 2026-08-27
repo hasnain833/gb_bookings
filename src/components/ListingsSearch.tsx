@@ -275,7 +275,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
   // ---------------- CAR SPECIAL RENDERING ENGINE (CLONING IMAGE) ----------------
   if (type === 'car') {
     return (
-      <div id="listings-search-view" className="space-y-10 pb-16 text-left -mt-4">
+      <div id="listings-search-view" className="space-y-10 pb-16 text-left">
         
         {/* 1. GORGEOUS MOUNTAIN HERO BLOCK WITH PARALLAX SCENIC ROAD & PREMIUM SUV */}
         <div className="relative rounded-3xl overflow-hidden bg-slate-900 border border-slate-800 shadow-2xl min-h-[480px] flex flex-col justify-start items-start p-6 sm:p-10 lg:p-12 text-left">
@@ -1027,7 +1027,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
     const homestayFilteredListings = displayListings;
 
     return (
-      <div id="listings-search-view" className="space-y-12 pb-16 text-left -mt-4 animate-fadeIn">
+      <div id="listings-search-view" className="space-y-12 pb-16 text-left animate-fadeIn">
         
         {/* 1. GORGEOUS MOUNTAIN HERO BLOCK WITH Scenic Cabin */}
         <div className="relative rounded-3xl overflow-hidden bg-slate-900 border border-slate-800 shadow-2xl min-h-[480px] flex flex-col justify-start items-start p-6 sm:p-10 lg:p-12 text-left">
@@ -1615,7 +1615,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
     const hotelFilteredListings = displayListings;
 
     return (
-      <div id="listings-search-view" className="space-y-12 pb-16 text-left -mt-4 animate-fadeIn">
+      <div id="listings-search-view" className="space-y-12 pb-16 text-left animate-fadeIn">
         
         {/* 1. GORGEOUS MOUNTAIN HERO BLOCK WITH Scenic Luxury Resort */}
         <div className="relative rounded-3xl overflow-hidden bg-slate-900 border border-slate-800 shadow-2xl min-h-[520px] lg:min-h-[580px] flex flex-col justify-between p-6 sm:p-10 lg:p-12">
@@ -2196,7 +2196,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
     const tourFilteredListings = displayListings;
 
     return (
-      <div id="listings-search-view" className="space-y-12 pb-16 text-left -mt-4 animate-fadeIn">
+      <div id="listings-search-view" className="space-y-12 pb-16 text-left animate-fadeIn">
         
         {/* 1. GORGEOUS MOUNTAIN HERO BLOCK WITH Scenic Adventure Expeditions */}
         <div className="relative rounded-3xl overflow-hidden bg-slate-900 border border-slate-800 shadow-2xl min-h-[520px] lg:min-h-[580px] flex flex-col justify-between p-6 sm:p-10 lg:p-12">
@@ -2976,7 +2976,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
     };
 
     return (
-      <div id="listings-search-view" className="space-y-12 pb-16 text-left -mt-4 animate-fadeIn">
+      <div id="listings-search-view" className="space-y-12 pb-16 text-left animate-fadeIn">
         
         {/* 1. OFFERS GORGEOUS FLASH-RED HERO BLOCK */}
         <div className="relative rounded-3xl overflow-hidden bg-slate-900 border border-slate-800 shadow-2xl min-h-[460px] flex flex-col justify-between p-6 sm:p-10 lg:p-12">
@@ -3378,7 +3378,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
     );
 
     return (
-      <div id="listings-search-view" className="space-y-12 pb-16 text-left -mt-4 animate-fadeIn">
+      <div id="listings-search-view" className="space-y-12 pb-16 text-left animate-fadeIn">
         
         {/* 1. GORGEOUS MOUNTAIN HERO BLOCK */}
         <div className="relative rounded-3xl overflow-hidden bg-slate-900 border border-slate-800 shadow-2xl min-h-[520px] lg:min-h-[580px] flex flex-col justify-between p-6 sm:p-10 lg:p-12">

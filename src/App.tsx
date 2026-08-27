@@ -81,6 +81,35 @@ export default function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'signin' | 'register'>('signin');
 
+  // Dynamic Navbar offset calculation to prevent fixed header overlap on all devices
+  const [navbarHeight, setNavbarHeight] = useState<number>(120);
+
+  useEffect(() => {
+    const updateNavHeight = () => {
+      const el = document.getElementById('app-navbar');
+      if (el) {
+        setNavbarHeight(el.offsetHeight);
+      }
+    };
+
+    updateNavHeight();
+    window.addEventListener('resize', updateNavHeight);
+
+    let ro: ResizeObserver | null = null;
+    const el = document.getElementById('app-navbar');
+    if (el && typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(() => {
+        updateNavHeight();
+      });
+      ro.observe(el);
+    }
+
+    return () => {
+      window.removeEventListener('resize', updateNavHeight);
+      if (ro) ro.disconnect();
+    };
+  }, []);
+
   const handleOpenAuthModal = (mode: 'signin' | 'register' = 'signin') => {
     setAuthModalMode(mode);
     setShowAuthModal(true);
@@ -195,10 +224,10 @@ export default function App() {
 
       {/* Main Content Area */}
       <main 
-        className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 pt-16 sm:pt-20 md:pt-28 min-w-0"
+        className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 min-w-0"
         style={{ 
-          paddingBottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))',
-          paddingTop: 'calc(4rem + env(safe-area-inset-top, 0px))'
+          paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))',
+          paddingTop: `calc(${navbarHeight + 14}px + env(safe-area-inset-top, 0px))`
         }}
       >
         {view === 'explore' && (
