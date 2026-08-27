@@ -342,8 +342,8 @@ export default function OffersSection({ onSelectListing, onTriggerSearch }: Offe
   return (
     <div className="space-y-12 pb-20 text-left" id="offers-page-container">
       
-      {/* 1. Full-Bleed Hero Banner matching Hotels Section Ratios */}
-      <section className="relative w-screen left-1/2 -translate-x-1/2 -mt-8 md:-mt-12 overflow-hidden min-h-[300px] sm:min-h-[330px] lg:min-h-[350px] shadow-xl" id="offers-hero-banner">
+      {/* 1. Hero Banner matching native app ratios */}
+      <section className="relative w-full rounded-2xl sm:rounded-3xl mt-0 sm:mt-1 overflow-hidden min-h-[280px] sm:min-h-[320px] lg:min-h-[350px] shadow-xl" id="offers-hero-banner">
         <div className="absolute inset-0 z-0">
           <img 
             src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=2000&q=80" 
@@ -357,12 +357,12 @@ export default function OffersSection({ onSelectListing, onTriggerSearch }: Offe
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/20" />
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-14 md:pt-16 pb-14 sm:pb-16 flex flex-col justify-start items-start h-full text-left">
+        <div className="relative z-10 max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 pt-6 sm:pt-10 md:pt-14 pb-16 sm:pb-20 md:pb-20 flex flex-col justify-start items-start h-full text-left">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start w-full">
-            <div className="lg:col-span-10 space-y-3.5 text-left" id="offers-left-content">
-              <div>
-                <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-900/60 border border-white/20 text-white text-[11px] font-semibold backdrop-blur-md shadow-md">
-                  <Flame className="w-3.5 h-3.5 text-white shrink-0 fill-white/20" />
+            <div className="lg:col-span-10 space-y-3 sm:space-y-3.5 text-left" id="offers-left-content">
+              <div className="pt-0.5 sm:pt-1">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full bg-slate-900/80 border border-white/30 text-white text-[11px] sm:text-xs font-semibold backdrop-blur-md shadow-md">
+                  <Flame className="w-3.5 h-3.5 text-[#00A651] shrink-0 fill-[#00A651]/20" />
                   <span className="tracking-tight text-white font-medium">Limited-Time Exclusive Travel Vouchers &amp; Deals</span>
                 </div>
               </div>
@@ -375,31 +375,31 @@ export default function OffersSection({ onSelectListing, onTriggerSearch }: Offe
               </p>
 
               {/* 4-Column Hero Trust Factors */}
-              <div className="flex flex-wrap items-center gap-2.5 sm:gap-6 pt-2 text-white" id="offers-trust-factors">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4 md:gap-6 pt-1 sm:pt-2 text-white" id="offers-trust-factors">
                 <div className="flex items-center gap-1.5 text-white">
-                  <div className="w-6 h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
-                    <Percent className="w-3 h-3 text-white" />
+                  <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
+                    <Percent className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
                   </div>
                   <span className="text-[10px] sm:text-xs font-bold tracking-tight text-white">Up to 35% Off</span>
                 </div>
 
                 <div className="flex items-center gap-1.5 text-white">
-                  <div className="w-6 h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
-                    <Gift className="w-3 h-3 text-white" />
+                  <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
+                    <Gift className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
                   </div>
                   <span className="text-[10px] sm:text-xs font-bold tracking-tight text-white">Bonus VIP Perks</span>
                 </div>
 
                 <div className="flex items-center gap-1.5 text-white">
-                  <div className="w-6 h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
-                    <Ticket className="w-3 h-3 text-white" />
+                  <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
+                    <Ticket className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
                   </div>
                   <span className="text-[10px] sm:text-xs font-bold tracking-tight text-white">Instant Vouchers</span>
                 </div>
 
                 <div className="flex items-center gap-1.5 text-white">
-                  <div className="w-6 h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
-                    <Headset className="w-3 h-3 text-white" />
+                  <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
+                    <Headset className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
                   </div>
                   <span className="text-[10px] sm:text-xs font-bold tracking-tight text-white">24/7 Deal Desk</span>
                 </div>

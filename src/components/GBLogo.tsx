@@ -10,17 +10,17 @@ interface GBLogoProps {
 export default function GBLogo({ className = '', size = 'md', showText = true, layout = 'horizontal' }: GBLogoProps) {
   // Sizing maps
   const svgDimensions = {
-    sm: 'w-8 h-6',
-    md: 'w-12 h-9 sm:w-14 sm:h-10',
-    lg: 'w-20 h-14 sm:w-24 sm:h-16',
-    xl: 'w-28 h-20 sm:w-36 sm:h-24'
+    sm: 'w-7 h-5 sm:w-8 sm:h-6',
+    md: 'w-9 h-7 sm:w-13 sm:h-9',
+    lg: 'w-16 h-12 sm:w-24 sm:h-16',
+    xl: 'w-24 h-18 sm:w-36 sm:h-24'
   };
 
   const textSizes = {
-    sm: 'text-base',
-    md: 'text-xl sm:text-2xl',
-    lg: 'text-2xl sm:text-3xl',
-    xl: 'text-3xl sm:text-5xl'
+    sm: 'text-sm sm:text-base',
+    md: 'text-base sm:text-2xl',
+    lg: 'text-xl sm:text-3xl',
+    xl: 'text-2xl sm:text-5xl'
   };
 
   return (

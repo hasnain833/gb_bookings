@@ -474,8 +474,8 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
   return (
     <div id="explore-section" className="space-y-12 pb-20">
       
-      {/* 1. Full-Bleed Sweeping Hero Section matching reference image */}
-      <section className="relative w-screen left-1/2 -translate-x-1/2 -mt-8 md:-mt-12 overflow-hidden min-h-[300px] sm:min-h-[330px] lg:min-h-[350px] shadow-xl" id="hero-banner">
+      {/* 1. Sweeping Hero Section matching reference image and native mobile app */}
+      <section className="relative w-full rounded-2xl sm:rounded-3xl mt-0 sm:mt-1 overflow-hidden min-h-[280px] sm:min-h-[320px] lg:min-h-[350px] shadow-xl" id="hero-banner">
         {/* Sweeping Panoramic Mountain Background spanning edge-to-edge till the screen ends */}
         <div className="absolute inset-0 z-0">
           <img 
@@ -491,16 +491,16 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
         </div>
 
         {/* Inner Left-Aligned Content Wrapper */}
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-14 md:pt-16 pb-14 sm:pb-16 flex flex-col justify-start items-start h-full text-left">
+        <div className="relative z-10 max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 pt-6 sm:pt-10 md:pt-14 pb-16 sm:pb-20 md:pb-20 flex flex-col justify-start items-start h-full text-left">
           {/* Content & Promo Card split layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end w-full">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start lg:items-end w-full">
             
             {/* Left Hero Texts */}
-            <div className="lg:col-span-7 space-y-3.5 text-left" id="hero-left-content">
+            <div className="lg:col-span-7 space-y-3 sm:space-y-3.5 text-left" id="hero-left-content">
               {/* Top/Badge element matching image */}
-              <div>
-                <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-900/60 border border-white/20 text-white text-[11px] font-semibold backdrop-blur-md shadow-md">
-                  <MapPin className="w-3.5 h-3.5 text-white shrink-0" />
+              <div className="pt-0.5 sm:pt-1">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full bg-slate-900/80 border border-white/30 text-white text-[11px] sm:text-xs font-semibold backdrop-blur-md shadow-md">
+                  <MapPin className="w-3.5 h-3.5 text-[#00A651] shrink-0" />
                   <span className="tracking-tight text-white font-medium">{t('hero.badge')}</span>
                 </div>
               </div>
@@ -513,56 +513,56 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
               </p>
 
               {/* Row of 4 Hero trust factors matching screenshot style */}
-              <div className="flex flex-wrap items-center gap-2.5 sm:gap-6 pt-2 text-white" id="hero-trust-factors">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4 md:gap-6 pt-1 sm:pt-2 text-white" id="hero-trust-factors">
                 <div className="flex items-center gap-1.5 text-white">
-                  <div className="w-6 h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
-                    <ShieldCheck className="w-3 h-3 text-white" />
+                  <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
+                    <ShieldCheck className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
                   </div>
                   <span className="text-[10px] sm:text-xs font-bold tracking-tight text-white">Best Price Guarantee</span>
                 </div>
 
                 <div className="flex items-center gap-1.5 text-white">
-                  <div className="w-6 h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
-                    <Calendar className="w-3 h-3 text-white" />
+                  <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
+                    <Calendar className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
                   </div>
                   <span className="text-[10px] sm:text-xs font-bold tracking-tight text-white">Free Cancellation</span>
                 </div>
 
                 <div className="flex items-center gap-1.5 text-white">
-                  <div className="w-6 h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
-                    <Headset className="w-3 h-3 text-white" />
+                  <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
+                    <Headset className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
                   </div>
                   <span className="text-[10px] sm:text-xs font-bold tracking-tight text-white">24/7 Support</span>
                 </div>
 
                 <div className="flex items-center gap-1.5 text-white">
-                  <div className="w-6 h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
-                    <Star className="w-3 h-3 text-white" />
+                  <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#00A651]/30 border border-[#00A651]/70 flex items-center justify-center shrink-0 shadow-inner">
+                    <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
                   </div>
                   <span className="text-[10px] sm:text-xs font-bold tracking-tight text-white">Trusted Stays</span>
                 </div>
               </div>
             </div>
 
-            {/* Right Promo Card (UP TO 40% OFF) positioned at bottom right */}
-            <div className="lg:col-span-5 lg:self-end flex justify-end" id="hero-promo-card">
-              <div className="bg-gradient-to-br from-[#006F3C] via-[#007D44] to-[#003D21] rounded-2xl p-3.5 border border-[#006F3C]/40 text-white shadow-xl relative overflow-hidden flex justify-between gap-3 max-w-sm w-full">
+            {/* Right Promo Card (UP TO 40% OFF) positioned at bottom right, smaller & spaced nicely on mobile */}
+            <div className="lg:col-span-5 lg:self-end flex justify-start lg:justify-end mt-4 sm:mt-5 lg:mt-0 w-full" id="hero-promo-card">
+              <div className="bg-gradient-to-br from-[#006F3C] via-[#007D44] to-[#003D21] rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 border border-[#006F3C]/40 text-white shadow-xl relative overflow-hidden flex items-center justify-between gap-2.5 sm:gap-3 max-w-sm w-full">
                 
                 {/* Promo details */}
-                <div className="flex flex-col justify-between z-10 py-0.5 space-y-2">
+                <div className="flex flex-col justify-between z-10 py-0.5 space-y-1 sm:space-y-1.5 text-left">
                   <div>
-                    <span className="inline-block bg-gradient-to-r from-[#FF7D29] to-[#EA580C] text-white text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider mb-1.5 shadow-sm">
+                    <span className="inline-block bg-gradient-to-r from-[#FF7D29] to-[#EA580C] text-white text-[8px] sm:text-[9px] font-extrabold px-2 sm:px-2.5 py-0.5 rounded-full uppercase tracking-wider mb-0.5 sm:mb-1 shadow-xs">
                       {t('hero.promo.tag')}
                     </span>
-                    <p className="text-white/80 text-[10px] font-bold tracking-widest uppercase">{t('hero.promo.upto')}</p>
-                    <h3 className="text-2xl font-black text-white tracking-tighter leading-none mt-0.5">{t('hero.promo.discount')}</h3>
-                    <p className="text-white/80 text-[11px] font-semibold mt-1">{t('hero.promo.on_hotels')}</p>
+                    <p className="text-white/80 text-[8.5px] sm:text-[10px] font-bold tracking-widest uppercase">{t('hero.promo.upto')}</p>
+                    <h3 className="text-lg sm:text-2xl font-black text-white tracking-tighter leading-none mt-0.5">{t('hero.promo.discount')}</h3>
+                    <p className="text-white/80 text-[9.5px] sm:text-[11px] font-semibold mt-0.5">{t('hero.promo.on_hotels')}</p>
                   </div>
                   
                   {/* Styled Button inside the Deal Card */}
                   <button 
                     onClick={() => setView('offers')}
-                    className="bg-[#002816]/90 hover:bg-[#006F3C] border border-[#006F3C]/50 text-white px-3 py-1.5 rounded-lg text-[11px] font-bold inline-flex items-center gap-1 shadow-sm transition-all cursor-pointer hover:scale-[1.02] active:scale-95 group w-fit"
+                    className="bg-[#002816]/90 hover:bg-[#006F3C] border border-[#006F3C]/50 text-white px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-[11px] font-bold inline-flex items-center gap-1 shadow-xs transition-all cursor-pointer hover:scale-[1.02] active:scale-95 group w-fit min-h-[32px]"
                   >
                     <span>Explore Deals</span>
                     <ChevronRight className="w-3 h-3 text-white/90 transition-transform group-hover:translate-x-0.5" />
@@ -570,19 +570,19 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                 </div>
 
                 {/* Promo Chalet image with rounded overlay */}
-                <div className="relative w-32 h-28 shrink-0 rounded-xl overflow-hidden shadow-md border border-white/15 z-10 self-center">
+                <div className="relative w-22 h-18 sm:w-30 sm:h-26 shrink-0 rounded-lg sm:rounded-xl overflow-hidden shadow-md border border-white/15 z-10 self-center">
                   <img 
                     src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=400&q=80" 
                     alt="Promo alpine chalet" 
-                    className="w-full h-full object-cover rounded-xl"
+                    className="w-full h-full object-cover rounded-lg sm:rounded-xl"
                     referrerPolicy="no-referrer"
                     onError={handleImageError}
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#003D21]/50 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#003D21]/40 to-transparent" />
                 </div>
 
                 {/* Ambient green radial lights */}
-                <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-[#006F3C]/20 rounded-full blur-xl pointer-events-none" />
+                <div className="absolute -bottom-6 -right-6 w-20 h-20 bg-[#006F3C]/20 rounded-full blur-xl pointer-events-none" />
               </div>
             </div>
 

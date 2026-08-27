@@ -194,7 +194,13 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 pt-16 sm:pt-20 md:pt-24 lg:pt-28 pb-24 sm:pb-28 md:pb-12 min-w-0">
+      <main 
+        className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 pt-16 sm:pt-20 md:pt-28 min-w-0"
+        style={{ 
+          paddingBottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))',
+          paddingTop: 'calc(4rem + env(safe-area-inset-top, 0px))'
+        }}
+      >
         {view === 'explore' && (
           <ExploreSection 
             setView={handleNavigation}

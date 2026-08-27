@@ -3,7 +3,7 @@ import { Listing, Review, handleImageError } from '../types';
 import { useLanguage, tListing, tReview } from '../LanguageContext';
 import { DetailsSkeleton } from './SkeletonLoader';
 import { 
-  ArrowLeft, Star, MapPin, Calendar, Users, ShieldCheck, Heart, Share2, 
+  ArrowLeft, ArrowRight, Star, MapPin, Calendar, Users, ShieldCheck, Heart, Share2, 
   Sparkles, Send, MessageSquare, AlertCircle, Check, Shield, Tag, Gift, 
   HelpCircle, Sparkle, Info, X, ChevronRight, UserCheck
 } from 'lucide-react';
@@ -1098,6 +1098,41 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Mobile-Native Sticky Bottom Book Now Bar (Pinned above bottom tab navigation) */}
+      <div 
+        id="mobile-sticky-book-bar"
+        className="lg:hidden fixed bottom-[68px] left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-2.5 shadow-lg flex items-center justify-between gap-3"
+      >
+        <div className="flex flex-col">
+          <div className="flex items-baseline gap-1">
+            <span className="text-base font-extrabold text-slate-900 font-mono">
+              PKR {(listing.price || 0).toLocaleString()}
+            </span>
+            <span className="text-[11px] text-slate-500 font-medium">/ night</span>
+          </div>
+          <div className="flex items-center gap-1 text-[10px] text-amber-600 font-bold">
+            <span>★ {listing.rating || 4.9}</span>
+            <span className="text-slate-400">({listing.reviewsCount || 24})</span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            const bookingWidget = document.getElementById('booking-console-sidebar');
+            if (bookingWidget) {
+              bookingWidget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else {
+              handleBookingSubmit();
+            }
+          }}
+          className="bg-[#006F3C] hover:bg-[#005C32] active:bg-[#004827] text-white font-bold text-xs uppercase tracking-wider px-5 py-3 rounded-xl shadow-md transition-all cursor-pointer min-h-[44px] flex items-center justify-center gap-1.5 app-tap"
+        >
+          <span>Book Now</span>
+          <ArrowRight className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Airbnb Interactive Host Live Chat Modal overlay drawer (Airbnb Feature) */}

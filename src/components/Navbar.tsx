@@ -4,7 +4,7 @@ import {
   ChevronDown, Globe, User, Bell, Bot, Calendar, Headset, 
   Compass as TourIcon, Compass, Sparkles, MessageCircle, Building2, Home, 
   Car, MapPin, Flame, LogOut, Heart, ShieldCheck, Shield, ChevronRight,
-  ArrowRight, Tag, Percent, Star, PlusCircle, HelpCircle, MoreVertical,
+  ArrowRight, ArrowLeft, Tag, Percent, Star, PlusCircle, HelpCircle, MoreVertical,
   Wifi, Coffee, Mountain, Waves, Utensils, Plane, Snowflake,
   LayoutGrid, Crown, Dog, Briefcase, Lock, Users, Building,
   Smartphone, Sun, Landmark, Trees, Flower2, Gift, Zap, Clock, CreditCard,
@@ -327,25 +327,59 @@ export default function Navbar({
 
       {/* 2. MAIN NAVIGATION BAR */}
       <div 
-        className="w-full max-w-[1440px] mx-auto px-3 sm:px-4 lg:px-6 h-16 sm:h-18 flex items-center justify-between gap-1.5 sm:gap-2 lg:gap-3 relative"
+        className="w-full max-w-[1440px] mx-auto px-3 sm:px-4 lg:px-6 h-14 sm:h-18 flex items-center justify-between gap-1.5 sm:gap-2 lg:gap-3 relative"
+        style={{ paddingTop: 'max(env(safe-area-inset-top), 0px)' }}
         onMouseLeave={handleNavLeave}
       >
         
-        {/* Left Side: Hamburger (Mobile) + Brand Logo */}
+        {/* Left Side: Dynamic Mobile Header (Back Button on subpages, Logo on Home) + Desktop Logo */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          <button
-            type="button"
-            id="btn-navbar-mobile-toggle"
-            aria-label="Toggle mobile menu"
-            onClick={() => setMobileDrawerOpen(!mobileDrawerOpen)}
-            className="lg:hidden w-10 h-10 -ml-1 rounded-xl flex items-center justify-center text-slate-700 hover:bg-slate-100 active:bg-slate-200 transition-colors cursor-pointer"
-          >
-            {mobileDrawerOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
+          {/* Subpage Back Button for Mobile */}
+          {currentView !== 'hotels' && currentView !== 'homestays' ? (
+            <div className="flex lg:hidden items-center gap-2">
+              <button
+                type="button"
+                id="btn-mobile-back"
+                aria-label="Go back"
+                onClick={() => {
+                  if (currentView === 'checkout') setView('details');
+                  else if (currentView === 'details') setView('search');
+                  else setView('hotels');
+                }}
+                className="w-10 h-10 -ml-1 rounded-xl flex items-center justify-center text-slate-800 hover:bg-slate-100 active:bg-slate-200 transition-colors cursor-pointer app-tap"
+              >
+                <ArrowLeft className="w-5 h-5 text-slate-800 stroke-[2.5]" />
+              </button>
+              <span className="font-extrabold text-sm text-slate-900 truncate max-w-[170px] sm:max-w-[240px]">
+                {currentView === 'cars' ? (isRtl ? 'گاڑیاں اور جیپیں' : '4x4 Jeeps & Cars') :
+                 currentView === 'tours' ? (isRtl ? 'ٹورز اور ٹریکس' : 'Expeditions & Tours') :
+                 currentView === 'explore' ? (isRtl ? 'دریافت کریں' : 'Explore GB') :
+                 currentView === 'destinations' ? (isRtl ? 'مقامات' : 'Top Destinations') :
+                 currentView === 'offers' ? (isRtl ? 'خصوصی آفرز' : 'Special Deals') :
+                 currentView === 'ai-planner' ? (isRtl ? 'اے آئی ٹرپ' : 'AI Trip Planner') :
+                 currentView === 'user-dashboard' ? (isRtl ? 'میرا اکاؤنٹ' : 'My Bookings') :
+                 currentView === 'vendor-dashboard' ? (isRtl ? 'ہوسٹ پورٹل' : 'Host Portal') :
+                 currentView === 'support' ? (isRtl ? 'ہیلپ سینٹر' : 'Help & Support') :
+                 currentView === 'search' ? (isRtl ? 'تلاش' : 'Search Results') :
+                 currentView === 'details' ? (isRtl ? 'تفصیلات' : 'Listing') :
+                 currentView === 'checkout' ? (isRtl ? 'چیک آؤٹ' : 'Checkout') : 'GBBookings'}
+              </span>
+            </div>
+          ) : (
+            <button
+              type="button"
+              id="btn-navbar-mobile-toggle"
+              aria-label="Toggle mobile menu"
+              onClick={() => setMobileDrawerOpen(!mobileDrawerOpen)}
+              className="lg:hidden w-10 h-10 -ml-1 rounded-xl flex items-center justify-center text-slate-700 hover:bg-slate-100 active:bg-slate-200 transition-colors cursor-pointer app-tap"
+            >
+              {mobileDrawerOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          )}
           
           <div 
             onClick={() => { setView('explore'); setMobileDrawerOpen(false); }} 
-            className="flex items-center cursor-pointer group shrink-0 pr-1 lg:pr-2"
+            className={`flex items-center cursor-pointer group shrink-0 pr-1 lg:pr-2 ${currentView !== 'hotels' && currentView !== 'homestays' ? 'hidden lg:flex' : 'flex'}`}
             id="nav-logo"
           >
             <GBLogo size="md" />
@@ -430,17 +464,7 @@ export default function Navbar({
         {/* Right Action Buttons */}
         <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 shrink-0 ml-auto" id="nav-actions">
           
-          {/* AI Planner Icon (Mobile Only) */}
-          <button
-            onClick={() => { setView('ai-planner'); setMobileDrawerOpen(false); }}
-            className="flex md:hidden w-10 h-10 min-w-[40px] items-center justify-center rounded-xl border border-[#00A651]/40 text-[#00A651] bg-[#00A651]/5 hover:bg-[#00A651]/10 cursor-pointer transition-colors"
-            title="AI Trip Planner"
-            aria-label="AI Trip Planner"
-          >
-            <Sparkles className="w-4 h-4" />
-          </button>
-
-          {/* AI Planner Button (Tablet/Desktop) */}
+          {/* AI Planner Button (Tablet/Desktop Only) */}
           <button
             onClick={() => setView('ai-planner')}
             className="hidden md:flex items-center gap-1 xl:gap-1.5 border border-[#00A651]/50 hover:border-[#00A651] text-[#00A651] hover:bg-[#00A651]/5 text-xs font-extrabold px-2.5 lg:px-3 xl:px-3.5 py-2 xl:py-2.5 rounded-xl transition-all shadow-xs cursor-pointer whitespace-nowrap shrink-0 min-h-[40px]"
@@ -452,18 +476,19 @@ export default function Navbar({
           {/* List Your Property Button */}
           <button
             onClick={() => { setView('vendor-dashboard'); setMobileDrawerOpen(false); }}
-            className="bg-[#00A651] hover:bg-[#008E45] text-white text-[11px] sm:text-xs font-extrabold px-2.5 sm:px-3 xl:px-4 py-2 sm:py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-1 lg:gap-1.5 cursor-pointer whitespace-nowrap hover:scale-[1.02] active:scale-95 shrink-0 min-h-[40px]"
+            className="bg-[#00A651] hover:bg-[#008E45] text-white text-xs font-extrabold px-2.5 sm:px-3 xl:px-4 py-1.5 sm:py-2.5 rounded-xl transition-all shadow-xs flex items-center gap-1 lg:gap-1.5 cursor-pointer whitespace-nowrap shrink-0 min-h-[36px] sm:min-h-[40px]"
+            title="List Your Property / Become a Host"
           >
             <Building2 className="w-3.5 h-3.5 xl:w-4 xl:h-4 shrink-0" />
-            <span className="hidden min-[380px]:inline">List Your Property</span>
-            <span className="inline min-[380px]:hidden">List</span>
+            <span className="hidden sm:inline">List Property</span>
+            <span className="inline sm:hidden">Host</span>
           </button>
 
           {/* User Account Button (Mobile Only) */}
           {isLoggedIn ? (
             <button
               onClick={() => { setView('user-dashboard'); setMobileDrawerOpen(false); }}
-              className="lg:hidden w-10 h-10 min-w-[40px] rounded-xl bg-[#0A182E] text-white font-black text-xs flex items-center justify-center shadow-xs cursor-pointer"
+              className="lg:hidden w-9 h-9 min-w-[36px] sm:w-10 sm:h-10 rounded-xl bg-[#0A182E] text-white font-black text-xs flex items-center justify-center shadow-xs cursor-pointer shrink-0"
               title="My Dashboard"
             >
               {userInitials}
@@ -471,7 +496,7 @@ export default function Navbar({
           ) : (
             <button
               onClick={() => onOpenAuthModal('signin')}
-              className="lg:hidden w-10 h-10 min-w-[40px] rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center justify-center cursor-pointer"
+              className="lg:hidden w-9 h-9 min-w-[36px] sm:w-10 sm:h-10 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center justify-center cursor-pointer shrink-0"
               title="Sign In"
             >
               <User className="w-4 h-4" />
