@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Globe } from 'lucide-react';
 import { Listing, Review } from './types';
+import { useBodyScrollLock } from './utils/scrollLock';
 
 type Language = 'en' | 'ur';
 
@@ -637,6 +638,9 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const isRtl = language === 'ur';
 
+  // Lock body scroll when permission dialog is open
+  useBodyScrollLock(showPermissionModal);
+
   useEffect(() => {
     // Dynamically adjust html dir and lang attributes
     document.documentElement.dir = isRtl ? 'rtl' : 'ltr';
@@ -658,11 +662,11 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       {/* Centered Urdu Language Permission Dialog */}
       <AnimatePresence>
         {showPermissionModal && (
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs" id="language-permission-modal">
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs touch-none overscroll-none" id="language-permission-modal">
             {/* Backdrop */}
             <div
               onClick={() => setShowPermissionModal(false)}
-              className="absolute inset-0 cursor-default"
+              className="absolute inset-0 cursor-default touch-none overscroll-none"
             />
             
             {/* Modal Body */}

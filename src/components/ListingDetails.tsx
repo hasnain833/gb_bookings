@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Listing, Review, handleImageError } from '../types';
 import { useLanguage, tListing, tReview } from '../LanguageContext';
 import { DetailsSkeleton } from './SkeletonLoader';
+import { useBodyScrollLock } from '../utils/scrollLock';
 import { 
   ArrowLeft, ArrowRight, Star, MapPin, Calendar, Users, ShieldCheck, Heart, Share2, 
   Sparkles, Send, MessageSquare, AlertCircle, Check, Shield, Tag, Gift, 
@@ -57,6 +58,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
 
   // Airbnb Host Live Chat State
   const [showHostChat, setShowHostChat] = useState(false);
+  useBodyScrollLock(showHostChat);
   const [chatMessage, setChatMessage] = useState('');
   const [chatHistory, setChatHistory] = useState<Array<{
     id: string;
@@ -1138,7 +1140,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
       {/* Airbnb Interactive Host Live Chat Modal overlay drawer (Airbnb Feature) */}
       {showHostChat && (
         <div 
-          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex justify-end z-50 animate-fadeIn" 
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex justify-end z-50 animate-fadeIn touch-none overscroll-none" 
           id="host-chat-drawer-overlay"
           onClick={() => setShowHostChat(false)}
         >

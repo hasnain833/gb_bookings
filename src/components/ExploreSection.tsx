@@ -5,7 +5,7 @@ import {
   ChevronDown, ChevronUp, Clock, ShieldCheck, Heart, Building2, Home, Car, HelpCircle,
   CheckCircle2, Flame, Users2, ThumbsUp, Headset, Mountain, Waves, Wallet,
   ChevronLeft, ChevronRight, Map, Fuel, Lock, BadgePercent, CalendarCheck, BadgeCheck,
-  RotateCw, Play, Pause, Plus, MessageSquare, Shuffle, RefreshCw, Send
+  RotateCw, Play, Pause, Plus, MessageSquare, Shuffle, RefreshCw, Send, X
 } from 'lucide-react';
 import { Listing, handleImageError } from '../types';
 import { INITIAL_LISTINGS, PAKISTAN_FAQ } from '../data';
@@ -13,6 +13,7 @@ import { useLanguage, tListing } from '../LanguageContext';
 import { formatDateForDisplay, getMinCheckOutDate } from '../utils/date';
 import { CalendarPickerDropdown } from './CalendarPickerDropdown';
 import GBLogo from './GBLogo';
+import { useBodyScrollLock } from '../utils/scrollLock';
 
 interface ExploreSectionProps {
   setView: (v: string) => void;
@@ -38,6 +39,22 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
   const [isGuestDropdownOpen, setIsGuestDropdownOpen] = useState(false);
 
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+
+  // 5-Second Delayed Promo Notification with Page Backdrop Blur (Reappears on refresh)
+  const [showPromoNotification, setShowPromoNotification] = useState(false);
+
+  useEffect(() => {
+    const promoTimer = setTimeout(() => {
+      setShowPromoNotification(true);
+    }, 5000);
+
+    return () => clearTimeout(promoTimer);
+  }, []);
+
+  const handleDismissPromo = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setShowPromoNotification(false);
+  };
 
   // Floating & Revolving Comments State
   const [commentsList, setCommentsList] = useState([
@@ -120,6 +137,9 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
   const [commentViewMode, setCommentViewMode] = useState<'3d-ring' | 'floating-stream'>('3d-ring');
   const [newCommentText, setNewCommentText] = useState('');
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
+
+  // Lock background scrolling completely when promo notification or comment modal is active
+  useBodyScrollLock(showPromoNotification || isCommentModalOpen);
 
   // Auto-revolve effect for 3D ring
   useEffect(() => {
@@ -544,25 +564,25 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
               </div>
             </div>
 
-            {/* Right Promo Card (UP TO 40% OFF) positioned at bottom right, smaller & spaced nicely on mobile */}
-            <div className="lg:col-span-5 lg:self-end flex justify-start lg:justify-end mt-4 sm:mt-5 lg:mt-0 w-full" id="hero-promo-card">
-              <div className="bg-gradient-to-br from-[#006F3C] via-[#007D44] to-[#003D21] rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 border border-[#006F3C]/40 text-white shadow-xl relative overflow-hidden flex items-center justify-between gap-2.5 sm:gap-3 max-w-sm w-full">
+            {/* Right Promo Card (UP TO 40% OFF) on desktop hero */}
+            <div className="hidden lg:flex lg:col-span-5 lg:self-end justify-end mt-0 w-full" id="hero-promo-card">
+              <div className="bg-gradient-to-br from-[#006F3C] via-[#007D44] to-[#003D21] rounded-2xl p-3 sm:p-3.5 border border-[#006F3C]/40 text-white shadow-xl relative overflow-hidden flex items-center justify-between gap-3 max-w-sm w-full">
                 
                 {/* Promo details */}
-                <div className="flex flex-col justify-between z-10 py-0.5 space-y-1 sm:space-y-1.5 text-left">
+                <div className="flex flex-col justify-between z-10 py-0.5 space-y-1.5 text-left pr-4">
                   <div>
-                    <span className="inline-block bg-gradient-to-r from-[#FF7D29] to-[#EA580C] text-white text-[8px] sm:text-[9px] font-extrabold px-2 sm:px-2.5 py-0.5 rounded-full uppercase tracking-wider mb-0.5 sm:mb-1 shadow-xs">
+                    <span className="inline-block bg-gradient-to-r from-[#FF7D29] to-[#EA580C] text-white text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider mb-1 shadow-xs">
                       {t('hero.promo.tag')}
                     </span>
-                    <p className="text-white/80 text-[8.5px] sm:text-[10px] font-bold tracking-widest uppercase">{t('hero.promo.upto')}</p>
-                    <h3 className="text-lg sm:text-2xl font-black text-white tracking-tighter leading-none mt-0.5">{t('hero.promo.discount')}</h3>
-                    <p className="text-white/80 text-[9.5px] sm:text-[11px] font-semibold mt-0.5">{t('hero.promo.on_hotels')}</p>
+                    <p className="text-white/80 text-[9.5px] font-bold tracking-widest uppercase">{t('hero.promo.upto')}</p>
+                    <h3 className="text-2xl font-black text-white tracking-tighter leading-none mt-0.5">{t('hero.promo.discount')}</h3>
+                    <p className="text-white/80 text-[11px] font-semibold mt-0.5">{t('hero.promo.on_hotels')}</p>
                   </div>
                   
                   {/* Styled Button inside the Deal Card */}
                   <button 
                     onClick={() => setView('offers')}
-                    className="bg-[#002816]/90 hover:bg-[#006F3C] border border-[#006F3C]/50 text-white px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-[11px] font-bold inline-flex items-center gap-1 shadow-xs transition-all cursor-pointer hover:scale-[1.02] active:scale-95 group w-fit min-h-[32px]"
+                    className="bg-[#002816]/90 hover:bg-[#006F3C] border border-[#006F3C]/50 text-white px-3 py-1.5 rounded-lg text-[11px] font-bold inline-flex items-center gap-1 shadow-xs transition-all cursor-pointer hover:scale-[1.02] active:scale-95 group w-fit min-h-[32px]"
                   >
                     <span>Explore Deals</span>
                     <ChevronRight className="w-3 h-3 text-white/90 transition-transform group-hover:translate-x-0.5" />
@@ -570,11 +590,11 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
                 </div>
 
                 {/* Promo Chalet image with rounded overlay */}
-                <div className="relative w-22 h-18 sm:w-30 sm:h-26 shrink-0 rounded-lg sm:rounded-xl overflow-hidden shadow-md border border-white/15 z-10 self-center">
+                <div className="relative w-28 h-24 shrink-0 rounded-xl overflow-hidden shadow-md border border-white/15 z-10 self-center">
                   <img 
                     src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=400&q=80" 
                     alt="Promo alpine chalet" 
-                    className="w-full h-full object-cover rounded-lg sm:rounded-xl"
+                    className="w-full h-full object-cover rounded-xl"
                     referrerPolicy="no-referrer"
                     onError={handleImageError}
                   />
@@ -2434,6 +2454,87 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
           })}
         </div>
       </section>
+
+      {/* 5-Second Delayed Promo Modal with Full Page Backdrop Blur */}
+      <AnimatePresence>
+        {showPromoNotification && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6 touch-none overscroll-none" id="promo-modal-container">
+            {/* Dark Full-Screen Backdrop with Blur Effect */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.35 }}
+              onClick={handleDismissPromo}
+              className="fixed inset-0 bg-slate-950/75 backdrop-blur-md cursor-pointer touch-none overscroll-none"
+              aria-label="Close offer backdrop"
+            />
+
+            {/* Centered High-Focus Promo Card */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.85, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 320 }}
+              className="relative z-10 w-full max-w-lg bg-gradient-to-br from-[#006F3C] via-[#007D44] to-[#00361A] rounded-3xl p-4 sm:p-6 border border-emerald-400/50 text-white shadow-[0_25px_70px_rgba(0,111,60,0.55)] overflow-hidden"
+              id="promo-popup-modal"
+            >
+              {/* Close Button (X) */}
+              <button 
+                type="button"
+                onClick={handleDismissPromo}
+                aria-label="Dismiss offer"
+                className="absolute top-3 right-3 sm:top-4 sm:right-4 z-30 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-black/40 hover:bg-black/70 active:scale-90 text-white flex items-center justify-center cursor-pointer transition-all shadow-md backdrop-blur-xs border border-white/20"
+              >
+                <X className="w-4 h-4 sm:w-5 sm:h-5" />
+              </button>
+
+              <div className="flex items-center justify-between gap-3 sm:gap-5">
+                {/* Promo Text & Action */}
+                <div className="flex flex-col justify-between z-10 py-1 space-y-2.5 sm:space-y-3 text-left pr-2 flex-1">
+                  <div>
+                    <span className="inline-block bg-gradient-to-r from-[#FF7D29] to-[#EA580C] text-white text-[9.5px] sm:text-[11px] font-black px-3 py-1 rounded-full uppercase tracking-wider mb-2 shadow-md">
+                      {t('hero.promo.tag')}
+                    </span>
+                    <p className="text-emerald-100 text-[10px] sm:text-xs font-bold tracking-widest uppercase">{t('hero.promo.upto')}</p>
+                    <h3 className="text-2xl sm:text-4xl font-black text-white tracking-tight leading-none mt-1">{t('hero.promo.discount')}</h3>
+                    <p className="text-emerald-100/90 text-xs sm:text-sm font-semibold mt-1">{t('hero.promo.on_hotels')}</p>
+                  </div>
+                  
+                  {/* Action Button */}
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      setView('offers');
+                      handleDismissPromo();
+                    }}
+                    className="bg-[#002816] hover:bg-[#001f11] active:scale-95 border border-emerald-400/40 text-white px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold inline-flex items-center gap-1.5 shadow-lg transition-all cursor-pointer group w-fit mt-1"
+                  >
+                    <span>Explore Deals</span>
+                    <ChevronRight className="w-4 h-4 text-emerald-300 transition-transform group-hover:translate-x-1" />
+                  </button>
+                </div>
+
+                {/* Promo Luxury Hotel Image */}
+                <div className="relative w-28 h-28 sm:w-40 sm:h-36 shrink-0 rounded-2xl overflow-hidden shadow-2xl border border-white/25 z-10 self-center">
+                  <img 
+                    src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=400&q=80" 
+                    alt="Promo luxury hotel resort" 
+                    className="w-full h-full object-cover rounded-2xl"
+                    referrerPolicy="no-referrer"
+                    onError={handleImageError}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#00361A]/40 to-transparent" />
+                </div>
+              </div>
+
+              {/* Ambient Radial Lighting */}
+              <div className="absolute -bottom-10 -right-10 w-36 h-36 bg-emerald-400/30 rounded-full blur-2xl pointer-events-none" />
+              <div className="absolute -top-10 -left-10 w-36 h-36 bg-amber-400/20 rounded-full blur-2xl pointer-events-none" />
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

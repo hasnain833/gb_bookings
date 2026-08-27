@@ -3,6 +3,7 @@ import { Booking, Notification, WalletTransaction, Listing, handleImageError } f
 import { useLanguage } from '../LanguageContext';
 import { DashboardSkeleton } from './SkeletonLoader';
 import { Calendar, Wallet, Award, Share2, Printer, AlertTriangle, MessageSquare, Bell, Check, Trash, Heart, Eye, MapPin, X } from 'lucide-react';
+import { useBodyScrollLock } from '../utils/scrollLock';
 
 interface UserDashboardProps {
   userEmail: string;
@@ -20,6 +21,10 @@ export default function UserDashboard({ userEmail, userName, setView, onSelectBo
   const [wishlistItems, setWishlistItems] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'trips' | 'wishlist' | 'wallet' | 'rewards' | 'notifications'>('trips');
+  const [cancelBookingConfirmId, setCancelBookingConfirmId] = useState<string | null>(null);
+  const [cancellingInProgress, setCancellingInProgress] = useState(false);
+
+  useBodyScrollLock(!!cancelBookingConfirmId);
 
   // Load from express endpoints
   const loadDashboardData = async () => {
@@ -73,9 +78,6 @@ export default function UserDashboard({ userEmail, userName, setView, onSelectBo
   useEffect(() => {
     loadDashboardData();
   }, [userEmail, activeTab]);
-
-  const [cancelBookingConfirmId, setCancelBookingConfirmId] = useState<string | null>(null);
-  const [cancellingInProgress, setCancellingInProgress] = useState(false);
 
   // Cancel Booking Action
   const handleCancelBooking = async (bookingId: string) => {
@@ -518,7 +520,7 @@ export default function UserDashboard({ userEmail, userName, setView, onSelectBo
       {/* Cancel Booking Confirmation Modal Dialog */}
       {cancelBookingConfirmId && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150 touch-none overscroll-none"
           id="modal-cancel-booking-confirmation"
           onClick={() => !cancellingInProgress && setCancelBookingConfirmId(null)}
         >

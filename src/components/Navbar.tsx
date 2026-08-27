@@ -13,6 +13,7 @@ import {
 import { useLanguage } from '../LanguageContext';
 import { handleImageError } from '../types';
 import GBLogo from './GBLogo';
+import { useBodyScrollLock } from '../utils/scrollLock';
 
 interface NavbarProps {
   currentView: string;
@@ -113,6 +114,8 @@ export default function Navbar({
   const [showMegaMenu, setShowMegaMenu] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [activeMegaTab, setActiveMegaTab] = useState<'hotels' | 'homestays' | 'cars' | 'tours' | 'destinations' | 'offers'>('hotels');
+
+  useBodyScrollLock(mobileDrawerOpen);
   const [currency, setCurrency] = useState<'PKR' | 'USD'>('PKR');
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
   const [showLangDropdown, setShowLangDropdown] = useState(false);
@@ -1950,7 +1953,7 @@ export default function Navbar({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setMobileDrawerOpen(false)}
-              className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-xs z-50"
+              className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-xs z-50 touch-none overscroll-none"
             />
 
             {/* Drawer Content */}

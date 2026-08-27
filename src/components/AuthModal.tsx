@@ -5,6 +5,7 @@ import {
   Sparkles, ShieldCheck, LogOut, KeyRound, AlertCircle
 } from 'lucide-react';
 import { useLanguage } from '../LanguageContext';
+import { useBodyScrollLock } from '../utils/scrollLock';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -20,6 +21,7 @@ export default function AuthModal({
   onSuccessLogin
 }: AuthModalProps) {
   const { isRtl } = useLanguage();
+  useBodyScrollLock(isOpen);
   const [mode, setMode] = useState<'signin' | 'register'>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -144,7 +146,7 @@ export default function AuthModal({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="fixed inset-0 bg-slate-950/75 backdrop-blur-xs transition-opacity"
+          className="fixed inset-0 bg-slate-950/75 backdrop-blur-xs transition-opacity touch-none overscroll-none"
         />
 
         {/* Bottom Sheet Modal Container */}

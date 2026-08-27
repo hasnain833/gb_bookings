@@ -72,7 +72,7 @@ export const CalendarPickerDropdown: React.FC<CalendarPickerDropdownProps> = ({
       {/* Mobile Backdrop Sheet Overlay */}
       <div 
         onClick={onClose}
-        className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 sm:hidden animate-in fade-in duration-200"
+        className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 sm:hidden animate-in fade-in duration-200 touch-none overscroll-none"
       />
 
       <div 
