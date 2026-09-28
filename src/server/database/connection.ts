@@ -4,6 +4,25 @@ import { logger } from '../config/logger.js';
 
 let connectionPromise: Promise<boolean> | null = null;
 
+export function databaseConnectionHint(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+
+  if (/authentication failed|bad auth|auth failed/i.test(message)) {
+    return 'Check the Atlas database username/password and URL-encode special characters in MONGODB_URI.';
+  }
+  if (/querySrv|ENOTFOUND|ETIMEOUT|getaddrinfo/i.test(message)) {
+    return 'MongoDB DNS lookup failed. Check the Atlas connection string and your DNS/network connection.';
+  }
+  if (/tls|ssl|alert internal error/i.test(message)) {
+    return 'Atlas TLS negotiation failed. Add this machine IP to Atlas Network Access and check VPN/firewall access to TCP 27017.';
+  }
+  if (/ReplicaSetNoPrimary|server selection|ECONNREFUSED|ETIMEDOUT/i.test(message)) {
+    return 'MongoDB is unreachable. For Atlas, confirm the cluster is active and this machine IP is in Network Access.';
+  }
+
+  return 'Check MONGODB_URI, database credentials, and network access.';
+}
+
 export function databaseState() {
   switch (mongoose.connection.readyState) {
     case 0: return 'disconnected';
@@ -42,7 +61,10 @@ export async function connectDatabase(): Promise<boolean> {
       })
       .catch((error) => {
         connectionPromise = null;
-        logger.error({ err: error }, 'MongoDB connection failed');
+        logger.error({
+          error: error instanceof Error ? error.message : String(error),
+          hint: databaseConnectionHint(error),
+        }, 'MongoDB connection failed; database routes will return 503');
         return false;
       });
   }

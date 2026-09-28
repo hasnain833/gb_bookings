@@ -14,7 +14,10 @@ import { errorHandler, notFoundHandler } from './middleware/errors.js';
 import { aiRouter, legacyAiRouter } from './modules/ai/ai.routes.js';
 import { authRouter } from './modules/auth/auth.routes.js';
 import { healthRouter } from './modules/health/health.routes.js';
+import { mediaRouter } from './modules/media/media.routes.js';
 import { createListingRouter } from './modules/listings/listing.routes.js';
+import { adminVendorRouter, vendorRouter } from './modules/vendors/vendor.routes.js';
+import { adminListingRouter, vendorListingRouter } from './modules/vendor-listings/vendor-listing.routes.js';
 import { compatibilityRouter } from './routes/compatibility.routes.js';
 import { AppError } from './shared/app-error.js';
 
@@ -67,6 +70,13 @@ export function createApp(): Express {
   app.use('/api/auth', authRouter);
   app.use('/api/v1/listings', createListingRouter());
   app.use('/api/listings', createListingRouter({ legacy: true }));
+  app.use('/api/v1/vendors', vendorRouter);
+  app.use('/api/vendors', vendorRouter);
+  app.use('/api/v1/admin/vendors', adminVendorRouter);
+  app.use('/api/v1/vendor/listings', vendorListingRouter);
+  app.use('/api/v1/admin/listings', adminListingRouter);
+  app.use('/api/v1/media', mediaRouter);
+  app.use('/api/media', mediaRouter);
   app.use('/api/v1/ai', aiRouter);
   app.use('/api/ai-planner', legacyAiRouter);
   app.use('/api', compatibilityRouter);

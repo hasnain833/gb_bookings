@@ -21,6 +21,28 @@ const vendorSchema = new Schema({
     enum: ['hotel', 'homestay', 'vehicle', 'tour_operator', 'multi_service'],
     required: true,
   },
+  registrationNumber: { type: String, trim: true, maxlength: 100 },
+  taxNumber: { type: String, trim: true, maxlength: 100 },
+  address: {
+    line1: { type: String, trim: true, maxlength: 200 },
+    line2: { type: String, trim: true, maxlength: 200 },
+    city: { type: String, trim: true, maxlength: 100 },
+    region: { type: String, trim: true, maxlength: 100 },
+    postalCode: { type: String, trim: true, maxlength: 30 },
+    country: { type: String, trim: true, maxlength: 2, default: 'PK' },
+  },
+  payoutProfile: {
+    accountTitle: { type: String, trim: true, maxlength: 160 },
+    bankName: { type: String, trim: true, maxlength: 120 },
+    iban: { type: String, trim: true, maxlength: 34 },
+  },
+  verificationDocuments: [{
+    _id: false,
+    type: { type: String, enum: ['identity', 'business_registration', 'tax', 'bank', 'property_authorization'], required: true },
+    mediaId: { type: Schema.Types.ObjectId, ref: 'Media', required: true },
+    status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+    notes: { type: String, trim: true, maxlength: 500 },
+  }],
   status: {
     type: String,
     enum: ['draft', 'submitted', 'approved', 'rejected', 'suspended', 'archived'],
@@ -31,6 +53,7 @@ const vendorSchema = new Schema({
   submittedAt: Date,
   reviewedAt: Date,
   reviewedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+  rejectionReason: { type: String, trim: true, maxlength: 2_000 },
   deletedAt: { type: Date, default: null, index: true },
 }, { timestamps: true, minimize: true });
 

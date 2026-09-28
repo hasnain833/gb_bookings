@@ -32,11 +32,13 @@ const listingSchema = new Schema({
     coordinates: { type: [Number], default: undefined },
   },
   price: { type: Number, required: true, min: 0 },
+  priceMinor: { type: Number, min: 0 },
   currency: { type: String, enum: ['PKR'], default: 'PKR' },
   rating: { type: Number, min: 0, max: 5, default: 0 },
   reviewsCount: { type: Number, min: 0, default: 0 },
   image: { type: String, required: true, trim: true },
   images: { type: [String], default: [] },
+  imageMediaIds: { type: [{ type: Schema.Types.ObjectId, ref: 'Media' }], default: [] },
   description: { type: String, required: true, trim: true, maxlength: 10_000 },
   featured: { type: Boolean, default: false, index: true },
   status: {
@@ -48,7 +50,11 @@ const listingSchema = new Schema({
   hotelSpecs: {
     roomsAvailable: { type: Number, min: 0 },
     amenities: { type: [String], default: undefined },
+    facilities: { type: [String], default: undefined },
+    policies: { type: [String], default: undefined },
     hotelType: String,
+    checkInTime: String,
+    checkOutTime: String,
   },
   homestaySpecs: {
     roomsAvailable: { type: Number, min: 0 },
@@ -81,6 +87,7 @@ const listingSchema = new Schema({
     expiresAt: Date,
   },
   deletedAt: { type: Date, default: null, index: true },
+  rejectionReason: { type: String, trim: true, maxlength: 2_000 },
 }, {
   timestamps: true,
   minimize: true,

@@ -9,10 +9,74 @@ export const openApiDocument = {
   tags: [
     { name: 'Health' },
     { name: 'Authentication' },
+    { name: 'Vendors' },
+    { name: 'Media' },
     { name: 'Listings' },
     { name: 'AI' },
   ],
   paths: {
+    '/media/images': {
+      post: { tags: ['Media'], summary: 'Upload an owned listing image', responses: { '201': { description: 'Cloudinary image stored.' }, '415': { description: 'Unsupported image type.' } } },
+    },
+    '/media/documents': {
+      post: { tags: ['Media'], summary: 'Upload an authenticated vendor PDF', responses: { '201': { description: 'Private document stored.' }, '415': { description: 'Only PDF is accepted.' } } },
+    },
+    '/vendor/listings': {
+      get: { tags: ['Vendors'], summary: 'List owned vendor listings', responses: { '200': { description: 'Owned listings.' } } },
+      post: { tags: ['Vendors'], summary: 'Create an owned hotel draft', responses: { '201': { description: 'Hotel draft created.' }, '403': { description: 'Approved vendor required.' } } },
+    },
+    '/vendor/listings/{id}/rooms': {
+      get: { tags: ['Vendors'], summary: 'List owned hotel room categories', responses: { '200': { description: 'Room categories.' } } },
+      post: { tags: ['Vendors'], summary: 'Add a room category', responses: { '201': { description: 'Room category created.' } } },
+    },
+    '/vendor/listings/{id}/submit': {
+      post: { tags: ['Vendors'], summary: 'Submit a complete hotel for moderation', responses: { '200': { description: 'Listing submitted.' }, '400': { description: 'Image or room inventory is missing.' } } },
+    },
+    '/admin/listings': {
+      get: { tags: ['Vendors'], summary: 'List submitted listings for moderation', responses: { '200': { description: 'Moderation queue.' } } },
+    },
+    '/vendors': {
+      post: {
+        tags: ['Vendors'],
+        summary: 'Create a vendor application for the authenticated user',
+        responses: { '201': { description: 'Draft vendor organization created.' }, '409': { description: 'User already belongs to a vendor.' } },
+      },
+    },
+    '/vendors/me': {
+      get: {
+        tags: ['Vendors'], summary: 'Get the current vendor organization',
+        responses: { '200': { description: 'Vendor profile and membership.' }, '404': { description: 'No vendor membership.' } },
+      },
+      patch: {
+        tags: ['Vendors'], summary: 'Update a draft or rejected vendor application',
+        responses: { '200': { description: 'Vendor profile updated.' } },
+      },
+    },
+    '/vendors/me/documents': {
+      post: {
+        tags: ['Vendors'], summary: 'Attach an owned uploaded document to vendor verification',
+        responses: { '201': { description: 'Verification document attached.' } },
+      },
+    },
+    '/vendors/me/submit': {
+      post: {
+        tags: ['Vendors'], summary: 'Submit a complete vendor application for review',
+        responses: { '200': { description: 'Application submitted.' }, '400': { description: 'Required profile data is missing.' } },
+      },
+    },
+    '/admin/vendors': {
+      get: {
+        tags: ['Vendors'], summary: 'List vendor applications for authorized admins',
+        responses: { '200': { description: 'Paginated vendor applications.' }, '403': { description: 'Vendor-management permission required.' } },
+      },
+    },
+    '/admin/vendors/{id}/decision': {
+      post: {
+        tags: ['Vendors'], summary: 'Approve, reject, or suspend a vendor',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { '200': { description: 'Review decision applied and audited.' } },
+      },
+    },
     '/auth/register': {
       post: {
         tags: ['Authentication'],

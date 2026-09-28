@@ -31,6 +31,10 @@ const envSchema = z.object({
   BREVO_API_KEY: optionalString(z.string().min(1)),
   BREVO_SENDER_EMAIL: optionalString(z.string().email()),
   BREVO_SENDER_NAME: z.string().min(1).max(100).default('GBBookings'),
+  CLOUDINARY_CLOUD_NAME: optionalString(z.string().min(1)),
+  CLOUDINARY_API_KEY: optionalString(z.string().min(1)),
+  CLOUDINARY_API_SECRET: optionalString(z.string().min(1)),
+  MEDIA_MAX_FILE_MB: z.coerce.number().int().min(1).max(25).default(10),
   GEMINI_API_KEY: optionalString(z.string().min(1)),
   VERCEL: z.string().optional(),
 });
@@ -54,6 +58,11 @@ if (parsed.data.NODE_ENV === 'production' && parsed.data.JWT_ACCESS_SECRET.start
 
 if (Boolean(parsed.data.BREVO_API_KEY) !== Boolean(parsed.data.BREVO_SENDER_EMAIL)) {
   throw new Error('BREVO_API_KEY and BREVO_SENDER_EMAIL must be configured together.');
+}
+
+const cloudinaryValues = [parsed.data.CLOUDINARY_CLOUD_NAME, parsed.data.CLOUDINARY_API_KEY, parsed.data.CLOUDINARY_API_SECRET];
+if (cloudinaryValues.some(Boolean) && !cloudinaryValues.every(Boolean)) {
+  throw new Error('CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET must be configured together.');
 }
 
 export const env = {

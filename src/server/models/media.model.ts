@@ -15,6 +15,8 @@ const mediaSchema = new Schema({
   vendorId: { type: Schema.Types.ObjectId, ref: 'Vendor', index: true },
   provider: { type: String, enum: ['cloudinary', 's3'], required: true },
   providerAssetId: { type: String, required: true, trim: true },
+  providerResourceType: { type: String, enum: ['image', 'raw', 'video'], required: true },
+  deliveryType: { type: String, enum: ['upload', 'authenticated'], default: 'upload' },
   url: { type: String, required: true, trim: true },
   resourceType: { type: String, enum: ['image', 'video', 'document'], required: true },
   mimeType: { type: String, required: true, trim: true },

@@ -142,7 +142,7 @@ Deliverable: persistent listings served from MongoDB through documented, tested 
 
 - [x] Implement profile read/update and password change with session revocation.
 - [x] Add roles: customer, vendor owner, vendor staff, support agent, admin, and super admin.
-- [ ] Define permission constants and route-level authorization middleware.
+- [x] Define centralized permission constants and route-level authorization middleware using current database roles.
 - [ ] Add ownership checks for bookings, listings, tickets, reviews, and messages.
 - [ ] Add admin user status controls: activate, suspend, verify, and archive.
 
@@ -159,21 +159,23 @@ Deliverable: real server-backed login and permission-protected APIs for every ro
 
 ### Vendor onboarding
 
-- [ ] Implement vendor organization and staff membership models.
-- [ ] Add onboarding status, business details, bank/payout profile, and verification documents.
-- [ ] Add admin review, approval, rejection, suspension, and resubmission workflows.
-- [ ] Record every verification decision in the audit log.
+- [x] Implement vendor organization and staff membership models.
+- [x] Add onboarding status, business details, bank/payout profile, and verification document references.
+- [x] Add admin review, approval, rejection, suspension, and resubmission workflows.
+- [x] Record every verification decision in the audit log.
 
 ### Product catalog
 
 - [ ] Model shared listing fields and type-specific hotel, homestay, vehicle, driver, tour, and destination data.
-- [ ] Implement vendor listing create, read, update, archive, and duplicate APIs.
-- [ ] Implement draft, submitted, approved, rejected, paused, and archived listing states.
-- [ ] Add rooms/categories, occupancy rules, amenities, facilities, policies, and house rules.
+- [x] Implement vendor-owned hotel listing create, read, update, archive, and duplicate APIs.
+- [x] Implement draft, submitted, published, rejected, paused, and archived listing states.
+- [x] Add hotel room categories, occupancy limits, inventory counts, amenities, facilities, and policies.
+- [ ] Add homestay house rules and complete vehicle/tour-specific inventory fields.
 - [ ] Add vehicle details, rental rules, driver assignment, pickup/drop-off, and document verification.
 - [ ] Add tour itinerary, inclusions, exclusions, capacity, departure schedule, and package variants.
-- [ ] Add media upload, ordering, captions, validation, transformations, and deletion.
-- [ ] Add admin moderation APIs and rejection feedback.
+- [x] Add authenticated Cloudinary image/PDF upload, validation, ownership, and deletion.
+- [ ] Add media ordering, captions, image transformations, and document review UI.
+- [x] Add admin listing moderation APIs and rejection feedback.
 
 ### Search and discovery
 

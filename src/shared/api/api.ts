@@ -91,6 +91,43 @@ export interface AuthSession {
   expiresAt: string;
 }
 
+export interface VendorProfile {
+  id: string;
+  name: string;
+  slug: string;
+  email: string;
+  phone: string;
+  businessType: 'hotel' | 'homestay' | 'vehicle' | 'tour_operator' | 'multi_service';
+  status: 'draft' | 'submitted' | 'approved' | 'rejected' | 'suspended' | 'archived';
+  registrationNumber?: string;
+  taxNumber?: string;
+  address?: Record<string, string>;
+  rejectionReason?: string;
+  verificationDocuments?: Array<{ type: string; status: string }>;
+}
+
+export interface MediaAsset {
+  id: string;
+  resourceType: 'image' | 'document';
+  url?: string;
+  mimeType: string;
+  bytes: number;
+  status: string;
+}
+
+export interface VendorListing {
+  id: string;
+  type: 'hotel';
+  title: string;
+  location: string;
+  description: string;
+  price: number;
+  image: string;
+  images: string[];
+  status: 'draft' | 'submitted' | 'published' | 'rejected' | 'paused' | 'archived';
+  rejectionReason?: string;
+}
+
 export const api = {
   async getListings(params: { type?: ListingType | 'all'; search?: string } = {}) {
     const query = new URLSearchParams();
@@ -166,6 +203,70 @@ export const api = {
     return request<void>('/api/auth/two-factor/disable', {
       method: 'POST', body: JSON.stringify({ password }),
     });
+  },
+
+  createVendorApplication(input: {
+    name: string;
+    email: string;
+    phone: string;
+    businessType: VendorProfile['businessType'];
+    registrationNumber?: string;
+    taxNumber?: string;
+    address?: { line1: string; line2?: string; city: string; region: string; postalCode?: string; country?: string };
+  }) {
+    return request<{ data: VendorProfile }>('/api/vendors', { method: 'POST', body: JSON.stringify(input) });
+  },
+
+  getMyVendor() {
+    return request<{ data: VendorProfile; membership: { role: string } }>('/api/vendors/me');
+  },
+
+  updateMyVendor(input: Partial<Omit<VendorProfile, 'id' | 'slug' | 'status'>>) {
+    return request<{ data: VendorProfile }>('/api/vendors/me', { method: 'PATCH', body: JSON.stringify(input) });
+  },
+
+  attachVendorDocument(type: string, mediaId: string) {
+    return request<{ data: VendorProfile }>('/api/vendors/me/documents', {
+      method: 'POST', body: JSON.stringify({ type, mediaId }),
+    });
+  },
+
+  submitVendorApplication() {
+    return request<{ data: VendorProfile }>('/api/vendors/me/submit', { method: 'POST' });
+  },
+
+  uploadMedia(kind: 'images' | 'documents', file: File) {
+    const body = new FormData();
+    body.append('file', file);
+    return request<{ data: MediaAsset }>(`/api/media/${kind}`, { method: 'POST', body });
+  },
+
+  getVendorListings() {
+    return request<{ data: VendorListing[] }>('/api/v1/vendor/listings').then((result) => result.data);
+  },
+
+  createHotelListing(input: {
+    title: string;
+    location: string;
+    description: string;
+    price: number;
+    imageIds: string[];
+    hotelSpecs: { hotelType: string; amenities: string[]; facilities: string[]; policies: string[]; checkInTime: string; checkOutTime: string };
+  }) {
+    return request<{ data: VendorListing }>('/api/v1/vendor/listings', { method: 'POST', body: JSON.stringify(input) });
+  },
+
+  addHotelRoom(listingId: string, input: {
+    name: string; description?: string; bedType: string; maxAdults: number; maxChildren: number;
+    totalRooms: number; basePrice: number; amenities: string[];
+  }) {
+    return request<{ data: { id: string } }>(`/api/v1/vendor/listings/${encodeURIComponent(listingId)}/rooms`, {
+      method: 'POST', body: JSON.stringify(input),
+    });
+  },
+
+  submitHotelListing(listingId: string) {
+    return request<{ data: VendorListing }>(`/api/v1/vendor/listings/${encodeURIComponent(listingId)}/submit`, { method: 'POST' });
   },
 
   register(input: { name: string; email: string; phone?: string; password: string }) {

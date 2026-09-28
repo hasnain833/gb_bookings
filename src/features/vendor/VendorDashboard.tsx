@@ -1,421 +1,154 @@
-import React, { useState, useEffect } from 'react';
-import { Listing, handleImageError } from '../../types';
-import { DashboardSkeleton } from '../../shared/components/SkeletonLoader';
-import { DollarSign, Percent, BarChart3, Star, Sparkles, FolderPlus, ToggleLeft, ToggleRight, Trash, Send, Plus, Upload } from 'lucide-react';
-import { api } from '../../shared/api/api';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { Building2, CheckCircle2, FileText, Hotel, LoaderCircle, Upload } from 'lucide-react';
+import { ApiError, api, type VendorListing, type VendorProfile } from '../../shared/api/api';
 
-interface VendorDashboardProps {
-  setView: (v: string) => void;
-}
+interface VendorDashboardProps { setView: (view: string) => void }
+const inputClass = 'min-h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[#006F3C]';
 
-export default function VendorDashboard({ setView }: VendorDashboardProps) {
-  const [listings, setListings] = useState<Listing[]>([]);
+export default function VendorDashboard({ setView: _setView }: VendorDashboardProps) {
+  const [vendor, setVendor] = useState<VendorProfile | null>(null);
+  const [listings, setListings] = useState<VendorListing[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'listings' | 'analytics' | 'add-listing'>('listings');
-
-  // Add Listing Form States
-  const [title, setTitle] = useState('');
-  const [type, setType] = useState<'hotel' | 'car' | 'tour'>('hotel');
-  const [location, setLocation] = useState('');
-  const [price, setPrice] = useState('');
-  const [description, setDescription] = useState('');
-  const [image, setImage] = useState('');
-  const [formMessage, setFormMessage] = useState<string | null>(null);
-
-  const fetchVendorListings = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/listings');
-      const ct = res.headers.get('content-type') || '';
-      if (res.ok && ct.includes('application/json')) {
-        const data = await res.json();
-        setListings(data);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState('');
+  const [business, setBusiness] = useState({ name: '', email: '', phone: '', registrationNumber: '', taxNumber: '', businessType: 'hotel' as VendorProfile['businessType'], line1: '', city: '', region: 'Gilgit-Baltistan' });
+  const [documentFile, setDocumentFile] = useState<File | null>(null);
+  const [documentType, setDocumentType] = useState('business_registration');
+  const [hotel, setHotel] = useState({ title: '', location: '', description: '', price: '', hotelType: 'Hotel', amenities: '', facilities: '', policies: '', checkInTime: '14:00', checkOutTime: '11:00', roomName: '', bedType: 'Double', maxAdults: '2', maxChildren: '1', totalRooms: '1' });
+  const [hotelImage, setHotelImage] = useState<File | null>(null);
 
   useEffect(() => {
-    fetchVendorListings();
+    api.getMyVendor()
+      .then(async (result) => {
+        setVendor(result.data);
+        if (result.data.status === 'approved') setListings(await api.getVendorListings());
+      })
+      .catch((error) => {
+        if (!(error instanceof ApiError && error.status === 404)) setMessage(error instanceof Error ? error.message : 'Unable to load vendor account.');
+      })
+      .finally(() => setLoading(false));
   }, []);
 
-  // Submit New Listing
-  const handleAddListing = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title || !description || !price || !location || !image) return;
-
-    setFormMessage(null);
+  const createApplication = async (event: FormEvent) => {
+    event.preventDefault(); setBusy(true); setMessage('');
     try {
-      const newListing = await api.createListing({
-        type,
-        title,
-        location,
-        price: Number(price),
-        image,
-        images: [image],
-        description,
+      const result = await api.createVendorApplication({
+        name: business.name, email: business.email, phone: business.phone, businessType: business.businessType,
+        registrationNumber: business.registrationNumber, taxNumber: business.taxNumber || undefined,
+        address: { line1: business.line1, city: business.city, region: business.region, country: 'PK' },
       });
-
-      setListings((current) => [newListing, ...current]);
-      setFormMessage('Listing submitted successfully.');
-      
-      // Clear
-      setTitle('');
-      setDescription('');
-      setPrice('');
-      setImage('');
-      setLocation('');
-      setActiveTab('listings');
-    } catch (reason) {
-      setFormMessage(reason instanceof Error ? reason.message : 'Unable to submit this listing.');
-    }
+      setVendor(result.data); setMessage('Vendor draft created. Add a verification document before submitting.');
+    } catch (error) { setMessage(error instanceof Error ? error.message : 'Unable to create vendor application.'); }
+    finally { setBusy(false); }
   };
 
-  // Toggle Featured State
-  const handleToggleFeatured = async (id: string) => {
-    const listing = listings.find((item) => item.id === id);
-    if (!listing) return;
+  const attachDocument = async () => {
+    if (!documentFile) return;
+    setBusy(true); setMessage('');
     try {
-      const updated = await api.updateListing(id, { featured: !listing.featured });
-      setListings((current) => current.map((item) => item.id === id ? updated : item));
-    } catch (reason) {
-      setFormMessage(reason instanceof Error ? reason.message : 'Unable to update this listing.');
-    }
+      const upload = await api.uploadMedia('documents', documentFile);
+      const result = await api.attachVendorDocument(documentType, upload.data.id);
+      setVendor(result.data); setDocumentFile(null); setMessage('Verification document attached.');
+    } catch (error) { setMessage(error instanceof Error ? error.message : 'Unable to upload the document.'); }
+    finally { setBusy(false); }
   };
+
+  const submitVendor = async () => {
+    setBusy(true); setMessage('');
+    try { const result = await api.submitVendorApplication(); setVendor(result.data); setMessage('Application submitted for review.'); }
+    catch (error) { setMessage(error instanceof Error ? error.message : 'Unable to submit the application.'); }
+    finally { setBusy(false); }
+  };
+
+  const createHotel = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!hotelImage) { setMessage('Select a hotel image.'); return; }
+    setBusy(true); setMessage('');
+    try {
+      const upload = await api.uploadMedia('images', hotelImage);
+      const created = await api.createHotelListing({
+        title: hotel.title, location: hotel.location, description: hotel.description, price: Number(hotel.price), imageIds: [upload.data.id],
+        hotelSpecs: {
+          hotelType: hotel.hotelType,
+          amenities: hotel.amenities.split(',').map((value) => value.trim()).filter(Boolean),
+          facilities: hotel.facilities.split(',').map((value) => value.trim()).filter(Boolean),
+          policies: hotel.policies.split(',').map((value) => value.trim()).filter(Boolean),
+          checkInTime: hotel.checkInTime, checkOutTime: hotel.checkOutTime,
+        },
+      });
+      await api.addHotelRoom(created.data.id, {
+        name: hotel.roomName, bedType: hotel.bedType, maxAdults: Number(hotel.maxAdults), maxChildren: Number(hotel.maxChildren),
+        totalRooms: Number(hotel.totalRooms), basePrice: Number(hotel.price), amenities: [],
+      });
+      const submitted = await api.submitHotelListing(created.data.id);
+      setListings((items) => [submitted.data, ...items]);
+      setMessage('Hotel submitted for moderation.'); setHotelImage(null);
+      setHotel((current) => ({ ...current, title: '', location: '', description: '', price: '', roomName: '' }));
+    } catch (error) { setMessage(error instanceof Error ? error.message : 'Unable to create the hotel.'); }
+    finally { setBusy(false); }
+  };
+
+  if (loading) return <div className="flex min-h-64 items-center justify-center"><LoaderCircle className="size-7 animate-spin text-[#006F3C]" /></div>;
 
   return (
-    <div id="vendor-dashboard-view" className="space-y-8 pb-16">
-      
-      {/* Header Summary */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4" id="vendor-header">
-        <div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 uppercase tracking-tight">Vendor Console</h2>
-          <p className="text-xs sm:text-sm text-slate-500">Manage your luxury rooms, vehicle fleets, and private excursions.</p>
-        </div>
+    <div className="space-y-8 pb-16">
+      <header><h1 className="text-2xl font-bold text-slate-900">Vendor Console</h1><p className="text-sm text-slate-500">Manage verification and hotel inventory.</p></header>
+      {message && <p className="border-l-4 border-[#006F3C] bg-emerald-50 p-3 text-sm text-slate-700" role="status">{message}</p>}
 
-        <div className="flex space-x-3">
-          <button
-            id="btn-vendor-add-shortcut"
-            onClick={() => setActiveTab('add-listing')}
-            className="w-full sm:w-auto bg-[#0F172A] hover:bg-slate-800 text-white font-bold py-2.5 px-5 rounded-lg text-xs flex items-center justify-center space-x-1.5 cursor-pointer shadow-xs uppercase tracking-wider"
-          >
-            <FolderPlus className="w-4 h-4" />
-            <span>Deploy Listing</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Analytics Cards Grid */}
-      <div className="grid grid-cols-1 min-[400px]:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4" id="vendor-analytics-metrics">
-        <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 flex items-center space-x-3 sm:space-x-4 shadow-xs">
-          <div className="w-10 h-10 sm:w-11 sm:h-11 bg-indigo-50 rounded-lg flex items-center justify-center border border-indigo-100 shrink-0">
-            <DollarSign className="w-5 h-5 text-indigo-600" />
+      {!vendor && (
+        <form onSubmit={createApplication} className="space-y-5 border-y border-slate-200 py-6">
+          <div className="flex items-center gap-3"><Building2 className="size-5 text-[#006F3C]" /><h2 className="font-bold text-slate-900">Register your business</h2></div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Business name"><input className={inputClass} required value={business.name} onChange={(e) => setBusiness({ ...business, name: e.target.value })} /></Field>
+            <Field label="Business email"><input className={inputClass} type="email" required value={business.email} onChange={(e) => setBusiness({ ...business, email: e.target.value })} /></Field>
+            <Field label="Phone"><input className={inputClass} required value={business.phone} onChange={(e) => setBusiness({ ...business, phone: e.target.value })} /></Field>
+            <Field label="Registration number"><input className={inputClass} required value={business.registrationNumber} onChange={(e) => setBusiness({ ...business, registrationNumber: e.target.value })} /></Field>
+            <Field label="Street address"><input className={inputClass} required value={business.line1} onChange={(e) => setBusiness({ ...business, line1: e.target.value })} /></Field>
+            <Field label="City"><input className={inputClass} required value={business.city} onChange={(e) => setBusiness({ ...business, city: e.target.value })} /></Field>
           </div>
-          <div>
-            <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Gross Revenue</span>
-            <span className="text-sm sm:text-base font-bold text-slate-800 mt-0.5 block font-mono">Unavailable</span>
-          </div>
-        </div>
+          <button disabled={busy} className="min-h-11 rounded-md bg-[#006F3C] px-5 text-sm font-bold text-white disabled:opacity-50">Create vendor draft</button>
+        </form>
+      )}
 
-        <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 flex items-center space-x-3 sm:space-x-4 shadow-xs">
-          <div className="w-10 h-10 sm:w-11 sm:h-11 bg-emerald-50 rounded-lg flex items-center justify-center border border-emerald-100 shrink-0">
-            <BarChart3 className="w-5 h-5 text-emerald-600" />
-          </div>
-          <div>
-            <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Reservations</span>
-            <span className="text-sm sm:text-base font-bold text-slate-800 mt-0.5 block font-mono">Unavailable</span>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 flex items-center space-x-3 sm:space-x-4 shadow-xs">
-          <div className="w-10 h-10 sm:w-11 sm:h-11 bg-amber-50 rounded-lg flex items-center justify-center border border-amber-100 shrink-0">
-            <Star className="w-5 h-5 text-amber-600" />
-          </div>
-          <div>
-            <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Reviews average</span>
-            <span className="text-sm sm:text-base font-bold text-slate-800 mt-0.5 block font-mono">Unavailable</span>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 flex items-center space-x-3 sm:space-x-4 shadow-xs">
-          <div className="w-10 h-10 sm:w-11 sm:h-11 bg-purple-50 rounded-lg flex items-center justify-center border border-purple-100 shrink-0">
-            <Sparkles className="w-5 h-5 text-purple-600" />
-          </div>
-          <div>
-            <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Active Inventories</span>
-            <span className="text-sm sm:text-base font-bold text-slate-800 mt-0.5 block font-mono">{listings.length} Active</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Tab Controller bar */}
-      <div className="flex border-b border-slate-200 pb-1.5 space-x-3 sm:space-x-6 overflow-x-auto touch-scroll-x scrollbar-none" id="vendor-tabs-bar">
-        {[
-          { id: 'listings', label: 'My Listings' },
-          { id: 'analytics', label: 'Earnings Reports' },
-          { id: 'add-listing', label: 'Deploy New Property' }
-        ].map((tab) => {
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              id={`tab-vend-${tab.id}`}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`min-h-[44px] px-2 sm:px-3 pb-3 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer relative whitespace-nowrap shrink-0 ${
-                isActive ? 'text-indigo-600' : 'text-slate-400 hover:text-[#0F172A]'
-              }`}
-            >
-              <span>{tab.label}</span>
-              {isActive && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 rounded-full" />
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      <div id="vendor-active-pane">
-        
-        {/* TAB 1: listings Grid manager */}
-        {activeTab === 'listings' && (
-          <div className="space-y-4 animate-fadeIn" id="vend-listings-pane">
-            {loading ? (
-              <DashboardSkeleton />
-            ) : (
-              <div className="space-y-4">
-                {/* Mobile View: Responsive Cards for < md */}
-                <div className="block md:hidden space-y-3" id="vend-listings-mobile-cards">
-                  {listings.map((l) => (
-                    <div
-                      key={l.id}
-                      className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs space-y-3"
-                      id={`vend-listing-card-${l.id}`}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <img
-                          src={l.image}
-                          alt=""
-                          className="w-14 h-12 object-cover rounded-xl shrink-0"
-                          referrerPolicy="no-referrer"
-                          onError={handleImageError}
-                        />
-                        <div className="min-w-0 flex-1">
-                          <h4 className="font-bold text-slate-900 text-xs sm:text-sm truncate">{l.title}</h4>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="uppercase font-bold text-[9px] text-indigo-600 bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded">
-                              {l.type}
-                            </span>
-                            <span className="text-slate-500 text-[11px] truncate">{l.location.split(',')[0]}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-2.5 border-t border-slate-100">
-                        <div>
-                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Base Rate</span>
-                          <span className="text-xs sm:text-sm font-mono font-bold text-slate-800">PKR {l.price.toLocaleString()}</span>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-semibold text-slate-500">
-                            {l.featured ? 'Featured' : 'Standard'}
-                          </span>
-                          <button
-                            id={`btn-toggle-featured-m-${l.id}`}
-                            onClick={() => handleToggleFeatured(l.id)}
-                            className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-slate-900 cursor-pointer"
-                            aria-label="Toggle featured state"
-                          >
-                            {l.featured ? (
-                              <ToggleRight className="w-7 h-7 text-indigo-600" />
-                            ) : (
-                              <ToggleLeft className="w-7 h-7 text-slate-300" />
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Desktop & Tablet View: Full Table for md+ */}
-                <div className="hidden md:block bg-white border border-slate-200 rounded-2xl overflow-x-auto shadow-xs w-full max-w-full">
-                  <table className="w-full min-w-[620px] text-left text-xs text-slate-600" id="vend-listings-table">
-                    <thead className="bg-slate-50 border-b border-slate-200 font-bold uppercase text-slate-400 text-[10px] tracking-wider">
-                      <tr>
-                        <th className="p-4">Property</th>
-                        <th className="p-4">Type</th>
-                        <th className="p-4">Location</th>
-                        <th className="p-4">Base Rate (PKR)</th>
-                        <th className="p-4">Featured Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200">
-                      {listings.map((l) => (
-                        <tr key={l.id} className="hover:bg-slate-50/50 transition-colors" id={`vend-listing-row-${l.id}`}>
-                          <td className="p-4 flex items-center space-x-3 text-left">
-                            <img src={l.image} alt="" className="w-10 h-8 object-cover rounded-lg shrink-0" referrerPolicy="no-referrer" onError={handleImageError} />
-                            <span className="font-bold text-slate-800 text-left truncate max-w-[180px] lg:max-w-xs">{l.title}</span>
-                          </td>
-                          <td className="p-4 uppercase font-bold text-[10px] text-indigo-600">{l.type}</td>
-                          <td className="p-4 text-slate-500 font-medium">{l.location.split(',')[0]}</td>
-                          <td className="p-4 font-mono font-bold text-slate-800">PKR {l.price.toLocaleString()}</td>
-                          <td className="p-4">
-                            <button
-                              id={`btn-toggle-featured-${l.id}`}
-                              onClick={() => handleToggleFeatured(l.id)}
-                              className="text-slate-400 hover:text-slate-900 cursor-pointer min-h-[36px] flex items-center"
-                              aria-label="Toggle featured"
-                            >
-                              {l.featured ? (
-                                <ToggleRight className="w-6 h-6 text-indigo-600" />
-                              ) : (
-                                <ToggleLeft className="w-6 h-6 text-slate-300" />
-                              )}
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* TAB 2: Earnings Reports */}
-        {activeTab === 'analytics' && (
-          <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-xs animate-fadeIn" id="vend-analytics-pane">
-            <BarChart3 className="mx-auto h-9 w-9 text-slate-400" />
-            <h3 className="mt-3 text-base font-bold text-slate-900">Analytics are not available yet</h3>
-            <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-slate-500">Revenue, reservations, occupancy, and payout reports will appear here when the vendor analytics API is connected.</p>
-          </div>
-        )}
-
-        {/* TAB 3: Deploy New Listing Wizard */}
-        {activeTab === 'add-listing' && (
-          <form onSubmit={handleAddListing} className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 space-y-5 sm:space-y-6 shadow-xs animate-fadeIn" id="form-deploy-new-listing">
-            <div>
-              <h3 className="text-lg sm:text-xl font-bold text-[#0F172A] uppercase tracking-tight">Deploy Premium Property</h3>
-              <p className="text-xs text-slate-500 mt-1">Deploy a new hotel, vehicle fleet, or tour package into the Pakistan active catalog.</p>
+      {vendor && vendor.status !== 'approved' && (
+        <section className="space-y-5 border-y border-slate-200 py-6">
+          <div className="flex items-center justify-between gap-4"><div><h2 className="font-bold text-slate-900">{vendor.name}</h2><p className="text-sm text-slate-500">Application status: <strong>{vendor.status}</strong></p></div><FileText className="size-6 text-slate-400" /></div>
+          {vendor.rejectionReason && <p className="bg-rose-50 p-3 text-sm text-rose-700">{vendor.rejectionReason}</p>}
+          {['draft', 'rejected'].includes(vendor.status) && <>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <Field label="Document type"><select className={inputClass} value={documentType} onChange={(e) => setDocumentType(e.target.value)}><option value="business_registration">Business registration</option><option value="identity">Owner identity</option><option value="tax">Tax document</option><option value="property_authorization">Property authorization</option></select></Field>
+              <Field label="PDF document" grow><input type="file" accept="application/pdf" className={`${inputClass} pt-2`} onChange={(e) => setDocumentFile(e.target.files?.[0] ?? null)} /></Field>
+              <button type="button" disabled={busy || !documentFile} onClick={attachDocument} className="flex min-h-11 items-center justify-center gap-2 rounded-md border border-slate-300 px-4 text-sm font-bold"><Upload className="size-4" />Upload</button>
             </div>
+            <p className="text-xs text-slate-500">{vendor.verificationDocuments?.length ?? 0} verification document(s) attached.</p>
+            <button type="button" disabled={busy || !vendor.verificationDocuments?.length} onClick={submitVendor} className="min-h-11 rounded-md bg-[#006F3C] px-5 text-sm font-bold text-white disabled:opacity-50">Submit for approval</button>
+          </>}
+        </section>
+      )}
 
-            {formMessage && (
-              <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700" role="status">
-                {formMessage}
-              </p>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-              {/* Type selector */}
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Property Category</label>
-                <select
-                  id="deploy-type"
-                  value={type}
-                  onChange={(e: any) => setType(e.target.value)}
-                  className="w-full min-h-[44px] bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-[#0F172A] focus:bg-white cursor-pointer"
-                >
-                  <option value="hotel">🏨 Premium Hotel / Resort</option>
-                  <option value="car">🚘 Luxury Fleet Vehicle</option>
-                  <option value="tour">🏔️ Guided Tour Package</option>
-                </select>
-              </div>
-
-              {/* Title */}
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Listing / Commercial Name</label>
-                <input
-                  type="text"
-                  required
-                  id="deploy-title"
-                  placeholder="e.g. Serena Heritage Suite Skardu"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="w-full min-h-[44px] bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-[#0F172A] focus:bg-white"
-                />
-              </div>
-
-              {/* Price */}
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Rate Price (PKR per night/day/tour)</label>
-                <input
-                  type="number"
-                  required
-                  id="deploy-price"
-                  placeholder="35000"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  className="w-full min-h-[44px] bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-[#0F172A] focus:bg-white font-mono"
-                />
-              </div>
-
-              {/* Location Select */}
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Geographic Sector / Location</label>
-                <select
-                  id="deploy-location"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  className="w-full min-h-[44px] bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-[#0F172A] focus:bg-white cursor-pointer"
-                >
-                  <option value="" disabled>Select a location</option>
-                  <option value="Attabad Lake, Hunza Valley">Hunza Valley (Attabad Lake)</option>
-                  <option value="Lower Kachura Lake, Skardu">Skardu Region</option>
-                  <option value="Kalam Valley, Swat">Swat Valley (Kalam)</option>
-                  <option value="Margalla Sector G-5, Islamabad">Islamabad (Margalla)</option>
-                  <option value="Walled City Old Sector, Lahore">Lahore Heritage</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Photo Link */}
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Property Thumbnail URL</label>
-              <div className="relative">
-                <input
-                  type="text"
-                  required
-                  id="deploy-image"
-                  placeholder="https://images.unsplash.com/..."
-                  value={image}
-                  onChange={(e) => setImage(e.target.value)}
-                  className="w-full min-h-[44px] bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-[#0F172A] focus:bg-white pr-11"
-                />
-                <Upload className="w-4 h-4 text-slate-500 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
-            </div>
-
-            {/* Description */}
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Marketing Description</label>
-              <textarea
-                required
-                id="deploy-desc"
-                rows={4}
-                placeholder="Details of luxury architecture, amenities, peak mountain views, safety profiles, or inclusions..."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-[#0F172A] focus:bg-white"
-              />
-            </div>
-
-            <button
-              type="submit"
-              id="btn-deploy-new-listing"
-              className="w-full min-h-[46px] bg-[#0F172A] hover:bg-slate-800 text-white font-bold py-3.5 px-6 rounded-xl shadow-xs transition-all text-xs sm:text-sm flex items-center justify-center space-x-2 cursor-pointer uppercase tracking-wider"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Publish Listing to Marketplace</span>
-            </button>
-          </form>
-        )}
-
-      </div>
+      {vendor?.status === 'approved' && <>
+        <section className="flex items-center gap-3 border-y border-slate-200 py-4"><CheckCircle2 className="size-5 text-emerald-600" /><div><h2 className="font-bold text-slate-900">Approved vendor</h2><p className="text-xs text-slate-500">{vendor.name}</p></div></section>
+        <form onSubmit={createHotel} className="space-y-5">
+          <div className="flex items-center gap-3"><Hotel className="size-5 text-indigo-600" /><h2 className="font-bold text-slate-900">Add a hotel</h2></div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Hotel name"><input className={inputClass} required value={hotel.title} onChange={(e) => setHotel({ ...hotel, title: e.target.value })} /></Field>
+            <Field label="Location"><input className={inputClass} required value={hotel.location} onChange={(e) => setHotel({ ...hotel, location: e.target.value })} /></Field>
+            <Field label="Base price PKR"><input className={inputClass} type="number" min="0" required value={hotel.price} onChange={(e) => setHotel({ ...hotel, price: e.target.value })} /></Field>
+            <Field label="Primary image"><input className={`${inputClass} pt-2`} type="file" accept="image/jpeg,image/png,image/webp,image/avif" required onChange={(e) => setHotelImage(e.target.files?.[0] ?? null)} /></Field>
+            <label className="text-xs font-semibold text-slate-600 md:col-span-2">Description<textarea className="mt-1 min-h-28 w-full rounded-md border border-slate-300 p-3 text-sm" minLength={20} required value={hotel.description} onChange={(e) => setHotel({ ...hotel, description: e.target.value })} /></label>
+            <Field label="Amenities, comma separated"><input className={inputClass} value={hotel.amenities} onChange={(e) => setHotel({ ...hotel, amenities: e.target.value })} /></Field>
+            <Field label="Facilities, comma separated"><input className={inputClass} value={hotel.facilities} onChange={(e) => setHotel({ ...hotel, facilities: e.target.value })} /></Field>
+            <Field label="First room category"><input className={inputClass} required value={hotel.roomName} onChange={(e) => setHotel({ ...hotel, roomName: e.target.value })} /></Field>
+            <Field label="Total rooms"><input className={inputClass} type="number" min="1" required value={hotel.totalRooms} onChange={(e) => setHotel({ ...hotel, totalRooms: e.target.value })} /></Field>
+          </div>
+          <button disabled={busy} className="min-h-11 rounded-md bg-[#0F172A] px-5 text-sm font-bold text-white disabled:opacity-50">Upload and submit hotel</button>
+        </form>
+        <section><h2 className="mb-3 font-bold text-slate-900">Hotel submissions</h2><div className="divide-y divide-slate-200 border-y border-slate-200">{listings.map((listing) => <div key={listing.id} className="flex items-center gap-4 py-4"><img src={listing.image} alt="" className="size-14 rounded-md object-cover" /><div className="min-w-0 flex-1"><p className="truncate font-semibold text-slate-900">{listing.title}</p><p className="text-xs text-slate-500">{listing.location}</p></div><span className="text-xs font-bold uppercase text-indigo-700">{listing.status}</span></div>)}{listings.length === 0 && <p className="py-6 text-sm text-slate-500">No hotel submissions yet.</p>}</div></section>
+      </>}
     </div>
   );
+}
+
+function Field({ label, grow = false, children }: { label: string; grow?: boolean; children: ReactNode }) {
+  return <label className={`text-xs font-semibold text-slate-600 ${grow ? 'flex-1' : ''}`}>{label}<span className="mt-1 block">{children}</span></label>;
 }

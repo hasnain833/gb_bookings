@@ -9,10 +9,16 @@ import { connectDatabase, disconnectDatabase } from './database/connection.js';
 import { finalizeApp } from './app.js';
 
 export async function startServer(app: Express) {
-  await connectDatabase();
+  const server = createServer(app);
 
   if (env.NODE_ENV === 'development') {
-    const vite = await createViteServer({ server: { middlewareMode: true }, appType: 'spa' });
+    const vite = await createViteServer({
+      server: {
+        middlewareMode: true,
+        hmr: process.env.DISABLE_HMR === 'true' ? false : { server },
+      },
+      appType: 'spa',
+    });
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
@@ -21,10 +27,27 @@ export async function startServer(app: Express) {
   }
 
   finalizeApp(app);
-  const server = createServer(app);
+  await connectDatabase();
 
-  server.listen(env.PORT, '0.0.0.0', () => {
-    logger.info({ port: env.PORT, environment: env.NODE_ENV }, 'GBBookings server started');
+  await new Promise<void>((resolve, reject) => {
+    const handleStartupError = (error: NodeJS.ErrnoException) => {
+      server.off('listening', handleListening);
+      reject(error);
+    };
+    const handleListening = () => {
+      server.off('error', handleStartupError);
+      resolve();
+    };
+
+    server.once('error', handleStartupError);
+    server.once('listening', handleListening);
+    server.listen(env.PORT, '0.0.0.0');
+  });
+
+  logger.info({ port: env.PORT, environment: env.NODE_ENV }, 'GBBookings server started');
+
+  server.on('error', (error) => {
+    logger.error({ err: error }, 'HTTP server error');
   });
 
   const shutdown = async (signal: string) => {
