@@ -40,6 +40,14 @@ export interface Listing {
     included: string[];
     itinerary: { day: number; title: string; desc: string }[];
   };
+  offerSpecs?: {
+    category: string;
+    discountLabel: string;
+    promoCode?: string;
+    originalPrice?: number;
+    perks?: string[];
+    expiresAt?: string;
+  };
 }
 
 export interface Booking {
@@ -57,7 +65,7 @@ export interface Booking {
   totalPrice: number;
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
   paymentStatus: 'pending' | 'paid' | 'refunded';
-  paymentMethod: 'card' | 'jazzcash' | 'easypaisa';
+  paymentMethod: 'card' | 'jazzcash' | 'easypaisa' | 'pay_at_hotel';
   createdAt: string;
   // Additional details
   guests?: number;

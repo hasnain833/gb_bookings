@@ -6,3 +6,7 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Local project briefs, proposals, and quotations
+*.docx
+*.pdf

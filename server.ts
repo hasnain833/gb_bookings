@@ -2,93 +2,18 @@ import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
-import { INITIAL_LISTINGS, MOCK_REVIEWS } from './src/data.js';
-import { Booking, SupportTicket, Notification, Review } from './src/types.js';
+import { Booking, Listing, SupportTicket, Notification, Review } from './src/types.js';
 
 const app = express();
 const PORT = 3000;
 
-// In-memory persistence for active session
-const bookings: Booking[] = [
-  {
-    id: 'b-991',
-    listingId: 'h-1',
-    listingType: 'hotel',
-    listingTitle: 'Luxus Hunza Resort & Spa',
-    listingImage: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80',
-    listingLocation: 'Attabad Lake, Hunza Valley',
-    customerName: 'Ahmad Raza',
-    customerEmail: 'ibtesaam0@gmail.com',
-    startDate: '2026-07-10',
-    endDate: '2026-07-13',
-    totalPrice: 105000,
-    status: 'confirmed',
-    paymentStatus: 'paid',
-    paymentMethod: 'card',
-    createdAt: new Date(Date.now() - 48 * 3600 * 1000).toISOString(),
-    guests: 2,
-    duration: 3
-  },
-  {
-    id: 'b-992',
-    listingId: 't-1',
-    listingType: 'tour',
-    listingTitle: 'Autumn Odyssey in Hunza Valley',
-    listingImage: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=80',
-    listingLocation: 'Gilgit, Hunza, Attabad, Passu',
-    customerName: 'Ahmad Raza',
-    customerEmail: 'ibtesaam0@gmail.com',
-    startDate: '2026-10-15',
-    endDate: '2026-10-22',
-    totalPrice: 85000,
-    status: 'pending',
-    paymentStatus: 'pending',
-    paymentMethod: 'easypaisa',
-    createdAt: new Date().toISOString(),
-    guests: 1,
-    duration: 7
-  }
-];
-
-const reviews: Review[] = [...MOCK_REVIEWS];
-
-const supportTickets: SupportTicket[] = [
-  {
-    id: 'tkt-1',
-    subject: 'Requesting extra heater in luxury suite',
-    category: 'booking',
-    message: 'Hello, our booking b-991 at Luxus Hunza is in July but we heard the lake breeze gets quite cold at night. Can we pre-book an additional heater or thermal blankets?',
-    status: 'open',
-    createdAt: new Date(Date.now() - 12 * 3600 * 1000).toISOString(),
-    replies: [
-      {
-        id: 'rep-1',
-        sender: 'support',
-        message: 'Hello Ahmad! Of course. We have noted this on your booking. Luxus Hunza provides central climate control plus complimentary secondary heating elements upon request. No extra charges apply.',
-        createdAt: new Date(Date.now() - 11 * 3600 * 1000).toISOString()
-      }
-    ]
-  }
-];
-
-const notifications: Notification[] = [
-  {
-    id: 'n-1',
-    title: 'Booking Confirmed!',
-    message: 'Your stay at Luxus Hunza Resort & Spa (b-991) has been approved and paid.',
-    type: 'success',
-    read: false,
-    createdAt: new Date(Date.now() - 24 * 3600 * 1000).toISOString()
-  },
-  {
-    id: 'n-2',
-    title: 'Autumn Odyssey Pending',
-    message: 'Your Tour Package booking b-992 is waiting for Easypaisa wallet confirmation.',
-    type: 'warning',
-    read: false,
-    createdAt: new Date().toISOString()
-  }
-];
+// Temporary empty stores keep API contracts available until database modules land.
+// They intentionally contain no demo records.
+const listings: Listing[] = [];
+const bookings: Booking[] = [];
+const reviews: Review[] = [];
+const supportTickets: SupportTicket[] = [];
+const notifications: Notification[] = [];
 
 // Lazy-loaded Gemini AI client
 let aiClient: GoogleGenAI | null = null;
@@ -116,7 +41,7 @@ app.use(express.json());
 // API: Listings
 app.get('/api/listings', (req, res) => {
   const { type, search } = req.query;
-  let results = [...INITIAL_LISTINGS];
+  let results = [...listings];
 
   if (type && typeof type === 'string' && type !== 'offer' && type !== 'all') {
     results = results.filter(l => l.type === type);
@@ -136,7 +61,7 @@ app.get('/api/listings', (req, res) => {
 
 // API: Single Listing
 app.get('/api/listings/:id', (req, res) => {
-  const listing = INITIAL_LISTINGS.find(l => l.id === req.params.id);
+  const listing = listings.find(l => l.id === req.params.id);
   if (!listing) {
     return res.status(404).json({ error: 'Listing not found' });
   }
@@ -160,7 +85,7 @@ app.post('/api/bookings', (req, res) => {
     return res.status(400).json({ error: 'Missing required booking fields.' });
   }
 
-  const listing = INITIAL_LISTINGS.find(l => l.id === listingId);
+  const listing = listings.find(l => l.id === listingId);
   if (!listing) {
     return res.status(404).json({ error: 'Listing not found' });
   }
@@ -289,18 +214,6 @@ app.post('/api/support/tickets/:id/reply', (req, res) => {
     createdAt: new Date().toISOString()
   });
 
-  // Simple auto-reply simulation after 2 seconds if user replied
-  if (sender === 'user') {
-    setTimeout(() => {
-      ticket.replies!.push({
-        id: 'rep-' + Math.floor(1000 + Math.random() * 9000),
-        sender: 'support',
-        message: 'Thank you for updating your query. Our travel operations desk has logged this and will contact you via email or phone within 15 minutes.',
-        createdAt: new Date().toISOString()
-      });
-    }, 2000);
-  }
-
   res.json(ticket);
 });
 
@@ -366,7 +279,7 @@ app.post('/api/host/message', async (req, res) => {
     return res.status(400).json({ error: 'Please provide listingId and message.' });
   }
 
-  const listing = INITIAL_LISTINGS.find(l => l.id === listingId);
+  const listing = listings.find(l => l.id === listingId);
   if (!listing) {
     return res.status(404).json({ error: 'Listing not found.' });
   }
@@ -411,14 +324,7 @@ Rules for responding:
     });
   } catch (error: any) {
     console.error('Gemini Host Response Error:', error);
-    // Fallback friendly reply if API key is not configured or fails
-    const fallbackHostName = listing.type === 'car' ? 'Mr. Tariq Shah' : 'Karim Balti';
-    res.json({
-      reply: `Hello! Thank you for reaching out to us. We have received your query regarding "${listing.title}". Absolutely, we can accommodate special requests such as additional heaters, flexible check-in times, or local guides. Please let us know if there is anything else we can do to make your stay perfect!`,
-      sender: 'host',
-      authorName: fallbackHostName,
-      createdAt: new Date().toISOString()
-    });
+    res.status(503).json({ error: 'Host messaging is currently unavailable.' });
   }
 });
 
