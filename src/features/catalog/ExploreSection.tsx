@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import { ArrowRight, Calendar, Car, Home, MapPin, RefreshCw, Search, ShieldCheck, Star, TentTree, Users } from 'lucide-react';
 import type { Listing, ListingType } from '../../types';
 import { handleImageError } from '../../types';
@@ -53,7 +53,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
     return [...groups.values()].sort((a, b) => b.count - a.count).slice(0, 5);
   }, [listings]);
 
-  const submitSearch = (event: React.FormEvent) => {
+  const submitSearch = (event: FormEvent) => {
     event.preventDefault();
     setSearchFilters({
       destination,

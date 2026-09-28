@@ -9,7 +9,7 @@ This document is the implementation plan for converting the current frontend and
 - [x] Frontend code is organized by feature with shared API, hook, component, and utility layers.
 - [x] Marketplace screens consume API data without static listing fallbacks or fabricated success states.
 - [x] Legacy mock listings, reviews, bookings, notifications, tickets, and browser-stored fake users have been removed.
-- [x] A small Express server preserves empty API contracts until persistent modules replace it.
+- [x] A modular Express backend now provides versioned APIs, compatibility routes, validation, logging, security middleware, health checks, and OpenAPI documentation.
 - [ ] Authentication endpoints and secure cookie sessions are implemented; the frontend is already wired for them.
 - [ ] Vendor listing creation is persisted.
 - [ ] Availability, pricing, payment, wallet, commission, payout, and refund logic is implemented securely on the server.
@@ -98,28 +98,28 @@ Deliverable: approved business-rule checklist and environment/provider choices.
 
 ### Project foundation
 
-- [ ] Split the current `server.ts` into the modular structure above.
-- [ ] Add validated environment configuration and fail-fast startup checks.
-- [ ] Add MongoDB connection lifecycle, graceful shutdown, and health/readiness endpoints.
-- [ ] Add central error handling with consistent API error codes and response shapes.
-- [ ] Add request IDs, structured logging, CORS configuration, Helmet, compression, and rate limiting.
-- [ ] Add request validation middleware using Zod.
-- [ ] Add API versioning and preserve compatibility adapters for current frontend endpoints.
-- [ ] Add OpenAPI documentation and a development-only API explorer.
+- [x] Split the current `server.ts` into the modular structure above.
+- [x] Add validated environment configuration and fail-fast production startup checks.
+- [x] Add MongoDB connection lifecycle, graceful shutdown, and health/readiness endpoints.
+- [x] Add central error handling with consistent API error codes and response shapes.
+- [x] Add request IDs, structured logging, CORS configuration, Helmet, compression, and rate limiting.
+- [x] Add request validation middleware using Zod.
+- [x] Add API versioning and preserve compatibility adapters for current frontend endpoints.
+- [x] Add OpenAPI documentation and a development-only API explorer.
 
 ### Initial data model
 
-- [ ] Create base schemas with IDs, timestamps, status, and soft-delete metadata where required.
-- [ ] Create User, Session, Role/Permission, Vendor, Listing, Media, and AuditLog models.
-- [ ] Add indexes for emails, slugs, location search, status, ownership, and common filtering fields.
-- [ ] Write an idempotent seed command that imports current data from `src/data.ts`.
-- [ ] Replace mock listing reads with MongoDB queries without changing the visible frontend behavior.
-- [ ] Add pagination, sorting, filtering, and stable error responses to listing APIs.
+- [x] Create the base Listing schema with public IDs, timestamps, status, and soft-delete metadata.
+- [x] Create User, Session, Role/Permission, Vendor, Listing, Media, and AuditLog models.
+- [x] Add Listing text, geospatial, status, ownership, and common filtering indexes.
+- [x] Write an idempotent Listing seed command that imports a supplied JSON file.
+- [x] Replace mock listing reads with MongoDB queries while preserving legacy frontend response shapes.
+- [x] Add pagination, sorting, filtering, and stable error responses to listing APIs.
 
 ### Quality gates
 
-- [ ] Add lint, type-check, test, and build scripts suitable for CI.
-- [ ] Add initial unit and API tests for health and listings.
+- [x] Add lint, type-check, test, and build scripts suitable for CI.
+- [x] Add initial API tests for health, readiness, documentation, listings, and unimplemented writes.
 - [ ] Create separate `.env.example` sections for local, test, staging, and production requirements.
 
 Deliverable: persistent listings served from MongoDB through documented, tested APIs.
@@ -128,27 +128,28 @@ Deliverable: persistent listings served from MongoDB through documented, tested 
 
 ### Authentication
 
-- [ ] Implement customer and vendor registration.
-- [ ] Implement login, logout, token refresh, and logout from all devices.
-- [ ] Store hashed refresh-token/session records with expiration and device metadata.
-- [ ] Implement email verification.
-- [ ] Implement forgot-password and reset-password flows with one-time, expiring tokens.
-- [ ] Add OTP provider interfaces for later email/SMS verification.
-- [ ] Add login throttling, temporary account lockout, and suspicious-login audit events.
-- [ ] Add optional two-factor authentication after the core flow is stable.
+- [x] Implement secure public customer registration; vendor onboarding registration remains in Phase 3.
+- [x] Implement login, logout, rotating token refresh, and logout from all devices.
+- [x] Store hashed refresh-token/session records with expiration and device metadata.
+- [x] Implement Brevo-backed email verification with one-time, expiring tokens.
+- [x] Implement Brevo-backed forgot-password and reset-password flows with one-time, expiring tokens.
+- [x] Add OTP provider interfaces with Brevo email delivery and an explicit SMS provider boundary.
+- [x] Add authentication endpoint throttling and temporary account lockout.
+- [x] Add suspicious-login audit events and user-facing session history with individual revocation.
+- [x] Add optional email-based two-factor authentication with expiring, attempt-limited OTP challenges.
 
 ### Users and permissions
 
-- [ ] Implement profile read/update and password change.
-- [ ] Add roles: customer, vendor owner, vendor staff, support agent, admin, and super admin.
+- [x] Implement profile read/update and password change with session revocation.
+- [x] Add roles: customer, vendor owner, vendor staff, support agent, admin, and super admin.
 - [ ] Define permission constants and route-level authorization middleware.
 - [ ] Add ownership checks for bookings, listings, tickets, reviews, and messages.
 - [ ] Add admin user status controls: activate, suspend, verify, and archive.
 
 ### Frontend integration
 
-- [ ] Replace `gb_registered_users` and `gb_current_user` localStorage authentication.
-- [ ] Add an authenticated API client that handles refresh and logout consistently.
+- [x] Replace `gb_registered_users` and `gb_current_user` localStorage authentication.
+- [x] Add an authenticated API client that handles refresh and logout consistently.
 - [ ] Protect customer, vendor, employee, and admin routes.
 - [ ] Remove email query parameters as a method of identifying the signed-in user.
 
@@ -378,13 +379,14 @@ Deliverable: tested, monitored, recoverable production release with operational 
 
 ## 16. Immediate Next Sprint
 
-- [ ] Create the modular Express application shell.
-- [ ] Add environment validation and MongoDB connection management.
-- [ ] Add common error, logging, request ID, security, and validation middleware.
-- [ ] Implement the Listing model and idempotent static-data seed command.
-- [ ] Replace `GET /api/listings` and `GET /api/listings/:id` with database-backed services.
-- [ ] Add health, listing, and seed tests.
-- [ ] Add initial OpenAPI documentation.
+- [x] Create the modular Express application shell.
+- [x] Add environment validation and MongoDB connection management.
+- [x] Add common error, logging, request ID, security, and validation middleware.
+- [x] Implement the Listing model and idempotent JSON seed command.
+- [x] Replace `GET /api/listings` and `GET /api/listings/:id` with database-backed services.
+- [x] Add health and listing API tests.
+- [ ] Add seed command integration tests against a test database.
+- [x] Add initial OpenAPI documentation.
 - [ ] Verify the existing search and listing-detail screens against the new API.
 
 Sprint completion result: the frontend looks unchanged, but listing data survives restarts and the backend has a maintainable production foundation.

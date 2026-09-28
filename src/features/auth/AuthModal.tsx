@@ -34,6 +34,8 @@ export default function AuthModal({
   const [isSuccess, setIsSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [forgotSent, setForgotSent] = useState(false);
+  const [twoFactorChallengeId, setTwoFactorChallengeId] = useState('');
+  const [otpCode, setOtpCode] = useState('');
 
   if (!isOpen) return null;
 
@@ -64,11 +66,36 @@ export default function AuthModal({
           })
         : await api.login({ email: trimmedEmail, password, rememberMe });
 
+      if ('requiresTwoFactor' in response) {
+        setTwoFactorChallengeId(response.challengeId);
+        return;
+      }
+
       setIsSuccess(true);
       onSuccessLogin(response.user.email, response.user.name);
       onClose();
     } catch (reason) {
       setErrorMessage(reason instanceof Error ? reason.message : 'Authentication is currently unavailable.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleOtpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!/^\d{6}$/.test(otpCode)) {
+      setErrorMessage('Enter the 6-digit security code.');
+      return;
+    }
+    setIsLoading(true);
+    setErrorMessage('');
+    try {
+      const response = await api.verifyLoginOtp(twoFactorChallengeId, otpCode);
+      setIsSuccess(true);
+      onSuccessLogin(response.user.email, response.user.name);
+      onClose();
+    } catch (reason) {
+      setErrorMessage(reason instanceof Error ? reason.message : 'Unable to verify the security code.');
     } finally {
       setIsLoading(false);
     }
@@ -203,6 +230,31 @@ export default function AuthModal({
                   </div>
                 )}
 
+                {twoFactorChallengeId ? (
+                  <form onSubmit={handleOtpSubmit} className="space-y-4">
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 block">Security code</label>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        maxLength={6}
+                        value={otpCode}
+                        onChange={(event) => setOtpCode(event.target.value.replace(/\D/g, ''))}
+                        className="mt-1 w-full min-h-[52px] rounded-xl border border-slate-200 bg-slate-50 px-4 text-center font-mono text-xl tracking-[0.35em] outline-none focus:border-[#006F3C] focus:bg-white"
+                        required
+                        autoFocus
+                      />
+                    </div>
+                    <p className="text-xs leading-5 text-slate-500">Enter the one-time code sent to your verified contact method.</p>
+                    <button type="submit" disabled={isLoading} className="w-full min-h-[50px] rounded-xl bg-[#006F3C] font-bold text-white disabled:opacity-60">
+                      {isLoading ? 'Verifying...' : 'Verify and sign in'}
+                    </button>
+                    <button type="button" onClick={() => { setTwoFactorChallengeId(''); setOtpCode(''); setErrorMessage(''); }} className="w-full min-h-[44px] text-xs font-bold text-slate-600">
+                      Back to sign in
+                    </button>
+                  </form>
+                ) : (
                 <form onSubmit={handleSubmit} className="space-y-3.5">
                   {/* Full Name Field (Register Mode) */}
                   {mode === 'register' && (
@@ -311,6 +363,7 @@ export default function AuthModal({
                     )}
                   </button>
                 </form>
+                )}
 
                 <div className="pt-2 text-center text-xs text-slate-500">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 inline mr-1" />

@@ -5,8 +5,13 @@ import { logger } from '../config/logger.js';
 let connectionPromise: Promise<boolean> | null = null;
 
 export function databaseState() {
-  const states = ['disconnected', 'connected', 'connecting', 'disconnecting'] as const;
-  return states[mongoose.connection.readyState] ?? 'unknown';
+  switch (mongoose.connection.readyState) {
+    case 0: return 'disconnected';
+    case 1: return 'connected';
+    case 2: return 'connecting';
+    case 3: return 'disconnecting';
+    default: return 'unknown';
+  }
 }
 
 export function isDatabaseReady() {
@@ -15,6 +20,10 @@ export function isDatabaseReady() {
 
 export async function connectDatabase(): Promise<boolean> {
   if (isDatabaseReady()) return true;
+
+  if (connectionPromise && mongoose.connection.readyState !== 2) {
+    connectionPromise = null;
+  }
 
   if (!env.MONGODB_URI) {
     logger.warn('MONGODB_URI is not configured; database routes will remain unavailable');

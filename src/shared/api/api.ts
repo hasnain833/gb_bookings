@@ -17,7 +17,7 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+async function request<T>(path: string, init: RequestInit = {}, allowRefresh = true): Promise<T> {
   const headers = new Headers(init.headers);
   if (init.body && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
@@ -35,7 +35,22 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     : null;
 
   if (!response.ok) {
-    const message = payload?.message ?? payload?.error ?? `Request failed (${response.status})`;
+    const canRefresh = allowRefresh
+      && response.status === 401
+      && !['/api/auth/login', '/api/auth/register', '/api/auth/refresh'].includes(path);
+    if (canRefresh) {
+      try {
+        await request('/api/auth/refresh', { method: 'POST' }, false);
+        return request<T>(path, init, false);
+      } catch {
+        // Return the original request error so callers receive the relevant context.
+      }
+    }
+
+    const message = payload?.message
+      ?? payload?.error?.message
+      ?? (typeof payload?.error === 'string' ? payload.error : null)
+      ?? `Request failed (${response.status})`;
     throw new ApiError(message, response.status);
   }
 
@@ -51,10 +66,29 @@ export interface AuthUser {
   email: string;
   name: string;
   role?: string;
+  emailVerified?: boolean;
+  twoFactorEnabled?: boolean;
+  twoFactorChannel?: 'email' | 'sms';
 }
 
-interface AuthResponse {
+export interface AuthResponse {
   user: AuthUser;
+}
+
+export interface TwoFactorChallengeResponse {
+  requiresTwoFactor: true;
+  challengeId: string;
+  expiresInSeconds: number;
+}
+
+export interface AuthSession {
+  id: string;
+  current: boolean;
+  userAgent: string;
+  ipAddress?: string;
+  createdAt: string;
+  lastUsedAt: string;
+  expiresAt: string;
 }
 
 export const api = {
@@ -95,9 +129,42 @@ export const api = {
   },
 
   login(input: { email: string; password: string; rememberMe: boolean }) {
-    return request<AuthResponse>('/api/auth/login', {
+    return request<AuthResponse | TwoFactorChallengeResponse>('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify(input),
+    });
+  },
+
+  verifyLoginOtp(challengeId: string, code: string) {
+    return request<AuthResponse>('/api/auth/login/verify-otp', {
+      method: 'POST',
+      body: JSON.stringify({ challengeId, code }),
+    });
+  },
+
+  getSessions() {
+    return request<{ data: AuthSession[] }>('/api/auth/sessions').then((result) => result.data);
+  },
+
+  revokeSession(sessionId: string) {
+    return request<void>(`/api/auth/sessions/${encodeURIComponent(sessionId)}`, { method: 'DELETE' });
+  },
+
+  beginTwoFactorSetup(channel: 'email' | 'sms' = 'email') {
+    return request<{ challengeId: string; expiresInSeconds: number }>('/api/auth/two-factor/setup', {
+      method: 'POST', body: JSON.stringify({ channel }),
+    });
+  },
+
+  enableTwoFactor(challengeId: string, code: string) {
+    return request<AuthResponse>('/api/auth/two-factor/enable', {
+      method: 'POST', body: JSON.stringify({ challengeId, code }),
+    });
+  },
+
+  disableTwoFactor(password: string) {
+    return request<void>('/api/auth/two-factor/disable', {
+      method: 'POST', body: JSON.stringify({ password }),
     });
   },
 
@@ -116,6 +183,24 @@ export const api = {
     return request<void>('/api/auth/forgot-password', {
       method: 'POST',
       body: JSON.stringify({ email }),
+    });
+  },
+
+  requestEmailVerification() {
+    return request<{ alreadyVerified: boolean }>('/api/auth/email-verification/request', { method: 'POST' });
+  },
+
+  verifyEmail(token: string) {
+    return request<void>('/api/auth/email-verification/confirm', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
+  },
+
+  resetPassword(token: string, newPassword: string) {
+    return request<void>('/api/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, newPassword }),
     });
   },
 

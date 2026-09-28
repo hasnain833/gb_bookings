@@ -20,6 +20,7 @@ const VendorDashboard = lazy(() => import('../features/vendor/VendorDashboard'))
 const AiPlanner = lazy(() => import('../features/planner/AiPlanner'));
 const SupportCentre = lazy(() => import('../features/support/SupportCentre'));
 const AuthModal = lazy(() => import('../features/auth/AuthModal'));
+const AccountActionModal = lazy(() => import('../features/auth/AccountActionModal'));
 const Footer = lazy(() => import('../shared/components/Footer'));
 const MobileInstallPrompt = lazy(() => import('../shared/components/MobileInstallPrompt'));
 
@@ -400,6 +401,8 @@ export default function App() {
           initialMode={authModalMode}
           onSuccessLogin={handleSuccessLogin}
         />
+
+        <AccountActionModal />
 
         <MobileInstallPrompt />
       </Suspense>

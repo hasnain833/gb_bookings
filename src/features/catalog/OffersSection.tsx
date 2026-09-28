@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type FormEvent, type MouseEvent } from 'react';
 import { ArrowRight, Check, Copy, MapPin, Search, Star, Tag } from 'lucide-react';
 import type { Listing } from '../../types';
 import { handleImageError } from '../../types';
@@ -25,12 +25,12 @@ export default function OffersSection({ onSelectListing, onTriggerSearch }: Offe
     );
   }, [listings, query]);
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
     onTriggerSearch?.({ type: 'offer', destination: query, dates: '', guests: 1 });
   };
 
-  const handleCopy = async (code: string, event: React.MouseEvent) => {
+  const handleCopy = async (code: string, event: MouseEvent) => {
     event.stopPropagation();
     await navigator.clipboard.writeText(code);
     setCopiedCode(code);

@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Booking, Notification, WalletTransaction, Listing, handleImageError } from '../../types';
 import { useLanguage } from '../../app/LanguageContext';
 import { DashboardSkeleton } from '../../shared/components/SkeletonLoader';
-import { Calendar, Wallet, Award, Share2, Printer, AlertTriangle, MessageSquare, Bell, Check, Trash, Heart, Eye, MapPin, X } from 'lucide-react';
+import { Calendar, Wallet, Award, Share2, Printer, AlertTriangle, MessageSquare, Bell, Check, Trash, Heart, Eye, MapPin, X, ShieldCheck } from 'lucide-react';
 import { useBodyScrollLock } from '../../shared/utils/scrollLock';
 import { api } from '../../shared/api/api';
+import SecurityPanel from './SecurityPanel';
 
 interface UserDashboardProps {
   userEmail: string;
@@ -21,7 +22,7 @@ export default function UserDashboard({ userEmail, userName, setView, onSelectBo
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [wishlistItems, setWishlistItems] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'trips' | 'wishlist' | 'wallet' | 'rewards' | 'notifications'>('trips');
+  const [activeTab, setActiveTab] = useState<'trips' | 'wishlist' | 'wallet' | 'rewards' | 'notifications' | 'security'>('trips');
   const [cancelBookingConfirmId, setCancelBookingConfirmId] = useState<string | null>(null);
   const [cancellingInProgress, setCancellingInProgress] = useState(false);
 
@@ -149,7 +150,8 @@ export default function UserDashboard({ userEmail, userName, setView, onSelectBo
           { id: 'wishlist', label: 'Saved Wishlist', icon: Heart, count: wishlistItems.length },
           { id: 'wallet', label: 'My Wallet', icon: Wallet },
           { id: 'rewards', label: 'Rewards & Referrals', icon: Award },
-          { id: 'notifications', label: 'Alerts', icon: Bell, count: notifications.filter(n => !n.read).length }
+          { id: 'notifications', label: 'Alerts', icon: Bell, count: notifications.filter(n => !n.read).length },
+          { id: 'security', label: 'Security', icon: ShieldCheck }
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -489,6 +491,8 @@ export default function UserDashboard({ userEmail, userName, setView, onSelectBo
               )}
             </div>
           )}
+
+          {activeTab === 'security' && <SecurityPanel />}
 
         </div>
       )}
