@@ -1,30 +1,40 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { CreditCard, Wallet, Calendar, ShieldCheck, CheckCircle, Ticket, Printer, ArrowRight, ArrowLeft, Info, HelpCircle } from 'lucide-react';
-import { Listing, handleImageError } from '../../types';
+import { Booking, Listing, handleImageError } from '../../types';
+import { api } from '../../shared/api/api';
+
+export interface CheckoutParams {
+  listingId: string;
+  startDate: string;
+  endDate: string;
+  /** Display only; the server recomputes the price. */
+  totalPrice: number;
+  guests: number;
+  duration: number;
+  roomTypeId?: string;
+  roomName?: string;
+  rooms?: number;
+  adults?: number;
+  children?: number;
+  withDriver?: boolean;
+  payAtHotel?: boolean;
+}
 
 interface CheckoutFlowProps {
-  bookingParams: {
-    listingId: string;
-    startDate: string;
-    endDate: string;
-    totalPrice: number;
-    guests: number;
-    duration: number;
-    withDriver?: boolean;
-    payAtHotel?: boolean;
-    appliedPromo?: string;
-    upgradeOption?: string;
-    cancellationPolicy?: string;
-  };
+  bookingParams: CheckoutParams;
   listing: Listing;
   userEmail?: string;
   userName?: string;
-  onSuccess: (booking: any) => void;
+  /** Opens straight to the receipt of an existing booking instead of creating one. */
+  existingBooking?: Booking;
+  onSuccess: (booking: Booking) => void;
   onCancel: () => void;
 }
 
-export default function CheckoutFlow({ bookingParams, listing, userEmail = '', userName = '', onSuccess, onCancel }: CheckoutFlowProps) {
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1); // 1: Contact, 2: Payment, 3: Processing, 4: Receipt
+export default function CheckoutFlow({ bookingParams, listing, userEmail = '', userName = '', existingBooking, onSuccess, onCancel }: CheckoutFlowProps) {
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(existingBooking ? 4 : 1); // 1: Contact, 2: Payment, 3: Processing, 4: Receipt
+  // One key per checkout attempt: retries and double-clicks replay the same booking instead of creating another.
+  const idempotencyKey = useRef(crypto.randomUUID());
   
   // Contacts (initialized from logged-in user if available, otherwise empty)
   const [customerName, setCustomerName] = useState(userName || '');
@@ -40,43 +50,31 @@ export default function CheckoutFlow({ bookingParams, listing, userEmail = '', u
   const [walletNumber, setWalletNumber] = useState('');
   
   const [processingMsg] = useState('Submitting your booking securely...');
-  const [createdBooking, setCreatedBooking] = useState<any>(null);
+  const [createdBooking, setCreatedBooking] = useState<Booking | null>(existingBooking ?? null);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
 
   const submitBooking = async () => {
+    if (!bookingParams.roomTypeId) {
+      setSubmissionError('Online booking is not available for this listing yet. Please contact support to reserve.');
+      return;
+    }
     setStep(3);
     setSubmissionError(null);
     try {
-      const res = await fetch('/api/bookings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          listingId: bookingParams.listingId,
-          customerName,
-          customerEmail,
-          customerPhone,
-          startDate: bookingParams.startDate,
-          endDate: bookingParams.endDate,
-          totalPrice: bookingParams.totalPrice,
-          paymentMethod: bookingParams.payAtHotel ? 'pay_at_hotel' : paymentMethod,
-          guests: bookingParams.guests,
-          duration: bookingParams.duration,
-          withDriver: bookingParams.withDriver
-        })
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setCreatedBooking(data);
-        setStep(4);
-      } else {
-        const payload = await res.json().catch(() => null);
-        setSubmissionError(payload?.error || 'Booking could not be completed. Please try again.');
-        setStep(2);
-      }
+      const booking = await api.createBooking({
+        listingId: bookingParams.listingId,
+        roomTypeId: bookingParams.roomTypeId,
+        checkIn: bookingParams.startDate,
+        checkOut: bookingParams.endDate,
+        rooms: bookingParams.rooms ?? 1,
+        adults: bookingParams.adults ?? bookingParams.guests,
+        children: bookingParams.children ?? 0,
+        guest: { name: customerName.trim(), email: customerEmail.trim(), phone: customerPhone.trim() },
+      }, idempotencyKey.current);
+      setCreatedBooking(booking);
+      setStep(4);
     } catch (reason) {
-      console.error(reason);
-      setSubmissionError('The booking service is unavailable. Please try again.');
+      setSubmissionError(reason instanceof Error ? reason.message : 'The booking service is unavailable. Please try again.');
       setStep(2);
     }
   };
@@ -186,6 +184,9 @@ export default function CheckoutFlow({ bookingParams, listing, userEmail = '', u
               <img src={listing.image} alt="" className="w-16 h-14 object-cover rounded-xl shrink-0" referrerPolicy="no-referrer" onError={handleImageError} />
               <div className="min-w-0">
                 <h4 className="text-sm font-bold text-slate-900 truncate">{listing.title}</h4>
+                {bookingParams.roomName && (
+                  <p className="text-xs text-slate-500 mt-0.5">{bookingParams.rooms ?? 1} × {bookingParams.roomName} · {bookingParams.guests} guests</p>
+                )}
                 <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
                   <Calendar className="w-3.5 h-3.5 text-[#006F3C] shrink-0" /> 
                   <span>{bookingParams.startDate} to {bookingParams.endDate}</span>
@@ -416,12 +417,12 @@ export default function CheckoutFlow({ bookingParams, listing, userEmail = '', u
             </div>
             <div>
               <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
-                {bookingParams.payAtHotel ? 'Reservation Confirmed!' : 'Booking Confirmed!'}
+                {createdBooking.status === 'pending' ? 'Reservation received' : `Reservation ${createdBooking.status.replace('_', ' ')}`}
               </h2>
               <p className="text-sm text-slate-500 mt-1">
-                {bookingParams.payAtHotel 
-                  ? 'Your reservation has been locked with the host. Present this digital voucher upon arrival.'
-                  : 'Payment processed successfully. Your trip confirmation voucher is ready.'}
+                {createdBooking.status === 'pending'
+                  ? 'Your room is held. The property will confirm shortly; you can track the status in My Bookings.'
+                  : 'Present this voucher at check-in.'}
               </p>
             </div>
           </div>
@@ -436,7 +437,7 @@ export default function CheckoutFlow({ bookingParams, listing, userEmail = '', u
                 <h4 className="text-sm font-bold text-slate-900 mt-0.5">{createdBooking.listingTitle}</h4>
               </div>
               <span className="bg-emerald-50 text-[#006F3C] font-mono text-xs font-bold px-2.5 py-1 rounded-lg border border-emerald-200">
-                #{createdBooking.id}
+                {createdBooking.reference ?? createdBooking.id}
               </span>
             </div>
 
@@ -460,9 +461,9 @@ export default function CheckoutFlow({ bookingParams, listing, userEmail = '', u
             </div>
 
             <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-              <span className="text-slate-500">Payment Status:</span>
+              <span className="text-slate-500">Payment:</span>
               <span className="font-bold text-[#006F3C]">
-                {bookingParams.payAtHotel ? 'Pay at Check-In' : 'Paid Online'}
+                {createdBooking.paymentMethod === 'pay_at_hotel' ? 'Pay at check-in' : createdBooking.paymentStatus}
               </span>
             </div>
           </div>
@@ -477,9 +478,7 @@ export default function CheckoutFlow({ bookingParams, listing, userEmail = '', u
               <span>Go to My Bookings</span>
             </button>
             <button
-              onClick={() => {
-                alert('Sent PDF print request.');
-              }}
+              onClick={() => window.print()}
               id="btn-print-receipt"
               className="w-full btn-secondary-mobile min-h-[48px]"
             >

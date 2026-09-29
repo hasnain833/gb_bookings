@@ -63,7 +63,7 @@ export interface Booking {
   startDate: string;
   endDate: string;
   totalPrice: number;
-  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'no_show';
   paymentStatus: 'pending' | 'paid' | 'refunded';
   paymentMethod: 'card' | 'jazzcash' | 'easypaisa' | 'pay_at_hotel';
   createdAt: string;
@@ -71,6 +71,14 @@ export interface Booking {
   guests?: number;
   duration?: number; // nights or days
   withDriver?: boolean;
+  reference?: string;
+  roomTypeId?: string;
+  roomName?: string;
+  rooms?: number;
+  adults?: number;
+  children?: number;
+  nightlyRate?: number;
+  specialRequests?: string;
 }
 
 export interface Review {

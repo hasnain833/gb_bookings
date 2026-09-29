@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Building2, CheckCircle2, FileText, Hotel, LoaderCircle, Upload } from 'lucide-react';
 import { ApiError, api, type VendorListing, type VendorProfile } from '../../shared/api/api';
+import VendorReservations from './VendorReservations';
 
 interface VendorDashboardProps { setView: (view: string) => void }
 const inputClass = 'min-h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[#006F3C]';
@@ -92,7 +93,7 @@ export default function VendorDashboard({ setView: _setView }: VendorDashboardPr
 
   return (
     <div className="space-y-8 pb-16">
-      <header><h1 className="text-2xl font-bold text-slate-900">Vendor Console</h1><p className="text-sm text-slate-500">Manage verification and hotel inventory.</p></header>
+      <header><h1 className="text-2xl font-bold text-slate-900">Vendor Console</h1><p className="text-sm text-slate-500">Manage verification, reservations and hotel inventory.</p></header>
       {message && <p className="border-l-4 border-[#006F3C] bg-emerald-50 p-3 text-sm text-slate-700" role="status">{message}</p>}
 
       {!vendor && (
@@ -128,6 +129,7 @@ export default function VendorDashboard({ setView: _setView }: VendorDashboardPr
 
       {vendor?.status === 'approved' && <>
         <section className="flex items-center gap-3 border-y border-slate-200 py-4"><CheckCircle2 className="size-5 text-emerald-600" /><div><h2 className="font-bold text-slate-900">Approved vendor</h2><p className="text-xs text-slate-500">{vendor.name}</p></div></section>
+        <VendorReservations />
         <form onSubmit={createHotel} className="space-y-5">
           <div className="flex items-center gap-3"><Hotel className="size-5 text-indigo-600" /><h2 className="font-bold text-slate-900">Add a hotel</h2></div>
           <div className="grid gap-4 md:grid-cols-2">

@@ -25,6 +25,7 @@ export default function UserDashboard({ userEmail, userName, setView, onSelectBo
   const [activeTab, setActiveTab] = useState<'trips' | 'wishlist' | 'wallet' | 'rewards' | 'notifications' | 'security'>('trips');
   const [cancelBookingConfirmId, setCancelBookingConfirmId] = useState<string | null>(null);
   const [cancellingInProgress, setCancellingInProgress] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
 
   useBodyScrollLock(!!cancelBookingConfirmId);
 
@@ -59,22 +60,20 @@ export default function UserDashboard({ userEmail, userName, setView, onSelectBo
   const handleCancelBooking = async (bookingId: string) => {
     try {
       setCancellingInProgress(true);
-      const res = await fetch(`/api/bookings/${bookingId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'cancelled', paymentStatus: 'refunded' })
-      });
-
-      if (res.ok) {
-        setCancelBookingConfirmId(null);
-        await loadDashboardData();
-      }
-    } catch (err) {
-      console.error(err);
+      setCancelError(null);
+      await api.cancelBooking(bookingId, 'Cancelled by guest');
+      setCancelBookingConfirmId(null);
+      await loadDashboardData();
+    } catch (reason) {
+      setCancelError(reason instanceof Error ? reason.message : 'The booking could not be cancelled.');
     } finally {
       setCancellingInProgress(false);
     }
   };
+
+  // Mirrors the server rule: guests can cancel pending/confirmed stays before the check-in date.
+  const todayPk = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Karachi' }).format(new Date());
+  const canCancel = (booking: Booking) => ['pending', 'confirmed'].includes(booking.status) && todayPk < booking.startDate;
 
   // Mark Notification as read
   const handleReadNotification = async (notifId: string) => {
@@ -248,7 +247,7 @@ export default function UserDashboard({ userEmail, userName, setView, onSelectBo
                             <span>Invoice</span>
                           </button>
 
-                          {booking.status !== 'cancelled' && (
+                          {canCancel(booking) && (
                             <button
                               id={`btn-dash-cancel-${booking.id}`}
                               onClick={() => setCancelBookingConfirmId(booking.id)}
@@ -528,8 +527,9 @@ export default function UserDashboard({ userEmail, userName, setView, onSelectBo
                 Cancel Trip Reservation?
               </h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Are you sure you want to cancel booking <span className="font-mono font-bold text-slate-800">#{cancelBookingConfirmId}</span>? An automatic full/partial refund will be credited instantly back to your virtual wallet balance.
+                Are you sure you want to cancel booking <span className="font-mono font-bold text-slate-800">{bookings.find((booking) => booking.id === cancelBookingConfirmId)?.reference ?? cancelBookingConfirmId}</span>? The room will be released. Nothing was charged, so no refund is needed.
               </p>
+              {cancelError && <p id="cancel-booking-error" role="alert" className="mt-2 text-xs font-bold text-rose-600">{cancelError}</p>}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 border-t border-slate-100">
@@ -545,6 +545,7 @@ export default function UserDashboard({ userEmail, userName, setView, onSelectBo
                 type="button"
                 disabled={cancellingInProgress}
                 onClick={() => handleCancelBooking(cancelBookingConfirmId)}
+                aria-describedby={cancelError ? 'cancel-booking-error' : undefined}
                 className="w-full min-h-[44px] py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
               >
                 {cancellingInProgress ? 'Cancelling...' : 'Confirm Cancel'}

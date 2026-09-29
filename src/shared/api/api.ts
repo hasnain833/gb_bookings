@@ -7,6 +7,8 @@ import type {
   WalletTransaction,
 } from '../../types';
 
+export const AUTH_EXPIRED_EVENT = 'gb:auth-expired';
+
 export class ApiError extends Error {
   status: number;
 
@@ -43,7 +45,8 @@ async function request<T>(path: string, init: RequestInit = {}, allowRefresh = t
         await request('/api/auth/refresh', { method: 'POST' }, false);
         return request<T>(path, init, false);
       } catch {
-        // Return the original request error so callers receive the relevant context.
+        // The session is gone; let the app shell drop its signed-in state.
+        window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
       }
     }
 
@@ -128,11 +131,63 @@ export interface VendorListing {
   rejectionReason?: string;
 }
 
+/** Server-side listing filters; dates/guests only return listings with a free room that fits. */
+export interface ListingFilters {
+  location?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  minRating?: number;
+  amenities?: string;
+  checkIn?: string;
+  checkOut?: string;
+  guests?: number;
+  sort?: 'recommended' | 'price-asc' | 'price-desc' | 'rating' | 'newest';
+  limit?: number;
+}
+
+export interface RoomAvailability {
+  id: string;
+  name: string;
+  description?: string;
+  bedType: string;
+  maxAdults: number;
+  maxChildren: number;
+  amenities: string[];
+  available: number;
+  bookable: boolean;
+  nightlyRate: number;
+  totalPrice: number;
+}
+
+export interface ListingAvailability {
+  listingId: string;
+  checkIn: string;
+  checkOut: string;
+  nights: number;
+  currency: 'PKR';
+  rooms: RoomAvailability[];
+}
+
+export interface CreateBookingInput {
+  listingId: string;
+  roomTypeId: string;
+  checkIn: string;
+  checkOut: string;
+  rooms: number;
+  adults: number;
+  children: number;
+  guest: { name: string; email: string; phone: string };
+  specialRequests?: string;
+}
+
+export type VendorBookingAction = 'confirm' | 'cancel' | 'complete' | 'no_show';
+
 export const api = {
-  async getListings(params: { type?: ListingType | 'all'; search?: string } = {}) {
+  async getListings(params: { type?: ListingType | 'all'; search?: string } & ListingFilters = {}) {
     const query = new URLSearchParams();
-    if (params.type) query.set('type', params.type);
-    if (params.search) query.set('search', params.search);
+    for (const [key, value] of Object.entries(params)) {
+      if (value !== undefined && value !== '') query.set(key, String(value));
+    }
     const suffix = query.size ? `?${query.toString()}` : '';
     const payload = await request<Listing[] | { data: Listing[] }>(`/api/listings${suffix}`);
     const listings = unwrapCollection(payload);
@@ -306,7 +361,43 @@ export const api = {
   },
 
   getBookings() {
-    return request<Booking[] | { data: Booking[] }>('/api/bookings').then(unwrapCollection);
+    return request<Booking[] | { data: Booking[] }>('/api/v1/bookings').then(unwrapCollection);
+  },
+
+  getListingAvailability(listingId: string, params: { checkIn: string; checkOut: string; adults: number; children?: number; rooms?: number }) {
+    const query = new URLSearchParams({
+      checkIn: params.checkIn,
+      checkOut: params.checkOut,
+      adults: String(params.adults),
+      children: String(params.children ?? 0),
+      rooms: String(params.rooms ?? 1),
+    });
+    return request<ListingAvailability>(`/api/v1/listings/${encodeURIComponent(listingId)}/availability?${query}`);
+  },
+
+  createBooking(input: CreateBookingInput, idempotencyKey: string) {
+    return request<{ data: Booking }>('/api/v1/bookings', {
+      method: 'POST',
+      headers: { 'Idempotency-Key': idempotencyKey },
+      body: JSON.stringify({ ...input, paymentMethod: 'pay_at_hotel' }),
+    }).then((result) => result.data);
+  },
+
+  cancelBooking(bookingId: string, reason: string) {
+    return request<{ data: Booking }>(`/api/v1/bookings/${encodeURIComponent(bookingId)}/cancel`, {
+      method: 'POST', body: JSON.stringify({ reason }),
+    }).then((result) => result.data);
+  },
+
+  getVendorBookings(status?: Booking['status']) {
+    const suffix = status ? `?status=${status}` : '';
+    return request<{ data: Booking[] }>(`/api/v1/vendor/bookings${suffix}`).then((result) => result.data);
+  },
+
+  actOnVendorBooking(bookingId: string, action: VendorBookingAction, reason?: string) {
+    return request<{ data: Booking }>(`/api/v1/vendor/bookings/${encodeURIComponent(bookingId)}/actions`, {
+      method: 'POST', body: JSON.stringify({ action, ...(reason ? { reason } : {}) }),
+    }).then((result) => result.data);
   },
 
   getNotifications() {

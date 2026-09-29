@@ -18,7 +18,17 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   </head>
   <body class="bg-[#FAFAFA] text-[#1A1A1A] overflow-x-hidden min-w-[320px] antialiased selection:bg-[#006F3C] selection:text-white">
-    <div id="root"></div>
+    <div id="root">
+      <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#fafafa;color:#1a1a1a;font-family:Inter,system-ui,sans-serif">
+        <div style="display:flex;align-items:center;gap:12px">
+          <img src="/favicon.svg" width="40" height="40" alt="" />
+          <div>
+            <strong style="display:block;font-size:18px">GBBookings</strong>
+            <span style="display:block;margin-top:3px;font-size:13px;color:#64748b">Loading...</span>
+          </div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

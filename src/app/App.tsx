@@ -1,9 +1,10 @@
 import React, { lazy, Suspense, useState, useEffect } from 'react';
 import Navbar from '../shared/components/Navbar';
 import MobileAppBottomNav from '../shared/components/MobileAppBottomNav';
-import { Listing } from '../types';
+import { Booking, Listing } from '../types';
+import type { CheckoutParams } from '../features/booking/CheckoutFlow';
 import { useLanguage } from './LanguageContext';
-import { api } from '../shared/api/api';
+import { api, AUTH_EXPIRED_EVENT } from '../shared/api/api';
 
 const ExploreSection = lazy(() => import('../features/catalog/ExploreSection'));
 const ListingsSearch = lazy(() => import('../features/catalog/ListingsSearch'));
@@ -24,6 +25,9 @@ const AccountActionModal = lazy(() => import('../features/auth/AccountActionModa
 const Footer = lazy(() => import('../shared/components/Footer'));
 const MobileInstallPrompt = lazy(() => import('../shared/components/MobileInstallPrompt'));
 
+// Views that need a signed-in user. Every navigation path (navbar, dashboards, deep flows) is gated at render time.
+const PROTECTED_VIEWS = new Set(['user-dashboard', 'vendor-dashboard', 'checkout']);
+
 export default function App() {
   const { t, isRtl } = useLanguage();
   const [view, setView] = useState<string>('explore'); // 'explore' (Homepage) | 'homestays' | 'hotels' | 'cars' | 'tours' | 'destinations' | 'offers' | 'search' | 'details' | 'checkout' | 'user-dashboard' | 'vendor-dashboard' | 'ai-planner' | 'support'
@@ -41,17 +45,12 @@ export default function App() {
   const [exploreTab, setExploreTab] = useState<'hotel' | 'homestay' | 'car' | 'tour'>('hotel');
 
   // Booking details passed to Checkout Flow
-  const [bookingParams, setBookingParams] = useState<{
-    listingId: string;
-    startDate: string;
-    endDate: string;
-    totalPrice: number;
-    guests: number;
-    duration: number;
-    withDriver?: boolean;
-  } | null>(null);
+  const [bookingParams, setBookingParams] = useState<CheckoutParams | null>(null);
+  // Set when reopening a past booking's receipt, so checkout never re-submits it.
+  const [receiptBooking, setReceiptBooking] = useState<Booking | null>(null);
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const [userName, setUserName] = useState('');
   const [notificationsCount, setNotificationsCount] = useState(0);
@@ -79,12 +78,33 @@ export default function App() {
       })
       .catch(() => {
         if (active) setIsLoggedIn(false);
+      })
+      .finally(() => {
+        if (active) setAuthChecked(true);
       });
+
+    const handleAuthExpired = () => {
+      setIsLoggedIn(false);
+      setUserEmail('');
+      setUserName('');
+      setNotificationsCount(0);
+    };
+    window.addEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
 
     return () => {
       active = false;
+      window.removeEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
     };
   }, []);
+
+  const needsSignIn = authChecked && !isLoggedIn && PROTECTED_VIEWS.has(view);
+
+  useEffect(() => {
+    if (needsSignIn) {
+      setAuthModalMode('signin');
+      setShowAuthModal(true);
+    }
+  }, [needsSignIn]);
 
   useEffect(() => {
     const updateNavHeight = () => {
@@ -122,7 +142,8 @@ export default function App() {
     setUserEmail(email);
     setUserName(finalName);
     setIsLoggedIn(true);
-    setView('user-dashboard');
+    // Resume a protected view the user was sent to sign in for (e.g. checkout); otherwise open the dashboard.
+    setView((current) => PROTECTED_VIEWS.has(current) ? current : 'user-dashboard');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -158,7 +179,8 @@ export default function App() {
   };
 
   // Launch checkout flow helper
-  const handleProceedToCheckout = (params: any) => {
+  const handleProceedToCheckout = (params: CheckoutParams) => {
+    setReceiptBooking(null);
     setBookingParams(params);
     setView('checkout');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -172,10 +194,6 @@ export default function App() {
   };
 
   const handleNavigation = (v: string) => {
-    if (!isLoggedIn && ['dashboard-user', 'user-dashboard', 'dashboard-vendor', 'vendor-dashboard'].includes(v)) {
-      handleOpenAuthModal('signin');
-      return;
-    }
     if (v === 'hotels' || v === 'browse-hotels') {
       setView('hotels');
     } else if (v === 'homestays' || v === 'browse-homestays') {
@@ -237,6 +255,25 @@ export default function App() {
         }}
       >
         <Suspense fallback={<div className="min-h-[45vh] animate-pulse rounded-lg bg-slate-100" aria-label="Loading page" />}>
+        {PROTECTED_VIEWS.has(view) && !isLoggedIn ? (
+          <section className="mx-auto max-w-md py-16 text-center" aria-live="polite">
+            {authChecked ? (
+              <>
+                <h1 className="text-xl font-bold">Sign in to continue</h1>
+                <p className="mt-2 text-sm text-slate-600">You need an account to view this page.</p>
+                <button
+                  type="button"
+                  onClick={() => handleOpenAuthModal('signin')}
+                  className="mt-5 min-h-11 bg-[#006F3C] px-5 py-2 text-sm font-semibold text-white hover:bg-[#005C32]"
+                >
+                  Sign in
+                </button>
+              </>
+            ) : (
+              <div className="min-h-[30vh] animate-pulse rounded-lg bg-slate-100" aria-label="Checking your session" />
+            )}
+          </section>
+        ) : (<>
         {view === 'explore' && (
           <ExploreSection 
             setView={handleNavigation}
@@ -322,8 +359,9 @@ export default function App() {
             listing={selectedListing}
             userEmail={userEmail}
             userName={userName}
-            onCancel={() => setView('details')}
-            onSuccess={(booking) => {
+            existingBooking={receiptBooking ?? undefined}
+            onCancel={() => setView(receiptBooking ? 'user-dashboard' : 'details')}
+            onSuccess={() => {
               setView('user-dashboard');
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
@@ -341,16 +379,16 @@ export default function App() {
             onSelectListing={handleSelectListing}
             onSelectBooking={(booking) => {
               // Open checkout invoice receipt page again
-              const listingRef = selectedListing || {
+              const listingRef = {
                 id: booking.listingId,
                 title: booking.listingTitle,
                 image: booking.listingImage,
                 location: booking.listingLocation,
-                price: booking.totalPrice / booking.duration,
-                rating: 5,
-                reviewsCount: 1,
+                price: booking.nightlyRate ?? booking.totalPrice,
+                rating: 0,
+                reviewsCount: 0,
                 type: booking.listingType,
-                description: 'Secured alpine suite reservation.'
+                description: '',
               } as Listing;
               setSelectedListing(listingRef);
               setBookingParams({
@@ -359,9 +397,10 @@ export default function App() {
                 endDate: booking.endDate,
                 totalPrice: booking.totalPrice,
                 guests: booking.guests || 2,
-                duration: booking.duration,
+                duration: booking.duration ?? 1,
                 withDriver: booking.withDriver
               });
+              setReceiptBooking(booking);
               setView('checkout');
             }}
           />
@@ -389,6 +428,7 @@ export default function App() {
         {view === 'support' && (
           <SupportCentre />
         )}
+        </>)}
         </Suspense>
       </main>
 

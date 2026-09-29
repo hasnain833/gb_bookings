@@ -19,6 +19,10 @@ interface ListingsSearchProps {
 
 type SortOption = 'recommended' | 'price-low' | 'price-high' | 'rating';
 
+const SORT_PARAM = { recommended: 'recommended', 'price-low': 'price-asc', 'price-high': 'price-desc', rating: 'rating' } as const;
+const PRICE_CEILING = 100000;
+const todayPk = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Karachi' }).format(new Date());
+
 const TYPE_LABELS: Record<ListingType, string> = {
   hotel: 'Hotels',
   homestay: 'Homestays',
@@ -30,12 +34,26 @@ const TYPE_LABELS: Record<ListingType, string> = {
 
 export default function ListingsSearch({ type, initialFilters, onSelectListing }: ListingsSearchProps) {
   const { isRtl } = useLanguage();
-  const { listings, loading, error, reload } = useListings(type);
   const [query, setQuery] = useState(initialFilters.destination || '');
-  const [maxPrice, setMaxPrice] = useState(100000);
+  const [maxPrice, setMaxPrice] = useState(PRICE_CEILING);
   const [minimumRating, setMinimumRating] = useState(0);
   const [sortBy, setSortBy] = useState<SortOption>('recommended');
   const [transmission, setTransmission] = useState<'all' | 'Automatic' | 'Manual'>('all');
+  const [checkIn, setCheckIn] = useState(initialFilters.startDate || '');
+  const [checkOut, setCheckOut] = useState(initialFilters.endDate || '');
+  const guests = initialFilters.extra.guestCount || undefined;
+  const supportsDates = type === 'hotel' || type === 'homestay';
+  const datesValid = supportsDates && Boolean(checkIn && checkOut && checkOut > checkIn);
+
+  // Price, rating, sort and availability are filtered on the server; free-text matching stays client-side for partial words.
+  // ponytail: first 100 results only; add pagination when the catalog outgrows it.
+  const { listings, loading, error, reload } = useListings(type, '', {
+    maxPrice: maxPrice < PRICE_CEILING ? maxPrice : undefined,
+    minRating: minimumRating || undefined,
+    sort: SORT_PARAM[sortBy],
+    ...(datesValid ? { checkIn, checkOut, guests } : {}),
+    limit: 100,
+  });
 
   useEffect(() => {
     setQuery(initialFilters.destination || '');
@@ -43,24 +61,18 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
 
   const results = useMemo(() => {
     const term = query.trim().toLowerCase();
-    const filtered = listings.filter((listing) => {
+    return listings.filter((listing) => {
       if (term && ![listing.title, listing.location, listing.description].some((value) => value.toLowerCase().includes(term))) return false;
-      if (listing.price > maxPrice || listing.rating < minimumRating) return false;
       if (type === 'car' && transmission !== 'all' && listing.carSpecs?.transmission !== transmission) return false;
       return true;
     });
-
-    return [...filtered].sort((a, b) => {
-      if (sortBy === 'price-low') return a.price - b.price;
-      if (sortBy === 'price-high') return b.price - a.price;
-      if (sortBy === 'rating') return b.rating - a.rating;
-      return Number(b.featured) - Number(a.featured) || b.rating - a.rating;
-    });
-  }, [listings, maxPrice, minimumRating, query, sortBy, transmission, type]);
+  }, [listings, query, transmission, type]);
 
   const resetFilters = () => {
     setQuery('');
-    setMaxPrice(100000);
+    setMaxPrice(PRICE_CEILING);
+    setCheckIn('');
+    setCheckOut('');
     setMinimumRating(0);
     setSortBy('recommended');
     setTransmission('all');
@@ -92,9 +104,24 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
             <button onClick={resetFilters} className="text-xs font-bold text-[#006F3C]">Reset</button>
           </div>
 
+          {supportsDates && (
+            <fieldset className="space-y-2">
+              <legend className="text-xs font-bold text-slate-600">Available between</legend>
+              <label className="block text-[11px] text-slate-500">Check-in
+                <input type="date" min={todayPk()} value={checkIn} onChange={(event) => setCheckIn(event.target.value)}
+                  className="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm" />
+              </label>
+              <label className="block text-[11px] text-slate-500">Check-out
+                <input type="date" min={checkIn || todayPk()} value={checkOut} onChange={(event) => setCheckOut(event.target.value)}
+                  className="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm" />
+              </label>
+              {datesValid && <p className="text-[11px] text-slate-500">Showing only properties with a free room{guests ? ` for ${guests} guests` : ''}.</p>}
+            </fieldset>
+          )}
+
           <label className="block space-y-2">
-            <span className="text-xs font-bold text-slate-600">Maximum price: PKR {maxPrice.toLocaleString()}</span>
-            <input type="range" min="1000" max="100000" step="1000" value={maxPrice} onChange={(event) => setMaxPrice(Number(event.target.value))} className="w-full accent-[#006F3C]" />
+            <span className="text-xs font-bold text-slate-600">Maximum price: PKR {maxPrice.toLocaleString()}{maxPrice >= PRICE_CEILING ? '+' : ''}</span>
+            <input type="range" min="1000" max={PRICE_CEILING} step="1000" value={maxPrice} onChange={(event) => setMaxPrice(Number(event.target.value))} className="w-full accent-[#006F3C]" />
           </label>
 
           <label className="block space-y-2">

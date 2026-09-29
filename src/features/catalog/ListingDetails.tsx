@@ -4,6 +4,8 @@ import { useLanguage, tListing, tReview } from '../../app/LanguageContext';
 import { DetailsSkeleton } from '../../shared/components/SkeletonLoader';
 import { useBodyScrollLock } from '../../shared/utils/scrollLock';
 import { api } from '../../shared/api/api';
+import RoomBookingPanel from '../booking/RoomBookingPanel';
+import type { CheckoutParams } from '../booking/CheckoutFlow';
 import { 
   ArrowLeft, ArrowRight, Star, MapPin, Calendar, Users, ShieldCheck, Heart, Share2, 
   Sparkles, Send, MessageSquare, AlertCircle, Check, Shield, Tag, Gift, 
@@ -13,20 +15,7 @@ import {
 interface ListingDetailsProps {
   listingId: string;
   onBack: () => void;
-  onProceedToCheckout: (bookingParams: {
-    listingId: string;
-    startDate: string;
-    endDate: string;
-    totalPrice: number;
-    guests: number;
-    duration: number;
-    withDriver?: boolean;
-    upgradeOption?: string;
-    cancellationPolicy?: string;
-    payAtHotel?: boolean;
-    appliedPromo?: string;
-    discountAmount?: number;
-  }) => void;
+  onProceedToCheckout: (bookingParams: CheckoutParams) => void;
 }
 
 export default function ListingDetails({ listingId, onBack, onProceedToCheckout }: ListingDetailsProps) {
@@ -300,36 +289,6 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
     } finally {
       setSubmittingReview(false);
     }
-  };
-
-  const handleBookingSubmit = () => {
-    if (!startDate || !endDate) {
-      alert('Please select both start and end reservation dates.');
-      return;
-    }
-    
-    // Check for valid date ranges
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    if (end < start) {
-      alert('End date cannot precede the start date. Please choose a valid date range.');
-      return;
-    }
-
-    onProceedToCheckout({
-      listingId,
-      startDate,
-      endDate,
-      totalPrice: totalPricing,
-      guests,
-      duration,
-      withDriver: listing?.type === 'car' ? withDriver : undefined,
-      upgradeOption,
-      cancellationPolicy,
-      payAtHotel,
-      appliedPromo: appliedPromo || undefined,
-      discountAmount: couponDiscount + policyDiscount
-    });
   };
 
   if (loading) {
@@ -781,6 +740,9 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
               </div>
             </div>
 
+            {listing.type === 'hotel' || listing.type === 'homestay' ? (
+              <RoomBookingPanel listingId={listingId} onProceed={onProceedToCheckout} />
+            ) : (<>
             {/* Date and Guest Pickers */}
             <div className="space-y-4" id="form-booking-dates">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -994,7 +956,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
                 <div className="flex justify-between text-slate-500">
                   <span>
                     Stay rate {upgradeOption !== 'standard' ? `(${upgradeOption})` : ''} 
-                    × {duration} {listing.type === 'hotel' ? 'Nights' : 'Days'}
+                    × {duration} Days
                   </span>
                   <span className="font-bold text-slate-800">PKR {basePrice.toLocaleString()}</span>
                 </div>
@@ -1004,14 +966,6 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
                   <div className="flex justify-between text-slate-500">
                     <span>Mountain Driver Guide</span>
                     <span className="font-bold text-slate-800">PKR {driverCharge.toLocaleString()}</span>
-                  </div>
-                )}
-
-                {/* Oyo Sanitization fee */}
-                {listing.type === 'hotel' && (
-                  <div className="flex justify-between text-slate-500">
-                    <span className="flex items-center gap-0.5">Oyo Quality Assurance Fee <HelpCircle className="w-3 h-3 text-slate-400 shrink-0" title="Sanitization and guaranteed heating levy" /></span>
-                    <span className="font-bold text-slate-800">PKR 1,500</span>
                   </div>
                 )}
 
@@ -1058,13 +1012,14 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
               </div>
             )}
 
-            {/* Booking Trigger Button */}
+            {/* Booking Trigger Button: cars and tours are not bookable online until their inventory modules ship. */}
             <button
-              onClick={handleBookingSubmit}
+              type="button"
+              disabled
               id="btn-checkout-proceed"
-              className="w-full min-h-[46px] bg-[#0F172A] hover:bg-slate-800 text-white font-bold py-3.5 px-6 rounded-xl shadow-xs transition-all text-xs sm:text-sm flex items-center justify-center space-x-1.5 cursor-pointer uppercase tracking-wider"
+              className="w-full min-h-[46px] bg-[#0F172A] text-white font-bold py-3.5 px-6 rounded-xl text-xs sm:text-sm uppercase tracking-wider opacity-50 cursor-not-allowed"
             >
-              <span>{payAtHotel ? 'Book via Pay At Stay' : 'Proceed to Checkout'}</span>
+              <span>Online booking coming soon</span>
             </button>
 
             {/* Policy highlights */}
@@ -1076,6 +1031,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
                   : 'Non-Refundable Stay reservation. Covered by our 100% room availability assurance guarantee.'}
               </span>
             </div>
+            </>)}
           </div>
         </div>
       </div>
@@ -1101,12 +1057,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
         <button
           type="button"
           onClick={() => {
-            const bookingWidget = document.getElementById('booking-console-sidebar');
-            if (bookingWidget) {
-              bookingWidget.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            } else {
-              handleBookingSubmit();
-            }
+            document.getElementById('details-booking-column')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }}
           className="bg-[#006F3C] hover:bg-[#005C32] active:bg-[#004827] text-white font-bold text-xs uppercase tracking-wider px-5 py-3 rounded-xl shadow-md transition-all cursor-pointer min-h-[44px] flex items-center justify-center gap-1.5 app-tap"
         >

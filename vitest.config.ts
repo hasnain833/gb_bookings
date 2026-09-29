@@ -13,7 +13,7 @@ export default defineConfig({
       CLOUDINARY_API_SECRET: '',
       GEMINI_API_KEY: '',
     },
-    include: ['src/server/tests/**/*.test.ts'],
+    include: ['server/tests/**/*.test.ts'],
     clearMocks: true,
   },
 });

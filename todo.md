@@ -2,6 +2,20 @@
 
 This document is the implementation plan for converting the current frontend and API shell into a production-ready, multi-vendor travel marketplace. It is based on the existing React application, the empty Express API contracts, and the supplied project proposal documents.
 
+## 0. Client Phase 1 Status (Core Booking Platform)
+
+| Feature | Status |
+|---|---|
+| Login/signup, password reset, OTP (all roles) | Done. Custom JWT + HTTP-only cookie sessions (not Firebase). |
+| User roles and permissions | Done. RBAC on the server, admin user status controls, protected UI routes. |
+| Hotel listing management | Done. Vendor hotels, room categories, Cloudinary images, prices, facilities. |
+| Hotel search and filters | Done. Location, price, rating, amenities, and dates/guests backed by live availability. |
+| Room availability | Done. Per-night inventory counters; concurrent last-room race covered by an integration test. |
+| Hotel booking system | Done. Server-priced pay-at-hotel bookings; guest cancel; vendor confirm/decline/complete/no-show; history for customer, vendor, and admin. |
+| Vendor registration and verification | Done. Application, document upload, admin approval. |
+
+Known Phase 1 limits: online payment is deferred to Phase 5 (pay-at-hotel only); cars and tours show "Online booking coming soon"; no admin web UI yet (admin APIs only); the cancellation policy is fixed at "before the check-in date".
+
 ## 1. Current State
 
 - [x] React 19, Vite, TypeScript, and Tailwind frontend exists.
@@ -10,11 +24,14 @@ This document is the implementation plan for converting the current frontend and
 - [x] Marketplace screens consume API data without static listing fallbacks or fabricated success states.
 - [x] Legacy mock listings, reviews, bookings, notifications, tickets, and browser-stored fake users have been removed.
 - [x] A modular Express backend now provides versioned APIs, compatibility routes, validation, logging, security middleware, health checks, and OpenAPI documentation.
-- [ ] Authentication endpoints and secure cookie sessions are implemented; the frontend is already wired for them.
-- [ ] Vendor listing creation is persisted.
-- [ ] Availability, pricing, payment, wallet, commission, payout, and refund logic is implemented securely on the server.
-- [ ] Admin operations and approval workflows are implemented.
-- [ ] Automated tests, API documentation, monitoring, and production deployment are complete.
+- [x] Authentication endpoints and secure cookie sessions are implemented; the frontend is already wired for them.
+- [x] Vendor listing creation is persisted.
+- [x] Hotel/homestay availability and pricing are computed securely on the server.
+- [ ] Payment, wallet, commission, payout, and refund logic is implemented securely on the server.
+- [x] Admin approval workflows (vendors, listings), user status controls, and booking oversight exist as APIs.
+- [ ] Admin web workspace exists in the frontend.
+- [x] Automated tests and OpenAPI documentation cover the Phase 1 APIs.
+- [ ] Monitoring and production deployment are complete.
 
 ## 2. Technical Decisions
 
@@ -32,7 +49,7 @@ This document is the implementation plan for converting the current frontend and
 - Background jobs and caching: Redis plus BullMQ, introduced when notifications, expiry jobs, and inventory holds are implemented.
 - API documentation: OpenAPI/Swagger generated from maintained route schemas.
 - Testing: Vitest and Supertest for unit and API integration tests.
-- Logging: Pino structured logs with request IDs.
+- Logging: console logging with request IDs (Pino was removed; reintroduce structured logging with log shipping in Phase 9).
 - Deployment: a persistent Node hosting platform such as Render, Railway, Fly.io, Cloud Run, or AWS. The frontend may remain on Vercel.
 
 ### Business rules
@@ -45,39 +62,37 @@ This document is the implementation plan for converting the current frontend and
 - Sensitive actions are auditable. Admin, vendor, payout, refund, and booking-state changes produce audit events.
 - All vendor-owned resources require both role permission and ownership checks.
 
-## 3. Proposed Backend Structure
+## 3. Project Structure
+
+Current layout (modules marked *planned* do not exist yet):
 
 ```text
-src/server/
-  app.ts
-  start.ts
-  config/
-  database/
-  middleware/
-  shared/
+src/                    React frontend (Vite)
+  app/                  App shell, providers, error boundary, route guard
+  features/             account, auth, booking, catalog, planner, support, vendor
+  shared/               API client, components, hooks, utils
+  types.ts              Types shared with the backend
+server/                 Express + MongoDB API
+  index.ts              Entry point (local server or Vercel handler)
+  app.ts                Middleware and route wiring
+  start.ts              HTTP server lifecycle; serves dist/ in production
+  config/ database/ middleware/ shared/ docs/ types/
+  models/               Mongoose models (shared across modules)
   modules/
-    auth/
-    users/
-    vendors/
-    listings/
-    inventory/
-    bookings/
-    payments/
-    wallets/
-    promotions/
-    reviews/
-    messaging/
-    support/
-    notifications/
-    analytics/
-    ai-planner/
-    admin/
-  jobs/
-  docs/
-  tests/
+    auth/               Sessions, OTP, recovery, RBAC (permissions defined in code)
+    users/              Admin user status controls
+    vendors/            Vendor onboarding and approval
+    vendor-listings/    Vendor hotel and room management, moderation
+    listings/           Public catalog and search
+    bookings/           Availability, inventory counters, booking lifecycle
+    media/ email/ otp/ audit/ health/ ai/
+    payments/ wallets/ promotions/ reviews/ messaging/ support/ notifications/ analytics/   (planned)
+  tests/                Vitest + Supertest; bookings run on an in-memory MongoDB
+api/index.ts            Vercel serverless entry
+scripts/                dev.mjs (runs API + frontend), seed-listings.ts, seed-data/
 ```
 
-Each module should contain its model, validation schema, service, controller, routes, permissions, and tests. Controllers handle HTTP concerns; business rules belong in services.
+Each module holds its routes, Zod schemas, and service. Routes handle HTTP concerns; business rules live in services. Models stay in `server/models/` because several modules share them.
 
 ## 4. Phase 0: Confirm Product Rules
 
@@ -110,7 +125,7 @@ Deliverable: approved business-rule checklist and environment/provider choices.
 ### Initial data model
 
 - [x] Create the base Listing schema with public IDs, timestamps, status, and soft-delete metadata.
-- [x] Create User, Session, Role/Permission, Vendor, Listing, Media, and AuditLog models.
+- [x] Create User, Session, Vendor, Listing, Media, and AuditLog models. Roles and permissions live in code (`server/modules/auth/rbac.ts`), not the database.
 - [x] Add Listing text, geospatial, status, ownership, and common filtering indexes.
 - [x] Write an idempotent Listing seed command that imports a supplied JSON file.
 - [x] Replace mock listing reads with MongoDB queries while preserving legacy frontend response shapes.
@@ -143,15 +158,17 @@ Deliverable: persistent listings served from MongoDB through documented, tested 
 - [x] Implement profile read/update and password change with session revocation.
 - [x] Add roles: customer, vendor owner, vendor staff, support agent, admin, and super admin.
 - [x] Define centralized permission constants and route-level authorization middleware using current database roles.
-- [ ] Add ownership checks for bookings, listings, tickets, reviews, and messages.
-- [ ] Add admin user status controls: activate, suspend, verify, and archive.
+- [x] Add ownership checks for bookings and listings.
+- [ ] Add ownership checks for tickets, reviews, and messages (when those modules exist).
+- [x] Add admin user status controls: activate, suspend, verify, and archive.
 
 ### Frontend integration
 
 - [x] Replace `gb_registered_users` and `gb_current_user` localStorage authentication.
 - [x] Add an authenticated API client that handles refresh and logout consistently.
-- [ ] Protect customer, vendor, employee, and admin routes.
-- [ ] Remove email query parameters as a method of identifying the signed-in user.
+- [x] Protect customer, vendor, and checkout routes (render-time guard; session expiry signs the UI out).
+- [ ] Protect employee and admin routes once their frontend workspaces exist.
+- [x] Remove email query parameters as a method of identifying the signed-in user.
 
 Deliverable: real server-backed login and permission-protected APIs for every role.
 
@@ -179,7 +196,7 @@ Deliverable: real server-backed login and permission-protected APIs for every ro
 
 ### Search and discovery
 
-- [ ] Implement text, destination, date, guest, price, rating, amenity, and product-type filters.
+- [x] Implement text, destination, date, guest, price, rating, amenity, and product-type filters.
 - [ ] Add geospatial coordinates and radius/map-bound search.
 - [ ] Implement pagination, sorting, featured items, and destination pages.
 - [ ] Add search indexes only after representative query performance is measured.
@@ -194,13 +211,13 @@ Deliverable: vendors manage persisted inventory and admins control what becomes 
 - [ ] Add calendars, stock counts, closures, minimum/maximum stay, and booking windows.
 - [ ] Add date-based rate plans and occupancy-based pricing.
 - [ ] Implement temporary inventory holds with automatic expiration.
-- [ ] Use atomic updates/transactions to prevent double booking.
+- [x] Use atomic per-night inventory counters to prevent double booking (unique index + conditional increment, compensating release).
 - [ ] Add vendor bulk calendar and pricing update APIs.
 
 ### Pricing
 
 - [ ] Implement server-side subtotal, taxes, fees, extras, discounts, and final total calculation.
-- [ ] Store immutable price snapshots on booking records.
+- [x] Store immutable price snapshots on booking records.
 - [ ] Return an expiring quote ID from a quote endpoint before booking creation.
 - [ ] Validate coupons and eligibility only on the server.
 - [ ] Add currency and rounding rules.
@@ -208,13 +225,15 @@ Deliverable: vendors manage persisted inventory and admins control what becomes 
 ### Booking lifecycle
 
 - [ ] Create Booking, BookingGuest, PriceSnapshot, InventoryHold, and Cancellation records.
-- [ ] Implement states: pending, awaiting payment, confirmed, completed, cancelled, expired, no-show, and refunded.
-- [ ] Implement quote, create, confirm, cancel, and booking-detail endpoints.
-- [ ] Add an idempotency key to booking creation and payment-sensitive operations.
+- [x] Implement Phase 1 states: pending, confirmed, completed, cancelled, and no-show.
+- [ ] Add payment-driven states: awaiting payment, expired, and refunded.
+- [x] Implement quote, create, confirm, cancel, and booking-detail endpoints.
+- [x] Add an idempotency key to booking creation.
+- [ ] Add idempotency keys to payment-sensitive operations.
 - [ ] Implement cancellation penalties and refund calculations.
-- [ ] Add customer, vendor, and admin booking queries with proper data visibility.
-- [ ] Replace the current in-memory booking endpoints and client-side price trust.
-- [ ] Correct the shared payment-method type to include `pay_at_hotel`.
+- [x] Add customer, vendor, and admin booking queries with proper data visibility.
+- [x] Replace the current in-memory booking endpoints and client-side price trust.
+- [x] Correct the shared payment-method type to include `pay_at_hotel`.
 
 Deliverable: transaction-safe booking flow with authoritative pricing and availability.
 
@@ -259,9 +278,10 @@ Deliverable: auditable payment and settlement flow with refunds and vendor payou
 ### Vendor APIs
 
 - [ ] Dashboard summaries for reservations, revenue, occupancy, cancellations, and ratings.
-- [ ] Booking management and operational notes.
+- [x] Booking management (confirm, decline, complete, no-show).
+- [ ] Operational notes on bookings.
 - [ ] Calendar, inventory, pricing, listing, staff, finance, and payout management.
-- [ ] Persist listing creation currently held only in component state.
+- [x] Persist listing creation currently held only in component state.
 
 ### Employee and admin APIs
 
@@ -379,7 +399,7 @@ Deliverable: tested, monitored, recoverable production release with operational 
 - [ ] Any new environment variable is documented in `.env.example`.
 - [ ] Any operational requirement is documented in the relevant runbook.
 
-## 16. Immediate Next Sprint
+## 16. Completed Sprint: Foundation
 
 - [x] Create the modular Express application shell.
 - [x] Add environment validation and MongoDB connection management.
@@ -387,8 +407,16 @@ Deliverable: tested, monitored, recoverable production release with operational 
 - [x] Implement the Listing model and idempotent JSON seed command.
 - [x] Replace `GET /api/listings` and `GET /api/listings/:id` with database-backed services.
 - [x] Add health and listing API tests.
-- [ ] Add seed command integration tests against a test database.
 - [x] Add initial OpenAPI documentation.
-- [ ] Verify the existing search and listing-detail screens against the new API.
+- [x] Seed command verified against a throwaway database (idempotent; creates a default room per hotel/homestay).
 
-Sprint completion result: the frontend looks unchanged, but listing data survives restarts and the backend has a maintainable production foundation.
+## 17. Next Sprint: Phase 1 Handover
+
+- [ ] Run `npm run seed:listings` against the Atlas database so seeded hotels have bookable rooms.
+- [ ] Click through search → listing → booking → vendor confirmation in the browser on staging.
+- [ ] Let vendors add, edit, and pause extra room categories from the vendor console (API exists; UI adds only the first room).
+- [ ] Let vendors list homestays through the vendor console (bookable today only via seeded data).
+- [ ] Build a minimal admin workspace for vendor/listing approvals, users, and bookings (APIs exist).
+- [ ] Email the guest and vendor on booking created, confirmed, and cancelled (Brevo is already integrated).
+- [ ] Confirm the cancellation policy with the client (currently: free until the day before check-in).
+- [ ] Add seed command integration tests to the automated suite.
