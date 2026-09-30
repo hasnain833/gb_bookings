@@ -18,7 +18,15 @@ function actionsFor(booking: Booking): Array<{ action: VendorBookingAction; labe
   return [];
 }
 
-export default function VendorReservations() {
+interface ReservationsSource {
+  load: (status?: Booking['status']) => Promise<Booking[]>;
+  act: (bookingId: string, action: VendorBookingAction, reason?: string) => Promise<Booking>;
+}
+
+const vendorSource: ReservationsSource = { load: api.getVendorBookings, act: api.actOnVendorBooking };
+
+/** Vendor reservations by default; the admin workspace passes the all-bookings source. */
+export default function VendorReservations({ source = vendorSource, title = 'Reservations' }: { source?: ReservationsSource; title?: string }) {
   const [status, setStatus] = useState<Booking['status'] | 'all'>('pending');
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,14 +37,14 @@ export default function VendorReservations() {
     let active = true;
     setLoading(true);
     setError(null);
-    api.getVendorBookings(status === 'all' ? undefined : status)
+    source.load(status === 'all' ? undefined : status)
       .then((result) => active && setBookings(result))
       .catch((reason: Error) => active && setError(reason.message))
       .finally(() => active && setLoading(false));
     return () => {
       active = false;
     };
-  }, [status]);
+  }, [status, source]);
 
   const act = async (booking: Booking, action: VendorBookingAction) => {
     let reason: string | undefined;
@@ -47,7 +55,7 @@ export default function VendorReservations() {
     setBusyId(booking.id);
     setError(null);
     try {
-      const updated = await api.actOnVendorBooking(booking.id, action, reason);
+      const updated = await source.act(booking.id, action, reason);
       // Drop it from a filtered list once it no longer matches.
       setBookings((items) => items
         .map((item) => item.id === updated.id ? updated : item)
@@ -64,7 +72,7 @@ export default function VendorReservations() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <CalendarCheck className="size-5 text-[#006F3C]" />
-          <h2 id="vendor-reservations-heading" className="font-bold text-slate-900">Reservations</h2>
+          <h2 id="vendor-reservations-heading" className="font-bold text-slate-900">{title}</h2>
         </div>
         <label className="text-xs font-semibold text-slate-600">
           <span className="sr-only">Filter by status</span>

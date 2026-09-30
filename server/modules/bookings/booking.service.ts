@@ -8,6 +8,7 @@ import { AppError, ServiceUnavailableError } from '../../shared/app-error.js';
 import { recordAuditEvent } from '../audit/audit.service.js';
 import type { SessionMetadata } from '../auth/auth.service.js';
 import { hasPermission } from '../auth/rbac.js';
+import { notifyBooking } from './booking-notifications.js';
 import { availableRoomCounts, releaseRooms, reserveRooms } from './availability.service.js';
 import type { CreateBookingInput, ListBookingsQuery } from './booking.schemas.js';
 import { stayNights, todayInPakistan } from './stay-dates.js';
@@ -164,6 +165,7 @@ export async function createBooking(
       resourceType: 'booking', resourceId: booking.publicId, ...metadata,
       metadata: { listingId: listing.publicId, checkIn: input.checkIn, checkOut: input.checkOut, rooms: input.rooms },
     });
+    await notifyBooking(booking, 'created');
     return { booking: serializeBooking(booking), replayed: false };
   } catch (error) {
     await releaseRooms(room._id, nights, input.rooms);
@@ -275,6 +277,7 @@ async function applyTransition(actor: Actor, booking: any, action: BookingAction
     resourceType: 'booking', resourceId: booking.publicId, ...metadata,
     metadata: reason ? { reason } : undefined,
   });
+  if (rule.to === 'confirmed' || rule.to === 'cancelled') await notifyBooking(updated, rule.to, reason);
   return serializeBooking(updated);
 }
 

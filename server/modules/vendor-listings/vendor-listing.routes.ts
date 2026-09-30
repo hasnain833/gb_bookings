@@ -71,7 +71,7 @@ vendorListingRouter.post('/:id/rooms', validate('params', listingParamsSchema), 
 }));
 
 vendorListingRouter.patch('/:id/rooms/:roomId', validate('params', roomParamsSchema), validate('body', updateRoomTypeSchema), asyncHandler(async (request, response) => {
-  const room = await updateRoomType(request.auth!.userId, request.params.id, request.params.roomId, request.body);
+  const room = await updateRoomType(request.auth!.userId, request.params.id, request.params.roomId, request.body, sessionMetadata(request));
   response.json({ data: room });
 }));
 

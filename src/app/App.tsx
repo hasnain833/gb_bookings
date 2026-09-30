@@ -18,6 +18,7 @@ const ListingDetails = lazy(() => import('../features/catalog/ListingDetails'));
 const CheckoutFlow = lazy(() => import('../features/booking/CheckoutFlow'));
 const UserDashboard = lazy(() => import('../features/account/UserDashboard'));
 const VendorDashboard = lazy(() => import('../features/vendor/VendorDashboard'));
+const AdminDashboard = lazy(() => import('../features/admin/AdminDashboard'));
 const AiPlanner = lazy(() => import('../features/planner/AiPlanner'));
 const SupportCentre = lazy(() => import('../features/support/SupportCentre'));
 const AuthModal = lazy(() => import('../features/auth/AuthModal'));
@@ -26,7 +27,8 @@ const Footer = lazy(() => import('../shared/components/Footer'));
 const MobileInstallPrompt = lazy(() => import('../shared/components/MobileInstallPrompt'));
 
 // Views that need a signed-in user. Every navigation path (navbar, dashboards, deep flows) is gated at render time.
-const PROTECTED_VIEWS = new Set(['user-dashboard', 'vendor-dashboard', 'checkout']);
+const PROTECTED_VIEWS = new Set(['user-dashboard', 'vendor-dashboard', 'admin-dashboard', 'checkout']);
+const STAFF_ROLES = ['admin', 'super_admin', 'support_agent'];
 
 export default function App() {
   const { t, isRtl } = useLanguage();
@@ -53,6 +55,8 @@ export default function App() {
   const [authChecked, setAuthChecked] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const [userName, setUserName] = useState('');
+  const [userRoles, setUserRoles] = useState<string[]>([]);
+  const isStaff = userRoles.some((role) => STAFF_ROLES.includes(role));
   const [notificationsCount, setNotificationsCount] = useState(0);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'signin' | 'register'>('signin');
@@ -68,6 +72,7 @@ export default function App() {
         if (!active) return undefined;
         setUserEmail(user.email);
         setUserName(user.name);
+        setUserRoles(user.roles ?? []);
         setIsLoggedIn(true);
         return api.getNotifications();
       })
@@ -87,6 +92,7 @@ export default function App() {
       setIsLoggedIn(false);
       setUserEmail('');
       setUserName('');
+      setUserRoles([]);
       setNotificationsCount(0);
     };
     window.addEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
@@ -142,6 +148,8 @@ export default function App() {
     setUserEmail(email);
     setUserName(finalName);
     setIsLoggedIn(true);
+    // The auth modal only reports email/name; fetch roles so staff see the admin workspace link.
+    api.getCurrentUser().then(({ user }) => setUserRoles(user.roles ?? [])).catch(() => setUserRoles([]));
     // Resume a protected view the user was sent to sign in for (e.g. checkout); otherwise open the dashboard.
     setView((current) => PROTECTED_VIEWS.has(current) ? current : 'user-dashboard');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -156,6 +164,7 @@ export default function App() {
     setIsLoggedIn(false);
     setUserEmail('');
     setUserName('');
+    setUserRoles([]);
     setNotificationsCount(0);
     setView('homestays');
   };
@@ -236,6 +245,7 @@ export default function App() {
         userEmail={userEmail}
         userName={userName}
         isLoggedIn={isLoggedIn}
+        isStaff={isStaff}
         notificationsCount={notificationsCount}
         unreadNotifications={notificationsCount > 0}
         onOpenNotifications={() => {
@@ -414,6 +424,8 @@ export default function App() {
             }}
           />
         )}
+
+        {view === 'admin-dashboard' && <AdminDashboard roles={userRoles} />}
 
         {view === 'ai-planner' && (
           <AiPlanner 

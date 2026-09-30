@@ -16,9 +16,20 @@ function listingView(listing: any) {
   return {
     id: listing.publicId, type: listing.type, title: listing.title, location: listing.location,
     description: listing.description, price: listing.price, currency: listing.currency,
-    image: listing.image, images: listing.images ?? [], hotelSpecs: listing.hotelSpecs,
+    image: listing.image, images: listing.images ?? [], hotelSpecs: listing.hotelSpecs, homestaySpecs: listing.homestaySpecs,
     status: listing.status, rejectionReason: listing.rejectionReason,
     createdAt: listing.createdAt, updatedAt: listing.updatedAt,
+  };
+}
+
+/** Homestay pages read amenities and house rules from homestaySpecs; derive them from the shared hotelSpecs input. */
+function homestaySpecsFor(listing: any, input: any) {
+  const specs = listing.hotelSpecs ?? {};
+  return {
+    hostName: input?.hostName ?? listing.homestaySpecs?.hostName,
+    experienceType: input?.experienceType ?? listing.homestaySpecs?.experienceType,
+    amenities: specs.amenities ?? [],
+    houseRules: specs.policies ?? [],
   };
 }
 
@@ -65,12 +76,16 @@ export async function createHotelListing(userId: string, input: any, metadata: S
   const vendor = await approvedVendor(userId);
   const images = await ownedImages(userId, input.imageIds);
   const listing = await ListingModel.create({
-    ownerId: vendor._id, type: 'hotel', title: input.title, location: input.location,
+    ownerId: vendor._id, type: input.type, title: input.title, location: input.location,
     description: input.description, price: input.price, priceMinor: input.price * 100,
     image: images[0].url, images: images.map((image: any) => image.url),
     imageMediaIds: images.map((image: any) => image._id), hotelSpecs: input.hotelSpecs,
     status: 'draft', featured: false,
   });
+  if (listing.type === 'homestay') {
+    listing.homestaySpecs = homestaySpecsFor(listing, input.homestaySpecs);
+    await listing.save();
+  }
   await recordAuditEvent({ actorId: userId, actorType: 'user', action: 'listing.created', resourceType: 'listing', resourceId: listing.publicId, ...metadata });
   return listingView(listing);
 }
@@ -87,7 +102,9 @@ export async function updateHotelListing(userId: string, listingId: string, inpu
     delete update.imageIds;
   }
   if (input.price !== undefined) update.priceMinor = input.price * 100;
+  delete update.homestaySpecs;
   Object.assign(listing, update, listing.status === 'rejected' ? { status: 'draft', rejectionReason: null } : {});
+  if (listing.type === 'homestay') listing.homestaySpecs = homestaySpecsFor(listing, input.homestaySpecs);
   await listing.save();
   await recordAuditEvent({ actorId: userId, actorType: 'user', action: 'listing.updated', resourceType: 'listing', resourceId: listing.publicId, ...metadata });
   return listingView(listing);
@@ -98,6 +115,7 @@ export async function addRoomType(userId: string, listingId: string, input: any,
   if (!['draft', 'rejected'].includes(listing.status)) throw new AppError(409, 'LISTING_LOCKED', 'Room types can only change while a listing is editable.');
   const { basePrice, ...fields } = input;
   const room = await HotelRoomTypeModel.create({ listingId: listing._id, ...fields, basePriceMinor: basePrice * 100 });
+  await syncListingPrice(listing);
   await recordAuditEvent({ actorId: userId, actorType: 'user', action: 'listing.room_created', resourceType: 'listing', resourceId: listing.publicId, ...metadata, metadata: { roomId: room.publicId } });
   return roomView(room);
 }
@@ -108,15 +126,37 @@ export async function listRoomTypes(userId: string, listingId: string) {
   return rooms.map(roomView);
 }
 
-export async function updateRoomType(userId: string, listingId: string, roomId: string, input: any) {
+/** Keeps the listing's "from" price, used by search, equal to its cheapest bookable room. */
+async function syncListingPrice(listing: any) {
+  const cheapest = await HotelRoomTypeModel.findOne({ listingId: listing._id, status: 'active', deletedAt: null })
+    .sort({ basePriceMinor: 1 }).select('basePriceMinor').lean() as any;
+  if (!cheapest || cheapest.basePriceMinor === listing.priceMinor) return;
+  listing.priceMinor = cheapest.basePriceMinor;
+  listing.price = cheapest.basePriceMinor / 100;
+  await listing.save();
+}
+
+// Price, inventory and pausing are day-to-day operations; everything guests read needs re-moderation.
+const LIVE_ROOM_FIELDS = ['basePrice', 'totalRooms', 'status'];
+
+export async function updateRoomType(userId: string, listingId: string, roomId: string, input: any, metadata: SessionMetadata) {
   const { listing } = await ownedListing(userId, listingId);
-  if (!['draft', 'rejected'].includes(listing.status)) throw new AppError(409, 'LISTING_LOCKED', 'Room types can only change while a listing is editable.');
+  const editable = ['draft', 'rejected'].includes(listing.status);
+  const live = ['published', 'paused'].includes(listing.status);
+  if (!editable && !(live && Object.keys(input).every((field) => LIVE_ROOM_FIELDS.includes(field)))) {
+    throw new AppError(409, 'LISTING_LOCKED', 'Live listings can only change room price, room count and availability.');
+  }
   const update = { ...input };
   if (input.basePrice !== undefined) { update.basePriceMinor = input.basePrice * 100; delete update.basePrice; }
   const room = await HotelRoomTypeModel.findOneAndUpdate(
     { publicId: roomId, listingId: listing._id, deletedAt: null }, { $set: update }, { returnDocument: 'after', runValidators: true },
   );
   if (!room) throw new AppError(404, 'ROOM_TYPE_NOT_FOUND', 'Room type was not found.');
+  await syncListingPrice(listing);
+  await recordAuditEvent({
+    actorId: userId, actorType: 'user', action: 'listing.room_updated', resourceType: 'listing', resourceId: listing.publicId, ...metadata,
+    metadata: { roomId: room.publicId, ...input },
+  });
   return roomView(room);
 }
 
@@ -127,6 +167,7 @@ export async function archiveRoomType(userId: string, listingId: string, roomId:
     { publicId: roomId, listingId: listing._id, deletedAt: null }, { $set: { status: 'archived', deletedAt: new Date() } },
   );
   if (!room) throw new AppError(404, 'ROOM_TYPE_NOT_FOUND', 'Room type was not found.');
+  await syncListingPrice(listing);
 }
 
 export async function submitListing(userId: string, listingId: string, metadata: SessionMetadata) {

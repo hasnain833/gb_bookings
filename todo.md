@@ -14,7 +14,7 @@ This document is the implementation plan for converting the current frontend and
 | Hotel booking system | Done. Server-priced pay-at-hotel bookings; guest cancel; vendor confirm/decline/complete/no-show; history for customer, vendor, and admin. |
 | Vendor registration and verification | Done. Application, document upload, admin approval. |
 
-Known Phase 1 limits: online payment is deferred to Phase 5 (pay-at-hotel only); cars and tours show "Online booking coming soon"; no admin web UI yet (admin APIs only); the cancellation policy is fixed at "before the check-in date".
+Known Phase 1 limits: online payment is deferred to Phase 5 (pay-at-hotel only); cars and tours show "Online booking coming soon"; the admin workspace is minimal (approvals, users, bookings); the cancellation policy is fixed at "before the check-in date".
 
 ## 1. Current State
 
@@ -29,7 +29,7 @@ Known Phase 1 limits: online payment is deferred to Phase 5 (pay-at-hotel only);
 - [x] Hotel/homestay availability and pricing are computed securely on the server.
 - [ ] Payment, wallet, commission, payout, and refund logic is implemented securely on the server.
 - [x] Admin approval workflows (vendors, listings), user status controls, and booking oversight exist as APIs.
-- [ ] Admin web workspace exists in the frontend.
+- [x] Minimal admin web workspace exists in the frontend (vendors, listings, users, bookings).
 - [x] Automated tests and OpenAPI documentation cover the Phase 1 APIs.
 - [ ] Monitoring and production deployment are complete.
 
@@ -167,7 +167,7 @@ Deliverable: persistent listings served from MongoDB through documented, tested 
 - [x] Replace `gb_registered_users` and `gb_current_user` localStorage authentication.
 - [x] Add an authenticated API client that handles refresh and logout consistently.
 - [x] Protect customer, vendor, and checkout routes (render-time guard; session expiry signs the UI out).
-- [ ] Protect employee and admin routes once their frontend workspaces exist.
+- [x] Protect employee and admin routes (staff-only view; tabs per role; server enforces permissions).
 - [x] Remove email query parameters as a method of identifying the signed-in user.
 
 Deliverable: real server-backed login and permission-protected APIs for every role.
@@ -414,9 +414,11 @@ Deliverable: tested, monitored, recoverable production release with operational 
 
 - [ ] Run `npm run seed:listings` against the Atlas database so seeded hotels have bookable rooms.
 - [ ] Click through search → listing → booking → vendor confirmation in the browser on staging.
-- [ ] Let vendors add, edit, and pause extra room categories from the vendor console (API exists; UI adds only the first room).
-- [ ] Let vendors list homestays through the vendor console (bookable today only via seeded data).
-- [ ] Build a minimal admin workspace for vendor/listing approvals, users, and bookings (APIs exist).
-- [ ] Email the guest and vendor on booking created, confirmed, and cancelled (Brevo is already integrated).
+- [x] Let vendors add, edit, and pause room categories from the vendor console. Live hotels can change price, room count, and pause/resume; other room edits need draft/rejected status. The listing's search price tracks its cheapest active room.
+- [x] Let vendors list homestays through the vendor console (host name, experience type, house rules; same room/booking engine as hotels).
+- [x] Remove fabricated host names and bios from listing details (now derived from listing data).
+- [x] Build a minimal admin workspace for vendor/listing approvals, users, and bookings. Grant the first admin with `npm run grant-role -- <email> admin`.
+- [x] Email the guest and vendor on booking created, confirmed, and cancelled (sent inline; failures are logged, never fail the booking).
+- [x] Restore `server/tests/` (old suite + concurrency, admin, rooms, seed tests) and `scripts/` (dev.mjs, seed-listings.ts, grant-role.ts). The seed JSON was never committed: supply one with `npm run seed:listings -- path/to/listings.json`.
 - [ ] Confirm the cancellation policy with the client (currently: free until the day before check-in).
-- [ ] Add seed command integration tests to the automated suite.
+- [x] Add seed command integration tests to the automated suite.

@@ -80,3 +80,5 @@ adminBookingRouter.get('/', validate('query', listBookingsQuerySchema), asyncHan
 }));
 
 adminBookingRouter.post('/:id/actions', validate('params', bookingIdParamsSchema), validate('body', vendorBookingActionSchema), bookingActionHandler);
+
+adminBookingRouter.post('/:id/actions', validate('params', bookingIdParamsSchema), validate('body', vendorBookingActionSchema), bookingActionHandler);

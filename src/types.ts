@@ -17,6 +17,10 @@ export interface Listing {
     roomsAvailable: number;
     amenities: string[];
     hotelType: string; // "Luxury Resort", "Boutique", etc.
+    facilities?: string[];
+    policies?: string[];
+    checkInTime?: string;
+    checkOutTime?: string;
   };
   homestaySpecs?: {
     roomsAvailable: number;

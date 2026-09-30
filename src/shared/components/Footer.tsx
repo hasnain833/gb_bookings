@@ -1,4 +1,8 @@
 import React, { useState } from 'react';
+
+// Set VITE_SUPPORT_PHONE / VITE_SUPPORT_WHATSAPP (digits, e.g. 923001112233) in .env; contact rows stay hidden until then.
+const SUPPORT_PHONE = import.meta.env.VITE_SUPPORT_PHONE as string | undefined;
+const SUPPORT_WHATSAPP = import.meta.env.VITE_SUPPORT_WHATSAPP as string | undefined;
 import { 
   ShieldCheck, 
   Calendar, 
@@ -84,7 +88,7 @@ export default function Footer({ onNavigate }: FooterProps) {
               </div>
               <div>
                 <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 leading-tight">Free Cancellation</h4>
-                <p className="text-[11px] text-slate-500 font-medium leading-tight mt-0.5">Cancel up to 24 hours before your trip.</p>
+                <p className="text-[11px] text-slate-500 font-medium leading-tight mt-0.5">Free cancellation until the day before check-in.</p>
               </div>
             </div>
 
@@ -105,8 +109,8 @@ export default function Footer({ onNavigate }: FooterProps) {
                 <Award className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 leading-tight">Trusted by Travelers</h4>
-                <p className="text-[11px] text-slate-500 font-medium leading-tight mt-0.5">Thousands of happy travelers trust GBBookings.com</p>
+                <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 leading-tight">Verified Partners</h4>
+                <p className="text-[11px] text-slate-500 font-medium leading-tight mt-0.5">Every vendor and listing is reviewed before it goes live.</p>
               </div>
             </div>
 
@@ -176,15 +180,17 @@ export default function Footer({ onNavigate }: FooterProps) {
                 >
                   <Youtube className="w-4 h-4" />
                 </a>
-                <a 
-                  href="https://wa.me/923001234567" 
-                  target="_blank" 
-                  rel="noreferrer" 
-                  aria-label="WhatsApp"
-                  className="w-10 h-10 rounded-full bg-[#003D21] border border-[#006F3C] hover:bg-[#006F3C] flex items-center justify-center text-white transition-colors cursor-pointer"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                </a>
+                {SUPPORT_WHATSAPP && (
+                  <a
+                    href={`https://wa.me/${SUPPORT_WHATSAPP}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label="WhatsApp"
+                    className="w-10 h-10 rounded-full bg-[#003D21] border border-[#006F3C] hover:bg-[#006F3C] flex items-center justify-center text-white transition-colors cursor-pointer"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                  </a>
+                )}
                 <a 
                   href="https://tiktok.com" 
                   target="_blank" 
@@ -379,80 +385,28 @@ export default function Footer({ onNavigate }: FooterProps) {
           {/* 3. BOTTOM MULTI-WIDGET ROW - SINGLE BOX WITH DIVIDERS */}
           <div className="border-t border-[#006F3C] pt-8 mt-4">
             <div className="bg-[#003D21]/60 border border-[#006F3C] rounded-2xl p-5 sm:p-6 shadow-xl">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-[#006F3C]">
+              <div className="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-[#006F3C]">
                 
-                {/* Widget 1: We Accept */}
-                <div className="flex flex-col justify-between space-y-3 pb-6 lg:pb-0 lg:pr-6">
-                  <h5 className="text-white font-extrabold text-xs uppercase tracking-wider">We Accept</h5>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {/* VISA */}
-                    <div className="bg-white px-2.5 py-1.5 rounded-md border border-slate-200 flex items-center justify-center shadow-2xs">
-                      <span className="font-extrabold text-xs italic tracking-tighter text-[#1A1F71]">VISA</span>
-                    </div>
-                    {/* Mastercard */}
-                    <div className="bg-white px-2.5 py-1.5 rounded-md border border-slate-200 flex items-center justify-center gap-0.5 shadow-2xs">
-                      <div className="w-3 h-3 rounded-full bg-[#EB001B]" />
-                      <div className="w-3 h-3 rounded-full bg-[#F79E1B] -ml-1.5 opacity-90" />
-                    </div>
-                    {/* UBL */}
-                    <div className="bg-white px-2.5 py-1.5 rounded-md border border-slate-200 flex items-center justify-center shadow-2xs">
-                      <span className="font-black text-[10px] text-[#0055A5] uppercase tracking-tighter">UBL</span>
-                    </div>
-                    {/* Easypaisa */}
-                    <div className="bg-[#00AA4F] px-2.5 py-1.5 rounded-md text-white flex items-center justify-center shadow-2xs">
-                      <span className="font-black text-[10px] lowercase">easypaisa</span>
-                    </div>
-                    {/* JazzCash */}
-                    <div className="bg-[#800000] px-2.5 py-1.5 rounded-md text-amber-400 flex items-center justify-center shadow-2xs">
-                      <span className="font-black text-[10px] tracking-tight">Jazz Cash</span>
-                    </div>
-                  </div>
+                {/* Widget 1: Payment */}
+                <div className="flex flex-col space-y-2 text-xs pb-6 lg:pb-0 lg:pr-6">
+                  <h5 className="text-white font-extrabold text-xs uppercase tracking-wider">Payment</h5>
+                  <p className="text-slate-300">Pay at the property when you check in. Online payment is coming soon.</p>
                 </div>
 
-                {/* Widget 2: Download Our App */}
-                <div className="flex flex-col justify-between space-y-2 py-6 lg:py-0 lg:px-6">
-                  <div>
-                    <h5 className="text-white font-extrabold text-xs uppercase tracking-wider">Download Our App</h5>
-                    <p className="text-slate-400 text-[11px] mt-0.5">Book on the go and get exclusive app-only deals!</p>
-                  </div>
-                  <div className="flex items-center gap-2 pt-1">
-                    <button 
-                      type="button"
-                      onClick={() => alert('GBBookings iOS App coming soon to App Store!')}
-                      className="bg-black border border-white/20 hover:border-white/40 text-white px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer text-left"
-                    >
-                      <AppleIcon className="w-4 h-4 fill-white shrink-0" />
-                      <div>
-                        <span className="text-[8px] text-slate-400 uppercase block leading-none">Download on the</span>
-                        <span className="text-[10px] font-bold block leading-tight">App Store</span>
-                      </div>
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => alert('GBBookings Android App coming soon to Google Play!')}
-                      className="bg-black border border-white/20 hover:border-white/40 text-white px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer text-left"
-                    >
-                      <PlayStoreIcon className="w-4 h-4 shrink-0" />
-                      <div>
-                        <span className="text-[8px] text-slate-400 uppercase block leading-none">GET IT ON</span>
-                        <span className="text-[10px] font-bold block leading-tight">Google Play</span>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Widget 3: Contact Us */}
-                <div className="flex flex-col justify-between space-y-2 text-xs py-6 lg:py-0 lg:px-6">
+                {/* Widget 2: Contact Us */}
+                <div className="flex flex-col space-y-2 text-xs py-6 lg:py-0 lg:px-6">
                   <h5 className="text-white font-extrabold text-xs uppercase tracking-wider">Contact Us</h5>
                   <div className="space-y-1.5 text-slate-300">
-                    <div className="flex items-center gap-2">
-                      <Phone className="w-3.5 h-3.5 text-[#006F3C] shrink-0" />
-                      <span className="font-semibold">+92 300 1234567</span>
-                    </div>
-                    <div className="flex items-center gap-2">
+                    {SUPPORT_PHONE && (
+                      <a href={`tel:${SUPPORT_PHONE.replace(/\s/g, '')}`} className="flex items-center gap-2 hover:text-white">
+                        <Phone className="w-3.5 h-3.5 text-[#006F3C] shrink-0" />
+                        <span className="font-semibold">{SUPPORT_PHONE}</span>
+                      </a>
+                    )}
+                    <a href="mailto:info@gbbookings.com" className="flex items-center gap-2 hover:text-white">
                       <Mail className="w-3.5 h-3.5 text-[#006F3C] shrink-0" />
                       <span>info@gbbookings.com</span>
-                    </div>
+                    </a>
                     <div className="flex items-start gap-2">
                       <MapPin className="w-3.5 h-3.5 text-[#006F3C] shrink-0 mt-0.5" />
                       <span>Skardu, Gilgit Baltistan, Pakistan</span>
@@ -460,21 +414,23 @@ export default function Footer({ onNavigate }: FooterProps) {
                   </div>
                 </div>
 
-                {/* Widget 4: We're Here 24/7 */}
-                <div className="flex flex-col justify-between space-y-2 pt-6 lg:pt-0 lg:pl-6">
+                {/* Widget 3: Help */}
+                <div className="flex flex-col space-y-2 pt-6 lg:pt-0 lg:pl-6">
                   <div>
-                    <h5 className="text-white font-extrabold text-xs uppercase tracking-wider">We're Here 24/7</h5>
-                    <p className="text-slate-400 text-[11px] mt-0.5">Our team is always ready to help you plan your perfect trip.</p>
+                    <h5 className="text-white font-extrabold text-xs uppercase tracking-wider">Need Help?</h5>
+                    <p className="text-slate-400 text-[11px] mt-0.5">Our team can help you plan your trip or sort out a booking.</p>
                   </div>
-                  <a
-                    href="https://wa.me/923001234567"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="w-full bg-[#006F3C] hover:bg-[#005C32] border border-[#006F3C]/50 text-white font-bold text-xs py-2 px-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm mt-1"
-                  >
-                    <MessageCircle className="w-4 h-4 text-white fill-white/20" />
-                    <span>Chat on WhatsApp</span>
-                  </a>
+                  {SUPPORT_WHATSAPP && (
+                    <a
+                      href={`https://wa.me/${SUPPORT_WHATSAPP}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-full bg-[#006F3C] hover:bg-[#005C32] border border-[#006F3C]/50 text-white font-bold text-xs py-2 px-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm mt-1"
+                    >
+                      <MessageCircle className="w-4 h-4 text-white fill-white/20" />
+                      <span>Chat on WhatsApp</span>
+                    </a>
+                  )}
                 </div>
 
               </div>

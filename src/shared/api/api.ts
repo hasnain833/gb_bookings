@@ -69,6 +69,7 @@ export interface AuthUser {
   email: string;
   name: string;
   role?: string;
+  roles?: string[];
   emailVerified?: boolean;
   twoFactorEnabled?: boolean;
   twoFactorChannel?: 'email' | 'sms';
@@ -118,9 +119,11 @@ export interface MediaAsset {
   status: string;
 }
 
+export const EXPERIENCE_TYPES = ['Mountain View', 'Family Friendly', 'Lakeside Stays', 'Local Culture', 'Budget Friendly'] as const;
+
 export interface VendorListing {
   id: string;
-  type: 'hotel';
+  type: 'hotel' | 'homestay';
   title: string;
   location: string;
   description: string;
@@ -130,6 +133,21 @@ export interface VendorListing {
   status: 'draft' | 'submitted' | 'published' | 'rejected' | 'paused' | 'archived';
   rejectionReason?: string;
 }
+
+export interface VendorRoom {
+  id: string;
+  name: string;
+  description?: string;
+  bedType: string;
+  maxAdults: number;
+  maxChildren: number;
+  totalRooms: number;
+  basePrice: number;
+  amenities: string[];
+  status: 'active' | 'paused' | 'archived';
+}
+
+export type VendorRoomInput = Omit<VendorRoom, 'id' | 'status'>;
 
 /** Server-side listing filters; dates/guests only return listings with a free room that fits. */
 export interface ListingFilters {
@@ -181,6 +199,39 @@ export interface CreateBookingInput {
 }
 
 export type VendorBookingAction = 'confirm' | 'cancel' | 'complete' | 'no_show';
+
+export interface Paginated<T> {
+  data: T[];
+  pagination: { page: number; limit: number; total: number; pages: number };
+}
+
+export interface AdminVendor extends Omit<VendorProfile, 'verificationDocuments'> {
+  verificationNotes?: string;
+  submittedAt?: string;
+  createdAt: string;
+  verificationDocuments: Array<{ type: string; status: string; mimeType?: string; url?: string }>;
+}
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  name: string;
+  phone?: string;
+  roles: string[];
+  status: 'active' | 'suspended' | 'archived';
+  emailVerified: boolean;
+  createdAt: string;
+}
+
+export type UserStatusAction = 'activate' | 'suspend' | 'archive' | 'verify_email';
+
+function queryString(params: Record<string, string | number | undefined>) {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== '') query.set(key, String(value));
+  }
+  return query.size ? `?${query}` : '';
+}
 
 export const api = {
   async getListings(params: { type?: ListingType | 'all'; search?: string } & ListingFilters = {}) {
@@ -301,6 +352,8 @@ export const api = {
   },
 
   createHotelListing(input: {
+    type: VendorListing['type'];
+    homestaySpecs?: { hostName: string; experienceType: typeof EXPERIENCE_TYPES[number] };
     title: string;
     location: string;
     description: string;
@@ -311,13 +364,24 @@ export const api = {
     return request<{ data: VendorListing }>('/api/v1/vendor/listings', { method: 'POST', body: JSON.stringify(input) });
   },
 
-  addHotelRoom(listingId: string, input: {
-    name: string; description?: string; bedType: string; maxAdults: number; maxChildren: number;
-    totalRooms: number; basePrice: number; amenities: string[];
-  }) {
-    return request<{ data: { id: string } }>(`/api/v1/vendor/listings/${encodeURIComponent(listingId)}/rooms`, {
+  addHotelRoom(listingId: string, input: VendorRoomInput) {
+    return request<{ data: VendorRoom }>(`/api/v1/vendor/listings/${encodeURIComponent(listingId)}/rooms`, {
       method: 'POST', body: JSON.stringify(input),
     });
+  },
+
+  getHotelRooms(listingId: string) {
+    return request<{ data: VendorRoom[] }>(`/api/v1/vendor/listings/${encodeURIComponent(listingId)}/rooms`).then((result) => result.data);
+  },
+
+  updateHotelRoom(listingId: string, roomId: string, input: Partial<VendorRoomInput> & { status?: 'active' | 'paused' }) {
+    return request<{ data: VendorRoom }>(`/api/v1/vendor/listings/${encodeURIComponent(listingId)}/rooms/${encodeURIComponent(roomId)}`, {
+      method: 'PATCH', body: JSON.stringify(input),
+    }).then((result) => result.data);
+  },
+
+  removeHotelRoom(listingId: string, roomId: string) {
+    return request<void>(`/api/v1/vendor/listings/${encodeURIComponent(listingId)}/rooms/${encodeURIComponent(roomId)}`, { method: 'DELETE' });
   },
 
   submitHotelListing(listingId: string) {
@@ -398,6 +462,41 @@ export const api = {
     return request<{ data: Booking }>(`/api/v1/vendor/bookings/${encodeURIComponent(bookingId)}/actions`, {
       method: 'POST', body: JSON.stringify({ action, ...(reason ? { reason } : {}) }),
     }).then((result) => result.data);
+  },
+
+  admin: {
+    listVendors(params: { status?: string; page?: number } = {}) {
+      return request<Paginated<AdminVendor>>(`/api/v1/admin/vendors${queryString(params)}`);
+    },
+    decideVendor(vendorId: string, decision: 'approved' | 'rejected' | 'suspended', notes: string) {
+      return request<{ data: AdminVendor }>(`/api/v1/admin/vendors/${encodeURIComponent(vendorId)}/decision`, {
+        method: 'POST', body: JSON.stringify({ decision, notes }),
+      });
+    },
+    listPendingListings() {
+      return request<{ data: VendorListing[] }>('/api/v1/admin/listings').then((result) => result.data);
+    },
+    moderateListing(listingId: string, decision: 'published' | 'rejected', notes: string) {
+      return request<{ data: VendorListing }>(`/api/v1/admin/listings/${encodeURIComponent(listingId)}/decision`, {
+        method: 'POST', body: JSON.stringify({ decision, notes }),
+      });
+    },
+    listUsers(params: { status?: string; role?: string; search?: string; page?: number } = {}) {
+      return request<Paginated<AdminUser>>(`/api/v1/admin/users${queryString(params)}`);
+    },
+    changeUserStatus(userId: string, action: UserStatusAction, reason: string) {
+      return request<{ data: AdminUser }>(`/api/v1/admin/users/${encodeURIComponent(userId)}/status`, {
+        method: 'POST', body: JSON.stringify({ action, reason }),
+      }).then((result) => result.data);
+    },
+    listBookings(params: { status?: string; from?: string; to?: string; page?: number } = {}) {
+      return request<Paginated<Booking>>(`/api/v1/admin/bookings${queryString(params)}`);
+    },
+    actOnBooking(bookingId: string, action: VendorBookingAction, reason?: string) {
+      return request<{ data: Booking }>(`/api/v1/admin/bookings/${encodeURIComponent(bookingId)}/actions`, {
+        method: 'POST', body: JSON.stringify({ action, ...(reason ? { reason } : {}) }),
+      }).then((result) => result.data);
+    },
   },
 
   getNotifications() {

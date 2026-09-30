@@ -50,3 +50,13 @@ export async function destroyCloudinaryAsset(publicId: string, resourceType: 'im
     throw new AppError(502, 'MEDIA_DELETE_FAILED', 'Cloudinary could not delete this file.');
   }
 }
+
+/** Short-lived download link for an authenticated (private) asset such as a vendor verification document. */
+export function signedDownloadUrl(publicId: string, resourceType: 'image' | 'raw' | 'video', deliveryType: 'upload' | 'authenticated', ttlSeconds = 600) {
+  configure();
+  return cloudinary.utils.private_download_url(publicId, '', {
+    resource_type: resourceType,
+    type: deliveryType,
+    expires_at: Math.floor(Date.now() / 1000) + ttlSeconds,
+  });
+}

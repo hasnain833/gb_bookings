@@ -23,6 +23,7 @@ interface NavbarProps {
   userEmail: string;
   userName?: string;
   isLoggedIn: boolean;
+  isStaff?: boolean;
   onOpenNotifications: () => void;
   onOpenAuthModal: (mode?: 'signin' | 'register') => void;
   onSignOut: () => void;
@@ -105,6 +106,7 @@ export default function Navbar({
   userEmail,
   userName,
   isLoggedIn,
+  isStaff = false,
   onOpenNotifications,
   onOpenAuthModal,
   onSignOut
@@ -204,7 +206,7 @@ export default function Navbar({
             <div className="h-3.5 w-px bg-slate-700"></div>
             <div className="flex items-center gap-1.5 hover:text-white transition-colors cursor-pointer">
               <Calendar className="w-3.5 h-3.5 text-white" />
-              <span>{isRtl ? 'اکثر بکنگز پر مفت منسوخی' : 'Free cancellation on most bookings'}</span>
+              <span>{isRtl ? 'اکثر بکنگز پر مفت منسوخی' : 'Free cancellation before check-in'}</span>
             </div>
             <div className="h-3.5 w-px bg-slate-700"></div>
             <div className="flex items-center gap-1.5 hover:text-white transition-colors cursor-pointer" onClick={() => setView('support')}>
@@ -216,15 +218,6 @@ export default function Navbar({
           {/* Top Bar Right: Utility Links & Account Controls */}
           <div className="flex items-center gap-3 lg:gap-4 text-[11px] lg:text-[12px] font-semibold text-slate-200">
             
-            {/* Download App */}
-            <button 
-              onClick={() => setView('support')} 
-              className="flex items-center gap-1.5 hover:text-white transition-colors cursor-pointer"
-            >
-              <Smartphone className="w-3.5 h-3.5 text-slate-400" />
-              <span>{isRtl ? 'ایپ ڈاؤن لوڈ کریں' : 'Download App'}</span>
-            </button>
-
             {/* Currency Selector */}
             <div className="relative">
               <button
@@ -453,6 +446,15 @@ export default function Navbar({
                   <Sparkles className="w-4 h-4 text-[#00A651]" />
                   <span>{t('nav.vendor_dashboard')}</span>
                 </button>
+                {isStaff && (
+                  <button
+                    onClick={() => setView('admin-dashboard')}
+                    className="w-full text-left px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-[#00A651] flex items-center gap-2"
+                  >
+                    <ShieldCheck className="w-4 h-4 text-slate-500" />
+                    <span>Admin workspace</span>
+                  </button>
+                )}
                 <button
                   onClick={() => setView('support')}
                   className="w-full text-left px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-[#00A651] flex items-center gap-2"
@@ -2013,6 +2015,15 @@ export default function Navbar({
                           <LogOut className="w-3.5 h-3.5" />
                           <span>Sign Out</span>
                         </button>
+                        {isStaff && (
+                          <button
+                            onClick={() => { setView('admin-dashboard'); setMobileDrawerOpen(false); }}
+                            className="col-span-2 w-full min-h-[44px] py-2 bg-white rounded-lg border border-slate-200 text-xs font-bold text-slate-700 hover:text-[#00A651] flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                          >
+                            <ShieldCheck className="w-3.5 h-3.5 text-[#00A651]" />
+                            <span>Admin workspace</span>
+                          </button>
+                        )}
                       </div>
                     </div>
                   ) : (

@@ -7,6 +7,7 @@ import { VendorModel } from '../../models/vendor.model.js';
 import { AppError, ServiceUnavailableError } from '../../shared/app-error.js';
 import { recordAuditEvent } from '../audit/audit.service.js';
 import type { SessionMetadata } from '../auth/auth.service.js';
+import { isCloudinaryConfigured, signedDownloadUrl } from '../media/cloudinary.service.js';
 
 async function requireDatabase() {
   if (!await connectDatabase()) throw new ServiceUnavailableError('Vendor services are unavailable while the database is disconnected.');
@@ -137,7 +138,25 @@ export async function listVendorApplications(query: { status?: string; page: num
     VendorModel.find(filter).sort({ submittedAt: -1, createdAt: -1 }).skip((query.page - 1) * query.limit).limit(query.limit).lean(),
     VendorModel.countDocuments(filter),
   ]);
-  return { data: vendors.map(serializeVendor), pagination: { page: query.page, limit: query.limit, total, pages: Math.ceil(total / query.limit) } };
+  // Admins review documents through short-lived signed links; the stored assets stay private.
+  const mediaIds = vendors.flatMap((vendor: any) => (vendor.verificationDocuments ?? []).map((document: any) => document.mediaId));
+  const media = new Map((await MediaModel.find({ _id: { $in: mediaIds }, deletedAt: null }).lean() as any[])
+    .map((record) => [String(record._id), record]));
+  const withDocumentLinks = (vendor: any) => ({
+    ...serializeVendor(vendor),
+    verificationDocuments: (vendor.verificationDocuments ?? []).map((document: any) => {
+      const record = media.get(String(document.mediaId));
+      return {
+        type: document.type,
+        status: document.status,
+        mimeType: record?.mimeType,
+        url: record && isCloudinaryConfigured()
+          ? signedDownloadUrl(record.providerAssetId, record.providerResourceType, record.deliveryType)
+          : undefined,
+      };
+    }),
+  });
+  return { data: vendors.map(withDocumentLinks), pagination: { page: query.page, limit: query.limit, total, pages: Math.ceil(total / query.limit) } };
 }
 
 export async function decideVendorApplication(adminUserId: string, vendorId: string, input: { decision: string; notes: string }, metadata: SessionMetadata) {
