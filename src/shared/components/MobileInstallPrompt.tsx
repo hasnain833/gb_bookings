@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Download, X, Smartphone, CheckCircle, Sparkles, Share } from 'lucide-react';
+import { Download, X, Smartphone, Share } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import GBLogo from './GBLogo';
 
 
 export default function MobileInstallPrompt() {

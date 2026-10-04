@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Booking, Notification, WalletTransaction, Listing, handleImageError } from '../../types';
 import { useLanguage } from '../../app/LanguageContext';
 import { DashboardSkeleton } from '../../shared/components/SkeletonLoader';
-import { Calendar, Wallet, Award, Share2, Printer, AlertTriangle, MessageSquare, Bell, Check, Trash, Heart, Eye, MapPin, X, ShieldCheck } from 'lucide-react';
+import { Calendar, Wallet, Award, Share2, Printer, AlertTriangle, Bell, Check, Trash, Heart, Eye, MapPin, X, ShieldCheck } from 'lucide-react';
 import { useBodyScrollLock } from '../../shared/utils/scrollLock';
 import { api } from '../../shared/api/api';
 import SecurityPanel from './SecurityPanel';
@@ -98,7 +98,7 @@ export default function UserDashboard({ userEmail, userName, setView, onSelectBo
     }
   };
 
-  const activeBookingsCount = bookings.filter(b => b.status === 'confirmed').length;
+  const activeBookingsCount = bookings.filter(b => b.status === 'pending' || b.status === 'confirmed').length;
   const displayName = userName || (userEmail ? userEmail.split('@')[0] : 'Traveler');
   const userInitials = displayName
     .split(' ')
@@ -232,7 +232,7 @@ export default function UserDashboard({ userEmail, userName, setView, onSelectBo
                           <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Paid Amount</span>
                           <span className="text-base font-bold text-slate-800">PKR {booking.totalPrice.toLocaleString()}</span>
                           <span className="text-[10px] text-slate-500 font-medium block capitalize">
-                            Via {booking.paymentMethod === 'pay_at_hotel' ? 'Oyo Pay At Stay' : `${booking.paymentMethod} Payment`}
+                            Via {booking.paymentMethod === 'pay_at_hotel' ? 'Pay at Hotel' : `${booking.paymentMethod} Payment`}
                           </span>
                         </div>
 

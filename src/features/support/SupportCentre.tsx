@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { SupportTicket } from '../../types';
-import { MessageSquare, AlertCircle, Send, CheckCircle2, LifeBuoy, Clock, ArrowRight } from 'lucide-react';
+import { MessageSquare, Send, LifeBuoy, Clock, ArrowRight } from 'lucide-react';
 
 export default function SupportCentre() {
   const [tickets, setTickets] = useState<SupportTicket[]>([]);

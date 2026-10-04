@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { Listing, Review, handleImageError } from '../../types';
 import { useLanguage, tListing, tReview } from '../../app/LanguageContext';
 import { DetailsSkeleton } from '../../shared/components/SkeletonLoader';
-import { api } from '../../shared/api/api';
+import { api, ApiError } from '../../shared/api/api';
+import { OPEN_SIGN_IN_EVENT } from '../../shared/hooks/useWishlist';
 import RoomBookingPanel from '../booking/RoomBookingPanel';
 import type { CheckoutParams } from '../booking/CheckoutFlow';
 import { ArrowLeft, ArrowRight, Star, MapPin, Heart, Share2, Check, Clock, Info } from 'lucide-react';
@@ -54,7 +55,8 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
         setIsWishlist(true);
       }
     } catch (reason) {
-      console.error(reason);
+      if (reason instanceof ApiError && reason.status === 401) window.dispatchEvent(new Event(OPEN_SIGN_IN_EVENT));
+      else console.error(reason);
     }
   };
 
@@ -69,8 +71,8 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
   if (!listing) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-16 text-center space-y-4" id="listing-details-notfound">
-        <h4 className="text-xl font-bold text-slate-800 uppercase tracking-tight">Listing not found.</h4>
-        <button onClick={onBack} className="bg-[#0F172A] hover:bg-slate-800 text-white font-bold px-6 py-2 rounded-xl text-xs uppercase tracking-wider">Back to Explore</button>
+        <h1 className="text-xl font-bold text-slate-900">Listing not found</h1>
+        <button onClick={onBack} className="rounded-lg bg-[#006F3C] px-5 py-2 text-sm font-semibold text-white hover:bg-[#005C32]">Back to results</button>
       </div>
     );
   }
@@ -87,32 +89,42 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
   const facilities = specs?.facilities ?? [];
   const hostName = listing.homestaySpecs?.hostName;
 
+  const sectionClass = 'border-t border-slate-200 pt-6 space-y-4';
+  const headingClass = 'text-lg font-semibold text-slate-900';
+  const statClass = 'rounded-lg border border-slate-200 bg-white p-3';
+  const statLabel = 'block text-xs text-slate-500';
+  const statValue = 'mt-0.5 block text-sm font-semibold text-slate-900';
+  const amenities = listing.hotelSpecs?.amenities ?? listing.homestaySpecs?.amenities ?? [];
+
   return (
-    <div id="listing-details-view" className="space-y-8 animate-fadeIn max-w-7xl mx-auto">
+    <div id="listing-details-view" className="space-y-6 animate-fadeIn max-w-6xl mx-auto">
 
-      {/* Top action header */}
-      <div className="flex items-center justify-between" id="listing-details-header">
-        <button 
-          id="btn-back-to-listings"
-          onClick={onBack} 
-          className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-slate-500 hover:text-slate-900 cursor-pointer"
-        >
-          <ArrowLeft className="w-4 h-4" /> <span>Back to listings search</span>
-        </button>
+      <button
+        id="btn-back-to-listings"
+        onClick={onBack}
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900"
+      >
+        <ArrowLeft className="w-4 h-4" /> Back to results
+      </button>
 
-        <div className="flex space-x-3">
-          <button 
-            id="btn-wishlist-toggle"
-            onClick={handleToggleWishlist}
-            className={`p-2.5 rounded-full border transition-all cursor-pointer ${
-              isWishlist 
-                ? 'bg-rose-50 border-rose-100 text-rose-600 shadow-xs' 
-                : 'bg-white border-slate-200 text-slate-400 hover:text-rose-500 hover:border-slate-300'
-            }`}
-          >
-            <Heart className={`w-4.5 h-4.5 ${isWishlist ? 'fill-rose-500 stroke-none' : ''}`} />
-          </button>
-          <button 
+      {/* Title row */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between" id="listing-details-header">
+        <div className="space-y-1.5 min-w-0">
+          <span className="inline-block rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium capitalize text-[#006F3C]">{listing.type}</span>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-950 leading-tight break-words">{listing.title}</h1>
+          <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-600">
+            <span className="inline-flex items-center gap-1"><MapPin className="w-4 h-4 text-slate-400 shrink-0" /> {listing.location}</span>
+            {listing.reviewsCount > 0 ? (
+              <span className="inline-flex items-center gap-1"><Star className="w-4 h-4 fill-amber-400 text-amber-400" /> <strong className="font-semibold text-slate-900">{listing.rating}</strong> ({listing.reviewsCount} reviews)</span>
+            ) : (
+              <span className="font-medium text-[#006F3C]">New listing</span>
+            )}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          {shareNote && <span role="status" className="text-xs font-medium text-slate-600">{shareNote}</span>}
+          <button
             id="btn-share-listing"
             onClick={() => {
               navigator.clipboard.writeText(window.location.href)
@@ -120,232 +132,161 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
                 .catch(() => setShareNote('Copy failed'));
               setTimeout(() => setShareNote(''), 2500);
             }}
-            className="p-2.5 rounded-full border border-slate-200 bg-white text-slate-400 hover:text-slate-700 hover:border-slate-300 transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
           >
-            <Share2 className="w-4.5 h-4.5" />
+            <Share2 className="w-4 h-4" /> Share
           </button>
-          {shareNote && <span role="status" className="self-center text-xs font-semibold text-slate-600">{shareNote}</span>}
+          <button
+            id="btn-wishlist-toggle"
+            onClick={handleToggleWishlist}
+            aria-pressed={isWishlist}
+            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+          >
+            <Heart className={`w-4 h-4 ${isWishlist ? 'fill-rose-500 text-rose-500' : ''}`} /> {isWishlist ? 'Saved' : 'Save'}
+          </button>
         </div>
       </div>
 
-      {/* Main Grid: Left details column, right booking sidebar */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8" id="details-cols-container">
-        
-        {/* Left Column (8 cols): Photo Gallery & Core Details */}
-        <div className="lg:col-span-8 space-y-6 sm:space-y-8" id="details-content-column">
-          
-          {/* Header Metadata */}
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="bg-indigo-50 border border-indigo-100 text-indigo-600 text-[10px] font-bold px-2.5 py-0.5 rounded-md uppercase tracking-wider">
-                {listing.type}
-              </span>
-            </div>
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-950 uppercase tracking-tight leading-tight break-words">{listing.title}</h1>
-            <p className="text-xs sm:text-sm text-slate-500 flex items-center font-medium"><MapPin className="w-4 h-4 mr-1 text-rose-500 shrink-0" /> {listing.location}</p>
+      {/* Gallery */}
+      <div className="space-y-2" id="gallery-container">
+        <div className="aspect-[16/9] max-h-[460px] w-full overflow-hidden rounded-xl bg-slate-100">
+          <img src={activeImage} alt={listing.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" onError={handleImageError} />
+        </div>
+        {listing.images && listing.images.length > 1 && (
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none" id="gallery-thumbnails">
+            {listing.images.map((img, i) => (
+              <button
+                key={i}
+                id={`thumb-btn-${i}`}
+                onClick={() => setActiveImage(img)}
+                aria-label={`Show photo ${i + 1}`}
+                className={`w-20 aspect-[4/3] shrink-0 overflow-hidden rounded-lg border-2 ${activeImage === img ? 'border-[#006F3C]' : 'border-transparent opacity-80 hover:opacity-100'}`}
+              >
+                <img src={img} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" onError={handleImageError} />
+              </button>
+            ))}
           </div>
+        )}
+      </div>
 
-          {/* Interactive Photo Gallery Component */}
-          <div className="space-y-3" id="gallery-container">
-            <div className="aspect-video w-full rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-sm relative">
-              <img 
-                src={activeImage} 
-                alt={listing.title} 
-                className="w-full h-full object-cover rounded-2xl"
-                referrerPolicy="no-referrer"
-                onError={handleImageError}
-              />
-            </div>
-            {listing.images && listing.images.length > 1 && (
-              <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-none" id="gallery-thumbnails">
-                {listing.images.map((img, i) => (
-                  <button
-                    key={i}
-                    id={`thumb-btn-${i}`}
-                    onClick={() => setActiveImage(img)}
-                    className={`relative rounded-xl overflow-hidden w-24 aspect-[4/3] border-2 transition-all cursor-pointer shrink-0 ${
-                      activeImage === img ? 'border-indigo-600 scale-103 shadow-xs' : 'border-slate-200 hover:border-slate-300'
-                    }`}
-                  >
-                    <img src={img} alt="" className="w-full h-full object-cover rounded-lg" referrerPolicy="no-referrer" onError={handleImageError} />
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-8" id="details-cols-container">
 
-          {/* Detailed Description */}
-          <section className="space-y-3" id="details-description">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">About the {listing.type === 'hotel' || listing.type === 'homestay' ? 'Property' : listing.type === 'car' ? 'Vehicle' : 'Expedition'}</h3>
-            <p className="text-slate-600 text-sm md:text-base leading-relaxed font-normal">{listing.description}</p>
+        {/* Details column */}
+        <div className="space-y-6" id="details-content-column">
+          <section className="space-y-2" id="details-description">
+            <h2 className={headingClass}>About this {bookable ? 'place' : listing.type === 'car' ? 'vehicle' : 'trip'}</h2>
+            <p className="text-slate-600 text-[15px] leading-relaxed">{listing.description}</p>
           </section>
 
-          {/* Technical Specifications / Itinerary based on listing type */}
-          <section className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4" id="details-specifications">
-            <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-              Specifications & Offerings
-            </h3>
+          {amenities.length > 0 && (
+            <section className={sectionClass} id="details-specifications">
+              <h2 className={headingClass}>What this place offers</h2>
+              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5 text-sm text-slate-700">
+                {amenities.map((item) => <li key={item} className="flex items-center gap-2"><Check className="w-4 h-4 text-[#006F3C] shrink-0" /> {item}</li>)}
+              </ul>
+            </section>
+          )}
 
-            {/* Hotel Specs */}
-            {listing.type === 'hotel' && listing.hotelSpecs && (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4" id="hotel-amenities-grid">
-                {listing.hotelSpecs.amenities.map((item) => (
-                  <div key={item} className="flex items-center space-x-2 text-slate-700 text-xs md:text-sm font-medium">
-                    <span className="w-2 h-2 rounded-full bg-indigo-600 shrink-0" />
-                    <span>{item}</span>
-                  </div>
+          {listing.type === 'car' && listing.carSpecs && (
+            <section className={sectionClass} id="car-specs-section">
+              <h2 className={headingClass}>Vehicle details</h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3" id="car-specs-grid">
+                <div className={statClass}><span className={statLabel}>Category</span><span className={statValue}>{listing.carSpecs.category}</span></div>
+                <div className={statClass}><span className={statLabel}>Gearbox</span><span className={statValue}>{listing.carSpecs.transmission}</span></div>
+                <div className={statClass}><span className={statLabel}>Seats</span><span className={statValue}>{listing.carSpecs.seats} passengers</span></div>
+                <div className={statClass}><span className={statLabel}>Fuel</span><span className={statValue}>{listing.carSpecs.fuelType}</span></div>
+              </div>
+            </section>
+          )}
+
+          {listing.type === 'tour' && listing.tourSpecs && (
+            <section className={sectionClass} id="tour-itinerary-component">
+              <h2 className={headingClass}>Trip details</h2>
+              <div className="grid grid-cols-3 gap-3">
+                <div className={statClass}><span className={statLabel}>Duration</span><span className={statValue}>{listing.tourSpecs.durationDays} days</span></div>
+                <div className={statClass}><span className={statLabel}>Difficulty</span><span className={`${statValue} capitalize`}>{listing.tourSpecs.difficulty}</span></div>
+                <div className={statClass}><span className={statLabel}>Group size</span><span className={statValue}>Up to {listing.tourSpecs.maxGroupSize}</span></div>
+              </div>
+              <h3 className="pt-2 text-sm font-semibold text-slate-900">Itinerary</h3>
+              <ol className="relative ml-2 space-y-5 border-l border-slate-200 pl-5">
+                {listing.tourSpecs.itinerary.map((day) => (
+                  <li key={day.day} className="relative" id={`itinerary-day-${day.day}`}>
+                    <span className="absolute -left-[27px] top-1 h-3 w-3 rounded-full border-2 border-white bg-[#006F3C]" />
+                    <p className="text-sm font-semibold text-slate-900">Day {day.day}: {day.title}</p>
+                    <p className="mt-1 text-sm text-slate-600 leading-relaxed">{day.desc}</p>
+                  </li>
                 ))}
-              </div>
-            )}
-
-            {/* Homestay Specs */}
-            {listing.type === 'homestay' && listing.homestaySpecs && (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4" id="homestay-amenities-grid">
-                {listing.homestaySpecs.amenities.map((item) => (
-                  <div key={item} className="flex items-center space-x-2 text-slate-700 text-xs md:text-sm font-medium">
-                    <span className="w-2 h-2 rounded-full bg-emerald-600 shrink-0" />
-                    <span>{item}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Car Specs */}
-            {listing.type === 'car' && listing.carSpecs && (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4" id="car-specs-grid">
-                <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-center">
-                  <span className="text-[9px] font-bold text-slate-400 block uppercase tracking-wider">Category</span>
-                  <span className="text-sm font-bold text-slate-800 mt-1 block">{listing.carSpecs.category}</span>
-                </div>
-                <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-center">
-                  <span className="text-[9px] font-bold text-slate-400 block uppercase tracking-wider">Gearbox</span>
-                  <span className="text-sm font-bold text-slate-800 mt-1 block">{listing.carSpecs.transmission}</span>
-                </div>
-                <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-center">
-                  <span className="text-[9px] font-bold text-slate-400 block uppercase tracking-wider">Seats Capacity</span>
-                  <span className="text-sm font-bold text-slate-800 mt-1 block">{listing.carSpecs.seats} Passengers</span>
-                </div>
-                <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-center">
-                  <span className="text-[9px] font-bold text-slate-400 block uppercase tracking-wider">Fuel Type</span>
-                  <span className="text-sm font-bold text-slate-800 mt-1 block">{listing.carSpecs.fuelType}</span>
-                </div>
-              </div>
-            )}
-
-            {/* Tour Specs */}
-            {listing.type === 'tour' && listing.tourSpecs && (
-              <div className="space-y-6" id="tour-itinerary-component">
-                <div className="grid grid-cols-3 gap-4 border-b border-slate-100 pb-4">
-                  <div className="text-center">
-                    <span className="text-[9px] font-bold text-slate-400 block uppercase tracking-wider">Duration</span>
-                    <span className="text-sm font-bold text-indigo-600 mt-0.5 block">{listing.tourSpecs.durationDays} Days</span>
-                  </div>
-                  <div className="text-center">
-                    <span className="text-[9px] font-bold text-slate-400 block uppercase tracking-wider">Difficulty</span>
-                    <span className="text-sm font-bold text-slate-800 mt-0.5 block capitalize">{listing.tourSpecs.difficulty}</span>
-                  </div>
-                  <div className="text-center">
-                    <span className="text-[9px] font-bold text-slate-400 block uppercase tracking-wider">Group Capacity</span>
-                    <span className="text-sm font-bold text-slate-800 mt-0.5 block">Max {listing.tourSpecs.maxGroupSize} People</span>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <h4 className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">Day-by-Day Expedition Itinerary</h4>
-                  <div className="relative border-l border-indigo-200 pl-4 ml-2.5 space-y-6">
-                    {listing.tourSpecs.itinerary.map((day) => (
-                      <div key={day.day} className="relative" id={`itinerary-day-${day.day}`}>
-                        {/* Dot marker */}
-                        <div className="absolute -left-[23px] top-1 w-3.5 h-3.5 rounded-full bg-indigo-600 border-2 border-white" />
-                        <h5 className="font-bold text-sm text-slate-800">Day {day.day}: {day.title}</h5>
-                        <p className="text-xs text-slate-500 mt-1 leading-relaxed">{day.desc}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-          </section>
+              </ol>
+            </section>
+          )}
 
           {facilities.length > 0 && (
-            <section className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4" id="facilities-section">
-              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Facilities</h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs md:text-sm text-slate-700 font-medium">
-                {facilities.map((item) => <p key={item} className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600 shrink-0" /> {item}</p>)}
-              </div>
+            <section className={sectionClass} id="facilities-section">
+              <h2 className={headingClass}>Facilities</h2>
+              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5 text-sm text-slate-700">
+                {facilities.map((item) => <li key={item} className="flex items-center gap-2"><Check className="w-4 h-4 text-[#006F3C] shrink-0" /> {item}</li>)}
+              </ul>
             </section>
           )}
 
           {rules.length > 0 && (
-            <section className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4" id="house-rules-section">
-              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">{listing.type === 'homestay' ? 'House Rules' : 'Stay Rules & Policies'}</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs md:text-sm text-slate-600 font-medium">
-                {rules.map((rule) => <p key={rule} className="flex items-center gap-2"><Clock className="w-4 h-4 text-emerald-600 shrink-0" /> {rule}</p>)}
-              </div>
+            <section className={sectionClass} id="house-rules-section">
+              <h2 className={headingClass}>{listing.type === 'homestay' ? 'House rules' : 'Policies'}</h2>
+              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5 text-sm text-slate-700">
+                {rules.map((rule) => <li key={rule} className="flex items-center gap-2"><Clock className="w-4 h-4 text-slate-400 shrink-0" /> {rule}</li>)}
+              </ul>
             </section>
           )}
 
           {hostName && (
-            <section className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs flex items-center gap-4" id="host-profile-card">
-              <div className="w-14 h-14 bg-[#006F3C] rounded-xl flex items-center justify-center font-bold text-white text-xl shrink-0" aria-hidden="true">
+            <section className="border-t border-slate-200 pt-6 flex items-center gap-3" id="host-profile-card">
+              <div className="w-11 h-11 rounded-full bg-[#006F3C] flex items-center justify-center text-sm font-semibold text-white shrink-0" aria-hidden="true">
                 {hostName.split(/\s+/).map((word) => word[0]).join('').slice(0, 2).toUpperCase()}
               </div>
               <div>
-                <p className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider">Hosted by</p>
-                <h4 className="text-base font-extrabold text-slate-900">{hostName}</h4>
+                <p className="text-xs text-slate-500">Hosted by</p>
+                <p className="text-base font-semibold text-slate-900">{hostName}</p>
               </div>
             </section>
           )}
 
-          <section className="space-y-6" id="details-reviews-block">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-              <h3 className="text-xs font-bold uppercase text-slate-500 tracking-wider">Guest Reviews</h3>
+          <section className={sectionClass} id="details-reviews-block">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className={headingClass}>Guest reviews</h2>
               {listing.reviewsCount > 0 && (
-                <div className="flex items-center space-x-1.5 text-slate-800 font-bold text-sm">
-                  <Star className="w-4 h-4 fill-amber-500 stroke-none" />
-                  <span>{listing.rating} average</span>
-                  <span className="text-slate-400 font-normal">({listing.reviewsCount} reviews)</span>
-                </div>
+                <span className="inline-flex items-center gap-1 text-sm text-slate-600">
+                  <Star className="w-4 h-4 fill-amber-400 text-amber-400" /> <strong className="font-semibold text-slate-900">{listing.rating}</strong> · {listing.reviewsCount} reviews
+                </span>
               )}
             </div>
             {reviews.length === 0 && <p className="text-sm text-slate-500">No written reviews yet. Guests can review a stay after it is completed.</p>}
-            <div className="space-y-4" id="reviews-list">
+            <div className="space-y-3" id="reviews-list">
               {reviews.map((rev) => (
-                <div key={rev.id} className="bg-white border border-slate-200 p-5 rounded-2xl space-y-2 shadow-xs" id={`review-item-${rev.id}`}>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-bold text-slate-800">{rev.author}</p>
-                      <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mt-0.5">{rev.createdAt}</p>
-                    </div>
-                    <div className="flex space-x-0.5 text-amber-500 font-mono text-xs">
-                      {Array(rev.rating).fill(0).map((_, i) => (
-                        <Star key={i} className="w-3 h-3 fill-amber-500 stroke-none" />
-                      ))}
-                    </div>
+                <div key={rev.id} className="rounded-lg border border-slate-200 bg-white p-4 space-y-1.5" id={`review-item-${rev.id}`}>
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-slate-900">{rev.author} <span className="font-normal text-slate-400">· {rev.createdAt}</span></p>
+                    <span className="flex gap-0.5" aria-label={`${rev.rating} out of 5`}>
+                      {Array(rev.rating).fill(0).map((_, i) => <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />)}
+                    </span>
                   </div>
-                  <p className="text-xs md:text-sm text-slate-600 leading-relaxed font-light">{rev.comment}</p>
+                  <p className="text-sm text-slate-600 leading-relaxed">{rev.comment}</p>
                 </div>
               ))}
             </div>
-
           </section>
         </div>
 
-        {/* Right Column (4 cols): Live Booking Reservation Widget (Booking.com style) */}
-        <div className="lg:col-span-4" id="details-booking-column">
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 md:p-6 space-y-5 sm:space-y-6 sticky top-24 shadow-sm">
-            <div>
-              <span className="text-[9px] font-bold text-slate-400 block uppercase tracking-wider">Prices start from</span>
-              <div className="flex items-baseline flex-wrap gap-1.5 mt-1">
-                <span className="text-2xl sm:text-3xl font-extrabold text-[#0F172A]">PKR {listing.price.toLocaleString()}</span>
-                <span className="text-xs text-slate-500 font-medium">/{unit}</span>
-              </div>
-            </div>
+        {/* Booking column */}
+        <div id="details-booking-column">
+          <div className="sticky top-40 rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-5">
+            <p className="text-sm text-slate-500">
+              From <span className="text-2xl font-bold text-slate-950">PKR {listing.price.toLocaleString()}</span> / {unit}
+            </p>
 
             {bookable ? (
               <RoomBookingPanel listingId={listingId} onProceed={onProceedToCheckout} />
             ) : (
-              <p className="flex items-start gap-2 rounded-xl bg-slate-50 border border-slate-200 p-4 text-sm text-slate-600" id="booking-coming-soon">
+              <p className="flex items-start gap-2 rounded-lg bg-slate-50 p-4 text-sm text-slate-600" id="booking-coming-soon">
                 <Info className="w-4 h-4 text-[#006F3C] shrink-0 mt-0.5" />
                 Online booking for {listing.type === 'car' ? 'vehicles' : 'tours'} is coming soon. Contact support to arrange this {listing.type === 'car' ? 'rental' : 'trip'}.
               </p>
@@ -354,35 +295,23 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
         </div>
       </div>
 
-      {/* Mobile-Native Sticky Bottom Book Now Bar (Pinned above bottom tab navigation) */}
-      <div 
+      {/* Mobile book bar (above the bottom tab navigation) */}
+      <div
         id="mobile-sticky-book-bar"
-        className="lg:hidden fixed bottom-[68px] left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-2.5 shadow-lg flex items-center justify-between gap-3"
+        className="lg:hidden fixed bottom-[68px] left-0 right-0 z-40 bg-white border-t border-slate-200 px-4 py-2.5 shadow-lg flex items-center justify-between gap-3"
       >
-        <div className="flex flex-col">
-          <div className="flex items-baseline gap-1">
-            <span className="text-base font-extrabold text-slate-900 font-mono">
-              PKR {(listing.price || 0).toLocaleString()}
-            </span>
-            <span className="text-[11px] text-slate-500 font-medium">/ {unit}</span>
-          </div>
+        <div>
+          <p className="text-sm text-slate-600"><span className="text-base font-bold text-slate-950">PKR {(listing.price || 0).toLocaleString()}</span> / {unit}</p>
           {listing.reviewsCount > 0 && (
-            <div className="flex items-center gap-1 text-[10px] text-amber-600 font-bold">
-              <span>★ {listing.rating}</span>
-              <span className="text-slate-400">({listing.reviewsCount})</span>
-            </div>
+            <p className="flex items-center gap-1 text-xs text-slate-600"><Star className="w-3 h-3 fill-amber-400 text-amber-400" /> {listing.rating} ({listing.reviewsCount})</p>
           )}
         </div>
-
         <button
           type="button"
-          onClick={() => {
-            document.getElementById('details-booking-column')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }}
-          className="bg-[#006F3C] hover:bg-[#005C32] active:bg-[#004827] text-white font-bold text-xs uppercase tracking-wider px-5 py-3 rounded-xl shadow-md transition-all cursor-pointer min-h-[44px] flex items-center justify-center gap-1.5 app-tap"
+          onClick={() => document.getElementById('details-booking-column')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg bg-[#006F3C] px-5 text-sm font-semibold text-white hover:bg-[#005C32]"
         >
-          <span>Book Now</span>
-          <ArrowRight className="w-4 h-4" />
+          {bookable ? 'Check availability' : 'Details'} <ArrowRight className="w-4 h-4" />
         </button>
       </div>
 

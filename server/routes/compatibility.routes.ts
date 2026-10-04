@@ -7,7 +7,6 @@ const emptyCollections = [
   '/notifications',
   '/support/tickets',
   '/wallet/transactions',
-  '/wishlist',
 ];
 
 for (const path of emptyCollections) {
@@ -21,8 +20,6 @@ compatibilityRouter.all(
     '/support/tickets',
     '/support/tickets/:id/reply',
     '/wallet/*',
-    '/wishlist',
-    '/wishlist/:id',
     '/coupons/*',
     '/host/message',
   ],

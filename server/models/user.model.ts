@@ -27,6 +27,8 @@ const userSchema = new Schema({
   name: { type: String, required: true, trim: true, maxlength: 120 },
   phone: { type: String, trim: true, maxlength: 30 },
   roles: { type: [String], enum: userRoles, default: ['customer'], required: true },
+  // Saved listing public IDs, newest last.
+  wishlist: { type: [String], default: [], select: false },
   status: {
     type: String,
     enum: ['active', 'suspended', 'archived'],

@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { CreditCard, Wallet, Calendar, ShieldCheck, CheckCircle, Ticket, Printer, ArrowRight, ArrowLeft, Info, HelpCircle } from 'lucide-react';
+import { CreditCard, Wallet, Calendar, ShieldCheck, CheckCircle, Printer, ArrowRight, ArrowLeft, Info } from 'lucide-react';
 import { Booking, Listing, handleImageError } from '../../types';
 import { api } from '../../shared/api/api';
 

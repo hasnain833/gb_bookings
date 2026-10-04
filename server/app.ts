@@ -18,6 +18,7 @@ import { adminVendorRouter, vendorRouter } from './modules/vendors/vendor.routes
 import { adminListingRouter, vendorListingRouter } from './modules/vendor-listings/vendor-listing.routes.js';
 import { adminBookingRouter, availabilityHandlers, bookingRouter, vendorBookingRouter } from './modules/bookings/booking.routes.js';
 import { adminUserRouter } from './modules/users/user-admin.routes.js';
+import { wishlistRouter } from './modules/wishlist/wishlist.routes.js';
 import { compatibilityRouter } from './routes/compatibility.routes.js';
 import { AppError } from './shared/app-error.js';
 
@@ -100,6 +101,8 @@ export function createApp(): Express {
   app.use('/api/v1/admin/bookings', adminBookingRouter);
   app.use('/api/v1/media', mediaRouter);
   app.use('/api/media', mediaRouter);
+  app.use('/api/v1/wishlist', wishlistRouter);
+  app.use('/api/wishlist', wishlistRouter);
   app.use('/api/v1/ai', aiRouter);
   app.use('/api/ai-planner', legacyAiRouter);
   app.use('/api', compatibilityRouter);

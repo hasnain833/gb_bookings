@@ -1,10 +1,11 @@
-import React, { lazy, Suspense, useState, useEffect } from 'react';
+import React, { lazy, Suspense, useState, useEffect, useRef } from 'react';
 import Navbar from '../shared/components/Navbar';
 import MobileAppBottomNav from '../shared/components/MobileAppBottomNav';
 import { Booking, Listing } from '../types';
 import type { CheckoutParams } from '../features/booking/CheckoutFlow';
 import { useLanguage } from './LanguageContext';
 import { api, AUTH_EXPIRED_EVENT } from '../shared/api/api';
+import { OPEN_SIGN_IN_EVENT } from '../shared/hooks/useWishlist';
 
 const ExploreSection = lazy(() => import('../features/catalog/ExploreSection'));
 const ListingsSearch = lazy(() => import('../features/catalog/ListingsSearch'));
@@ -29,22 +30,78 @@ const MobileInstallPrompt = lazy(() => import('../shared/components/MobileInstal
 // Views that need a signed-in user. Every navigation path (navbar, dashboards, deep flows) is gated at render time.
 const PROTECTED_VIEWS = new Set(['user-dashboard', 'vendor-dashboard', 'admin-dashboard', 'checkout']);
 const STAFF_ROLES = ['admin', 'super_admin', 'support_agent'];
+const VENDOR_ROLES = ['vendor_owner', 'vendor_staff'];
+
+// Each role's home: staff → admin panel, vendors → host portal, everyone else → traveler dashboard.
+const homeDashboard = (roles: string[]) =>
+  roles.some((role) => STAFF_ROLES.includes(role)) ? 'admin-dashboard'
+    : roles.some((role) => VENDOR_ROLES.includes(role)) ? 'vendor-dashboard'
+    : 'user-dashboard';
+
+// URL <-> view sync so refresh, deep links and the browser Back button work.
+// ponytail: hand-rolled History API routing; move to a router library if routes need more params than a listing id.
+const PATH_VIEWS = new Set(['homestays', 'hotels', 'cars', 'tours', 'destinations', 'offers', 'user-dashboard', 'vendor-dashboard', 'admin-dashboard', 'ai-planner', 'support']);
+const SEARCH_TYPES = ['hotel', 'car', 'tour', 'homestay', 'destination', 'offer'] as const;
+type SearchType = typeof SEARCH_TYPES[number];
+
+function readLocation() {
+  const [, first = '', id] = window.location.pathname.split('/');
+  // Checkout state (dates, rooms) lives in memory only, so a refreshed /listing/:id/checkout reopens the listing.
+  if (first === 'listing' && id) return { view: 'details', listingId: decodeURIComponent(id) };
+  if (first === 'search') {
+    const query = new URLSearchParams(window.location.search);
+    const type = query.get('type') as SearchType;
+    return { view: 'search', type: SEARCH_TYPES.includes(type) ? type : undefined, destination: query.get('destination') ?? undefined };
+  }
+  return { view: PATH_VIEWS.has(first) ? first : 'explore' };
+}
+
+function urlForView(view: string, listingId: string | null, search: { type: string; destination: string }) {
+  if (view === 'details' && listingId) return `/listing/${encodeURIComponent(listingId)}`;
+  if (view === 'checkout' && listingId) return `/listing/${encodeURIComponent(listingId)}/checkout`;
+  if (view === 'search') return `/search?${new URLSearchParams({ type: search.type, destination: search.destination })}`;
+  return PATH_VIEWS.has(view) ? `/${view}` : '/';
+}
 
 export default function App() {
   const { t, isRtl } = useLanguage();
-  const [view, setView] = useState<string>('explore'); // 'explore' (Homepage) | 'homestays' | 'hotels' | 'cars' | 'tours' | 'destinations' | 'offers' | 'search' | 'details' | 'checkout' | 'user-dashboard' | 'vendor-dashboard' | 'ai-planner' | 'support'
-  const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
+  const [initialLocation] = useState(readLocation);
+  const [view, setView] = useState<string>(initialLocation.view); // 'explore' (Homepage) | 'homestays' | 'hotels' | 'cars' | 'tours' | 'destinations' | 'offers' | 'search' | 'details' | 'checkout' | 'user-dashboard' | 'vendor-dashboard' | 'ai-planner' | 'support'
+  const [selectedListingId, setSelectedListingId] = useState<string | null>(initialLocation.listingId ?? null);
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
-  
+
   // Search parameters to carry from landing page search widget
   const [searchParams, setSearchParams] = useState({
-    destination: 'Hunza Valley',
+    destination: initialLocation.destination ?? 'Hunza Valley',
     dates: '',
     guests: 2,
-    type: 'hotel' as 'hotel' | 'car' | 'tour' | 'homestay' | 'destination' | 'offer'
+    type: (initialLocation.type ?? 'hotel') as SearchType
   });
 
-  const [exploreTab, setExploreTab] = useState<'hotel' | 'homestay' | 'car' | 'tour'>('hotel');
+  // Push a history entry whenever the visible page changes; the first sync only normalizes the URL.
+  const isFirstUrlSync = useRef(true);
+  useEffect(() => {
+    const url = urlForView(view, selectedListingId, searchParams);
+    if (url !== window.location.pathname + window.location.search) {
+      window.history[isFirstUrlSync.current ? 'replaceState' : 'pushState'](null, '', url);
+    }
+    isFirstUrlSync.current = false;
+  }, [view, selectedListingId, searchParams.type, searchParams.destination]);
+
+  // Browser Back/Forward: restore the page from the URL.
+  useEffect(() => {
+    const handlePopState = () => {
+      const next = readLocation();
+      if (next.listingId) setSelectedListingId(next.listingId);
+      if (next.view === 'search') {
+        setSearchParams((prev) => ({ ...prev, type: next.type ?? prev.type, destination: next.destination ?? prev.destination }));
+      }
+      setView(next.view);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
 
   // Booking details passed to Checkout Flow
   const [bookingParams, setBookingParams] = useState<CheckoutParams | null>(null);
@@ -60,9 +117,6 @@ export default function App() {
   const [notificationsCount, setNotificationsCount] = useState(0);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'signin' | 'register'>('signin');
-
-  // Dynamic Navbar offset calculation to prevent fixed header overlap on all devices
-  const [navbarHeight, setNavbarHeight] = useState<number>(120);
 
   useEffect(() => {
     let active = true;
@@ -112,32 +166,6 @@ export default function App() {
     }
   }, [needsSignIn]);
 
-  useEffect(() => {
-    const updateNavHeight = () => {
-      const el = document.getElementById('app-navbar');
-      if (el) {
-        setNavbarHeight(el.offsetHeight);
-      }
-    };
-
-    updateNavHeight();
-    window.addEventListener('resize', updateNavHeight);
-
-    let ro: ResizeObserver | null = null;
-    const el = document.getElementById('app-navbar');
-    if (el && typeof ResizeObserver !== 'undefined') {
-      ro = new ResizeObserver(() => {
-        updateNavHeight();
-      });
-      ro.observe(el);
-    }
-
-    return () => {
-      window.removeEventListener('resize', updateNavHeight);
-      if (ro) ro.disconnect();
-    };
-  }, []);
-
   const handleOpenAuthModal = (mode: 'signin' | 'register' = 'signin') => {
     setAuthModalMode(mode);
     setShowAuthModal(true);
@@ -148,10 +176,15 @@ export default function App() {
     setUserEmail(email);
     setUserName(finalName);
     setIsLoggedIn(true);
-    // The auth modal only reports email/name; fetch roles so staff see the admin workspace link.
-    api.getCurrentUser().then(({ user }) => setUserRoles(user.roles ?? [])).catch(() => setUserRoles([]));
-    // Resume a protected view the user was sent to sign in for (e.g. checkout); otherwise open the dashboard.
-    setView((current) => PROTECTED_VIEWS.has(current) ? current : 'user-dashboard');
+    // The auth modal only reports email/name; fetch roles to pick the right dashboard.
+    // Resume a protected view the user was sent to sign in for (e.g. checkout); otherwise open their role's dashboard.
+    api.getCurrentUser()
+      .then(({ user }) => user.roles ?? [])
+      .catch(() => [])
+      .then((roles) => {
+        setUserRoles(roles);
+        setView((current) => PROTECTED_VIEWS.has(current) ? current : homeDashboard(roles));
+      });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -179,6 +212,13 @@ export default function App() {
     return () => window.removeEventListener('nav-to-type', handleNavToType);
   }, []);
 
+  // Pages ask for sign-in (e.g. saving to the wishlist while signed out).
+  useEffect(() => {
+    const openSignIn = () => handleOpenAuthModal('signin');
+    window.addEventListener(OPEN_SIGN_IN_EVENT, openSignIn);
+    return () => window.removeEventListener(OPEN_SIGN_IN_EVENT, openSignIn);
+  }, []);
+
   // Navigate to listing details helper
   const handleSelectListing = (listing: Listing) => {
     setSelectedListingId(listing.id);
@@ -191,6 +231,10 @@ export default function App() {
   const handleProceedToCheckout = (params: CheckoutParams) => {
     setReceiptBooking(null);
     setBookingParams(params);
+    // Opened from a refreshed/deep-linked listing page: checkout still needs the full listing.
+    if (selectedListing?.id !== params.listingId) {
+      api.getListing(params.listingId).then(setSelectedListing).catch(() => setSelectedListing(null));
+    }
     setView('checkout');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -215,6 +259,8 @@ export default function App() {
       setView('destinations');
     } else if (v === 'offers' || v === 'browse-offers') {
       setView('offers');
+    } else if (v === 'my-dashboard') {
+      setView(homeDashboard(userRoles));
     } else if (v === 'dashboard-user' || v === 'user-dashboard') {
       setView('user-dashboard');
     } else if (v === 'dashboard-vendor' || v === 'vendor-dashboard') {
@@ -226,7 +272,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] text-[#1A1A1A] flex flex-col font-sans selection:bg-[#006F3C] selection:text-white overflow-x-hidden w-full relative">
+    <div className="min-h-screen bg-[#FAFAFA] text-[#1A1A1A] flex flex-col font-sans selection:bg-[#006F3C] selection:text-white overflow-x-clip w-full relative">
       
       {/* Top Navigation Bar */}
       <Navbar 
@@ -261,7 +307,7 @@ export default function App() {
         className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 min-w-0"
         style={{ 
           paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))',
-          paddingTop: `calc(${navbarHeight + 14}px + env(safe-area-inset-top, 0px))`
+          paddingTop: '1.5rem'
         }}
       >
         <Suspense fallback={<div className="min-h-[45vh] animate-pulse rounded-lg bg-slate-100" aria-label="Loading page" />}>
@@ -447,12 +493,13 @@ export default function App() {
       <Suspense fallback={null}>
         <Footer onNavigate={handleNavigation} />
 
-        <AuthModal
-          isOpen={showAuthModal}
-          onClose={() => setShowAuthModal(false)}
-          initialMode={authModalMode}
-          onSuccessLogin={handleSuccessLogin}
-        />
+        {showAuthModal && (
+          <AuthModal
+            onClose={() => setShowAuthModal(false)}
+            initialMode={authModalMode}
+            onSuccessLogin={handleSuccessLogin}
+          />
+        )}
 
         <AccountActionModal />
 

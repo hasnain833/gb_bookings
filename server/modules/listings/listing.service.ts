@@ -119,6 +119,15 @@ async function listingsWithAvailability(checkIn: string, checkOut: string, guest
     .map((room) => room.listingId);
 }
 
+/** Published listings among the given public IDs, in the given order; unpublished or deleted ones drop out. */
+export async function listPublishedListingsByIds(ids: string[]) {
+  if (!ids.length) return [];
+  await requireDatabase();
+  const records = await ListingModel.find({ publicId: { $in: ids }, status: 'published', deletedAt: null }).lean();
+  const byId = new Map(records.map((record) => [record.publicId, toPublicListing(record)]));
+  return ids.flatMap((id) => byId.get(id) ?? []);
+}
+
 export async function getPublishedListing(id: string) {
   await requireDatabase();
 

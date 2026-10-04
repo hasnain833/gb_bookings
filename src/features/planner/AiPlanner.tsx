@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bot, Sparkles, MapPin, DollarSign, Calendar, Users, Send, CheckCircle2, Map, Compass, Clock, Lightbulb, ChevronRight, ChevronLeft, Navigation } from 'lucide-react';
+import { Bot, Sparkles, MapPin, DollarSign, Send, CheckCircle2, Map, Compass, Clock, Lightbulb, ChevronRight, ChevronLeft } from 'lucide-react';
 import { useListings } from '../../shared/hooks/useListings';
 import { Listing, handleImageError } from '../../types';
 import { useLanguage } from '../../app/LanguageContext';

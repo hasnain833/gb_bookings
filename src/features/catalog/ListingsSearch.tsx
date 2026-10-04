@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Car, Filter, MapPin, RefreshCw, Search, SlidersHorizontal, Star } from 'lucide-react';
+import { MapPin, RefreshCw, Search, SlidersHorizontal } from 'lucide-react';
 import type { Listing, ListingType } from '../../types';
-import { handleImageError } from '../../types';
 import { tListing, useLanguage } from '../../app/LanguageContext';
 import { useListings } from '../../shared/hooks/useListings';
 import { CardSkeleton } from '../../shared/components/SkeletonLoader';
+import ListingCard from '../../shared/components/ListingCard';
 
 interface ListingsSearchProps {
   type: ListingType;
@@ -41,6 +41,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
   const [transmission, setTransmission] = useState<'all' | 'Automatic' | 'Manual'>('all');
   const [checkIn, setCheckIn] = useState(initialFilters.startDate || '');
   const [checkOut, setCheckOut] = useState(initialFilters.endDate || '');
+  const [showFilters, setShowFilters] = useState(false);
   const guests = initialFilters.extra.guestCount || undefined;
   const supportsDates = type === 'hotel' || type === 'homestay';
   const datesValid = supportsDates && Boolean(checkIn && checkOut && checkOut > checkIn);
@@ -82,13 +83,14 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
     <div className="space-y-6 pb-20">
       <header className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-[#006F3C]">Marketplace search</p>
-          <h1 className="mt-1 text-2xl font-black text-slate-950 sm:text-3xl">{TYPE_LABELS[type]}</h1>
-          <p className="mt-1 text-sm text-slate-500">{loading ? 'Loading current inventory...' : `${results.length} results`}</p>
+          <h1 className="text-2xl font-bold text-slate-950 sm:text-3xl">{TYPE_LABELS[type]}{query.trim() && <span className="text-slate-500 font-normal"> in {query.trim()}</span>}</h1>
+          <p className="mt-1 text-sm text-slate-500">{loading ? 'Loading…' : `${results.length} ${results.length === 1 ? 'result' : 'results'}`}</p>
         </div>
         <label className="relative w-full sm:max-w-md">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
+            type="search"
+            aria-label="Search by name, city, or area"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search by name, city, or area"
@@ -98,7 +100,10 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
       </header>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
-        <aside className="h-fit space-y-5 border-b border-slate-200 pb-5 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-5">
+        <button onClick={() => setShowFilters(!showFilters)} aria-expanded={showFilters} className="lg:hidden flex items-center justify-center gap-2 min-h-10 rounded-lg border border-slate-300 bg-white text-sm font-semibold text-slate-700">
+          <SlidersHorizontal className="h-4 w-4" /> {showFilters ? 'Hide filters' : 'Filters'}
+        </button>
+        <aside className={`${showFilters ? 'block' : 'hidden'} lg:block h-fit space-y-5 border-b border-slate-200 pb-5 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-5`}>
           <div className="flex items-center justify-between">
             <h2 className="flex items-center gap-2 text-sm font-bold text-slate-900"><SlidersHorizontal className="h-4 w-4" /> Filters</h2>
             <button onClick={resetFilters} className="text-xs font-bold text-[#006F3C]">Reset</button>
@@ -147,9 +152,8 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
         </aside>
 
         <main className="space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <span className="flex items-center gap-2 text-xs font-semibold text-slate-500"><Filter className="h-4 w-4" /> Live inventory</span>
-            <select value={sortBy} onChange={(event) => setSortBy(event.target.value as SortOption)} className="min-h-10 rounded-lg border border-slate-300 bg-white px-3 text-xs font-bold text-slate-700">
+          <div className="flex items-center justify-end">
+            <select aria-label="Sort results" value={sortBy} onChange={(event) => setSortBy(event.target.value as SortOption)} className="min-h-10 rounded-lg border border-slate-300 bg-white px-3 text-xs font-bold text-slate-700">
               <option value="recommended">Recommended</option>
               <option value="price-low">Price: low to high</option>
               <option value="price-high">Price: high to low</option>
@@ -170,34 +174,26 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
           ) : results.length === 0 ? (
             <div className="rounded-lg border border-slate-200 bg-white p-12 text-center">
               <MapPin className="mx-auto h-8 w-8 text-slate-400" />
-              <h2 className="mt-3 font-bold text-slate-900">No matching {TYPE_LABELS[type].toLowerCase()}</h2>
-              <p className="mt-1 text-sm text-slate-500">Change the filters or search another destination.</p>
-              <button onClick={resetFilters} className="mt-4 text-sm font-bold text-[#006F3C] underline">Clear filters</button>
+              <h2 className="mt-3 font-bold text-slate-900">
+                No {TYPE_LABELS[type].toLowerCase()}{query.trim() ? ` in "${query.trim()}"` : ''} match your filters
+              </h2>
+              {query.trim() && listings.length > 0 ? (
+                <button onClick={() => setQuery('')} className="mt-4 rounded-lg bg-[#006F3C] px-4 py-2 text-sm font-semibold text-white hover:bg-[#005c32]">
+                  Show all {listings.length} {TYPE_LABELS[type].toLowerCase()}
+                </button>
+              ) : (
+                <>
+                  <p className="mt-1 text-sm text-slate-500">Try other dates, a higher price, or a lower rating.</p>
+                  <button onClick={resetFilters} className="mt-4 text-sm font-semibold text-[#006F3C] underline">Clear all filters</button>
+                </>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
               {results.map((rawListing) => {
                 const listing = tListing(rawListing, isRtl);
                 return (
-                  <article key={listing.id} onClick={() => onSelectListing(rawListing)} className="cursor-pointer overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:border-emerald-400 hover:shadow-md">
-                    <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
-                      <img src={listing.image} alt={listing.title} className="h-full w-full object-cover transition duration-300 hover:scale-105" onError={handleImageError} />
-                      {listing.featured && <span className="absolute left-3 top-3 rounded bg-[#006F3C] px-2.5 py-1 text-[10px] font-bold uppercase text-white">Featured</span>}
-                    </div>
-                    <div className="space-y-3 p-4">
-                      <div className="flex items-center justify-between gap-3 text-xs">
-                        <span className="flex min-w-0 items-center gap-1 truncate text-slate-500"><MapPin className="h-3.5 w-3.5 text-[#006F3C]" /> {listing.location}</span>
-                        <span className="flex items-center gap-1 font-bold text-slate-800"><Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" /> {listing.rating}</span>
-                      </div>
-                      <h2 className="line-clamp-2 font-bold text-slate-950">{listing.title}</h2>
-                      <p className="line-clamp-2 text-xs leading-relaxed text-slate-600">{listing.description}</p>
-                      {listing.type === 'car' && listing.carSpecs && <p className="flex items-center gap-2 text-xs font-semibold text-slate-500"><Car className="h-4 w-4" /> {listing.carSpecs.category} · {listing.carSpecs.transmission}</p>}
-                      <div className="flex items-baseline justify-between border-t border-slate-100 pt-3">
-                        <span className="text-base font-black text-slate-950">PKR {listing.price.toLocaleString()}</span>
-                        <span className="text-xs text-slate-500">View details</span>
-                      </div>
-                    </div>
-                  </article>
+                  <ListingCard key={listing.id} listing={listing} tag={listing.featured ? 'Featured' : undefined} detailed onSelect={() => onSelectListing(rawListing)} />
                 );
               })}
             </div>

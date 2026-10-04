@@ -9,8 +9,8 @@ interface RoomBookingPanelProps {
 }
 
 const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Karachi' }).format(new Date());
-const inputClass = 'w-full min-h-[44px] bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-[#0F172A] focus:bg-white font-medium';
-const labelClass = 'text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1';
+const inputClass = 'w-full h-10 bg-white border border-slate-300 rounded-lg px-3 text-sm text-slate-800 focus:outline-none focus:border-[#006F3C] focus:ring-2 focus:ring-[#006F3C]/15';
+const labelClass = 'text-xs font-medium text-slate-600 flex items-center gap-1';
 
 /** Live room availability and server-quoted prices for hotels and homestays. */
 export default function RoomBookingPanel({ listingId, onProceed }: RoomBookingPanelProps) {
@@ -69,14 +69,14 @@ export default function RoomBookingPanel({ listingId, onProceed }: RoomBookingPa
 
   return (
     <div className="space-y-5" id="room-booking-panel">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1.5">
-          <label htmlFor="booking-check-in" className={labelClass}><Calendar className="w-3.5 h-3.5 text-indigo-600" /> Check-in</label>
+          <label htmlFor="booking-check-in" className={labelClass}><Calendar className="w-3.5 h-3.5 text-slate-400" /> Check-in</label>
           <input id="booking-check-in" type="date" min={today()} value={checkIn}
             onChange={(event) => setCheckIn(event.target.value)} className={inputClass} />
         </div>
         <div className="space-y-1.5">
-          <label htmlFor="booking-check-out" className={labelClass}><Calendar className="w-3.5 h-3.5 text-indigo-600" /> Check-out</label>
+          <label htmlFor="booking-check-out" className={labelClass}><Calendar className="w-3.5 h-3.5 text-slate-400" /> Check-out</label>
           <input id="booking-check-out" type="date" min={checkIn || today()} value={checkOut}
             onChange={(event) => setCheckOut(event.target.value)} className={inputClass} />
         </div>
@@ -89,7 +89,7 @@ export default function RoomBookingPanel({ listingId, onProceed }: RoomBookingPa
           ['booking-rooms', 'Rooms', rooms, setRooms, 1],
         ] as const).map(([id, label, value, setValue, min]) => (
           <div key={id} className="space-y-1.5">
-            <label htmlFor={id} className={labelClass}><Users className="w-3.5 h-3.5 text-indigo-600" /> {label}</label>
+            <label htmlFor={id} className={labelClass}><Users className="w-3.5 h-3.5 text-slate-400" /> {label}</label>
             <select id={id} value={value} onChange={(event) => setValue(Number(event.target.value))} className={inputClass}>
               {Array.from({ length: 10 - min + 1 }, (_, index) => index + min).map((count) => (
                 <option key={count} value={count}>{count}</option>
@@ -99,8 +99,8 @@ export default function RoomBookingPanel({ listingId, onProceed }: RoomBookingPa
         ))}
       </div>
 
-      <div className="space-y-2 border-t border-slate-100 pt-4" aria-live="polite">
-        <span className={labelClass}><BedDouble className="w-3.5 h-3.5 text-indigo-600" /> Choose a room</span>
+      <div className="space-y-2" aria-live="polite">
+        <span className={labelClass}><BedDouble className="w-3.5 h-3.5 text-slate-400" /> Choose a room</span>
         {!datesReady && <p className="text-xs text-slate-500">Select check-in and check-out dates to see available rooms.</p>}
         {loading && <div className="h-16 animate-pulse rounded-xl bg-slate-100" aria-label="Checking availability" />}
         {error && <p className="text-xs font-bold text-rose-600" role="alert">{error}</p>}
@@ -114,36 +114,36 @@ export default function RoomBookingPanel({ listingId, onProceed }: RoomBookingPa
             disabled={!room.bookable}
             aria-pressed={room.id === selectedRoomId}
             onClick={() => setSelectedRoomId(room.id)}
-            className={`w-full p-3 rounded-xl border text-left transition-all flex items-start justify-between gap-3 ${
-              room.id === selectedRoomId ? 'border-[#0F172A] bg-slate-50' : 'border-slate-200 bg-white hover:border-slate-300'
+            className={`w-full p-3 rounded-lg border text-left transition-all flex items-start justify-between gap-3 ${
+              room.id === selectedRoomId ? 'border-[#006F3C] bg-emerald-50/60 ring-1 ring-[#006F3C]' : 'border-slate-200 bg-white hover:border-slate-300'
             } disabled:cursor-not-allowed disabled:opacity-50`}
           >
             <div className="min-w-0">
-              <span className="text-xs font-bold text-slate-800 block">{room.name}</span>
-              <span className="text-[10px] text-slate-500 block mt-0.5">
+              <span className="text-sm font-semibold text-slate-900 block">{room.name}</span>
+              <span className="text-xs text-slate-500 block mt-0.5">
                 {room.bedType} · up to {room.maxAdults} adults{room.maxChildren ? `, ${room.maxChildren} child` : ''}
               </span>
-              <span className={`text-[10px] font-bold block mt-0.5 ${room.available ? 'text-emerald-600' : 'text-rose-600'}`}>
+              <span className={`text-xs font-medium block mt-0.5 ${room.available ? 'text-emerald-600' : 'text-rose-600'}`}>
                 {room.available === 0 ? 'Sold out' : !room.bookable ? 'Does not fit your party' : `${room.available} left`}
               </span>
             </div>
             <div className="text-right shrink-0">
-              <span className="text-xs font-extrabold text-slate-900 block">PKR {room.totalPrice.toLocaleString()}</span>
-              <span className="text-[10px] text-slate-500 block">PKR {room.nightlyRate.toLocaleString()} / night</span>
+              <span className="text-sm font-bold text-slate-900 block">PKR {room.totalPrice.toLocaleString()}</span>
+              <span className="text-xs text-slate-500 block">PKR {room.nightlyRate.toLocaleString()} / night</span>
             </div>
           </button>
         ))}
       </div>
 
       {selectedRoom && availability && (
-        <div className="space-y-1.5 border-t border-slate-100 pt-4 text-xs" id="booking-price-breakdown">
+        <div className="space-y-2 border-t border-slate-200 pt-4 text-sm" id="booking-price-breakdown">
           <div className="flex justify-between text-slate-500">
             <span>PKR {selectedRoom.nightlyRate.toLocaleString()} × {availability.nights} night{availability.nights > 1 ? 's' : ''} × {rooms} room{rooms > 1 ? 's' : ''}</span>
-            <span className="font-bold text-slate-800">PKR {selectedRoom.totalPrice.toLocaleString()}</span>
+            <span className="text-slate-800">PKR {selectedRoom.totalPrice.toLocaleString()}</span>
           </div>
-          <div className="flex justify-between text-sm font-extrabold text-slate-900 pt-2 border-t border-slate-100">
+          <div className="flex justify-between font-semibold text-slate-900">
             <span>Due at check-in</span>
-            <span className="text-indigo-600">PKR {selectedRoom.totalPrice.toLocaleString()}</span>
+            <span>PKR {selectedRoom.totalPrice.toLocaleString()}</span>
           </div>
         </div>
       )}
@@ -153,14 +153,14 @@ export default function RoomBookingPanel({ listingId, onProceed }: RoomBookingPa
         onClick={proceed}
         disabled={!selectedRoom}
         id="btn-checkout-proceed"
-        className="w-full min-h-[46px] bg-[#0F172A] hover:bg-slate-800 text-white font-bold py-3.5 px-6 rounded-xl text-xs sm:text-sm uppercase tracking-wider disabled:cursor-not-allowed disabled:opacity-50"
+        className="w-full h-11 rounded-lg bg-[#006F3C] px-6 text-sm font-semibold text-white hover:bg-[#005C32] disabled:cursor-not-allowed disabled:bg-slate-300"
       >
-        Reserve · pay at property
+        {selectedRoom ? 'Reserve' : 'Select dates to reserve'}
       </button>
 
-      <div className="flex items-start gap-2 text-[10px] text-slate-500 leading-normal">
-        <ShieldCheck className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
-        <span>No payment today. Free cancellation until the day before check-in.</span>
+      <div className="flex items-start gap-2 text-xs text-slate-500 leading-normal">
+        <ShieldCheck className="w-4 h-4 text-[#006F3C] shrink-0 mt-0.5" />
+        <span>No payment today. You pay at the property. Free cancellation until the day before check-in.</span>
       </div>
     </div>
   );

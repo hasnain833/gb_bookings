@@ -1,14 +1,61 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  ChevronDown, Globe, User, Bell, Bot, Calendar, Headset, 
-  Compass as TourIcon, Compass, Sparkles, MessageCircle, Building2, Home, 
-  Car, MapPin, Flame, LogOut, Heart, ShieldCheck, Shield, ChevronRight,
-  ArrowRight, ArrowLeft, Tag, Percent, Star, PlusCircle, HelpCircle, MoreVertical,
-  Wifi, Coffee, Mountain, Waves, Utensils, Plane, Snowflake,
-  LayoutGrid, Crown, Dog, Briefcase, Lock, Users, Building,
-  Smartphone, Sun, Landmark, Trees, Flower2, Gift, Zap, Clock, CreditCard,
-  Award, Moon, Wallet, Key, Camera, Menu, X, Phone
+import {
+  ChevronDown,
+  Globe,
+  User,
+  Bell,
+  Bot,
+  Calendar,
+  Headset,
+  Compass as TourIcon,
+  Compass,
+  Sparkles,
+  MessageCircle,
+  Building2,
+  Home,
+  Car,
+  MapPin,
+  Flame,
+  LogOut,
+  Heart,
+  ShieldCheck,
+  Shield,
+  ChevronRight,
+  ArrowRight,
+  ArrowLeft,
+  Tag,
+  Percent,
+  Star,
+  Wifi,
+  Coffee,
+  Mountain,
+  Waves,
+  Utensils,
+  Plane,
+  Snowflake,
+  LayoutGrid,
+  Crown,
+  Dog,
+  Briefcase,
+  Users,
+  Building,
+  Sun,
+  Landmark,
+  Trees,
+  Flower2,
+  Gift,
+  Zap,
+  Clock,
+  CreditCard,
+  Award,
+  Moon,
+  Wallet,
+  Key,
+  Camera,
+  Menu,
+  X,
+  Phone
 } from 'lucide-react';
 import { useLanguage } from '../../app/LanguageContext';
 import { handleImageError } from '../../types';
@@ -191,10 +238,10 @@ export default function Navbar({
   ];
 
   return (
-    <header ref={navRef} id="app-navbar" className="fixed top-0 left-0 right-0 z-50 w-full bg-white shadow-md border-b border-[#E2E8F0]">
+    <header ref={navRef} id="app-navbar" className="sticky top-0 z-50 w-full bg-white shadow-md border-b border-[#E2E8F0]">
       
       {/* 1. TOP UTILITY HEADER BAR (Dark Navy matching exact reference image) */}
-      <div className="bg-[#0A182E] text-slate-200 text-xs py-2 px-3 sm:px-4 lg:px-6 border-b border-slate-800/80 hidden sm:block">
+      <div className="bg-[#002816] text-slate-200 text-xs py-2 px-3 sm:px-4 lg:px-6 border-b border-slate-800/80 hidden sm:block">
         <div className="w-full max-w-[1440px] mx-auto flex items-center justify-between gap-2 sm:gap-4">
           
           {/* Top Bar Left: Key Trust Factors */}
@@ -228,7 +275,7 @@ export default function Navbar({
                 <ChevronDown className="w-3 h-3 text-slate-400" />
               </button>
               {showCurrencyDropdown && (
-                <div className="absolute right-0 mt-1 w-24 bg-[#0A182E] border border-slate-700 rounded-lg shadow-xl py-1 z-50 text-left">
+                <div className="absolute right-0 mt-1 w-24 bg-[#002816] border border-slate-700 rounded-lg shadow-lg py-1 z-50 text-left">
                   <button 
                     onClick={() => { setCurrency('PKR'); setShowCurrencyDropdown(false); }}
                     className="w-full text-left px-3 py-1.5 hover:bg-slate-800 text-xs text-slate-200"
@@ -256,7 +303,7 @@ export default function Navbar({
                 <ChevronDown className="w-3 h-3 text-slate-400" />
               </button>
               {showLangDropdown && (
-                <div className="absolute right-0 mt-1 w-28 bg-[#0A182E] border border-slate-700 rounded-lg shadow-xl py-1 z-50 text-left">
+                <div className="absolute right-0 mt-1 w-28 bg-[#002816] border border-slate-700 rounded-lg shadow-lg py-1 z-50 text-left">
                   <button 
                     onClick={() => { requestLanguageChange('en'); setShowLangDropdown(false); }}
                     className="w-full text-left px-3 py-1.5 hover:bg-slate-800 text-xs text-slate-200"
@@ -286,10 +333,10 @@ export default function Navbar({
             {isLoggedIn ? (
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setView('user-dashboard')}
+                  onClick={() => setView('my-dashboard')}
                   className="flex items-center gap-1.5 hover:text-white transition-colors cursor-pointer"
                 >
-                  <User className="w-3.5 h-3.5 text-[#00A651]" />
+                  <User className="w-3.5 h-3.5 text-[#006F3C]" />
                   <span className="max-w-[100px] truncate">{displayName}</span>
                 </button>
                 <button
@@ -311,7 +358,7 @@ export default function Navbar({
 
                 <button
                   onClick={() => onOpenAuthModal('register')}
-                  className="bg-[#00A651] hover:bg-[#008E45] text-white text-xs font-bold px-3 py-1 rounded transition-all shadow-xs cursor-pointer"
+                  className="bg-[#006F3C] hover:bg-[#005C32] text-white text-xs font-bold px-3 py-1 rounded transition-all shadow-xs cursor-pointer"
                 >
                   {isRtl ? 'رجسٹر کریں' : 'Register'}
                 </button>
@@ -346,7 +393,7 @@ export default function Navbar({
               >
                 <ArrowLeft className="w-5 h-5 text-slate-800 stroke-[2.5]" />
               </button>
-              <span className="font-extrabold text-sm text-slate-900 truncate max-w-[170px] sm:max-w-[240px]">
+              <span className="font-semibold text-sm text-slate-900 truncate max-w-[170px] sm:max-w-[240px]">
                 {currentView === 'hotels' ? (isRtl ? 'ہوٹلز' : 'Hotels & Resorts') :
                  currentView === 'homestays' ? (isRtl ? 'ہوم اسٹیز' : 'Traditional Homestays') :
                  currentView === 'cars' ? (isRtl ? 'گاڑیاں اور جیپیں' : '4x4 Jeeps & Cars') :
@@ -404,13 +451,13 @@ export default function Navbar({
                   id={`nav-link-${item.id}`}
                   onClick={() => handleLinkClick(item.id)}
                   className={`flex items-center gap-1 xl:gap-1.5 transition-all duration-150 font-bold cursor-pointer relative whitespace-nowrap py-1 px-1 lg:px-1.5 xl:px-2 ${
-                    isActive ? 'text-[#00A651] border-b-2 border-[#00A651]' : 'text-slate-800 hover:text-[#00A651]'
+                    isActive ? 'text-[#006F3C] border-b-2 border-[#006F3C]' : 'text-slate-700 hover:text-[#006F3C]'
                   }`}
                 >
-                  {item.icon && <item.icon className="w-3.5 h-3.5 xl:w-4 xl:h-4 shrink-0 text-[#00A651]" />}
+                  {item.icon && <item.icon className="w-3.5 h-3.5 xl:w-4 xl:h-4 shrink-0 text-slate-400" />}
                   <span>{item.label}</span>
                   {item.isHot && (
-                    <span className="bg-[#FF3B30] text-white text-[8px] xl:text-[9px] font-black px-1 xl:px-1.5 py-0.2 rounded-md uppercase tracking-tight shadow-xs ml-0.5">
+                    <span className="bg-rose-50 text-rose-600 text-[10px] font-semibold px-1.5 py-0.5 rounded-md ml-0.5">
                       HOT
                     </span>
                   )}
@@ -424,32 +471,32 @@ export default function Navbar({
             <button
               id="nav-link-more"
               onClick={() => setShowMoreMenu(!showMoreMenu)}
-              className="flex items-center gap-1 font-bold text-slate-800 hover:text-[#00A651] py-1 px-1 lg:px-1.5 xl:px-2 cursor-pointer whitespace-nowrap"
+              className="flex items-center gap-1 font-bold text-slate-800 hover:text-[#006F3C] py-1 px-1 lg:px-1.5 xl:px-2 cursor-pointer whitespace-nowrap"
             >
               <span>{isRtl ? 'مزید' : 'More'}</span>
               <ChevronDown className="w-3.5 h-3.5 text-slate-500 shrink-0" />
             </button>
 
             {showMoreMenu && (
-              <div className="absolute left-0 mt-0 w-56 bg-white border border-slate-200 rounded-xl shadow-xl py-2 z-50 animate-fadeIn" id="nav-more-dropdown">
+              <div className="absolute left-0 mt-0 w-56 bg-white border border-slate-200 rounded-xl shadow-lg py-2 z-50 animate-fadeIn" id="nav-more-dropdown">
                 <button
                   onClick={() => setView('user-dashboard')}
-                  className="w-full text-left px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-[#00A651] flex items-center gap-2"
+                  className="w-full text-left px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-[#006F3C] flex items-center gap-2"
                 >
                   <User className="w-4 h-4 text-slate-500" />
                   <span>{t('nav.user_dashboard')}</span>
                 </button>
                 <button
                   onClick={() => setView('vendor-dashboard')}
-                  className="w-full text-left px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-[#00A651] flex items-center gap-2"
+                  className="w-full text-left px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-[#006F3C] flex items-center gap-2"
                 >
-                  <Sparkles className="w-4 h-4 text-[#00A651]" />
+                  <Sparkles className="w-4 h-4 text-[#006F3C]" />
                   <span>{t('nav.vendor_dashboard')}</span>
                 </button>
                 {isStaff && (
                   <button
                     onClick={() => setView('admin-dashboard')}
-                    className="w-full text-left px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-[#00A651] flex items-center gap-2"
+                    className="w-full text-left px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-[#006F3C] flex items-center gap-2"
                   >
                     <ShieldCheck className="w-4 h-4 text-slate-500" />
                     <span>Admin workspace</span>
@@ -457,7 +504,7 @@ export default function Navbar({
                 )}
                 <button
                   onClick={() => setView('support')}
-                  className="w-full text-left px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-[#00A651] flex items-center gap-2"
+                  className="w-full text-left px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-[#006F3C] flex items-center gap-2"
                 >
                   <MessageCircle className="w-4 h-4 text-slate-500" />
                   <span>{t('nav.support')}</span>
@@ -473,16 +520,16 @@ export default function Navbar({
           {/* AI Planner Button (Tablet/Desktop Only) */}
           <button
             onClick={() => setView('ai-planner')}
-            className="hidden md:flex items-center gap-1 xl:gap-1.5 border border-[#00A651]/50 hover:border-[#00A651] text-[#00A651] hover:bg-[#00A651]/5 text-xs font-extrabold px-2.5 lg:px-3 xl:px-3.5 py-2 xl:py-2.5 rounded-xl transition-all shadow-xs cursor-pointer whitespace-nowrap shrink-0 min-h-[40px]"
+            className="hidden md:flex items-center gap-1 xl:gap-1.5 border border-[#006F3C]/50 hover:border-[#006F3C] text-[#006F3C] hover:bg-[#006F3C]/5 text-xs font-semibold px-2.5 lg:px-3 xl:px-3.5 py-2 xl:py-2.5 rounded-xl transition-all shadow-xs cursor-pointer whitespace-nowrap shrink-0 min-h-[40px]"
           >
-            <Sparkles className="w-3.5 h-3.5 text-[#00A651]" />
+            <Sparkles className="w-3.5 h-3.5 text-[#006F3C]" />
             <span>AI Planner</span>
           </button>
 
           {/* List Your Property Button */}
           <button
             onClick={() => { setView('vendor-dashboard'); setMobileDrawerOpen(false); }}
-            className="bg-[#00A651] hover:bg-[#008E45] text-white text-xs font-extrabold px-2.5 sm:px-3 xl:px-4 py-1.5 sm:py-2.5 rounded-xl transition-all shadow-xs flex items-center gap-1 lg:gap-1.5 cursor-pointer whitespace-nowrap shrink-0 min-h-[36px] sm:min-h-[40px]"
+            className="bg-[#006F3C] hover:bg-[#005C32] text-white text-xs font-semibold px-2.5 sm:px-3 xl:px-4 py-1.5 sm:py-2.5 rounded-xl transition-all shadow-xs flex items-center gap-1 lg:gap-1.5 cursor-pointer whitespace-nowrap shrink-0 min-h-[36px] sm:min-h-[40px]"
             title="List Your Property / Become a Host"
           >
             <Building2 className="w-3.5 h-3.5 xl:w-4 xl:h-4 shrink-0" />
@@ -493,8 +540,8 @@ export default function Navbar({
           {/* User Account Button (Mobile Only) */}
           {isLoggedIn ? (
             <button
-              onClick={() => { setView('user-dashboard'); setMobileDrawerOpen(false); }}
-              className="lg:hidden w-9 h-9 min-w-[36px] sm:w-10 sm:h-10 rounded-xl bg-[#0A182E] text-white font-black text-xs flex items-center justify-center shadow-xs cursor-pointer shrink-0"
+              onClick={() => { setView('my-dashboard'); setMobileDrawerOpen(false); }}
+              className="lg:hidden w-9 h-9 min-w-[36px] sm:w-10 sm:h-10 rounded-xl bg-[#002816] text-white font-semibold text-xs flex items-center justify-center shadow-xs cursor-pointer shrink-0"
               title="My Dashboard"
             >
               {userInitials}
@@ -520,7 +567,7 @@ export default function Navbar({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.15 }}
-            className="absolute top-full left-0 right-0 w-full bg-white border-b border-slate-300 shadow-2xl z-40"
+            className="absolute top-full left-0 right-0 w-full bg-white border-b border-slate-300 shadow-lg z-40"
             onMouseEnter={() => {
               if (megaMenuTimeoutRef.current) clearTimeout(megaMenuTimeoutRef.current);
               setShowMegaMenu(true);
@@ -536,7 +583,7 @@ export default function Navbar({
                     
                     {/* Column 1: EXPLORE HOMESTAYS BY DESTINATION */}
                     <div className="col-span-3 text-left">
-                      <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2.5">
+                      <h4 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5">
                         EXPLORE HOMESTAYS BY DESTINATION
                       </h4>
                       <ul className="space-y-1 text-[12px] font-semibold text-slate-700">
@@ -548,7 +595,7 @@ export default function Navbar({
                           <li key={item}>
                             <button
                               onClick={() => { setView('homestays'); setShowMegaMenu(false); }}
-                              className="w-full text-left py-0.5 hover:text-[#00A651] flex items-center gap-1.5 transition-colors cursor-pointer"
+                              className="w-full text-left py-0.5 hover:text-[#006F3C] flex items-center gap-1.5 transition-colors cursor-pointer"
                             >
                               <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
                               <span className="truncate">{item}</span>
@@ -558,7 +605,7 @@ export default function Navbar({
                         <li className="pt-1 border-t border-slate-100">
                           <button
                             onClick={() => { setView('homestays'); setShowMegaMenu(false); }}
-                            className="text-[12px] font-bold text-slate-900 hover:text-[#00A651] flex items-center gap-1.5 cursor-pointer"
+                            className="text-[12px] font-bold text-slate-900 hover:text-[#006F3C] flex items-center gap-1.5 cursor-pointer"
                           >
                             <LayoutGrid className="w-3.5 h-3.5 text-slate-500" />
                             <span>All Homestays</span>
@@ -569,7 +616,7 @@ export default function Navbar({
 
                     {/* Column 2: BROWSE HOMESTAYS BY TYPE */}
                     <div className="col-span-3 text-left">
-                      <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2.5">
+                      <h4 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5">
                         BROWSE HOMESTAYS BY TYPE
                       </h4>
                       <ul className="space-y-1 text-[12px] font-semibold text-slate-700">
@@ -589,7 +636,7 @@ export default function Navbar({
                           <li key={item.name}>
                             <button
                               onClick={() => { setView('homestays'); setShowMegaMenu(false); }}
-                              className="w-full text-left py-0.5 hover:text-[#00A651] flex items-center gap-1.5 transition-colors cursor-pointer"
+                              className="w-full text-left py-0.5 hover:text-[#006F3C] flex items-center gap-1.5 transition-colors cursor-pointer"
                             >
                               <item.icon className="w-3 h-3 text-slate-400 shrink-0" />
                               <span className="truncate">{item.name}</span>
@@ -601,7 +648,7 @@ export default function Navbar({
 
                     {/* Column 3: POPULAR AMENITIES */}
                     <div className="col-span-2 text-left">
-                      <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2.5">
+                      <h4 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5">
                         POPULAR AMENITIES
                       </h4>
                       <ul className="space-y-1 text-[12px] font-semibold text-slate-700">
@@ -619,7 +666,7 @@ export default function Navbar({
                           <li key={item.name}>
                             <button
                               onClick={() => { setView('homestays'); setShowMegaMenu(false); }}
-                              className="w-full text-left py-0.5 hover:text-[#00A651] flex items-center gap-1.5 transition-colors cursor-pointer"
+                              className="w-full text-left py-0.5 hover:text-[#006F3C] flex items-center gap-1.5 transition-colors cursor-pointer"
                             >
                               <item.icon className="w-3 h-3 text-slate-400 shrink-0" />
                               <span className="truncate">{item.name}</span>
@@ -631,7 +678,7 @@ export default function Navbar({
 
                     {/* Column 4: POPULAR AREAS */}
                     <div className="col-span-2 text-left">
-                      <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2.5">
+                      <h4 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5">
                         POPULAR AREAS
                       </h4>
                       <ul className="space-y-1 text-[12px] font-semibold text-slate-700">
@@ -642,7 +689,7 @@ export default function Navbar({
                           <li key={area}>
                             <button
                               onClick={() => { setView('homestays'); setShowMegaMenu(false); }}
-                              className="w-full text-left py-0.5 hover:text-[#00A651] flex items-center gap-1.5 transition-colors cursor-pointer"
+                              className="w-full text-left py-0.5 hover:text-[#006F3C] flex items-center gap-1.5 transition-colors cursor-pointer"
                             >
                               <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
                               <span className="truncate">{area}</span>
@@ -654,9 +701,9 @@ export default function Navbar({
 
                     {/* Column 5: RIGHT BANNER CARD ("Become a Homestay Host") */}
                     <div className="col-span-2 text-left">
-                      <div className="bg-[#071728] rounded-2xl p-4 text-white relative overflow-hidden shadow-lg flex flex-col justify-between h-full min-h-[260px]">
+                      <div className="bg-[#002816] rounded-2xl p-4 text-white relative overflow-hidden shadow-lg flex flex-col justify-between h-full min-h-[260px]">
                         <div className="relative z-10 space-y-2">
-                          <h5 className="text-base font-extrabold text-white leading-tight">Become a Homestay Host</h5>
+                          <h5 className="text-base font-semibold text-white leading-tight">Become a Homestay Host</h5>
                           <p className="text-xs text-slate-300 leading-relaxed">
                             List your homestay and start welcoming travelers.
                           </p>
@@ -664,7 +711,7 @@ export default function Navbar({
 
                         <button
                           onClick={() => { setView('vendor-dashboard'); setShowMegaMenu(false); }}
-                          className="relative z-10 bg-[#00A651] hover:bg-[#008E45] text-white text-xs font-bold px-3 py-2 rounded-xl inline-flex items-center justify-center gap-1.5 w-full transition-all cursor-pointer mt-4 shadow-md"
+                          className="relative z-10 bg-[#006F3C] hover:bg-[#005C32] text-white text-xs font-bold px-3 py-2 rounded-xl inline-flex items-center justify-center gap-1.5 w-full transition-all cursor-pointer mt-4 shadow-md"
                         >
                           <span>List Your Homestay</span>
                           <ArrowRight className="w-3.5 h-3.5" />
@@ -681,48 +728,6 @@ export default function Navbar({
 
                   </div>
 
-                  {/* Bottom Trust Pillars Row */}
-                  <div className="pt-4 mt-2 border-t border-slate-100 grid grid-cols-4 gap-4 text-left">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-emerald-50 text-[#00A651] flex items-center justify-center shrink-0 border border-emerald-100">
-                        <ShieldCheck className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h6 className="text-[12px] font-bold text-slate-900 leading-tight">Verified Homestays</h6>
-                        <p className="text-[10px] text-slate-500">All homestays are verified for your safety</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-emerald-50 text-[#00A651] flex items-center justify-center shrink-0 border border-emerald-100">
-                        <Lock className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h6 className="text-[12px] font-bold text-slate-900 leading-tight">Secure Booking</h6>
-                        <p className="text-[10px] text-slate-500">Your data and payments are always safe</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-emerald-50 text-[#00A651] flex items-center justify-center shrink-0 border border-emerald-100">
-                        <Tag className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h6 className="text-[12px] font-bold text-slate-900 leading-tight">Best Price Guarantee</h6>
-                        <p className="text-[10px] text-slate-500">Get the best prices with no hidden fees</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-emerald-50 text-[#00A651] flex items-center justify-center shrink-0 border border-emerald-100">
-                        <Headset className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h6 className="text-[12px] font-bold text-slate-900 leading-tight">24/7 Support</h6>
-                        <p className="text-[10px] text-slate-500">We're always here to help you</p>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               ) : activeMegaTab === 'cars' ? (
                 <div className="grid grid-cols-12 gap-4 items-start">
@@ -731,10 +736,10 @@ export default function Navbar({
                   <div className="col-span-2 text-left border-r border-slate-100 pr-3">
                     <button
                       onClick={() => { setView('destinations'); setShowMegaMenu(false); }}
-                      className="text-[11px] font-black text-slate-800 uppercase tracking-wider mb-2.5 flex items-center justify-between w-full hover:text-[#00A651] transition-colors"
+                      className="text-[11px] font-semibold text-slate-800 uppercase tracking-wider mb-2.5 flex items-center justify-between w-full hover:text-[#006F3C] transition-colors"
                     >
                       <span className="flex items-center gap-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-[#00A651]" />
+                        <MapPin className="w-3.5 h-3.5 text-[#006F3C]" />
                         <span>Explore by city / destination</span>
                       </span>
                       <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
@@ -747,16 +752,16 @@ export default function Navbar({
                         <li key={loc}>
                           <button
                             onClick={() => { setView('cars'); setShowMegaMenu(false); }}
-                            className="w-full text-left py-0.5 hover:text-[#00A651] flex items-center gap-1.5 transition-colors cursor-pointer"
+                            className="w-full text-left py-0.5 hover:text-[#006F3C] flex items-center gap-1.5 transition-colors cursor-pointer"
                           >
-                            <span className="text-slate-600 hover:text-[#00A651]">{loc}</span>
+                            <span className="text-slate-600 hover:text-[#006F3C]">{loc}</span>
                           </button>
                         </li>
                       ))}
                       <li className="pt-1.5 border-t border-slate-100">
                         <button
                           onClick={() => { setView('destinations'); setShowMegaMenu(false); }}
-                          className="text-[12px] font-bold text-slate-900 hover:text-[#00A651] flex items-center gap-1.5 cursor-pointer"
+                          className="text-[12px] font-bold text-slate-900 hover:text-[#006F3C] flex items-center gap-1.5 cursor-pointer"
                         >
                           <LayoutGrid className="w-3.5 h-3.5 text-slate-500" />
                           <span>All Destinations</span>
@@ -770,7 +775,7 @@ export default function Navbar({
                     
                     {/* Col 1: EXPLORE CARS BY CITY */}
                     <div>
-                      <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2.5">
+                      <h4 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5">
                         EXPLORE CARS BY CITY
                       </h4>
                       <ul className="space-y-1 text-[12px] font-semibold text-slate-700">
@@ -782,7 +787,7 @@ export default function Navbar({
                           <li key={item}>
                             <button
                               onClick={() => { setView('cars'); setShowMegaMenu(false); }}
-                              className="w-full text-left py-0.5 hover:text-[#00A651] flex items-center gap-1.5 transition-colors cursor-pointer"
+                              className="w-full text-left py-0.5 hover:text-[#006F3C] flex items-center gap-1.5 transition-colors cursor-pointer"
                             >
                               <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
                               <span className="truncate">{item}</span>
@@ -792,7 +797,7 @@ export default function Navbar({
                         <li className="pt-1 border-t border-slate-100">
                           <button
                             onClick={() => { setView('cars'); setShowMegaMenu(false); }}
-                            className="text-[12px] font-bold text-slate-900 hover:text-[#00A651] flex items-center gap-1.5 cursor-pointer"
+                            className="text-[12px] font-bold text-slate-900 hover:text-[#006F3C] flex items-center gap-1.5 cursor-pointer"
                           >
                             <LayoutGrid className="w-3.5 h-3.5 text-slate-500" />
                             <span>All Cities</span>
@@ -803,7 +808,7 @@ export default function Navbar({
 
                     {/* Col 2: BROWSE CARS BY TYPE */}
                     <div>
-                      <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2.5">
+                      <h4 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5">
                         BROWSE CARS BY TYPE
                       </h4>
                       <ul className="space-y-1 text-[12px] font-semibold text-slate-700">
@@ -822,7 +827,7 @@ export default function Navbar({
                           <li key={item.name}>
                             <button
                               onClick={() => { setView('cars'); setShowMegaMenu(false); }}
-                              className="w-full text-left py-0.5 hover:text-[#00A651] flex items-center gap-1.5 transition-colors cursor-pointer"
+                              className="w-full text-left py-0.5 hover:text-[#006F3C] flex items-center gap-1.5 transition-colors cursor-pointer"
                             >
                               <item.icon className="w-3 h-3 text-slate-400 shrink-0" />
                               <span className="truncate">{item.name}</span>
@@ -834,7 +839,7 @@ export default function Navbar({
 
                     {/* Col 3: POPULAR BRANDS */}
                     <div>
-                      <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2.5">
+                      <h4 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5">
                         POPULAR BRANDS
                       </h4>
                       <ul className="space-y-1 text-[12px] font-semibold text-slate-700">
@@ -845,7 +850,7 @@ export default function Navbar({
                           <li key={brand}>
                             <button
                               onClick={() => { setView('cars'); setShowMegaMenu(false); }}
-                              className="w-full text-left py-0.5 hover:text-[#00A651] flex items-center gap-1.5 transition-colors cursor-pointer"
+                              className="w-full text-left py-0.5 hover:text-[#006F3C] flex items-center gap-1.5 transition-colors cursor-pointer"
                             >
                               <CarBrandLogo brand={brand} />
                               <span className="truncate">{brand}</span>
@@ -857,7 +862,7 @@ export default function Navbar({
 
                     {/* Col 4: CAR RENTAL & OPTIONS */}
                     <div>
-                      <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2.5">
+                      <h4 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5">
                         CAR RENTAL & OPTIONS
                       </h4>
                       <ul className="space-y-1 text-[12px] font-semibold text-slate-700">
@@ -876,7 +881,7 @@ export default function Navbar({
                           <li key={item.name}>
                             <button
                               onClick={() => { setView('cars'); setShowMegaMenu(false); }}
-                              className="w-full text-left py-0.5 hover:text-[#00A651] flex items-center gap-1.5 transition-colors cursor-pointer"
+                              className="w-full text-left py-0.5 hover:text-[#006F3C] flex items-center gap-1.5 transition-colors cursor-pointer"
                             >
                               <item.icon className="w-3 h-3 text-slate-400 shrink-0" />
                               <span className="truncate">{item.name}</span>
@@ -888,7 +893,7 @@ export default function Navbar({
 
                     {/* Col 5: TOP VEHICLES */}
                     <div>
-                      <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2.5">
+                      <h4 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5">
                         TOP VEHICLES
                       </h4>
                       <div className="space-y-2">
@@ -910,15 +915,15 @@ export default function Navbar({
                               alt={car.name} 
                               referrerPolicy="no-referrer"
                               onError={handleImageError}
-                              className="w-12 h-9 object-cover rounded-md shrink-0 border border-slate-200/90 shadow-2xs group-hover:border-[#00A651]/40 transition-colors" 
+                              className="w-12 h-9 object-cover rounded-md shrink-0 border border-slate-200/90 shadow-2xs group-hover:border-[#006F3C]/40 transition-colors" 
                             />
-                            <h5 className="text-[11px] font-bold text-slate-900 group-hover:text-[#00A651] truncate">{car.name}</h5>
+                            <h5 className="text-[11px] font-bold text-slate-900 group-hover:text-[#006F3C] truncate">{car.name}</h5>
                           </div>
                         ))}
                         <div className="pt-1">
                           <button
                             onClick={() => { setView('cars'); setShowMegaMenu(false); }}
-                            className="text-[12px] font-bold text-slate-900 hover:text-[#00A651] flex items-center gap-1 cursor-pointer"
+                            className="text-[12px] font-bold text-slate-900 hover:text-[#006F3C] flex items-center gap-1 cursor-pointer"
                           >
                             <span>View All Cars</span>
                             <ArrowRight className="w-3.5 h-3.5" />
@@ -931,9 +936,9 @@ export default function Navbar({
 
                   {/* Right Column Banner Card: RENT THE PERFECT CAR */}
                   <div className="col-span-2 text-left">
-                    <div className="bg-[#071728] rounded-2xl p-4 text-white relative overflow-hidden shadow-lg flex flex-col justify-between h-full min-h-[260px]">
+                    <div className="bg-[#002816] rounded-2xl p-4 text-white relative overflow-hidden shadow-lg flex flex-col justify-between h-full min-h-[260px]">
                       <div className="relative z-10 space-y-2">
-                        <h5 className="text-base font-extrabold text-white leading-tight">Rent the Perfect Car</h5>
+                        <h5 className="text-base font-semibold text-white leading-tight">Rent the Perfect Car</h5>
                         <p className="text-xs text-slate-300 leading-relaxed">
                           Choose from a wide range of cars for every journey and adventure.
                         </p>
@@ -941,7 +946,7 @@ export default function Navbar({
 
                       <button
                         onClick={() => { setView('vendor-dashboard'); setShowMegaMenu(false); }}
-                        className="relative z-10 bg-[#00A651] hover:bg-[#008E45] text-white text-xs font-bold px-3 py-2 rounded-xl inline-flex items-center justify-center gap-1.5 w-full transition-all cursor-pointer mt-4 shadow-md"
+                        className="relative z-10 bg-[#006F3C] hover:bg-[#005C32] text-white text-xs font-bold px-3 py-2 rounded-xl inline-flex items-center justify-center gap-1.5 w-full transition-all cursor-pointer mt-4 shadow-md"
                       >
                         <span>List Your Car</span>
                         <ArrowRight className="w-3.5 h-3.5" />
@@ -962,8 +967,8 @@ export default function Navbar({
                   
                   {/* Column 1: FEATURED DEALS */}
                   <div className="col-span-2 text-left">
-                    <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-                      <Gift className="w-3.5 h-3.5 text-[#00A651]" />
+                    <h4 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                      <Gift className="w-3.5 h-3.5 text-[#006F3C]" />
                       <span>Featured Deals</span>
                     </h4>
                     <div className="space-y-3">
@@ -978,11 +983,11 @@ export default function Navbar({
                           onClick={() => { setView(item.view); setShowMegaMenu(false); }}
                           className="flex items-start gap-2.5 cursor-pointer group hover:bg-slate-50 p-1.5 rounded-lg transition-all"
                         >
-                          <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 group-hover:bg-[#00A651]/10 group-hover:text-[#00A651] transition-colors">
-                            <item.icon className="w-4 h-4 text-slate-600 group-hover:text-[#00A651]" />
+                          <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 group-hover:bg-[#006F3C]/10 group-hover:text-[#006F3C] transition-colors">
+                            <item.icon className="w-4 h-4 text-slate-600 group-hover:text-[#006F3C]" />
                           </div>
                           <div>
-                            <h5 className="text-[12px] font-bold text-slate-900 group-hover:text-[#00A651] transition-colors">{item.title}</h5>
+                            <h5 className="text-[12px] font-bold text-slate-900 group-hover:text-[#006F3C] transition-colors">{item.title}</h5>
                             <p className="text-[10px] text-slate-500 leading-tight">{item.desc}</p>
                           </div>
                         </div>
@@ -990,7 +995,7 @@ export default function Navbar({
                       <div className="pt-1 border-t border-slate-100">
                         <button
                           onClick={() => { setView('offers'); setShowMegaMenu(false); }}
-                          className="text-[12px] font-bold text-slate-900 hover:text-[#00A651] flex items-center gap-1 cursor-pointer"
+                          className="text-[12px] font-bold text-slate-900 hover:text-[#006F3C] flex items-center gap-1 cursor-pointer"
                         >
                           <span>View All Deals</span>
                           <ArrowRight className="w-3.5 h-3.5" />
@@ -1001,7 +1006,7 @@ export default function Navbar({
 
                   {/* Column 2: SEASONAL OFFERS */}
                   <div className="col-span-2 text-left">
-                    <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                    <h4 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
                       <Flame className="w-3.5 h-3.5 text-orange-500" />
                       <span>Seasonal Offers</span>
                     </h4>
@@ -1018,11 +1023,11 @@ export default function Navbar({
                           onClick={() => { setView(item.view); setShowMegaMenu(false); }}
                           className="flex items-start gap-2.5 cursor-pointer group hover:bg-slate-50 p-1.5 rounded-lg transition-all"
                         >
-                          <div className="w-8 h-8 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center shrink-0 font-bold group-hover:bg-[#00A651]/10 group-hover:text-[#00A651] transition-colors">
+                          <div className="w-8 h-8 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center shrink-0 font-bold group-hover:bg-[#006F3C]/10 group-hover:text-[#006F3C] transition-colors">
                             <item.icon className="w-4 h-4" />
                           </div>
                           <div>
-                            <h5 className="text-[12px] font-bold text-slate-900 group-hover:text-[#00A651] transition-colors">{item.title}</h5>
+                            <h5 className="text-[12px] font-bold text-slate-900 group-hover:text-[#006F3C] transition-colors">{item.title}</h5>
                             <p className="text-[10px] text-slate-500 leading-tight">{item.desc}</p>
                           </div>
                         </div>
@@ -1030,7 +1035,7 @@ export default function Navbar({
                       <div className="pt-1 border-t border-slate-100">
                         <button
                           onClick={() => { setView('offers'); setShowMegaMenu(false); }}
-                          className="text-[12px] font-bold text-slate-900 hover:text-[#00A651] flex items-center gap-1 cursor-pointer"
+                          className="text-[12px] font-bold text-slate-900 hover:text-[#006F3C] flex items-center gap-1 cursor-pointer"
                         >
                           <span>View All Seasonal Offers</span>
                           <ArrowRight className="w-3.5 h-3.5" />
@@ -1041,7 +1046,7 @@ export default function Navbar({
 
                   {/* Column 3: PAYMENT OFFERS */}
                   <div className="col-span-2 text-left">
-                    <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                    <h4 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
                       <CreditCard className="w-3.5 h-3.5 text-blue-600" />
                       <span>Payment Offers</span>
                     </h4>
@@ -1061,7 +1066,7 @@ export default function Navbar({
                             <item.icon className="w-4 h-4" />
                           </div>
                           <div>
-                            <h5 className="text-[12px] font-bold text-slate-900 group-hover:text-[#00A651] transition-colors">{item.title}</h5>
+                            <h5 className="text-[12px] font-bold text-slate-900 group-hover:text-[#006F3C] transition-colors">{item.title}</h5>
                             <p className="text-[10px] text-slate-500 leading-tight">{item.desc}</p>
                           </div>
                         </div>
@@ -1069,7 +1074,7 @@ export default function Navbar({
                       <div className="pt-1 border-t border-slate-100">
                         <button
                           onClick={() => { setView('offers'); setShowMegaMenu(false); }}
-                          className="text-[12px] font-bold text-slate-900 hover:text-[#00A651] flex items-center gap-1 cursor-pointer"
+                          className="text-[12px] font-bold text-slate-900 hover:text-[#006F3C] flex items-center gap-1 cursor-pointer"
                         >
                           <span>View All Payment Offers</span>
                           <ArrowRight className="w-3.5 h-3.5" />
@@ -1080,7 +1085,7 @@ export default function Navbar({
 
                   {/* Column 4: MEMBER BENEFITS */}
                   <div className="col-span-2 text-left">
-                    <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                    <h4 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
                       <Star className="w-3.5 h-3.5 text-amber-500" />
                       <span>Member Benefits</span>
                     </h4>
@@ -1096,11 +1101,11 @@ export default function Navbar({
                           onClick={() => { setView('offers'); setShowMegaMenu(false); }}
                           className="flex items-start gap-2.5 cursor-pointer group hover:bg-slate-50 p-1.5 rounded-lg transition-all"
                         >
-                          <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 font-bold group-hover:bg-[#00A651]/10 group-hover:text-[#00A651] transition-colors">
+                          <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 font-bold group-hover:bg-[#006F3C]/10 group-hover:text-[#006F3C] transition-colors">
                             <item.icon className="w-4 h-4" />
                           </div>
                           <div>
-                            <h5 className="text-[12px] font-bold text-slate-900 group-hover:text-[#00A651] transition-colors">{item.title}</h5>
+                            <h5 className="text-[12px] font-bold text-slate-900 group-hover:text-[#006F3C] transition-colors">{item.title}</h5>
                             <p className="text-[10px] text-slate-500 leading-tight">{item.desc}</p>
                           </div>
                         </div>
@@ -1108,7 +1113,7 @@ export default function Navbar({
                       <div className="pt-1 border-t border-slate-100">
                         <button
                           onClick={() => { setView('offers'); setShowMegaMenu(false); }}
-                          className="text-[12px] font-bold text-slate-900 hover:text-[#00A651] flex items-center gap-1 cursor-pointer"
+                          className="text-[12px] font-bold text-slate-900 hover:text-[#006F3C] flex items-center gap-1 cursor-pointer"
                         >
                           <span>View All Benefits</span>
                           <ArrowRight className="w-3.5 h-3.5" />
@@ -1119,7 +1124,7 @@ export default function Navbar({
 
                   {/* Column 5: LAST MINUTE */}
                   <div className="col-span-2 text-left">
-                    <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                    <h4 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
                       <Clock className="w-3.5 h-3.5 text-rose-500" />
                       <span>Last Minute</span>
                     </h4>
@@ -1135,11 +1140,11 @@ export default function Navbar({
                           onClick={() => { setView('offers'); setShowMegaMenu(false); }}
                           className="flex items-start gap-2.5 cursor-pointer group hover:bg-slate-50 p-1.5 rounded-lg transition-all"
                         >
-                          <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 font-bold group-hover:bg-[#00A651]/10 group-hover:text-[#00A651] transition-colors">
+                          <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 font-bold group-hover:bg-[#006F3C]/10 group-hover:text-[#006F3C] transition-colors">
                             <item.icon className="w-4 h-4" />
                           </div>
                           <div>
-                            <h5 className="text-[12px] font-bold text-slate-900 group-hover:text-[#00A651] transition-colors">{item.title}</h5>
+                            <h5 className="text-[12px] font-bold text-slate-900 group-hover:text-[#006F3C] transition-colors">{item.title}</h5>
                             <p className="text-[10px] text-slate-500 leading-tight">{item.desc}</p>
                           </div>
                         </div>
@@ -1147,7 +1152,7 @@ export default function Navbar({
                       <div className="pt-1 border-t border-slate-100">
                         <button
                           onClick={() => { setView('offers'); setShowMegaMenu(false); }}
-                          className="text-[12px] font-bold text-slate-900 hover:text-[#00A651] flex items-center gap-1 cursor-pointer"
+                          className="text-[12px] font-bold text-slate-900 hover:text-[#006F3C] flex items-center gap-1 cursor-pointer"
                         >
                           <span>View All Offers</span>
                           <ArrowRight className="w-3.5 h-3.5" />
@@ -1161,28 +1166,28 @@ export default function Navbar({
                     <div className="bg-gradient-to-br from-emerald-50 via-sky-50 to-blue-100 rounded-2xl p-4 text-slate-900 relative overflow-hidden border border-emerald-200/80 shadow-md flex flex-col justify-between min-h-[280px]">
                       
                       <div className="relative z-10 space-y-1">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full inline-block mb-1">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full inline-block mb-1">
                           LIMITED TIME ONLY
                         </span>
                         <p className="text-xs font-semibold text-slate-600">Up to</p>
-                        <h5 className="text-3xl font-black text-[#00A651] tracking-tight leading-none">
-                          40% <span className="text-xl font-extrabold text-slate-800">OFF</span>
+                        <h5 className="text-3xl font-semibold text-[#006F3C] tracking-tight leading-none">
+                          40% <span className="text-xl font-semibold text-slate-800">OFF</span>
                         </h5>
 
                         <ul className="pt-3 space-y-1.5 text-[11px] font-bold text-slate-700">
-                          <li className="flex items-center gap-2 hover:text-[#00A651] cursor-pointer" onClick={() => { setView('hotels'); setShowMegaMenu(false); }}>
+                          <li className="flex items-center gap-2 hover:text-[#006F3C] cursor-pointer" onClick={() => { setView('hotels'); setShowMegaMenu(false); }}>
                             <Building2 className="w-3.5 h-3.5 text-emerald-600" />
                             <span>Hotels</span>
                           </li>
-                          <li className="flex items-center gap-2 hover:text-[#00A651] cursor-pointer" onClick={() => { setView('tours'); setShowMegaMenu(false); }}>
+                          <li className="flex items-center gap-2 hover:text-[#006F3C] cursor-pointer" onClick={() => { setView('tours'); setShowMegaMenu(false); }}>
                             <TourIcon className="w-3.5 h-3.5 text-emerald-600" />
                             <span>Tours & Packages</span>
                           </li>
-                          <li className="flex items-center gap-2 hover:text-[#00A651] cursor-pointer" onClick={() => { setView('cars'); setShowMegaMenu(false); }}>
+                          <li className="flex items-center gap-2 hover:text-[#006F3C] cursor-pointer" onClick={() => { setView('cars'); setShowMegaMenu(false); }}>
                             <Car className="w-3.5 h-3.5 text-emerald-600" />
                             <span>Cars</span>
                           </li>
-                          <li className="flex items-center gap-2 hover:text-[#00A651] cursor-pointer" onClick={() => { setView('homestays'); setShowMegaMenu(false); }}>
+                          <li className="flex items-center gap-2 hover:text-[#006F3C] cursor-pointer" onClick={() => { setView('homestays'); setShowMegaMenu(false); }}>
                             <Home className="w-3.5 h-3.5 text-emerald-600" />
                             <span>Homestays</span>
                           </li>
@@ -1192,7 +1197,7 @@ export default function Navbar({
                       <div className="relative z-10 pt-4">
                         <button
                           onClick={() => { setView('offers'); setShowMegaMenu(false); }}
-                          className="bg-[#00A651] hover:bg-[#008E45] text-white text-xs font-extrabold px-3 py-2 rounded-xl inline-flex items-center justify-center gap-1.5 w-full transition-all shadow-md cursor-pointer"
+                          className="bg-[#006F3C] hover:bg-[#005C32] text-white text-xs font-semibold px-3 py-2 rounded-xl inline-flex items-center justify-center gap-1.5 w-full transition-all shadow-md cursor-pointer"
                         >
                           <span>Explore All Offers</span>
                           <ArrowRight className="w-3.5 h-3.5" />
@@ -1217,7 +1222,7 @@ export default function Navbar({
                   
                   {/* Column 1: EXPLORE BY REGION */}
                   <div className="col-span-2 text-left">
-                    <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2.5">
+                    <h4 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5">
                       EXPLORE BY REGION
                     </h4>
                     <ul className="space-y-1.5 text-[12px] font-semibold text-slate-700">
@@ -1228,7 +1233,7 @@ export default function Navbar({
                         <li key={region}>
                           <button
                             onClick={() => { setView('destinations'); setShowMegaMenu(false); }}
-                            className="w-full text-left py-0.5 hover:text-[#00A651] flex items-center gap-1.5 transition-colors cursor-pointer"
+                            className="w-full text-left py-0.5 hover:text-[#006F3C] flex items-center gap-1.5 transition-colors cursor-pointer"
                           >
                             <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
                             <span>{region}</span>
@@ -1238,7 +1243,7 @@ export default function Navbar({
                       <li className="pt-1.5 border-t border-slate-100">
                         <button
                           onClick={() => { setView('destinations'); setShowMegaMenu(false); }}
-                          className="text-[12px] font-bold text-slate-900 hover:text-[#00A651] flex items-center gap-1.5 cursor-pointer"
+                          className="text-[12px] font-bold text-slate-900 hover:text-[#006F3C] flex items-center gap-1.5 cursor-pointer"
                         >
                           <LayoutGrid className="w-3.5 h-3.5 text-slate-500" />
                           <span>All Regions</span>
@@ -1249,7 +1254,7 @@ export default function Navbar({
 
                   {/* Column 2: TOP DESTINATIONS */}
                   <div className="col-span-2 text-left">
-                    <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2.5">
+                    <h4 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5">
                       TOP DESTINATIONS
                     </h4>
                     <div className="space-y-2.5">
@@ -1272,7 +1277,7 @@ export default function Navbar({
                             className="w-12 h-10 object-cover rounded-md shrink-0 border border-slate-200" 
                           />
                           <div className="overflow-hidden">
-                            <h5 className="text-[12px] font-bold text-slate-900 group-hover:text-[#00A651] truncate">{dest.name}</h5>
+                            <h5 className="text-[12px] font-bold text-slate-900 group-hover:text-[#006F3C] truncate">{dest.name}</h5>
                             <p className="text-[10px] text-slate-500 truncate">{dest.sub}</p>
                           </div>
                         </div>
@@ -1280,7 +1285,7 @@ export default function Navbar({
                       <div className="pt-1">
                         <button
                           onClick={() => { setView('destinations'); setShowMegaMenu(false); }}
-                          className="text-[12px] font-bold text-slate-900 hover:text-[#00A651] flex items-center gap-1 cursor-pointer"
+                          className="text-[12px] font-bold text-slate-900 hover:text-[#006F3C] flex items-center gap-1 cursor-pointer"
                         >
                           <span>View All Destinations</span>
                           <ArrowRight className="w-3.5 h-3.5" />
@@ -1291,7 +1296,7 @@ export default function Navbar({
 
                   {/* Column 3: EXPLORE BY THEME */}
                   <div className="col-span-2 text-left">
-                    <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2.5">
+                    <h4 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5">
                       EXPLORE BY THEME
                     </h4>
                     <ul className="space-y-1.5 text-[12px] font-semibold text-slate-700">
@@ -1309,7 +1314,7 @@ export default function Navbar({
                         <li key={theme.name}>
                           <button
                             onClick={() => { setView('destinations'); setShowMegaMenu(false); }}
-                            className="w-full text-left py-0.5 hover:text-[#00A651] flex items-center gap-1.5 transition-colors cursor-pointer"
+                            className="w-full text-left py-0.5 hover:text-[#006F3C] flex items-center gap-1.5 transition-colors cursor-pointer"
                           >
                             <theme.icon className="w-3 h-3 text-slate-400 shrink-0" />
                             <span>{theme.name}</span>
@@ -1319,7 +1324,7 @@ export default function Navbar({
                       <li className="pt-1.5 border-t border-slate-100">
                         <button
                           onClick={() => { setView('destinations'); setShowMegaMenu(false); }}
-                          className="text-[12px] font-bold text-slate-900 hover:text-[#00A651] flex items-center gap-1.5 cursor-pointer"
+                          className="text-[12px] font-bold text-slate-900 hover:text-[#006F3C] flex items-center gap-1.5 cursor-pointer"
                         >
                           <span>View All Themes</span>
                           <ArrowRight className="w-3.5 h-3.5" />
@@ -1330,7 +1335,7 @@ export default function Navbar({
 
                   {/* Column 4: POPULAR ATTRACTIONS */}
                   <div className="col-span-2 text-left">
-                    <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2.5">
+                    <h4 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5">
                       POPULAR ATTRACTIONS
                     </h4>
                     <div className="space-y-2.5">
@@ -1353,7 +1358,7 @@ export default function Navbar({
                             className="w-12 h-10 object-cover rounded-md shrink-0 border border-slate-200" 
                           />
                           <div className="overflow-hidden">
-                            <h5 className="text-[12px] font-bold text-slate-900 group-hover:text-[#00A651] truncate">{item.name}</h5>
+                            <h5 className="text-[12px] font-bold text-slate-900 group-hover:text-[#006F3C] truncate">{item.name}</h5>
                             <p className="text-[10px] text-slate-500 truncate">{item.sub}</p>
                           </div>
                         </div>
@@ -1361,7 +1366,7 @@ export default function Navbar({
                       <div className="pt-1">
                         <button
                           onClick={() => { setView('destinations'); setShowMegaMenu(false); }}
-                          className="text-[12px] font-bold text-slate-900 hover:text-[#00A651] flex items-center gap-1 cursor-pointer"
+                          className="text-[12px] font-bold text-slate-900 hover:text-[#006F3C] flex items-center gap-1 cursor-pointer"
                         >
                           <span>View All Attractions</span>
                           <ArrowRight className="w-3.5 h-3.5" />
@@ -1375,16 +1380,16 @@ export default function Navbar({
                     
                     {/* Left: Seasonal Destinations */}
                     <div>
-                      <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2.5">
+                      <h4 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5">
                         SEASONAL DESTINATIONS
                       </h4>
                       <ul className="space-y-3 text-[12px] font-semibold text-slate-700">
                         <li>
                           <button 
                             onClick={() => { setView('destinations'); setShowMegaMenu(false); }}
-                            className="w-full text-left hover:text-[#00A651] transition-colors cursor-pointer group"
+                            className="w-full text-left hover:text-[#006F3C] transition-colors cursor-pointer group"
                           >
-                            <div className="flex items-center gap-1.5 font-bold text-amber-600 group-hover:text-[#00A651]">
+                            <div className="flex items-center gap-1.5 font-bold text-amber-600 group-hover:text-[#006F3C]">
                               <Sun className="w-3.5 h-3.5 shrink-0" />
                               <span>Summer Destinations</span>
                             </div>
@@ -1394,9 +1399,9 @@ export default function Navbar({
                         <li>
                           <button 
                             onClick={() => { setView('destinations'); setShowMegaMenu(false); }}
-                            className="w-full text-left hover:text-[#00A651] transition-colors cursor-pointer group"
+                            className="w-full text-left hover:text-[#006F3C] transition-colors cursor-pointer group"
                           >
-                            <div className="flex items-center gap-1.5 font-bold text-orange-600 group-hover:text-[#00A651]">
+                            <div className="flex items-center gap-1.5 font-bold text-orange-600 group-hover:text-[#006F3C]">
                               <Flame className="w-3.5 h-3.5 shrink-0" />
                               <span>Autumn Destinations</span>
                             </div>
@@ -1406,9 +1411,9 @@ export default function Navbar({
                         <li>
                           <button 
                             onClick={() => { setView('destinations'); setShowMegaMenu(false); }}
-                            className="w-full text-left hover:text-[#00A651] transition-colors cursor-pointer group"
+                            className="w-full text-left hover:text-[#006F3C] transition-colors cursor-pointer group"
                           >
-                            <div className="flex items-center gap-1.5 font-bold text-sky-600 group-hover:text-[#00A651]">
+                            <div className="flex items-center gap-1.5 font-bold text-sky-600 group-hover:text-[#006F3C]">
                               <Snowflake className="w-3.5 h-3.5 shrink-0" />
                               <span>Winter Destinations</span>
                             </div>
@@ -1418,9 +1423,9 @@ export default function Navbar({
                         <li>
                           <button 
                             onClick={() => { setView('destinations'); setShowMegaMenu(false); }}
-                            className="w-full text-left hover:text-[#00A651] transition-colors cursor-pointer group"
+                            className="w-full text-left hover:text-[#006F3C] transition-colors cursor-pointer group"
                           >
-                            <div className="flex items-center gap-1.5 font-bold text-rose-500 group-hover:text-[#00A651]">
+                            <div className="flex items-center gap-1.5 font-bold text-rose-500 group-hover:text-[#006F3C]">
                               <Flower2 className="w-3.5 h-3.5 shrink-0" />
                               <span>Spring Destinations</span>
                             </div>
@@ -1431,9 +1436,9 @@ export default function Navbar({
                     </div>
 
                     {/* Right Banner Card: AI Planner */}
-                    <div className="bg-[#071728] rounded-2xl p-4 text-white relative overflow-hidden shadow-lg flex flex-col justify-between min-h-[220px]">
+                    <div className="bg-[#002816] rounded-2xl p-4 text-white relative overflow-hidden shadow-lg flex flex-col justify-between min-h-[220px]">
                       <div className="relative z-10 space-y-1.5">
-                        <h5 className="text-sm font-extrabold text-white leading-tight">
+                        <h5 className="text-sm font-semibold text-white leading-tight">
                           Not sure where to go?
                         </h5>
                         <p className="text-[11px] text-slate-300 leading-relaxed">
@@ -1443,7 +1448,7 @@ export default function Navbar({
 
                       <button
                         onClick={() => { setView('ai-planner'); setShowMegaMenu(false); }}
-                        className="relative z-10 bg-[#00A651] hover:bg-[#008E45] text-white text-xs font-extrabold px-3 py-2 rounded-xl inline-flex items-center justify-center gap-1.5 w-full transition-all shadow-md cursor-pointer mt-3"
+                        className="relative z-10 bg-[#006F3C] hover:bg-[#005C32] text-white text-xs font-semibold px-3 py-2 rounded-xl inline-flex items-center justify-center gap-1.5 w-full transition-all shadow-md cursor-pointer mt-3"
                       >
                         <span>Plan My Trip</span>
                         <Sparkles className="w-3.5 h-3.5" />
@@ -1465,7 +1470,7 @@ export default function Navbar({
                   
                   {/* Column 1: EXPLORE TOURS BY REGION */}
                   <div className="col-span-2 text-left">
-                    <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2.5">
+                    <h4 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5">
                       EXPLORE TOURS BY REGION
                     </h4>
                     <ul className="space-y-1.5 text-[12px] font-semibold text-slate-700">
@@ -1476,7 +1481,7 @@ export default function Navbar({
                         <li key={region}>
                           <button
                             onClick={() => { setView('tours'); setShowMegaMenu(false); }}
-                            className="w-full text-left py-0.5 hover:text-[#00A651] flex items-center gap-1.5 transition-colors cursor-pointer"
+                            className="w-full text-left py-0.5 hover:text-[#006F3C] flex items-center gap-1.5 transition-colors cursor-pointer"
                           >
                             <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
                             <span>{region}</span>
@@ -1486,7 +1491,7 @@ export default function Navbar({
                       <li className="pt-1.5 border-t border-slate-100">
                         <button
                           onClick={() => { setView('tours'); setShowMegaMenu(false); }}
-                          className="text-[12px] font-bold text-slate-900 hover:text-[#00A651] flex items-center gap-1.5 cursor-pointer"
+                          className="text-[12px] font-bold text-slate-900 hover:text-[#006F3C] flex items-center gap-1.5 cursor-pointer"
                         >
                           <LayoutGrid className="w-3.5 h-3.5 text-slate-500" />
                           <span>All Tours</span>
@@ -1497,7 +1502,7 @@ export default function Navbar({
 
                   {/* Column 2: TOUR PACKAGES BY DURATION */}
                   <div className="col-span-2 text-left">
-                    <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2.5">
+                    <h4 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5">
                       TOUR PACKAGES BY DURATION
                     </h4>
                     <ul className="space-y-1.5 text-[12px] font-semibold text-slate-700">
@@ -1508,7 +1513,7 @@ export default function Navbar({
                         <li key={duration}>
                           <button
                             onClick={() => { setView('tours'); setShowMegaMenu(false); }}
-                            className="w-full text-left py-0.5 hover:text-[#00A651] flex items-center gap-1.5 transition-colors cursor-pointer"
+                            className="w-full text-left py-0.5 hover:text-[#006F3C] flex items-center gap-1.5 transition-colors cursor-pointer"
                           >
                             <Calendar className="w-3 h-3 text-slate-400 shrink-0" />
                             <span>{duration}</span>
@@ -1518,9 +1523,9 @@ export default function Navbar({
                       <li className="pt-2 border-t border-slate-100">
                         <button
                           onClick={() => { setView('tours'); setShowMegaMenu(false); }}
-                          className="w-full text-left py-1 text-[12px] font-extrabold text-[#00A651] bg-[#00A651]/10 px-2 py-1 rounded-md hover:bg-[#00A651]/20 flex items-center gap-1.5 transition-colors cursor-pointer"
+                          className="w-full text-left py-1 text-[12px] font-semibold text-[#006F3C] bg-[#006F3C]/10 px-2 py-1 rounded-md hover:bg-[#006F3C]/20 flex items-center gap-1.5 transition-colors cursor-pointer"
                         >
-                          <Sparkles className="w-3.5 h-3.5 text-[#00A651] shrink-0" />
+                          <Sparkles className="w-3.5 h-3.5 text-[#006F3C] shrink-0" />
                           <span>Custom Tour (Tailor Made)</span>
                         </button>
                       </li>
@@ -1529,7 +1534,7 @@ export default function Navbar({
 
                   {/* Column 3: TOUR TYPES */}
                   <div className="col-span-2 text-left">
-                    <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2.5">
+                    <h4 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5">
                       TOUR TYPES
                     </h4>
                     <ul className="space-y-1.5 text-[12px] font-semibold text-slate-700">
@@ -1549,7 +1554,7 @@ export default function Navbar({
                         <li key={item.name}>
                           <button
                             onClick={() => { setView('tours'); setShowMegaMenu(false); }}
-                            className="w-full text-left py-0.5 hover:text-[#00A651] flex items-center gap-1.5 transition-colors cursor-pointer"
+                            className="w-full text-left py-0.5 hover:text-[#006F3C] flex items-center gap-1.5 transition-colors cursor-pointer"
                           >
                             <item.icon className="w-3 h-3 text-slate-400 shrink-0" />
                             <span>{item.name}</span>
@@ -1561,7 +1566,7 @@ export default function Navbar({
 
                   {/* Column 4: POPULAR PACKAGES */}
                   <div className="col-span-2 text-left">
-                    <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2.5">
+                    <h4 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5">
                       POPULAR PACKAGES
                     </h4>
                     <div className="space-y-2.5">
@@ -1583,7 +1588,7 @@ export default function Navbar({
                             className="w-12 h-10 object-cover rounded-md shrink-0 border border-slate-200" 
                           />
                           <div className="overflow-hidden">
-                            <h5 className="text-[12px] font-bold text-slate-900 group-hover:text-[#00A651] truncate">{pkg.name}</h5>
+                            <h5 className="text-[12px] font-bold text-slate-900 group-hover:text-[#006F3C] truncate">{pkg.name}</h5>
                             <p className="text-[10px] text-slate-500 truncate">{pkg.sub}</p>
                           </div>
                         </div>
@@ -1591,7 +1596,7 @@ export default function Navbar({
                       <div className="pt-1">
                         <button
                           onClick={() => { setView('tours'); setShowMegaMenu(false); }}
-                          className="text-[12px] font-bold text-slate-900 hover:text-[#00A651] flex items-center gap-1 cursor-pointer"
+                          className="text-[12px] font-bold text-slate-900 hover:text-[#006F3C] flex items-center gap-1 cursor-pointer"
                         >
                           <span>View All Packages</span>
                           <ArrowRight className="w-3.5 h-3.5" />
@@ -1602,9 +1607,9 @@ export default function Navbar({
 
                   {/* Column 5: RIGHT BANNER CARD FOR TOURS */}
                   <div className="col-span-4 text-left">
-                    <div className="bg-[#071728] rounded-2xl p-5 text-white relative overflow-hidden shadow-lg flex flex-col justify-between h-full min-h-[260px]">
+                    <div className="bg-[#002816] rounded-2xl p-5 text-white relative overflow-hidden shadow-lg flex flex-col justify-between h-full min-h-[260px]">
                       <div className="relative z-10 space-y-2 max-w-xs">
-                        <h5 className="text-lg font-extrabold text-white leading-tight">
+                        <h5 className="text-lg font-semibold text-white leading-tight">
                           Unforgettable Journeys
                           <br />
                           <span className="text-emerald-400">Memories for a Lifetime</span>
@@ -1616,7 +1621,7 @@ export default function Navbar({
 
                       <button
                         onClick={() => { setView('tours'); setShowMegaMenu(false); }}
-                        className="relative z-10 bg-[#00A651] hover:bg-[#008E45] text-white text-xs font-bold px-3.5 py-2 rounded-xl inline-flex items-center gap-1.5 w-fit transition-all cursor-pointer mt-4 shadow-md"
+                        className="relative z-10 bg-[#006F3C] hover:bg-[#005C32] text-white text-xs font-bold px-3.5 py-2 rounded-xl inline-flex items-center gap-1.5 w-fit transition-all cursor-pointer mt-4 shadow-md"
                       >
                         <span>Explore Packages</span>
                         <ArrowRight className="w-3.5 h-3.5" />
@@ -1638,7 +1643,7 @@ export default function Navbar({
                   
                   {/* Column 1: EXPLORE HOTELS BY CITY */}
                   <div className="col-span-2 text-left">
-                    <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2.5">
+                    <h4 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5">
                       EXPLORE HOTELS BY CITY
                     </h4>
                     <ul className="space-y-1.5 text-[12px] font-semibold text-slate-700">
@@ -1649,7 +1654,7 @@ export default function Navbar({
                         <li key={city}>
                           <button
                             onClick={() => { setView('hotels'); setShowMegaMenu(false); }}
-                            className="w-full text-left py-0.5 hover:text-[#00A651] flex items-center gap-1.5 transition-colors cursor-pointer"
+                            className="w-full text-left py-0.5 hover:text-[#006F3C] flex items-center gap-1.5 transition-colors cursor-pointer"
                           >
                             <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
                             <span>Hotels in {city}</span>
@@ -1659,7 +1664,7 @@ export default function Navbar({
                       <li className="pt-1.5 border-t border-slate-100">
                         <button
                           onClick={() => { setView('hotels'); setShowMegaMenu(false); }}
-                          className="text-[12px] font-bold text-slate-900 hover:text-[#00A651] flex items-center gap-1.5 cursor-pointer"
+                          className="text-[12px] font-bold text-slate-900 hover:text-[#006F3C] flex items-center gap-1.5 cursor-pointer"
                         >
                           <LayoutGrid className="w-3.5 h-3.5 text-slate-500" />
                           <span>All Hotels</span>
@@ -1670,7 +1675,7 @@ export default function Navbar({
 
                   {/* Column 2: BROWSE HOTELS BY TYPE */}
                   <div className="col-span-2 text-left">
-                    <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2.5">
+                    <h4 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5">
                       BROWSE HOTELS BY TYPE
                     </h4>
                     <ul className="space-y-1.5 text-[12px] font-semibold text-slate-700">
@@ -1690,7 +1695,7 @@ export default function Navbar({
                         <li key={item.name}>
                           <button
                             onClick={() => { setView('hotels'); setShowMegaMenu(false); }}
-                            className="w-full text-left py-0.5 hover:text-[#00A651] flex items-center gap-1.5 transition-colors cursor-pointer"
+                            className="w-full text-left py-0.5 hover:text-[#006F3C] flex items-center gap-1.5 transition-colors cursor-pointer"
                           >
                             <item.icon className="w-3 h-3 text-slate-400 shrink-0" />
                             <span>{item.name}</span>
@@ -1700,7 +1705,7 @@ export default function Navbar({
                       <li className="pt-1.5 border-t border-slate-100">
                         <button
                           onClick={() => { setView('hotels'); setShowMegaMenu(false); }}
-                          className="text-[12px] font-bold text-slate-900 hover:text-[#00A651] flex items-center gap-1.5 cursor-pointer"
+                          className="text-[12px] font-bold text-slate-900 hover:text-[#006F3C] flex items-center gap-1.5 cursor-pointer"
                         >
                           <LayoutGrid className="w-3.5 h-3.5 text-slate-500" />
                           <span>All Hotel Types</span>
@@ -1711,7 +1716,7 @@ export default function Navbar({
 
                   {/* Column 3: POPULAR AMENITIES */}
                   <div className="col-span-2 text-left">
-                    <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2.5">
+                    <h4 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5">
                       POPULAR AMENITIES
                     </h4>
                     <ul className="space-y-1.5 text-[12px] font-semibold text-slate-700">
@@ -1730,7 +1735,7 @@ export default function Navbar({
                         <li key={item.name}>
                           <button
                             onClick={() => { setView('hotels'); setShowMegaMenu(false); }}
-                            className="w-full text-left py-0.5 hover:text-[#00A651] flex items-center gap-1.5 transition-colors cursor-pointer"
+                            className="w-full text-left py-0.5 hover:text-[#006F3C] flex items-center gap-1.5 transition-colors cursor-pointer"
                           >
                             <item.icon className="w-3 h-3 text-slate-400 shrink-0" />
                             <span>{item.name}</span>
@@ -1740,7 +1745,7 @@ export default function Navbar({
                       <li className="pt-1.5 border-t border-slate-100">
                         <button
                           onClick={() => { setView('hotels'); setShowMegaMenu(false); }}
-                          className="text-[12px] font-bold text-slate-900 hover:text-[#00A651] flex items-center gap-1.5 cursor-pointer"
+                          className="text-[12px] font-bold text-slate-900 hover:text-[#006F3C] flex items-center gap-1.5 cursor-pointer"
                         >
                           <LayoutGrid className="w-3.5 h-3.5 text-slate-500" />
                           <span>All Amenities</span>
@@ -1751,7 +1756,7 @@ export default function Navbar({
 
                   {/* Column 4: POPULAR AREAS */}
                   <div className="col-span-2 text-left">
-                    <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2.5">
+                    <h4 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5">
                       POPULAR AREAS
                     </h4>
                     <ul className="space-y-1.5 text-[12px] font-semibold text-slate-700">
@@ -1763,7 +1768,7 @@ export default function Navbar({
                         <li key={area}>
                           <button
                             onClick={() => { setView('hotels'); setShowMegaMenu(false); }}
-                            className="w-full text-left py-0.5 hover:text-[#00A651] flex items-center gap-1.5 transition-colors cursor-pointer"
+                            className="w-full text-left py-0.5 hover:text-[#006F3C] flex items-center gap-1.5 transition-colors cursor-pointer"
                           >
                             <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
                             <span>{area}</span>
@@ -1773,7 +1778,7 @@ export default function Navbar({
                       <li className="pt-2">
                         <button
                           onClick={() => { setView('hotels'); setShowMegaMenu(false); }}
-                          className="text-[12px] font-bold text-slate-900 hover:text-[#00A651] flex items-center gap-1 cursor-pointer"
+                          className="text-[12px] font-bold text-slate-900 hover:text-[#006F3C] flex items-center gap-1 cursor-pointer"
                         >
                           <span>View All Areas</span>
                           <ArrowRight className="w-3.5 h-3.5" />
@@ -1784,7 +1789,7 @@ export default function Navbar({
 
                   {/* Column 5: TOP PICKS */}
                   <div className="col-span-2 text-left">
-                    <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2.5">
+                    <h4 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5">
                       TOP PICKS
                     </h4>
                     <div className="space-y-2.5">
@@ -1805,7 +1810,7 @@ export default function Navbar({
                             className="w-12 h-10 object-cover rounded-md shrink-0 border border-slate-200" 
                           />
                           <div className="overflow-hidden">
-                            <h5 className="text-[12px] font-bold text-slate-900 group-hover:text-[#00A651] truncate">{pick.name}</h5>
+                            <h5 className="text-[12px] font-bold text-slate-900 group-hover:text-[#006F3C] truncate">{pick.name}</h5>
                             <p className="text-[10px] text-amber-600 font-bold flex items-center gap-0.5">
                               <span>★</span>
                               <span>{pick.rating}</span>
@@ -1817,7 +1822,7 @@ export default function Navbar({
                       <div className="pt-1">
                         <button
                           onClick={() => { setView('hotels'); setShowMegaMenu(false); }}
-                          className="text-[12px] font-bold text-slate-900 hover:text-[#00A651] flex items-center gap-1 cursor-pointer"
+                          className="text-[12px] font-bold text-slate-900 hover:text-[#006F3C] flex items-center gap-1 cursor-pointer"
                         >
                           <span>View All Hotels</span>
                           <ArrowRight className="w-3.5 h-3.5" />
@@ -1828,9 +1833,9 @@ export default function Navbar({
 
                   {/* Column 6: RIGHT BANNER CARD FOR HOTELS */}
                   <div className="col-span-2 text-left">
-                    <div className="bg-[#071728] rounded-2xl p-4 text-white relative overflow-hidden shadow-lg flex flex-col justify-between h-full min-h-[260px]">
+                    <div className="bg-[#002816] rounded-2xl p-4 text-white relative overflow-hidden shadow-lg flex flex-col justify-between h-full min-h-[260px]">
                       <div className="relative z-10 space-y-2">
-                        <h5 className="text-base font-extrabold text-white leading-tight">List Your Hotel</h5>
+                        <h5 className="text-base font-semibold text-white leading-tight">List Your Hotel</h5>
                         <p className="text-xs text-slate-300 leading-relaxed">
                           Grow your business and reach thousands of travelers.
                         </p>
@@ -1838,7 +1843,7 @@ export default function Navbar({
 
                       <button
                         onClick={() => { setView('vendor-dashboard'); setShowMegaMenu(false); }}
-                        className="relative z-10 bg-[#00A651] hover:bg-[#008E45] text-white text-xs font-bold px-3.5 py-2 rounded-xl inline-flex items-center gap-1.5 w-fit transition-all cursor-pointer mt-4 shadow-md"
+                        className="relative z-10 bg-[#006F3C] hover:bg-[#005C32] text-white text-xs font-bold px-3.5 py-2 rounded-xl inline-flex items-center gap-1.5 w-fit transition-all cursor-pointer mt-4 shadow-md"
                       >
                         <span>List Your Hotel</span>
                         <ArrowRight className="w-3.5 h-3.5" />
@@ -1855,61 +1860,6 @@ export default function Navbar({
 
                 </div>
               )}
-
-              {/* BOTTOM TRUST PILLARS ROW (5 Cards with subtle borders matching screenshot) */}
-              <div className="mt-6 pt-4 border-t border-slate-100 grid grid-cols-5 gap-3">
-                
-                <div className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-100 bg-slate-50/50">
-                  <div className="w-8 h-8 rounded-full bg-[#00A651]/10 flex items-center justify-center shrink-0">
-                    <ShieldCheck className="w-4 h-4 text-[#00A651]" />
-                  </div>
-                  <div>
-                    <h6 className="text-[11px] font-bold text-slate-900 leading-tight">Best Price Guarantee</h6>
-                    <p className="text-[10px] text-slate-500 leading-tight mt-0.5">Get the best prices with no hidden fees</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-100 bg-slate-50/50">
-                  <div className="w-8 h-8 rounded-full bg-[#00A651]/10 flex items-center justify-center shrink-0">
-                    <Calendar className="w-4 h-4 text-[#00A651]" />
-                  </div>
-                  <div>
-                    <h6 className="text-[11px] font-bold text-slate-900 leading-tight">Free Cancellation</h6>
-                    <p className="text-[10px] text-slate-500 leading-tight mt-0.5">Cancel up to 24 hours before your trip</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-100 bg-slate-50/50">
-                  <div className="w-8 h-8 rounded-full bg-[#00A651]/10 flex items-center justify-center shrink-0">
-                    <Lock className="w-4 h-4 text-[#00A651]" />
-                  </div>
-                  <div>
-                    <h6 className="text-[11px] font-bold text-slate-900 leading-tight">Secure Booking</h6>
-                    <p className="text-[10px] text-slate-500 leading-tight mt-0.5">Your data and payments are always safe</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-100 bg-slate-50/50">
-                  <div className="w-8 h-8 rounded-full bg-[#00A651]/10 flex items-center justify-center shrink-0">
-                    <Users className="w-4 h-4 text-[#00A651]" />
-                  </div>
-                  <div>
-                    <h6 className="text-[11px] font-bold text-slate-900 leading-tight">Trusted by Travelers</h6>
-                    <p className="text-[10px] text-slate-500 leading-tight mt-0.5">Thousands of happy travelers</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-100 bg-slate-50/50">
-                  <div className="w-8 h-8 rounded-full bg-[#00A651]/10 flex items-center justify-center shrink-0">
-                    <Headset className="w-4 h-4 text-[#00A651]" />
-                  </div>
-                  <div>
-                    <h6 className="text-[11px] font-bold text-slate-900 leading-tight">24/7 Support</h6>
-                    <p className="text-[10px] text-slate-500 leading-tight mt-0.5">We're always here to help you</p>
-                  </div>
-                </div>
-
-              </div>
 
             </div>
           </motion.div>
@@ -1929,8 +1879,8 @@ export default function Navbar({
         ].map((item) => {
           const isCurrent = currentView === item.id;
           const buttonClass = isCurrent
-            ? 'bg-[#00A651] text-white border-[#00A651] shadow-xs'
-            : 'bg-white text-slate-700 border-slate-200 hover:text-[#00A651] hover:border-slate-300';
+            ? 'bg-[#006F3C] text-white border-[#006F3C] shadow-xs'
+            : 'bg-white text-slate-700 border-slate-200 hover:text-[#006F3C] hover:border-slate-300';
 
           return (
             <button
@@ -1964,7 +1914,7 @@ export default function Navbar({
               animate={{ x: 0 }}
               exit={{ x: isRtl ? '100%' : '-100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 260 }}
-              className={`lg:hidden fixed inset-y-0 ${isRtl ? 'right-0' : 'left-0'} w-[88%] max-w-[360px] bg-white z-50 shadow-2xl flex flex-col justify-between overflow-y-auto border-r border-slate-200`}
+              className={`lg:hidden fixed inset-y-0 ${isRtl ? 'right-0' : 'left-0'} w-[88%] max-w-[360px] bg-white z-50 shadow-lg flex flex-col justify-between overflow-y-auto border-r border-slate-200`}
             >
               {/* Drawer Top Header with Brand & Close */}
               <div className="flex items-center justify-between p-4 border-b border-slate-200/80 bg-white sticky top-0 z-10">
@@ -1992,7 +1942,7 @@ export default function Navbar({
                   {isLoggedIn ? (
                     <div className="space-y-2.5">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-[#00A651] text-white font-black text-sm flex items-center justify-center shrink-0 shadow-xs">
+                        <div className="w-10 h-10 rounded-xl bg-[#006F3C] text-white font-semibold text-sm flex items-center justify-center shrink-0 shadow-xs">
                           {userInitials}
                         </div>
                         <div className="min-w-0">
@@ -2002,10 +1952,10 @@ export default function Navbar({
                       </div>
                       <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-200">
                         <button
-                          onClick={() => { setView('user-dashboard'); setMobileDrawerOpen(false); }}
-                          className="w-full min-h-[44px] py-2 bg-white rounded-lg border border-slate-200 text-xs font-bold text-slate-700 hover:text-[#00A651] flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                          onClick={() => { setView('my-dashboard'); setMobileDrawerOpen(false); }}
+                          className="w-full min-h-[44px] py-2 bg-white rounded-lg border border-slate-200 text-xs font-bold text-slate-700 hover:text-[#006F3C] flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
                         >
-                          <User className="w-3.5 h-3.5 text-[#00A651]" />
+                          <User className="w-3.5 h-3.5 text-[#006F3C]" />
                           <span>My Profile</span>
                         </button>
                         <button
@@ -2018,9 +1968,9 @@ export default function Navbar({
                         {isStaff && (
                           <button
                             onClick={() => { setView('admin-dashboard'); setMobileDrawerOpen(false); }}
-                            className="col-span-2 w-full min-h-[44px] py-2 bg-white rounded-lg border border-slate-200 text-xs font-bold text-slate-700 hover:text-[#00A651] flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                            className="col-span-2 w-full min-h-[44px] py-2 bg-white rounded-lg border border-slate-200 text-xs font-bold text-slate-700 hover:text-[#006F3C] flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
                           >
-                            <ShieldCheck className="w-3.5 h-3.5 text-[#00A651]" />
+                            <ShieldCheck className="w-3.5 h-3.5 text-[#006F3C]" />
                             <span>Admin workspace</span>
                           </button>
                         )}
@@ -2038,7 +1988,7 @@ export default function Navbar({
                         </button>
                         <button
                           onClick={() => { onOpenAuthModal('register'); setMobileDrawerOpen(false); }}
-                          className="w-full min-h-[44px] py-2.5 bg-[#00A651] hover:bg-[#008E45] text-white rounded-xl text-xs font-bold flex items-center justify-center cursor-pointer shadow-sm"
+                          className="w-full min-h-[44px] py-2.5 bg-[#006F3C] hover:bg-[#005C32] text-white rounded-xl text-xs font-bold flex items-center justify-center cursor-pointer shadow-sm"
                         >
                           Register
                         </button>
@@ -2049,7 +1999,7 @@ export default function Navbar({
 
                 {/* Primary Navigation Menu */}
                 <div className="space-y-1">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 px-2 block">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-2 block">
                     Explore Gilgit-Baltistan
                   </span>
 
@@ -2070,12 +2020,12 @@ export default function Navbar({
                         onClick={() => { handleLinkClick(nav.id); setMobileDrawerOpen(false); }}
                         className={`w-full min-h-[46px] flex items-center justify-between p-2.5 rounded-xl text-left transition-colors cursor-pointer ${
                           isActive 
-                            ? 'bg-emerald-50 text-[#00A651] font-extrabold border border-emerald-200/60' 
+                            ? 'bg-emerald-50 text-[#006F3C] font-semibold border border-emerald-200/60' 
                             : 'text-slate-700 hover:bg-slate-50 font-bold'
                         }`}
                       >
                         <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isActive ? 'bg-[#00A651] text-white' : 'bg-slate-100 text-slate-600'}`}>
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isActive ? 'bg-[#006F3C] text-white' : 'bg-slate-100 text-slate-600'}`}>
                             <Icon className="w-4 h-4" />
                           </div>
                           <div>
@@ -2085,9 +2035,9 @@ export default function Navbar({
                         </div>
 
                         {nav.isHot ? (
-                          <span className="bg-[#FF3B30] text-white text-[9px] font-black px-1.5 py-0.5 rounded-md">HOT</span>
+                          <span className="bg-rose-50 text-rose-600 text-[10px] font-semibold px-1.5 py-0.5 rounded-md">HOT</span>
                         ) : nav.badge ? (
-                          <span className="bg-[#00A651] text-white text-[9px] font-black px-1.5 py-0.5 rounded-md">{nav.badge}</span>
+                          <span className="bg-[#006F3C] text-white text-[10px] font-semibold px-1.5 py-0.5 rounded-md">{nav.badge}</span>
                         ) : (
                           <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
                         )}
@@ -2098,7 +2048,7 @@ export default function Navbar({
 
                 {/* Secondary Links & Services */}
                 <div className="space-y-1 pt-2 border-t border-slate-100">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 px-2 block">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-2 block">
                     Services & Tools
                   </span>
 
@@ -2107,7 +2057,7 @@ export default function Navbar({
                     className="w-full min-h-[44px] flex items-center justify-between p-2.5 rounded-xl text-left hover:bg-slate-50 text-slate-700 font-bold text-xs cursor-pointer"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-50 text-[#00A651] flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-50 text-[#006F3C] flex items-center justify-center">
                         <Building2 className="w-4 h-4" />
                       </div>
                       <span>List Your Property (Vendor)</span>
@@ -2131,7 +2081,7 @@ export default function Navbar({
 
                 {/* Language & Currency Controls */}
                 <div className="pt-2 border-t border-slate-100 space-y-3">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 px-2 block">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-2 block">
                     Preferences
                   </span>
 
@@ -2144,7 +2094,7 @@ export default function Navbar({
                           type="button"
                           onClick={() => setCurrency('PKR')}
                           className={`min-h-[36px] py-1.5 rounded-lg text-xs font-bold cursor-pointer ${
-                            currency === 'PKR' ? 'bg-[#00A651] text-white shadow-2xs' : 'bg-white text-slate-600 hover:bg-slate-100'
+                            currency === 'PKR' ? 'bg-[#006F3C] text-white shadow-2xs' : 'bg-white text-slate-600 hover:bg-slate-100'
                           }`}
                         >
                           PKR (₨)
@@ -2153,7 +2103,7 @@ export default function Navbar({
                           type="button"
                           onClick={() => setCurrency('USD')}
                           className={`min-h-[36px] py-1.5 rounded-lg text-xs font-bold cursor-pointer ${
-                            currency === 'USD' ? 'bg-[#00A651] text-white shadow-2xs' : 'bg-white text-slate-600 hover:bg-slate-100'
+                            currency === 'USD' ? 'bg-[#006F3C] text-white shadow-2xs' : 'bg-white text-slate-600 hover:bg-slate-100'
                           }`}
                         >
                           USD ($)
@@ -2169,7 +2119,7 @@ export default function Navbar({
                           type="button"
                           onClick={() => requestLanguageChange('en')}
                           className={`min-h-[36px] py-1.5 rounded-lg text-xs font-bold cursor-pointer ${
-                            language === 'en' ? 'bg-[#00A651] text-white shadow-2xs' : 'bg-white text-slate-600 hover:bg-slate-100'
+                            language === 'en' ? 'bg-[#006F3C] text-white shadow-2xs' : 'bg-white text-slate-600 hover:bg-slate-100'
                           }`}
                         >
                           English
@@ -2178,7 +2128,7 @@ export default function Navbar({
                           type="button"
                           onClick={() => requestLanguageChange('ur')}
                           className={`min-h-[36px] py-1.5 rounded-lg text-xs font-bold cursor-pointer ${
-                            language === 'ur' ? 'bg-[#00A651] text-white shadow-2xs' : 'bg-white text-slate-600 hover:bg-slate-100'
+                            language === 'ur' ? 'bg-[#006F3C] text-white shadow-2xs' : 'bg-white text-slate-600 hover:bg-slate-100'
                           }`}
                         >
                           اردو
@@ -2193,7 +2143,7 @@ export default function Navbar({
               {/* Drawer Footer / Helpline */}
               <div className="p-4 bg-slate-50 border-t border-slate-200 space-y-2">
                 <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
-                  <Phone className="w-3.5 h-3.5 text-[#00A651]" />
+                  <Phone className="w-3.5 h-3.5 text-[#006F3C]" />
                   <span>24/7 Helpline: +92 5811 920000</span>
                 </div>
                 <p className="text-[10px] text-slate-400">
