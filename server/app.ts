@@ -37,6 +37,15 @@ function isAllowedOrigin(origin: string, host?: string) {
 export function createApp(): Express {
   const app = express();
 
+  if (env.VERCEL) {
+    // The /api/:path* rewrite forwards its catch-all parameter alongside the query.
+    // It is routing metadata, not an endpoint filter; strict schemas must not see it.
+    app.use((request, _response, next) => {
+      delete request.query.path;
+      next();
+    });
+  }
+
   if (env.TRUST_PROXY) app.set('trust proxy', 1);
   app.disable('x-powered-by');
   app.use(helmet({
