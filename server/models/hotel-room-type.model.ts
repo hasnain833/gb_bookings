@@ -12,6 +12,7 @@ const hotelRoomTypeSchema = new Schema({
   maxAdults: { type: Number, required: true, min: 1, max: 20 },
   maxChildren: { type: Number, required: true, min: 0, max: 20 },
   totalRooms: { type: Number, required: true, min: 1, max: 10_000 },
+  inventoryVersion: { type: Number, default: 0 },
   basePriceMinor: { type: Number, required: true, min: 0 },
   amenities: { type: [String], default: [] },
   status: { type: String, enum: ['active', 'paused', 'archived'], default: 'active', index: true },

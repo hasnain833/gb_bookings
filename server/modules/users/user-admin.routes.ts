@@ -3,12 +3,18 @@ import { authenticate, authorizePermission } from '../../middleware/authenticate
 import { validate } from '../../middleware/validate.js';
 import { asyncHandler } from '../../shared/async-handler.js';
 import { sessionMetadata } from '../auth/auth.service.js';
-import { listUsersQuerySchema, userIdParamsSchema, userStatusActionSchema } from './user-admin.schemas.js';
-import { changeUserStatus, listUsers } from './user-admin.service.js';
+import { createStaffSchema, listUsersQuerySchema, userIdParamsSchema, userStatusActionSchema } from './user-admin.schemas.js';
+import { changeUserStatus, createStaffAccount, listUsers } from './user-admin.service.js';
 
 export const adminUserRouter = Router();
 
 adminUserRouter.use(authenticate, authorizePermission('user:manage'));
+
+adminUserRouter.post('/', validate('body', createStaffSchema), asyncHandler(async (request, response) => {
+  response.status(201).json(await createStaffAccount(
+    { userId: request.auth!.userId, roles: request.auth!.roles }, request.body, sessionMetadata(request),
+  ));
+}));
 
 adminUserRouter.get('/', validate('query', listUsersQuerySchema), asyncHandler(async (request, response) => {
   response.json(await listUsers(request.query as any));

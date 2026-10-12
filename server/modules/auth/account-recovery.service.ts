@@ -6,7 +6,7 @@ import { UserModel } from '../../models/user.model.js';
 import { AppError, ServiceUnavailableError } from '../../shared/app-error.js';
 import { recordAuditEvent } from '../audit/audit.service.js';
 import { passwordResetEmail, verificationEmail } from '../email/auth-email.templates.js';
-import { isEmailConfigured, sendTransactionalEmail } from '../email/brevo.service.js';
+import { isEmailConfigured, sendTransactionalEmail } from '../email/resend.service.js';
 import { resetUserPassword, type SessionMetadata } from './auth.service.js';
 import { hashToken } from './auth.tokens.js';
 
@@ -122,7 +122,7 @@ export async function requestPasswordReset(email: string, metadata: SessionMetad
   }
   await requireDatabase();
   const user = await UserModel.findOne({ email, status: 'active', deletedAt: null });
-  if (!user) return;
+  if (!user) return false;
 
   const { rawToken, document } = await createActionToken(
     String(user._id),
@@ -140,7 +140,7 @@ export async function requestPasswordReset(email: string, metadata: SessionMetad
   } catch (error) {
     await AuthTokenModel.deleteOne({ _id: document._id });
     console.error(`Password reset email delivery failed [${metadata.requestId ?? 'no-request-id'}]:`, error);
-    return;
+    return false;
   }
 
   await recordAuditEvent({
@@ -151,6 +151,7 @@ export async function requestPasswordReset(email: string, metadata: SessionMetad
     resourceId: user.publicId,
     ...metadata,
   });
+  return true;
 }
 
 export async function resetPassword(rawToken: string, newPassword: string, metadata: SessionMetadata & { requestId?: string }) {

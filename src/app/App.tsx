@@ -29,7 +29,7 @@ const MobileInstallPrompt = lazy(() => import('../shared/components/MobileInstal
 
 // Views that need a signed-in user. Every navigation path (navbar, dashboards, deep flows) is gated at render time.
 const PROTECTED_VIEWS = new Set(['user-dashboard', 'vendor-dashboard', 'admin-dashboard', 'checkout']);
-const STAFF_ROLES = ['admin', 'super_admin', 'support_agent'];
+const STAFF_ROLES = ['admin', 'support_agent'];
 const VENDOR_ROLES = ['vendor_owner', 'vendor_staff'];
 
 // Each role's home: staff → admin panel, vendors → host portal, everyone else → traveler dashboard.
@@ -81,6 +81,8 @@ export default function App() {
   // Push a history entry whenever the visible page changes; the first sync only normalizes the URL.
   const isFirstUrlSync = useRef(true);
   useEffect(() => {
+    // Email actions must retain their token until the lazy action dialog reads it.
+    if (/^\/(verify-email|reset-password)\/?$/.test(window.location.pathname)) return;
     const url = urlForView(view, selectedListingId, searchParams);
     if (url !== window.location.pathname + window.location.search) {
       window.history[isFirstUrlSync.current ? 'replaceState' : 'pushState'](null, '', url);
@@ -114,6 +116,9 @@ export default function App() {
   const [userName, setUserName] = useState('');
   const [userRoles, setUserRoles] = useState<string[]>([]);
   const isStaff = userRoles.some((role) => STAFF_ROLES.includes(role));
+  useEffect(() => {
+    if (isLoggedIn && isStaff && view !== 'admin-dashboard') setView('admin-dashboard');
+  }, [isLoggedIn, isStaff, view]);
   const [notificationsCount, setNotificationsCount] = useState(0);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'signin' | 'register'>('signin');
@@ -183,7 +188,7 @@ export default function App() {
       .catch(() => [])
       .then((roles) => {
         setUserRoles(roles);
-        setView((current) => PROTECTED_VIEWS.has(current) ? current : homeDashboard(roles));
+        setView((current) => roles.some((role) => STAFF_ROLES.includes(role)) ? 'admin-dashboard' : PROTECTED_VIEWS.has(current) ? current : homeDashboard(roles));
       });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -199,7 +204,7 @@ export default function App() {
     setUserName('');
     setUserRoles([]);
     setNotificationsCount(0);
-    setView('homestays');
+    setView(isStaff ? 'admin-dashboard' : 'homestays');
   };
 
   useEffect(() => {
@@ -270,6 +275,26 @@ export default function App() {
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // Staff have a separate application shell, including on refresh and after session expiry.
+  if (!authChecked || isStaff || view === 'admin-dashboard') {
+    return (
+      <div className="min-h-dvh bg-slate-100 font-sans text-slate-900 selection:bg-teal-100 selection:text-teal-950">
+        <Suspense fallback={<div className="flex min-h-dvh items-center justify-center text-sm text-slate-500" role="status">Loading workspace…</div>}>
+          {!authChecked ? <div className="flex min-h-dvh items-center justify-center text-sm text-slate-500" role="status">Checking your session…</div>
+            : isLoggedIn && isStaff ? <AdminDashboard roles={userRoles} userName={userName} userEmail={userEmail} onSignOut={handleSignOut} />
+              : <main className="flex min-h-dvh items-center justify-center p-6"><section className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-teal-700">GBBookings · Administration</p>
+                <h1 className="mt-5 text-2xl font-bold">{isLoggedIn ? 'Staff access required' : 'Sign in to your workspace'}</h1>
+                <p className="mt-3 text-sm leading-6 text-slate-600">{isLoggedIn ? 'This area is reserved for platform administrators and employees.' : 'Use your administrator or employee account to continue.'}</p>
+                <button type="button" onClick={isLoggedIn ? () => setView(homeDashboard(userRoles)) : () => handleOpenAuthModal('signin')} className="mt-6 min-h-11 w-full rounded-lg bg-slate-900 px-5 text-sm font-semibold text-white hover:bg-slate-800">{isLoggedIn ? 'Return to your dashboard' : 'Staff sign in'}</button>
+              </section></main>}
+          {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} initialMode={authModalMode} onSuccessLogin={handleSuccessLogin} />}
+          <AccountActionModal />
+        </Suspense>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-[#1A1A1A] flex flex-col font-sans selection:bg-[#006F3C] selection:text-white overflow-x-clip w-full relative">
@@ -470,8 +495,6 @@ export default function App() {
             }}
           />
         )}
-
-        {view === 'admin-dashboard' && <AdminDashboard roles={userRoles} />}
 
         {view === 'ai-planner' && (
           <AiPlanner 

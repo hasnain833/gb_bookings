@@ -1,493 +1,84 @@
-import React, { useRef, useState } from 'react';
-import { CreditCard, Wallet, Calendar, ShieldCheck, CheckCircle, Printer, ArrowRight, ArrowLeft, Info } from 'lucide-react';
-import { Booking, Listing, handleImageError } from '../../types';
+import { useRef, useState, type FormEvent } from 'react';
+import { ArrowLeft, CheckCircle, LoaderCircle, Printer, ShieldCheck } from 'lucide-react';
+import type { Booking, Listing } from '../../types';
 import { api } from '../../shared/api/api';
 
 export interface CheckoutParams {
-  listingId: string;
-  startDate: string;
-  endDate: string;
-  /** Display only; the server recomputes the price. */
-  totalPrice: number;
-  guests: number;
-  duration: number;
-  roomTypeId?: string;
-  roomName?: string;
-  rooms?: number;
-  adults?: number;
-  children?: number;
-  withDriver?: boolean;
-  payAtHotel?: boolean;
+  listingId: string; startDate: string; endDate: string; totalPrice: number; guests: number; duration: number;
+  roomTypeId?: string; roomName?: string; rooms?: number; adults?: number; children?: number; withDriver?: boolean; payAtHotel?: boolean;
 }
-
 interface CheckoutFlowProps {
-  bookingParams: CheckoutParams;
-  listing: Listing;
-  userEmail?: string;
-  userName?: string;
-  /** Opens straight to the receipt of an existing booking instead of creating one. */
-  existingBooking?: Booking;
-  onSuccess: (booking: Booking) => void;
-  onCancel: () => void;
+  bookingParams: CheckoutParams; listing: Listing; userEmail?: string; userName?: string;
+  existingBooking?: Booking; onSuccess: (booking: Booking) => void; onCancel: () => void;
 }
+const inputClass = 'mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm';
+const buttonClass = 'min-h-11 rounded-lg bg-[#006F3C] px-5 text-sm font-semibold text-white disabled:opacity-50';
 
-export default function CheckoutFlow({ bookingParams, listing, userEmail = '', userName = '', existingBooking, onSuccess, onCancel }: CheckoutFlowProps) {
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(existingBooking ? 4 : 1); // 1: Contact, 2: Payment, 3: Processing, 4: Receipt
-  // One key per checkout attempt: retries and double-clicks replay the same booking instead of creating another.
-  const idempotencyKey = useRef(crypto.randomUUID());
-  
-  // Contacts (initialized from logged-in user if available, otherwise empty)
-  const [customerName, setCustomerName] = useState(userName || '');
-  const [customerEmail, setCustomerEmail] = useState(userEmail || '');
-  const [customerPhone, setCustomerPhone] = useState('');
-  
-  // Payment
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'jazzcash' | 'easypaisa' | 'pay_at_hotel'>(
-    bookingParams.payAtHotel ? 'pay_at_hotel' : 'card'
-  );
-  const [cardHolderName, setCardHolderName] = useState(userName || '');
-  const [cardNumber, setCardNumber] = useState('');
-  const [walletNumber, setWalletNumber] = useState('');
-  
-  const [processingMsg] = useState('Submitting your booking securely...');
-  const [createdBooking, setCreatedBooking] = useState<Booking | null>(existingBooking ?? null);
-  const [submissionError, setSubmissionError] = useState<string | null>(null);
+export default function CheckoutFlow({ bookingParams: params, listing, userEmail = '', userName = '', existingBooking, onSuccess, onCancel }: CheckoutFlowProps) {
+  const [step, setStep] = useState<'details' | 'review' | 'receipt'>(existingBooking ? 'receipt' : 'details');
+  const [contact, setContact] = useState({ name: userName, email: userEmail, phone: '' });
+  const [specialRequests, setSpecialRequests] = useState('');
+  const [quote, setQuote] = useState(params.totalPrice);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [booking, setBooking] = useState<Booking | null>(existingBooking ?? null);
+  const checkoutKey = useRef(crypto.randomUUID());
+  const submitting = useRef(false);
 
-  const submitBooking = async () => {
-    if (!bookingParams.roomTypeId) {
-      setSubmissionError('Online booking is not available for this listing yet. Please contact support to reserve.');
-      return;
-    }
-    setStep(3);
-    setSubmissionError(null);
+  const review = async (event: FormEvent) => {
+    event.preventDefault(); setBusy(true); setError('');
     try {
-      const booking = await api.createBooking({
-        listingId: bookingParams.listingId,
-        roomTypeId: bookingParams.roomTypeId,
-        checkIn: bookingParams.startDate,
-        checkOut: bookingParams.endDate,
-        rooms: bookingParams.rooms ?? 1,
-        adults: bookingParams.adults ?? bookingParams.guests,
-        children: bookingParams.children ?? 0,
-        guest: { name: customerName.trim(), email: customerEmail.trim(), phone: customerPhone.trim() },
-      }, idempotencyKey.current);
-      setCreatedBooking(booking);
-      setStep(4);
-    } catch (reason) {
-      setSubmissionError(reason instanceof Error ? reason.message : 'The booking service is unavailable. Please try again.');
-      setStep(2);
-    }
+      if (!params.roomTypeId) throw new Error('Select a room from the property page before checking out.');
+      const result = await api.getListingAvailability(params.listingId, {
+        checkIn: params.startDate, checkOut: params.endDate, adults: params.adults ?? params.guests,
+        children: params.children ?? 0, rooms: params.rooms ?? 1,
+      });
+      const room = result.rooms.find((item) => item.id === params.roomTypeId);
+      if (!room?.bookable) throw new Error('This room is no longer available. Return to the property to choose another room or dates.');
+      setQuote(room.totalPrice); setStep('review');
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Unable to check availability.'); }
+    finally { setBusy(false); }
+  };
+  const reserve = async () => {
+    if (submitting.current || booking || !params.roomTypeId) return;
+    submitting.current = true; setBusy(true); setError('');
+    try {
+      const created = await api.createBooking({
+        listingId: params.listingId, roomTypeId: params.roomTypeId, checkIn: params.startDate, checkOut: params.endDate,
+        rooms: params.rooms ?? 1, adults: params.adults ?? params.guests, children: params.children ?? 0,
+        guest: { name: contact.name.trim(), email: contact.email.trim(), phone: contact.phone.trim() },
+        specialRequests: specialRequests.trim() || undefined, expectedTotalMinor: Math.round(quote * 100),
+      }, checkoutKey.current);
+      setBooking(created); setStep('receipt');
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Unable to reserve. Please retry.'); }
+    finally { submitting.current = false; setBusy(false); }
   };
 
+
   return (
-    <div id="checkout-flow-component" className="max-w-xl mx-auto px-4 sm:px-6 pb-24 animate-fadeIn">
-      
-      {/* Back button (Only in steps 1 and 2) */}
-      {step <= 2 && (
-        <button 
-          id="btn-back-checkout"
-          onClick={step === 1 ? onCancel : () => setStep(1)}
-          className="flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-slate-900 mb-6 cursor-pointer app-tap min-h-[44px]"
-        >
-          <ArrowLeft className="w-4 h-4 stroke-[2.5]" /> 
-          <span>{step === 1 ? 'Cancel checkout' : 'Back to details'}</span>
-        </button>
-      )}
-
-      {/* Progress indicators */}
-      {step !== 3 && (
-        <div className="flex items-center justify-between mb-6 px-1" id="checkout-progress-indicators">
-          {[
-            { s: 1, label: 'Details' },
-            { s: 2, label: bookingParams.payAtHotel ? 'Confirmation' : 'Payment' },
-            { s: 4, label: 'Invoice' }
-          ].map((item, i) => (
-            <React.Fragment key={item.s}>
-              <div className="flex items-center gap-2 shrink-0">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 transition-all ${
-                  step === item.s 
-                    ? 'bg-[#006F3C] text-white shadow-md ring-2 ring-emerald-100' 
-                    : step > item.s 
-                      ? 'bg-emerald-100 text-[#006F3C]' 
-                      : 'bg-slate-100 text-slate-400'
-                }`}>
-                  {step > item.s ? '✓' : item.s === 4 ? 3 : item.s}
-                </div>
-                <span className={`text-xs font-bold ${step === item.s ? 'text-slate-900 font-extrabold' : 'text-slate-400'} hidden min-[400px]:inline-block`}>
-                  {item.label}
-                </span>
-              </div>
-              {i < 2 && <div className={`flex-1 h-0.5 mx-2 sm:mx-3 ${step > item.s ? 'bg-[#006F3C]' : 'bg-slate-200'}`} />}
-            </React.Fragment>
-          ))}
-        </div>
-      )}
-
-      {submissionError && step <= 2 && (
-        <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700" role="alert">
-          {submissionError}
-        </div>
-      )}
-
-      {/* STEP 1: Contacts Information */}
-      {step === 1 && (
-        <div className="mobile-card p-5 sm:p-6 space-y-6 animate-fadeIn" id="checkout-step-1">
-          <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Traveler Details</h2>
-            <p className="text-sm text-slate-500 mt-1">Please provide accurate contact details for booking confirmation and host coordination.</p>
-          </div>
-
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700 block">Full Name</label>
-              <input
-                type="text"
-                required
-                id="checkout-name"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                placeholder="e.g. Ali Khan"
-                className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:border-[#006F3C] focus:bg-white transition-colors"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700 block">Email Address</label>
-              <input
-                type="email"
-                required
-                id="checkout-email"
-                value={customerEmail}
-                onChange={(e) => setCustomerEmail(e.target.value)}
-                placeholder="your.email@example.com"
-                className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:border-[#006F3C] focus:bg-white transition-colors"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700 block">WhatsApp / Phone Number</label>
-              <input
-                type="tel"
-                required
-                id="checkout-phone"
-                value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
-                placeholder="e.g. 03001234567"
-                className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:border-[#006F3C] focus:bg-white transition-colors font-mono"
-              />
-            </div>
-          </div>
-
-          {/* Booking Summary Box */}
-          <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-3">
-            <div className="flex items-center gap-3">
-              <img src={listing.image} alt="" className="w-16 h-14 object-cover rounded-xl shrink-0" referrerPolicy="no-referrer" onError={handleImageError} />
-              <div className="min-w-0">
-                <h4 className="text-sm font-bold text-slate-900 truncate">{listing.title}</h4>
-                {bookingParams.roomName && (
-                  <p className="text-xs text-slate-500 mt-0.5">{bookingParams.rooms ?? 1} × {bookingParams.roomName} · {bookingParams.guests} guests</p>
-                )}
-                <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
-                  <Calendar className="w-3.5 h-3.5 text-[#006F3C] shrink-0" /> 
-                  <span>{bookingParams.startDate} to {bookingParams.endDate}</span>
-                </p>
-              </div>
-            </div>
-            
-            <div className="pt-3 border-t border-slate-200 flex items-center justify-between">
-              <div>
-                <span className="text-xs text-slate-500 font-medium block">
-                  {bookingParams.payAtHotel ? 'Pay at Stay' : 'Total Amount'}
-                </span>
-                <span className="text-lg font-bold text-slate-900">
-                  PKR {bookingParams.totalPrice.toLocaleString()}
-                </span>
-              </div>
-              {bookingParams.payAtHotel && (
-                <span className="text-xs font-bold text-[#006F3C] bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">
-                  PKR 0 Due Online
-                </span>
-              )}
-            </div>
-          </div>
-
-          <button
-            id="btn-checkout-to-payment"
-            onClick={() => {
-              if (!customerName || !customerEmail || !customerPhone) {
-                alert('Please fill out all contact fields.');
-                return;
-              }
-              setStep(2);
-            }}
-            className="w-full btn-primary-mobile min-h-[48px]"
-          >
-            <span>{bookingParams.payAtHotel ? 'Continue to Confirmation' : 'Continue to Payment'}</span> 
-            <ArrowRight className="w-4 h-4 stroke-[2.5]" />
-          </button>
-        </div>
-      )}
-
-      {/* STEP 2: Secure Payment Options */}
-      {step === 2 && (
-        <div className="mobile-card p-5 sm:p-6 space-y-6 animate-fadeIn" id="checkout-step-2">
-          {bookingParams.payAtHotel ? (
-            <div className="space-y-6" id="pay-at-stay-confirmation-form">
-              <div>
-                <h2 className="text-xl sm:text-2xl font-bold text-[#006F3C] tracking-tight flex items-center gap-2">
-                  <ShieldCheck className="w-6 h-6 shrink-0" /> 
-                  <span>Pay At Stay Reservation</span>
-                </h2>
-                <p className="text-sm text-slate-600 mt-1">
-                  Book now with zero advance payment. Your room is guaranteed and reserved until 6:00 PM on check-in day.
-                </p>
-              </div>
-
-              <div className="bg-emerald-50/70 border border-emerald-200/80 p-4 rounded-xl space-y-2.5">
-                <h4 className="text-xs font-bold text-[#006F3C] uppercase tracking-wider flex items-center gap-1.5">
-                  <Info className="w-4 h-4" /> Why book with Pay At Stay?
-                </h4>
-                <ul className="space-y-1.5 text-xs text-emerald-900 font-semibold">
-                  <li className="flex items-center gap-2">✓ No credit card or advance cash required today</li>
-                  <li className="flex items-center gap-2">✓ Instant reservation confirmation voucher</li>
-                  <li className="flex items-center gap-2">✓ Pay at front desk via Cash, Card, or JazzCash</li>
-                </ul>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-700 block">Host Verification Phone</label>
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 flex items-center justify-between">
-                  <span className="text-xs text-slate-500">Registered phone:</span>
-                  <span className="font-mono text-sm font-bold text-slate-900">{customerPhone}</span>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2.5 text-xs text-slate-500">
-                <ShieldCheck className="w-4 h-4 text-[#006F3C] shrink-0 mt-0.5" />
-                <span>By continuing, you confirm your booking and agree to property check-in guidelines.</span>
-              </div>
-
-              <button
-                id="btn-complete-payment-checkout"
-                onClick={submitBooking}
-                className="w-full btn-primary-mobile min-h-[48px]"
-              >
-                <span>Confirm & Reserve Room</span>
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-6" id="digital-payments-confirmation-form">
-              <div>
-                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Select Payment Method</h2>
-                <p className="text-sm text-slate-500 mt-1">Choose your preferred secure payment method.</p>
-              </div>
-
-              {/* Payment Method Selector Grid */}
-              <div className="grid grid-cols-3 gap-2 sm:gap-3" id="payment-gateways-selector">
-                {[
-                  { id: 'card', label: 'Debit / Card', icon: CreditCard },
-                  { id: 'jazzcash', label: 'JazzCash', icon: Wallet },
-                  { id: 'easypaisa', label: 'Easypaisa', icon: Wallet }
-                ].map((method) => {
-                  const Icon = method.icon;
-                  const isSelected = paymentMethod === method.id;
-                  return (
-                    <button
-                      key={method.id}
-                      id={`btn-gateway-${method.id}`}
-                      onClick={() => setPaymentMethod(method.id as any)}
-                      className={`min-h-[58px] p-2.5 rounded-xl border flex flex-col items-center justify-center gap-1 cursor-pointer transition-all app-tap ${
-                        isSelected 
-                          ? 'border-[#006F3C] bg-emerald-50/60 text-[#006F3C] font-bold shadow-xs' 
-                          : 'border-slate-200 bg-white text-slate-600 hover:text-slate-900'
-                      }`}
-                    >
-                      <Icon className="w-5 h-5" />
-                      <span className="text-xs font-bold truncate max-w-full">{method.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Payment Form Fields */}
-              <div className="bg-slate-50 p-4 sm:p-5 rounded-xl border border-slate-200 space-y-4" id="payment-gateway-form">
-                {paymentMethod === 'card' ? (
-                  <div className="space-y-3.5 animate-fadeIn" id="card-inputs-subform">
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-slate-700 block">Cardholder Name</label>
-                      <input
-                        type="text"
-                        required
-                        value={cardHolderName}
-                        onChange={(e) => setCardHolderName(e.target.value)}
-                        placeholder="Name on card"
-                        className="w-full min-h-[48px] bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-[#006F3C]"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-slate-700 block">Card Number</label>
-                      <input
-                        type="text"
-                        required
-                        value={cardNumber}
-                        onChange={(e) => setCardNumber(e.target.value)}
-                        placeholder="•••• •••• •••• ••••"
-                        className="w-full min-h-[48px] bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-[#006F3C] font-mono"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <label className="text-xs font-bold text-slate-700 block">Expiry Date</label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="MM/YY"
-                          className="w-full min-h-[48px] bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-[#006F3C]"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-xs font-bold text-slate-700 block">CVV</label>
-                        <input
-                          type="password"
-                          required
-                          placeholder="•••"
-                          maxLength={4}
-                          className="w-full min-h-[48px] bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-[#006F3C]"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-3.5 animate-fadeIn" id="wallet-inputs-subform">
-                    <p className="text-xs text-slate-600 font-medium">
-                      Enter your registered {paymentMethod === 'jazzcash' ? 'JazzCash' : 'Easypaisa'} mobile number. You will receive an OTP prompt to approve.
-                    </p>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-slate-700 block capitalize">{paymentMethod} Mobile Number</label>
-                      <input
-                        type="tel"
-                        required
-                        value={walletNumber}
-                        onChange={(e) => setWalletNumber(e.target.value)}
-                        placeholder="e.g. 03001234567"
-                        className="w-full min-h-[48px] bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-[#006F3C] font-mono"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Safety note */}
-              <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-                <ShieldCheck className="w-4 h-4 text-[#006F3C] shrink-0" />
-                <span>256-bit encrypted secure transaction gateway.</span>
-              </div>
-
-              <button
-                id="btn-complete-payment-checkout"
-                onClick={submitBooking}
-                className="w-full btn-primary-mobile min-h-[48px]"
-              >
-                <span>Pay PKR {bookingParams.totalPrice.toLocaleString()}</span>
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* STEP 3: Booking submission */}
-      {step === 3 && (
-        <div className="mobile-card p-10 text-center space-y-6" id="checkout-step-3">
-          <div className="w-16 h-16 border-4 border-[#006F3C] border-t-transparent rounded-full animate-spin mx-auto" />
-          <div className="space-y-2">
-            <h3 className="text-base font-bold text-slate-800">
-              {bookingParams.payAtHotel ? 'Securing Stay Reservation' : 'Processing Payment'}
-            </h3>
-            <p className="text-xs text-slate-500 font-mono">{processingMsg}</p>
-          </div>
-        </div>
-      )}
-
-      {/* STEP 4: Success & Receipt */}
-      {step === 4 && createdBooking && (
-        <div className="space-y-6 animate-fadeIn" id="checkout-step-4">
-          <div className="mobile-card p-6 text-center space-y-3">
-            <div className="w-14 h-14 rounded-full bg-emerald-100 text-[#006F3C] flex items-center justify-center mx-auto shadow-inner">
-              <CheckCircle className="w-8 h-8 stroke-[2.5]" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
-                {createdBooking.status === 'pending' ? 'Reservation received' : `Reservation ${createdBooking.status.replace('_', ' ')}`}
-              </h2>
-              <p className="text-sm text-slate-500 mt-1">
-                {createdBooking.status === 'pending'
-                  ? 'Your room is held. The property will confirm shortly; you can track the status in My Bookings.'
-                  : 'Present this voucher at check-in.'}
-              </p>
-            </div>
-          </div>
-
-          {/* Printable Ticket Receipt Card */}
-          <div className="mobile-card p-5 space-y-4" id="printable-ticket-receipt">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div>
-                <p className="text-xs font-bold text-[#006F3C] uppercase tracking-wider">
-                  {bookingParams.payAtHotel ? 'Pay at Stay Voucher' : 'Booking Confirmation'}
-                </p>
-                <h4 className="text-sm font-bold text-slate-900 mt-0.5">{createdBooking.listingTitle}</h4>
-              </div>
-              <span className="bg-emerald-50 text-[#006F3C] font-mono text-xs font-bold px-2.5 py-1 rounded-lg border border-emerald-200">
-                {createdBooking.reference ?? createdBooking.id}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div>
-                <span className="text-slate-400 block font-medium">Guest Name</span>
-                <span className="font-bold text-slate-800">{createdBooking.customerName}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 block font-medium">Contact</span>
-                <span className="font-bold text-slate-800">{createdBooking.customerPhone || 'N/A'}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 block font-medium">Dates</span>
-                <span className="font-bold text-slate-800">{createdBooking.startDate} – {createdBooking.endDate}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 block font-medium">Total Amount</span>
-                <span className="font-bold text-slate-900 text-sm">PKR {createdBooking.totalPrice.toLocaleString()}</span>
-              </div>
-            </div>
-
-            <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-              <span className="text-slate-500">Payment:</span>
-              <span className="font-bold text-[#006F3C]">
-                {createdBooking.paymentMethod === 'pay_at_hotel' ? 'Pay at check-in' : createdBooking.paymentStatus}
-              </span>
-            </div>
-          </div>
-
-          {/* Post Actions */}
-          <div className="space-y-3" id="checkout-completed-actions">
-            <button
-              id="btn-goto-dashboard"
-              onClick={() => onSuccess(createdBooking)}
-              className="w-full btn-primary-mobile min-h-[48px]"
-            >
-              <span>Go to My Bookings</span>
-            </button>
-            <button
-              onClick={() => window.print()}
-              id="btn-print-receipt"
-              className="w-full btn-secondary-mobile min-h-[48px]"
-            >
-              <Printer className="w-4 h-4" />
-              <span>Save / Print PDF Receipt</span>
-            </button>
-          </div>
-        </div>
-      )}
+    <div id="checkout-flow-component" className="mx-auto max-w-xl space-y-5 px-4 pb-20">
+      {step !== 'receipt' && <button disabled={busy} type="button" onClick={step === 'details' ? onCancel : () => { setStep('details'); checkoutKey.current = crypto.randomUUID(); }} className="flex min-h-11 items-center gap-2 text-sm font-semibold"><ArrowLeft className="size-4" />{step === 'details' ? 'Back to property' : 'Edit traveler details'}</button>}
+      {error && <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error}</p>}
+      {step === 'details' && <form onSubmit={review} className="space-y-4 rounded-xl border border-slate-200 bg-white p-6">
+        <h1 className="text-xl font-bold">Traveler details</h1>
+        <p className="text-sm text-slate-500">{listing.title} · {params.startDate} to {params.endDate}</p>
+        <label className="block text-sm font-semibold">Full name<input id="checkout-name" required minLength={2} maxLength={120} autoComplete="name" className={inputClass} value={contact.name} onChange={(event) => setContact({ ...contact, name: event.target.value })} /></label>
+        <label className="block text-sm font-semibold">Email address<input id="checkout-email" required type="email" autoComplete="email" className={inputClass} value={contact.email} onChange={(event) => setContact({ ...contact, email: event.target.value })} /></label>
+        <label className="block text-sm font-semibold">Phone number<input id="checkout-phone" required type="tel" minLength={7} maxLength={30} autoComplete="tel" className={inputClass} value={contact.phone} onChange={(event) => setContact({ ...contact, phone: event.target.value })} /></label>
+        <label className="block text-sm font-semibold">Special requests (optional)<textarea maxLength={1000} className={inputClass + ' min-h-24 py-3'} value={specialRequests} onChange={(event) => setSpecialRequests(event.target.value)} /></label>
+        <button id="btn-checkout-review" disabled={busy} className={buttonClass + ' w-full'}>{busy ? 'Checking availability…' : 'Review reservation'}</button>
+      </form>}
+      {step === 'review' && <section className="space-y-5 rounded-xl border border-slate-200 bg-white p-6">
+        <h1 className="text-xl font-bold">Review your reservation</h1>
+        <dl className="grid grid-cols-2 gap-3 text-sm"><dt>Property</dt><dd>{listing.title}</dd><dt>Room</dt><dd>{params.roomName}</dd><dt>Dates</dt><dd>{params.startDate} to {params.endDate}</dd><dt>Rooms / guests</dt><dd>{params.rooms ?? 1} room(s), {params.guests} guest(s)</dd><dt>Guest</dt><dd>{contact.name}</dd><dt>Total due at check-in</dt><dd className="font-bold">PKR {quote.toLocaleString()}</dd></dl>
+        <p className="flex items-start gap-2 text-sm text-slate-600"><ShieldCheck className="size-5 shrink-0 text-[#006F3C]" />No payment today. The property will confirm your request. Free cancellation before the check-in date.</p>
+        <button id="btn-confirm-booking" type="button" disabled={busy} onClick={reserve} className={buttonClass + ' flex w-full items-center justify-center gap-2'}>{busy && <LoaderCircle className="size-4 animate-spin" />}{busy ? 'Submitting reservation…' : 'Request reservation — pay at hotel'}</button>
+      </section>}
+      {step === 'receipt' && booking && <section id="checkout-step-4" className="space-y-5 rounded-xl border border-slate-200 bg-white p-6">
+        <div className="text-center"><CheckCircle className="mx-auto size-10 text-[#006F3C]" /><h1 className="mt-3 text-xl font-bold">{booking.status === 'pending' ? 'Reservation request received' : 'Reservation ' + booking.status.replace('_', ' ')}</h1><p className="mt-2 text-sm text-slate-600">{booking.status === 'pending' ? 'Your room is reserved while the property reviews your request. Track confirmation in My Bookings.' : 'Your reservation details are shown below.'}</p></div>
+        <div id="printable-ticket-receipt" className="space-y-3 border-y border-slate-200 py-4"><p className="font-mono text-sm font-bold">{booking.reference ?? booking.id}</p><h2 className="font-bold">{booking.listingTitle}</h2><dl className="grid grid-cols-2 gap-3 text-sm"><dt>Guest</dt><dd>{booking.customerName}</dd><dt>Room</dt><dd>{booking.roomName} × {booking.rooms ?? 1}</dd><dt>Dates</dt><dd>{booking.startDate} to {booking.endDate}</dd><dt>Status</dt><dd className="capitalize">{booking.status.replace('_', ' ')}</dd><dt>Total</dt><dd className="font-bold">PKR {booking.totalPrice.toLocaleString()}</dd><dt>Payment</dt><dd>{booking.paymentStatus === 'paid' ? 'Paid' : booking.status === 'cancelled' ? 'Cancelled — no online payment collected' : 'Pay at property'}</dd></dl></div>
+        <div className="flex flex-wrap gap-3"><button type="button" onClick={() => onSuccess(booking)} className={buttonClass}>Go to My Bookings</button><button type="button" onClick={() => window.print()} className="flex min-h-11 items-center gap-2 rounded-lg border border-slate-300 px-4 text-sm"><Printer className="size-4" />Print reservation</button></div>
+      </section>}
     </div>
   );
 }

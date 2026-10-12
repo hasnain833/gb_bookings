@@ -2,6 +2,7 @@ import { isValidObjectId } from 'mongoose';
 import type { Listing } from '../../../src/types.js';
 import { connectDatabase } from '../../database/connection.js';
 import { HotelRoomTypeModel } from '../../models/hotel-room-type.model.js';
+import { VendorModel } from '../../models/vendor.model.js';
 import { ListingModel } from '../../models/listing.model.js';
 import { escapeRegex } from '../../shared/escape-regex.js';
 import { availableRoomCounts } from '../bookings/availability.service.js';
@@ -58,10 +59,15 @@ export async function listPublishedListings(query: ListListingsQuery) {
     status: 'published',
     deletedAt: null,
   };
+  const approvedVendors = await VendorModel.find({ status: 'approved', deletedAt: null }).distinct('_id');
+  filter.$and = [{ $or: [{ ownerId: null }, { ownerId: { $in: approvedVendors } }] }];
 
   if (query.type && query.type !== 'all') filter.type = query.type;
   if (query.featured !== undefined) filter.featured = query.featured;
-  if (query.search) filter.$text = { $search: query.search };
+  if (query.search) {
+    const pattern = new RegExp(escapeRegex(query.search), 'i');
+    (filter.$and as unknown[]).push({ $or: ['title', 'location', 'description'].map((field) => ({ [field]: pattern })) });
+  }
   if (query.location) filter.location = new RegExp(escapeRegex(query.location), 'i');
   if (query.minPrice !== undefined || query.maxPrice !== undefined) {
     filter.price = {
@@ -72,8 +78,10 @@ export async function listPublishedListings(query: ListListingsQuery) {
   if (query.minRating !== undefined) filter.rating = { $gte: query.minRating };
   if (query.amenities?.length) {
     const wanted = query.amenities.map((amenity) => new RegExp(`^${escapeRegex(amenity)}$`, 'i'));
-    filter.$or = ['hotelSpecs.amenities', 'hotelSpecs.facilities', 'homestaySpecs.amenities']
-      .map((field) => ({ [field]: { $all: wanted } }));
+    (filter.$and as unknown[]).push(...wanted.map((pattern) => ({
+      $or: ['hotelSpecs.amenities', 'hotelSpecs.facilities', 'homestaySpecs.amenities']
+        .map((field) => ({ [field]: pattern })),
+    })));
   }
   if (query.checkIn && query.checkOut) {
     filter._id = { $in: await listingsWithAvailability(query.checkIn, query.checkOut, query.guests ?? 1, query.rooms ?? 1) };
@@ -111,7 +119,7 @@ async function listingsWithAvailability(checkIn: string, checkOut: string, guest
     status: 'active',
     deletedAt: null,
     totalRooms: { $gte: rooms },
-    $expr: { $gte: [{ $add: ['$maxAdults', '$maxChildren'] }, guestsPerRoom] },
+    maxAdults: { $gte: guestsPerRoom },
   }).select('listingId totalRooms').lean() as any[];
   const available = await availableRoomCounts(roomTypes, nights);
   return roomTypes
@@ -124,7 +132,8 @@ export async function listPublishedListingsByIds(ids: string[]) {
   if (!ids.length) return [];
   await requireDatabase();
   const records = await ListingModel.find({ publicId: { $in: ids }, status: 'published', deletedAt: null }).lean();
-  const byId = new Map(records.map((record) => [record.publicId, toPublicListing(record)]));
+  const vendors = new Set((await VendorModel.find({ status: 'approved', deletedAt: null }).distinct('_id')).map(String));
+  const byId = new Map(records.filter((record) => !record.ownerId || vendors.has(String(record.ownerId))).map((record) => [record.publicId, toPublicListing(record)]));
   return ids.flatMap((id) => byId.get(id) ?? []);
 }
 
@@ -141,5 +150,6 @@ export async function getPublishedListing(id: string) {
   }).lean();
 
   if (!record) throw new NotFoundError('Listing not found.');
+  if (record.ownerId && !await VendorModel.exists({ _id: record.ownerId, status: 'approved', deletedAt: null })) throw new NotFoundError('Listing not found.');
   return toPublicListing(record);
 }

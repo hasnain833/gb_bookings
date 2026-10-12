@@ -14,9 +14,8 @@ server/         Express + MongoDB API
   config/       Environment validation
   modules/      Feature modules: routes, schemas, services
   models/       Mongoose models
-  tests/        API tests (Vitest + Supertest)
 api/index.ts    Vercel serverless entry (re-exports server/index.ts)
-scripts/        Dev runner and database seeders
+scripts/        Dev runner
 public/         Static assets
 ```
 
@@ -27,6 +26,10 @@ public/         Static assets
 3. Run `npm run dev`. This starts the API (port 3001, auto-restarts on change) and the frontend (port 3000) together.
 
 Open `http://localhost:3000`. Vite proxies `/api` to the backend. The API explorer is at `http://localhost:3001/api/docs`.
+
+Use MongoDB Atlas or a local MongoDB replica set (`replicaSet=rs0`). Booking creation, cancellation, room inventory changes, and vendor application creation use transactions; standalone MongoDB cannot run these operations safely.
+
+Phase 1 implementation, role setup, configuration, and acceptance checks are documented in [PHASE1.md](PHASE1.md).
 
 Without `MONGODB_URI`, the development server still starts so frontend work can continue. Liveness remains healthy, while readiness and database-backed routes return `503 Service Unavailable`. Production startup requires a database URI.
 
@@ -43,7 +46,7 @@ If startup says port `3000` or `3001` is already in use, an existing development
 
 ## Production
 
-`npm run build` then `npm run start:production` runs one Node process that serves both the API and the built frontend on `PORT`. On Vercel, `api/index.ts` handles `/api/*` and the static build serves everything else. Set `APP_URL` to the public site URL. It is used for email links and allowed by CORS. Same-origin requests are always allowed.
+`npm run build` then `npm run start:production` runs one Node process that serves both the API and the built frontend on `PORT`. Frontend assets are in `dist/`; the backend and its source map are in `dist-server/`, outside the public directory. Production startup requires a reachable database and a real JWT secret. On Vercel, `api/index.ts` handles `/api/*` and the static build serves everything else. Set `APP_URL` to the public site URL. It is used for email links and allowed by CORS. Same-origin requests are always allowed.
 
 ## Commands
 
@@ -53,22 +56,21 @@ npm run dev:frontend        Frontend only (port 3000)
 npm run dev:backend         API only, with watch (port 3001)
 npm start                   API only, no watch
 npm run lint                Type-check the project
-npm test                    Run API tests (booking tests start a throwaway MongoDB 8.2.6; first run downloads it)
-npm run build               Build frontend (dist/) and backend (dist/server.cjs)
+npm run build               Build frontend (dist/) and backend (dist-server/server.cjs)
 npm run start:production    Run the compiled server
-npm run seed:listings       Seed the included marketplace catalog
-npx tsx scripts/seed-listings.ts path/to/listings.json
 ```
 
-The seed file must be a JSON array of listing objects. Existing records are updated by `publicId`, making repeat runs idempotent. Seeded hotels and homestays get a bookable "Standard Room" (room count from `roomsAvailable`, nightly rate from `price`) that later runs never overwrite.
+Create properties and room categories through the vendor workspace.
 
 ## Transactional email
 
-Email verification and password recovery use Brevo's transactional email API. Configure `BREVO_API_KEY`, a verified `BREVO_SENDER_EMAIL`, and `BREVO_SENDER_NAME` in `.env`. `APP_URL` is used to build the verification and reset links.
+Email verification, password recovery, OTP, staff invitations and booking updates use the Resend HTTPS API. Set `RESEND_API_KEY`, `RESEND_SENDER_EMAIL` (an address on your verified Resend domain), and `RESEND_SENDER_NAME` in `.env` and the deployment environment. API keys stay on the backend. `APP_URL` is used to build verification and reset links.
 
 Verification links expire after 60 minutes by default; password reset links expire after 30 minutes. Tokens are random, stored only as hashes, invalidated when replaced, and consumed once. A successful password reset revokes every existing session.
 
-Email two-factor authentication also uses Brevo. OTP challenges expire after `OTP_TTL_MINUTES`, enforce `OTP_MAX_ATTEMPTS`, and store only an HMAC of the code. The provider interface includes an explicit SMS adapter boundary; SMS remains unavailable until a provider is configured.
+Verify your sender domain in Resend before sending to customers. Set `APP_URL` to the public deployment URL so verification and reset links reach your deployed site. See [Resend email API documentation](https://resend.com/docs/api-reference/emails/send-email).
+
+Email two-factor authentication also uses Resend. OTP challenges expire after `OTP_TTL_MINUTES`, enforce `OTP_MAX_ATTEMPTS`, and store only an HMAC of the code. The provider interface includes an explicit SMS adapter boundary; SMS remains unavailable until a provider is configured.
 
 ## Media storage
 

@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { connectDatabase } from '../../database/connection.js';
+import { inTransaction } from '../../database/transaction.js';
 import { MediaModel } from '../../models/media.model.js';
 import { UserModel } from '../../models/user.model.js';
 import { VendorMemberModel } from '../../models/vendor-member.model.js';
@@ -45,22 +46,16 @@ export async function createVendorApplication(userId: string, input: any, metada
   const user = await UserModel.findOne({ _id: userId, status: 'active', deletedAt: null });
   if (!user) throw new AppError(404, 'USER_NOT_FOUND', 'User account was not found.');
   if (!user.emailVerifiedAt) throw new AppError(409, 'EMAIL_VERIFICATION_REQUIRED', 'Verify your email before registering as a vendor.');
-  if (await VendorMemberModel.exists({ userId, deletedAt: null })) {
-    throw new AppError(409, 'VENDOR_MEMBERSHIP_EXISTS', 'This account already belongs to a vendor organization.');
-  }
-
-  let vendor: any;
-  try {
-    vendor = await VendorModel.create({ ownerId: userId, slug: slugify(input.name), ...input });
-    await VendorMemberModel.create({ vendorId: vendor._id, userId, role: 'owner', status: 'active' });
-    if (!user.roles.includes('vendor_owner')) {
-      user.roles.push('vendor_owner');
-      await user.save();
+  const vendor = await inTransaction(async (session) => {
+    // Lock the user before checking membership; simultaneous applications cannot create two organizations.
+    await UserModel.updateOne({ _id: userId }, { $addToSet: { roles: 'vendor_owner' }, $inc: { __v: 1 } }, { session });
+    if (await VendorMemberModel.exists({ userId, deletedAt: null }).session(session)) {
+      throw new AppError(409, 'VENDOR_MEMBERSHIP_EXISTS', 'This account already belongs to a vendor organization.');
     }
-  } catch (error) {
-    if (vendor?._id) await VendorModel.deleteOne({ _id: vendor._id });
-    throw error;
-  }
+    const [vendor] = await VendorModel.create([{ ownerId: userId, slug: slugify(input.name), ...input }], { session });
+    await VendorMemberModel.create([{ vendorId: vendor._id, userId, role: 'owner', status: 'active' }], { session });
+    return vendor;
+  });
 
   await recordAuditEvent({
     actorId: userId, actorType: 'user', action: 'vendor.application_created',

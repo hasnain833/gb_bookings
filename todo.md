@@ -146,9 +146,9 @@ Deliverable: persistent listings served from MongoDB through documented, tested 
 - [x] Implement secure public customer registration; vendor onboarding registration remains in Phase 3.
 - [x] Implement login, logout, rotating token refresh, and logout from all devices.
 - [x] Store hashed refresh-token/session records with expiration and device metadata.
-- [x] Implement Brevo-backed email verification with one-time, expiring tokens.
-- [x] Implement Brevo-backed forgot-password and reset-password flows with one-time, expiring tokens.
-- [x] Add OTP provider interfaces with Brevo email delivery and an explicit SMS provider boundary.
+- [x] Implement Resend-backed email verification with one-time, expiring tokens.
+- [x] Implement Resend-backed forgot-password and reset-password flows with one-time, expiring tokens.
+- [x] Add OTP provider interfaces with Resend email delivery and an explicit SMS provider boundary.
 - [x] Add authentication endpoint throttling and temporary account lockout.
 - [x] Add suspicious-login audit events and user-facing session history with individual revocation.
 - [x] Add optional email-based two-factor authentication with expiring, attempt-limited OTP challenges.
@@ -156,7 +156,7 @@ Deliverable: persistent listings served from MongoDB through documented, tested 
 ### Users and permissions
 
 - [x] Implement profile read/update and password change with session revocation.
-- [x] Add roles: customer, vendor owner, vendor staff, support agent, admin, and super admin.
+- [x] Add roles: customer, vendor owner, vendor staff, support agent, and platform admin.
 - [x] Define centralized permission constants and route-level authorization middleware using current database roles.
 - [x] Add ownership checks for bookings and listings.
 - [ ] Add ownership checks for tickets, reviews, and messages (when those modules exist).

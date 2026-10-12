@@ -3,6 +3,8 @@ import { Building2, CheckCircle2, FileText, Hotel, LoaderCircle, Upload } from '
 import { ApiError, EXPERIENCE_TYPES, api, type VendorListing, type VendorProfile } from '../../shared/api/api';
 import RoomManager from './RoomManager';
 import VendorReservations from './VendorReservations';
+import PropertyEditor from './PropertyEditor';
+import SecurityPanel from '../account/SecurityPanel';
 
 interface VendorDashboardProps { setView: (view: string) => void }
 const inputClass = 'min-h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[#006F3C]';
@@ -17,13 +19,18 @@ export default function VendorDashboard({ setView: _setView }: VendorDashboardPr
   const [documentFile, setDocumentFile] = useState<File | null>(null);
   const [documentType, setDocumentType] = useState('business_registration');
   const [hotel, setHotel] = useState({ type: 'hotel' as VendorListing['type'], hostName: '', experienceType: EXPERIENCE_TYPES[0] as typeof EXPERIENCE_TYPES[number], title: '', location: '', description: '', price: '', hotelType: 'Hotel', amenities: '', facilities: '', policies: '', checkInTime: '14:00', checkOutTime: '11:00', roomName: '', bedType: 'Double', maxAdults: '2', maxChildren: '1', totalRooms: '1' });
-  const [hotelImage, setHotelImage] = useState<File | null>(null);
+  const [hotelImages, setHotelImages] = useState<File[]>([]);
+  const [editingListingId, setEditingListingId] = useState<string | null>(null);
   const [openListingId, setOpenListingId] = useState<string | null>(null);
 
   useEffect(() => {
     api.getMyVendor()
       .then(async (result) => {
         setVendor(result.data);
+        const profile = result.data;
+        setBusiness({ name: profile.name, email: profile.email, phone: profile.phone,
+          registrationNumber: profile.registrationNumber ?? '', taxNumber: '', businessType: profile.businessType,
+          line1: profile.address?.line1 ?? '', city: profile.address?.city ?? '', region: profile.address?.region ?? 'Gilgit-Baltistan' });
         if (result.data.status === 'approved') setListings(await api.getVendorListings());
       })
       .catch((error) => {
@@ -35,12 +42,13 @@ export default function VendorDashboard({ setView: _setView }: VendorDashboardPr
   const createApplication = async (event: FormEvent) => {
     event.preventDefault(); setBusy(true); setMessage('');
     try {
-      const result = await api.createVendorApplication({
+      const save = vendor ? api.updateMyVendor : api.createVendorApplication;
+      const result = await save({
         name: business.name, email: business.email, phone: business.phone, businessType: business.businessType,
         registrationNumber: business.registrationNumber, taxNumber: business.taxNumber || undefined,
         address: { line1: business.line1, city: business.city, region: business.region, country: 'PK' },
       });
-      setVendor(result.data); setMessage('Vendor draft created. Add a verification document before submitting.');
+      setVendor(result.data); setMessage('Vendor draft saved. Add a verification document before submitting.');
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Unable to create vendor application.'); }
     finally { setBusy(false); }
   };
@@ -65,14 +73,15 @@ export default function VendorDashboard({ setView: _setView }: VendorDashboardPr
 
   const createHotel = async (event: FormEvent) => {
     event.preventDefault();
-    if (!hotelImage) { setMessage('Select a hotel image.'); return; }
+    if (!hotelImages.length || hotelImages.length > 20) { setMessage('Select between 1 and 20 property images.'); return; }
     setBusy(true); setMessage('');
     try {
-      const upload = await api.uploadMedia('images', hotelImage);
+      const imageIds: string[] = [];
+      for (const file of hotelImages) imageIds.push((await api.uploadMedia('images', file)).data.id);
       const created = await api.createHotelListing({
         type: hotel.type,
         ...(hotel.type === 'homestay' ? { homestaySpecs: { hostName: hotel.hostName, experienceType: hotel.experienceType } } : {}),
-        title: hotel.title, location: hotel.location, description: hotel.description, price: Number(hotel.price), imageIds: [upload.data.id],
+        title: hotel.title, location: hotel.location, description: hotel.description, price: Number(hotel.price), imageIds,
         hotelSpecs: {
           hotelType: hotel.type === 'homestay' ? 'Homestay' : hotel.hotelType,
           amenities: hotel.amenities.split(',').map((value) => value.trim()).filter(Boolean),
@@ -81,14 +90,15 @@ export default function VendorDashboard({ setView: _setView }: VendorDashboardPr
           checkInTime: hotel.checkInTime, checkOutTime: hotel.checkOutTime,
         },
       });
+      // Keep the draft visible even if room creation fails; it can be completed through the room manager.
+      setListings((items) => [created.data, ...items]);
+      setOpenListingId(created.data.id);
       await api.addHotelRoom(created.data.id, {
         name: hotel.roomName, bedType: hotel.bedType, maxAdults: Number(hotel.maxAdults), maxChildren: Number(hotel.maxChildren),
         totalRooms: Number(hotel.totalRooms), basePrice: Number(hotel.price), amenities: [],
       });
       // Left as a draft so the vendor can add more room categories before submitting.
-      setListings((items) => [created.data, ...items]);
-      setOpenListingId(created.data.id);
-      setMessage(`${hotel.type === 'homestay' ? 'Homestay' : 'Hotel'} saved as a draft. Add any other room categories below, then submit it for review.`); setHotelImage(null);
+      setMessage(`${hotel.type === 'homestay' ? 'Homestay' : 'Hotel'} saved as a draft. Add any other room categories below, then submit it for review.`); setHotelImages([]);
       setHotel((current) => ({ ...current, title: '', location: '', description: '', price: '', roomName: '' }));
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Unable to create the hotel.'); }
     finally { setBusy(false); }
@@ -100,8 +110,9 @@ export default function VendorDashboard({ setView: _setView }: VendorDashboardPr
     <div className="space-y-8 pb-16">
       <header><h1 className="text-2xl font-bold text-slate-900">Vendor Console</h1><p className="text-sm text-slate-500">Manage verification, reservations and property inventory.</p></header>
       {message && <p className="border-l-4 border-[#006F3C] bg-emerald-50 p-3 text-sm text-slate-700" role="status">{message}</p>}
+      <details className="border-y border-slate-200 py-4"><summary className="cursor-pointer font-semibold">Account security and email verification</summary><div className="pt-5"><SecurityPanel /></div></details>
 
-      {!vendor && (
+      {(!vendor || ['draft', 'rejected'].includes(vendor.status)) && (
         <form onSubmit={createApplication} className="space-y-5 border-y border-slate-200 py-6">
           <div className="flex items-center gap-3"><Building2 className="size-5 text-[#006F3C]" /><h2 className="font-bold text-slate-900">Register your business</h2></div>
           <div className="grid gap-4 md:grid-cols-2">
@@ -111,8 +122,10 @@ export default function VendorDashboard({ setView: _setView }: VendorDashboardPr
             <Field label="Registration number"><input className={inputClass} required value={business.registrationNumber} onChange={(e) => setBusiness({ ...business, registrationNumber: e.target.value })} /></Field>
             <Field label="Street address"><input className={inputClass} required value={business.line1} onChange={(e) => setBusiness({ ...business, line1: e.target.value })} /></Field>
             <Field label="City"><input className={inputClass} required value={business.city} onChange={(e) => setBusiness({ ...business, city: e.target.value })} /></Field>
+            <Field label="Business type"><select className={inputClass} value={business.businessType} onChange={(e) => setBusiness({ ...business, businessType: e.target.value as VendorProfile['businessType'] })}><option value="hotel">Hotel</option><option value="homestay">Homestay</option><option value="multi_service">Multiple services</option></select></Field>
+            <Field label="Region"><input className={inputClass} required value={business.region} onChange={(e) => setBusiness({ ...business, region: e.target.value })} /></Field>
           </div>
-          <button disabled={busy} className="min-h-11 rounded-md bg-[#006F3C] px-5 text-sm font-bold text-white disabled:opacity-50">Create vendor draft</button>
+          <button disabled={busy} className="min-h-11 rounded-md bg-[#006F3C] px-5 text-sm font-bold text-white disabled:opacity-50">{vendor ? 'Save business details' : 'Create vendor draft'}</button>
         </form>
       )}
 
@@ -146,7 +159,7 @@ export default function VendorDashboard({ setView: _setView }: VendorDashboardPr
             <Field label={hotel.type === 'homestay' ? 'Homestay name' : 'Hotel name'}><input className={inputClass} required value={hotel.title} onChange={(e) => setHotel({ ...hotel, title: e.target.value })} /></Field>
             <Field label="Location"><input className={inputClass} required value={hotel.location} onChange={(e) => setHotel({ ...hotel, location: e.target.value })} /></Field>
             <Field label="Base price PKR"><input className={inputClass} type="number" min="0" required value={hotel.price} onChange={(e) => setHotel({ ...hotel, price: e.target.value })} /></Field>
-            <Field label="Primary image"><input className={`${inputClass} pt-2`} type="file" accept="image/jpeg,image/png,image/webp,image/avif" required onChange={(e) => setHotelImage(e.target.files?.[0] ?? null)} /></Field>
+            <Field label="Property photos (first photo is primary)"><input className={`${inputClass} pt-2`} type="file" multiple accept="image/jpeg,image/png,image/webp,image/avif" required onChange={(e) => setHotelImages(Array.from(e.target.files ?? []))} /></Field>
             <label className="text-xs font-semibold text-slate-600 md:col-span-2">Description<textarea className="mt-1 min-h-28 w-full rounded-md border border-slate-300 p-3 text-sm" minLength={20} required value={hotel.description} onChange={(e) => setHotel({ ...hotel, description: e.target.value })} /></label>
             <Field label="Amenities, comma separated"><input className={inputClass} value={hotel.amenities} onChange={(e) => setHotel({ ...hotel, amenities: e.target.value })} /></Field>
             <Field label={hotel.type === 'homestay' ? 'House rules, comma separated' : 'Policies, comma separated'}><input className={inputClass} value={hotel.policies} onChange={(e) => setHotel({ ...hotel, policies: e.target.value })} /></Field>
@@ -165,11 +178,16 @@ export default function VendorDashboard({ setView: _setView }: VendorDashboardPr
                   <img src={listing.image} alt="" className="size-14 rounded-md object-cover" />
                   <div className="min-w-0 flex-1"><p className="truncate font-semibold text-slate-900">{listing.title}</p><p className="text-xs text-slate-500">{listing.type === 'homestay' ? 'Homestay' : 'Hotel'} · {listing.location}</p></div>
                   <span className="text-xs font-bold uppercase text-indigo-700">{listing.status}</span>
+                  {['draft', 'rejected', 'published', 'paused'].includes(listing.status) && <button type="button" className="min-h-11 rounded-md border border-slate-300 px-4 text-sm font-bold" onClick={() => setEditingListingId(editingListingId === listing.id ? null : listing.id)}>Edit property</button>}
                   <button type="button" aria-expanded={openListingId === listing.id} onClick={() => setOpenListingId(openListingId === listing.id ? null : listing.id)}
                     className="min-h-11 rounded-md border border-slate-300 px-4 text-sm font-bold text-slate-700">
                     {openListingId === listing.id ? 'Close' : 'Rooms'}
                   </button>
                 </div>
+                {editingListingId === listing.id && <div className="mt-3"><PropertyEditor key={listing.id} listing={listing} onCancel={() => setEditingListingId(null)} onSaved={(updated) => {
+                  setListings((items) => items.map((item) => item.id === updated.id ? updated : item));
+                  setEditingListingId(null); setOpenListingId(updated.id); setMessage('Property saved as a draft. Submit it for review when ready.');
+                }} /></div>}
                 {openListingId === listing.id && (
                   <div className="mt-3">
                     <RoomManager listing={listing} onListingChange={(updated) => {

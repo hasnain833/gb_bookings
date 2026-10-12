@@ -4,7 +4,7 @@ import { useLanguage } from '../../app/LanguageContext';
 import { DashboardSkeleton } from '../../shared/components/SkeletonLoader';
 import { Calendar, Wallet, Award, Share2, Printer, AlertTriangle, Bell, Check, Trash, Heart, Eye, MapPin, X, ShieldCheck } from 'lucide-react';
 import { useBodyScrollLock } from '../../shared/utils/scrollLock';
-import { api } from '../../shared/api/api';
+import { api, type Paginated } from '../../shared/api/api';
 import SecurityPanel from './SecurityPanel';
 
 interface UserDashboardProps {
@@ -26,22 +26,28 @@ export default function UserDashboard({ userEmail, userName, setView, onSelectBo
   const [cancelBookingConfirmId, setCancelBookingConfirmId] = useState<string | null>(null);
   const [cancellingInProgress, setCancellingInProgress] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
+  const [dataError, setDataError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState<Paginated<Booking>['pagination'] | null>(null);
 
   useBodyScrollLock(!!cancelBookingConfirmId);
 
   const loadDashboardData = async () => {
     setLoading(true);
+    setDataError(null);
     try {
       const [bookingResult, notificationResult, transactionResult, wishlistResult] = await Promise.allSettled([
-        api.getBookings(),
+        api.getBookingsPage(page),
         api.getNotifications(),
         api.getWalletTransactions(),
         api.getWishlist(),
       ]);
 
       setBookings(bookingResult.status === 'fulfilled'
-        ? bookingResult.value.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        ? bookingResult.value.data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         : []);
+      setPagination(bookingResult.status === 'fulfilled' ? bookingResult.value.pagination : null);
+      if (bookingResult.status === 'rejected') setDataError(bookingResult.reason instanceof Error ? bookingResult.reason.message : 'Unable to load booking history.');
       setNotifications(notificationResult.status === 'fulfilled' ? notificationResult.value : []);
       setTransactions(transactionResult.status === 'fulfilled' ? transactionResult.value : []);
       setWishlistItems(wishlistResult.status === 'fulfilled' ? wishlistResult.value : []);
@@ -54,7 +60,7 @@ export default function UserDashboard({ userEmail, userName, setView, onSelectBo
 
   useEffect(() => {
     loadDashboardData();
-  }, [userEmail, activeTab]);
+  }, [userEmail, activeTab, page]);
 
   // Cancel Booking Action
   const handleCancelBooking = async (bookingId: string) => {
@@ -119,25 +125,24 @@ export default function UserDashboard({ userEmail, userName, setView, onSelectBo
           <div className="min-w-0">
             <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 flex flex-wrap items-center gap-2 uppercase tracking-tight">
               <span>{displayName}</span>
-              <span className="bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">Gold Loyalty</span>
             </h2>
-            <p className="text-xs text-slate-500 mt-0.5 truncate">{userEmail || 'traveler@gbbookings.com'} • Verified Traveler</p>
+            <p className="text-xs text-slate-500 mt-0.5 truncate">{userEmail}</p>
           </div>
         </div>
 
         {/* Dynamic Metric cards inside Header */}
         <div className="grid grid-cols-2 min-[480px]:grid-cols-3 gap-2.5 sm:gap-4" id="dashboard-metrics-summary">
           <div className="bg-slate-50 border border-slate-200 p-3 sm:p-3.5 rounded-lg text-center shadow-xs">
-            <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Active Bookings</span>
+            <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Active on this page</span>
             <span className="text-xs sm:text-sm font-bold text-slate-800 mt-0.5 sm:mt-1 block font-mono">{activeBookingsCount} Active</span>
           </div>
           <div className="bg-slate-50 border border-slate-200 p-3 sm:p-3.5 rounded-lg text-center shadow-xs">
             <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Wallet Balance</span>
-            <span className="text-xs sm:text-sm font-bold text-indigo-600 mt-0.5 sm:mt-1 block font-mono">PKR 14,500</span>
+            <span className="text-xs sm:text-sm font-bold text-indigo-600 mt-0.5 sm:mt-1 block font-mono">Coming soon</span>
           </div>
           <div className="col-span-2 min-[480px]:col-span-1 bg-slate-50 border border-slate-200 p-3 sm:p-3.5 rounded-lg text-center shadow-xs">
             <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Loyalty Coins</span>
-            <span className="text-xs sm:text-sm font-bold text-amber-600 mt-0.5 sm:mt-1 block font-mono">1,250 LC</span>
+            <span className="text-xs sm:text-sm font-bold text-amber-600 mt-0.5 sm:mt-1 block font-mono">Coming soon</span>
           </div>
         </div>
       </div>
@@ -184,7 +189,7 @@ export default function UserDashboard({ userEmail, userName, setView, onSelectBo
           {/* TAB 1: Trips and bookings */}
           {activeTab === 'trips' && (
             <div className="space-y-4 animate-fadeIn" id="dash-trips-pane">
-              {bookings.length === 0 ? (
+              {dataError ? <div role="alert" className="rounded-lg bg-rose-50 p-5 text-sm text-rose-700">{dataError}<button type="button" onClick={() => void loadDashboardData()} className="ml-3 font-semibold underline">Retry</button></div> : bookings.length === 0 ? (
                 <div className="bg-white rounded-2xl p-12 text-center border border-slate-200 shadow-xs">
                   <p className="text-sm text-slate-500 font-medium">You have no booking coordinates registered on this email yet.</p>
                   <button 
@@ -229,7 +234,7 @@ export default function UserDashboard({ userEmail, userName, setView, onSelectBo
 
                       <div className="flex flex-col justify-between items-start md:items-end gap-3 shrink-0 w-full md:w-auto">
                         <div className="text-left md:text-right w-full">
-                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Paid Amount</span>
+                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Booking Total</span>
                           <span className="text-base font-bold text-slate-800">PKR {booking.totalPrice.toLocaleString()}</span>
                           <span className="text-[10px] text-slate-500 font-medium block capitalize">
                             Via {booking.paymentMethod === 'pay_at_hotel' ? 'Pay at Hotel' : `${booking.paymentMethod} Payment`}
@@ -244,7 +249,7 @@ export default function UserDashboard({ userEmail, userName, setView, onSelectBo
                             className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-3.5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer flex items-center gap-1.5 shadow-xs min-h-[44px]"
                           >
                             <Printer className="w-4 h-4 text-slate-400 shrink-0" />
-                            <span>Invoice</span>
+                            <span>Reservation</span>
                           </button>
 
                           {canCancel(booking) && (
@@ -265,6 +270,8 @@ export default function UserDashboard({ userEmail, userName, setView, onSelectBo
               )}
             </div>
           )}
+
+          {activeTab === 'trips' && pagination && pagination.pages > 1 && <nav aria-label="Booking history pages" className="my-4 flex items-center justify-end gap-3 text-sm"><button disabled={loading || page <= 1} onClick={() => setPage((value) => value - 1)} className="min-h-11 rounded border px-4 disabled:opacity-50">Previous</button><span>Page {pagination.page} of {pagination.pages}</span><button disabled={loading || page >= pagination.pages} onClick={() => setPage((value) => value + 1)} className="min-h-11 rounded border px-4 disabled:opacity-50">Next</button></nav>}
 
           {/* TAB 1.5: Airbnb Style Saved Wishlist Panel (Airbnb Feature) */}
           {activeTab === 'wishlist' && (

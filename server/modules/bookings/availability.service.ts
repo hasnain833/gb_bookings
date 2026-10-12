@@ -1,4 +1,4 @@
-import type { Types } from 'mongoose';
+import type { ClientSession, Types } from 'mongoose';
 import { RoomNightModel } from '../../models/room-night.model.js';
 import { AppError } from '../../shared/app-error.js';
 
@@ -22,35 +22,40 @@ export async function availableRoomCounts(roomTypes: RoomRef[], nights: string[]
   ]));
 }
 
-export async function releaseRooms(roomTypeId: Types.ObjectId, nights: string[], quantity: number) {
+export async function releaseRooms(roomTypeId: Types.ObjectId, nights: string[], quantity: number, session: ClientSession) {
   if (!nights.length) return;
-  await RoomNightModel.updateMany({ roomTypeId, date: { $in: nights } }, { $inc: { booked: -quantity } });
+  const result = await RoomNightModel.updateMany(
+    { roomTypeId, date: { $in: nights }, booked: { $gte: quantity } },
+    { $inc: { booked: -quantity } }, { session },
+  );
+  if (result.modifiedCount !== nights.length) {
+    throw new AppError(409, 'INVENTORY_INCONSISTENT', 'Inventory could not be released safely. Please contact support.');
+  }
 }
 
 const isDuplicateKey = (error: unknown) => (error as { code?: number })?.code === 11000;
 
-/**
- * Atomically takes `quantity` rooms for every night, or none at all.
- * Each night is a conditional increment; the unique (roomTypeId, date) index turns a lost race
- * on a full night into a duplicate-key error instead of an overbooking.
- * ponytail: compensating release instead of a transaction; a crash mid-loop can strand counters. Move to a Mongo transaction if that shows up.
- */
-export async function reserveRooms(room: RoomRef, nights: string[], quantity: number) {
+/** Initialize empty counters outside the transaction. Concurrent inserts are harmless. */
+export async function prepareRoomNights(roomTypeId: Types.ObjectId, nights: string[]) {
+  for (const date of nights) {
+    try {
+      await RoomNightModel.updateOne({ roomTypeId, date }, { $setOnInsert: { booked: 0 } }, { upsert: true });
+    } catch (error) {
+      if (!isDuplicateKey(error)) throw error;
+    }
+  }
+}
+
+/** Reserve every night within the same transaction as the booking record. */
+export async function reserveRooms(room: RoomRef, nights: string[], quantity: number, session: ClientSession) {
   const unavailable = () => new AppError(409, 'ROOM_UNAVAILABLE', 'Not enough rooms are available for the selected dates.');
   if (quantity > room.totalRooms) throw unavailable();
 
-  const taken: string[] = [];
-  try {
-    for (const date of nights) {
-      await RoomNightModel.findOneAndUpdate(
-        { roomTypeId: room._id, date, booked: { $lte: room.totalRooms - quantity } },
-        { $inc: { booked: quantity } },
-        { upsert: true },
-      );
-      taken.push(date);
-    }
-  } catch (error) {
-    await releaseRooms(room._id, taken, quantity);
-    throw isDuplicateKey(error) ? unavailable() : error;
+  for (const date of nights) {
+    const result = await RoomNightModel.updateOne(
+      { roomTypeId: room._id, date, booked: { $lte: room.totalRooms - quantity } },
+      { $inc: { booked: quantity } }, { session },
+    );
+    if (result.modifiedCount !== 1) throw unavailable();
   }
 }

@@ -19,6 +19,7 @@ export default function AuthModal({ onClose, initialMode = 'signin', onSuccessLo
   useBodyScrollLock(true);
   const [mode, setMode] = useState(initialMode);
   const [fullName, setFullName] = useState('');
+  const [accountType, setAccountType] = useState<'customer' | 'vendor'>('customer');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -64,7 +65,7 @@ export default function AuthModal({ onClose, initialMode = 'signin', onSuccessLo
     run(async () => {
       const response = isSignIn
         ? await api.login({ email: trimmedEmail, password, rememberMe })
-        : await api.register({ name: fullName.trim(), email: trimmedEmail, password });
+        : await api.register({ name: fullName.trim(), email: trimmedEmail, password, accountType });
       if ('requiresTwoFactor' in response) setChallengeId(response.challengeId);
       else finish(response.user);
     });
@@ -155,6 +156,15 @@ export default function AuthModal({ onClose, initialMode = 'signin', onSuccessLo
           </form>
         ) : (
           <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+            {!isSignIn && (
+              <label className={labelClass}>
+                Account type
+                <select value={accountType} onChange={(event) => setAccountType(event.target.value as 'customer' | 'vendor')} className={inputClass}>
+                  <option value="customer">Customer — book a stay</option>
+                  <option value="vendor">Vendor — register a property business</option>
+                </select>
+              </label>
+            )}
             {!isSignIn && (
               <label className={labelClass}>
                 Full name

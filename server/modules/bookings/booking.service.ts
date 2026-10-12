@@ -1,15 +1,19 @@
+import { createHash } from 'node:crypto';
+import type { ClientSession } from 'mongoose';
 import { connectDatabase } from '../../database/connection.js';
+import { inTransaction } from '../../database/transaction.js';
 import { BookingModel, type BookingStatus } from '../../models/booking.model.js';
 import { HotelRoomTypeModel } from '../../models/hotel-room-type.model.js';
 import { ListingModel } from '../../models/listing.model.js';
 import type { UserRole } from '../../models/user.model.js';
 import { VendorMemberModel } from '../../models/vendor-member.model.js';
+import { VendorModel } from '../../models/vendor.model.js';
 import { AppError, ServiceUnavailableError } from '../../shared/app-error.js';
 import { recordAuditEvent } from '../audit/audit.service.js';
 import type { SessionMetadata } from '../auth/auth.service.js';
 import { hasPermission } from '../auth/rbac.js';
 import { notifyBooking } from './booking-notifications.js';
-import { availableRoomCounts, releaseRooms, reserveRooms } from './availability.service.js';
+import { availableRoomCounts, prepareRoomNights, releaseRooms, reserveRooms } from './availability.service.js';
 import type { CreateBookingInput, ListBookingsQuery } from './booking.schemas.js';
 import { stayNights, todayInPakistan } from './stay-dates.js';
 
@@ -55,17 +59,20 @@ export function serializeBooking(booking: any) {
   };
 }
 
-async function findBookableListing(listingId: string) {
-  const listing = await ListingModel.findOne({ publicId: listingId, status: 'published', deletedAt: null });
+async function findBookableListing(listingId: string, session?: ClientSession) {
+  const listing = await ListingModel.findOne({ publicId: listingId, status: 'published', deletedAt: null }).session(session ?? null);
   if (!listing) throw new AppError(404, 'LISTING_NOT_FOUND', 'Listing not found.');
   if (!BOOKABLE_LISTING_TYPES.includes(listing.type)) {
     throw new AppError(422, 'BOOKING_NOT_SUPPORTED', 'Online booking is not available for this listing yet.');
+  }
+  if (listing.ownerId && !await VendorModel.exists({ _id: listing.ownerId, status: 'approved', deletedAt: null }).session(session ?? null)) {
+    throw new AppError(409, 'PROPERTY_UNAVAILABLE', 'This property is not accepting new bookings.');
   }
   return listing;
 }
 
 export function partyFits(room: { maxAdults: number; maxChildren: number }, adults: number, children: number, rooms: number) {
-  return adults <= room.maxAdults * rooms && adults + children <= (room.maxAdults + room.maxChildren) * rooms;
+  return adults <= room.maxAdults * rooms && children <= room.maxChildren * rooms;
 }
 
 export async function getListingAvailability(
@@ -112,27 +119,54 @@ export async function createBooking(
   metadata: SessionMetadata,
 ) {
   await requireDatabase();
+  const requestHash = createHash('sha256').update(JSON.stringify({
+    listingId: input.listingId, roomTypeId: input.roomTypeId, checkIn: input.checkIn, checkOut: input.checkOut,
+    rooms: input.rooms, adults: input.adults, children: input.children,
+    guest: { name: input.guest.name, email: input.guest.email.toLowerCase(), phone: input.guest.phone },
+    specialRequests: input.specialRequests ?? '', paymentMethod: input.paymentMethod,
+    expectedTotalMinor: input.expectedTotalMinor,
+  })).digest('hex');
+  const replay = (booking: any) => {
+    if (booking.requestHash && booking.requestHash !== requestHash) {
+      throw new AppError(409, 'IDEMPOTENCY_CONFLICT', 'This checkout key was already used for different booking details. Start a new checkout.');
+    }
+    return { booking: serializeBooking(booking), replayed: true };
+  };
   if (idempotencyKey) {
     const existing = await BookingModel.findOne({ customerId, idempotencyKey });
-    if (existing) return { booking: serializeBooking(existing), replayed: true };
+    if (existing) return replay(existing);
   }
 
   const nights = stayNights(input.checkIn, input.checkOut);
   const listing = await findBookableListing(input.listingId);
-  const room = await HotelRoomTypeModel.findOne({
+  const roomRef = await HotelRoomTypeModel.findOne({
     publicId: input.roomTypeId, listingId: listing._id, status: 'active', deletedAt: null,
   });
-  if (!room) throw new AppError(404, 'ROOM_NOT_FOUND', 'The selected room is not available for this listing.');
-  if (!partyFits(room, input.adults, input.children, input.rooms)) {
-    throw new AppError(422, 'OCCUPANCY_EXCEEDED', 'The selected rooms cannot accommodate this many guests.');
-  }
-
-  // The server is the price authority; nothing price-related is read from the request.
-  const subtotalMinor = room.basePriceMinor * nights.length * input.rooms;
-  await reserveRooms(room, nights, input.rooms);
+  if (!roomRef) throw new AppError(404, 'ROOM_NOT_FOUND', 'The selected room is not available for this listing.');
+  await prepareRoomNights(roomRef._id, nights);
 
   try {
-    const booking = await BookingModel.create({
+    const result = await inTransaction(async (session) => {
+      if (idempotencyKey) {
+        const existing = await BookingModel.findOne({ customerId, idempotencyKey }).session(session);
+        if (existing) return { record: existing, replayed: true };
+      }
+      const listing = await findBookableListing(input.listingId, session);
+      // Write to the room document so reservations serialize with price/inventory edits.
+      const room = await HotelRoomTypeModel.findOneAndUpdate(
+        { _id: roomRef._id, listingId: listing._id, status: 'active', deletedAt: null },
+        { $inc: { inventoryVersion: 1 } }, { session, returnDocument: 'after' },
+      );
+      if (!room) throw new AppError(409, 'ROOM_UNAVAILABLE', 'The selected room is no longer available.');
+      if (!partyFits(room, input.adults, input.children, input.rooms)) {
+        throw new AppError(422, 'OCCUPANCY_EXCEEDED', 'The selected rooms cannot accommodate this many guests.');
+      }
+      const subtotalMinor = room.basePriceMinor * nights.length * input.rooms;
+      if (input.expectedTotalMinor !== undefined && input.expectedTotalMinor !== subtotalMinor) {
+        throw new AppError(409, 'PRICE_CHANGED', 'The room price changed. Edit traveler details and review the latest price before reserving.');
+      }
+      await reserveRooms(room, nights, input.rooms, session);
+      const [booking] = await BookingModel.create([{
       customerId,
       vendorId: listing.ownerId,
       listingId: listing._id,
@@ -159,7 +193,12 @@ export async function createBooking(
       paymentMethod: input.paymentMethod,
       statusHistory: [{ status: 'pending', by: customerId }],
       idempotencyKey,
+      requestHash,
+      }], { session });
+      return { record: booking, replayed: false };
     });
+    if (result.replayed) return replay(result.record);
+    const booking = result.record;
     await recordAuditEvent({
       actorId: customerId, actorType: 'user', action: 'booking.created',
       resourceType: 'booking', resourceId: booking.publicId, ...metadata,
@@ -168,11 +207,10 @@ export async function createBooking(
     await notifyBooking(booking, 'created');
     return { booking: serializeBooking(booking), replayed: false };
   } catch (error) {
-    await releaseRooms(room._id, nights, input.rooms);
     // A concurrent retry with the same key won the insert; return its booking.
     if ((error as { code?: number })?.code === 11000 && idempotencyKey) {
       const existing = await BookingModel.findOne({ customerId, idempotencyKey });
-      if (existing) return { booking: serializeBooking(existing), replayed: true };
+      if (existing) return replay(existing);
     }
     throw error;
   }
@@ -257,21 +295,24 @@ async function applyTransition(actor: Actor, booking: any, action: BookingAction
     throw new AppError(409, 'INVALID_BOOKING_STATUS', 'This action is only available from the check-in date.');
   }
   // Conditional update so two concurrent actions cannot both succeed (e.g. a double inventory release).
-  const updated = await BookingModel.findOneAndUpdate(
+  const updated = await inTransaction(async (session) => {
+    const updated = await BookingModel.findOneAndUpdate(
     { _id: booking._id, status: { $in: rule.from } },
     {
       $set: { status: rule.to },
       $push: { statusHistory: { status: rule.to, by: actor.userId, reason, at: new Date() } },
     },
-    { returnDocument: 'after' },
+    { returnDocument: 'after', session },
   );
   if (!updated) throw new AppError(409, 'INVALID_BOOKING_STATUS', `A ${booking.status} booking cannot be moved to ${rule.to}.`);
 
   if (rule.releases) {
     // The stay was validated at creation, so rebuild its nights without the "not in the past" check.
     const nights = stayNights(booking.checkIn, booking.checkOut, booking.checkIn);
-    await releaseRooms(booking.roomTypeId, nights, booking.rooms);
+    await releaseRooms(booking.roomTypeId, nights, booking.rooms, session);
   }
+    return updated;
+  });
   await recordAuditEvent({
     actorId: actor.userId, actorType: 'user', action: `booking.${rule.to}`,
     resourceType: 'booking', resourceId: booking.publicId, ...metadata,

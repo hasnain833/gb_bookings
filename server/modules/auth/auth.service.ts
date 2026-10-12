@@ -78,6 +78,7 @@ export async function registerUser(input: {
   email: string;
   phone?: string;
   password: string;
+  accountType?: 'customer' | 'vendor';
 }, metadata: SessionMetadata) {
   await requireDatabase();
 
@@ -90,7 +91,7 @@ export async function registerUser(input: {
       email: input.email,
       phone: input.phone,
       passwordHash: await bcrypt.hash(input.password, PASSWORD_COST),
-      roles: ['customer'],
+      roles: input.accountType === 'vendor' ? ['customer', 'vendor_owner'] : ['customer'],
     });
     return { userId: String(user._id), user: publicUser(user), session: await issueSession(user, false, metadata) };
   } catch (error: any) {
@@ -305,7 +306,7 @@ export async function beginTwoFactorSetup(userId: string, channel: OtpChannel, m
 
 export async function enableTwoFactor(userId: string, challengeId: string, code: string, metadata: SessionMetadata) {
   await requireDatabase();
-  const challenge = await consumeOtpChallenge(challengeId, code, 'two_factor_setup');
+  const challenge = await consumeOtpChallenge(challengeId, code, 'two_factor_setup', userId);
   if (String(challenge.userId) !== userId) throw new AppError(403, 'PERMISSION_DENIED', 'This challenge belongs to another account.');
   const user = await UserModel.findOneAndUpdate(
     { _id: userId, status: 'active', deletedAt: null },

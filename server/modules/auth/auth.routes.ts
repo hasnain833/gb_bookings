@@ -4,7 +4,7 @@ import { authenticate } from '../../middleware/authenticate.js';
 import { validate } from '../../middleware/validate.js';
 import { AppError } from '../../shared/app-error.js';
 import { asyncHandler } from '../../shared/async-handler.js';
-import { isEmailConfigured } from '../email/brevo.service.js';
+import { isEmailConfigured } from '../email/resend.service.js';
 import {
   requestPasswordReset,
   resetPassword,
@@ -46,7 +46,7 @@ import { REFRESH_COOKIE } from './auth.tokens.js';
 
 export const authRouter = Router();
 
-const authenticationLimiter = rateLimit({
+export const authenticationLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 20,
   standardHeaders: 'draft-8',

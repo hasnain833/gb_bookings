@@ -25,8 +25,7 @@ export const rolePermissions: Record<UserRole, readonly PermissionKey[]> = {
   vendor_owner: ['profile:read', 'profile:update', 'booking:read:own', 'booking:manage:own', 'listing:read', 'listing:manage:own', 'vendor:manage:own'],
   vendor_staff: ['profile:read', 'profile:update', 'booking:read:own', 'booking:manage:own', 'listing:read', 'listing:manage:own'],
   support_agent: ['profile:read', 'profile:update', 'booking:manage', 'support:manage'],
-  admin: ['profile:read', 'profile:update', 'user:manage', 'vendor:manage', 'listing:moderate', 'booking:manage', 'finance:manage', 'support:manage', 'audit:read'],
-  super_admin: Object.keys(permissionDescriptions) as PermissionKey[],
+  admin: Object.keys(permissionDescriptions) as PermissionKey[],
 };
 
 export function hasPermission(roles: UserRole[], permission: PermissionKey) {

@@ -57,8 +57,8 @@ export async function createOtpChallenge(input: {
   return { challengeId: challenge.publicId, expiresInSeconds: env.OTP_TTL_MINUTES * 60 };
 }
 
-export async function consumeOtpChallenge(challengeId: string, code: string, purpose: OtpDelivery['purpose']) {
-  const challenge = await OtpChallengeModel.findOne({ publicId: challengeId, purpose })
+export async function consumeOtpChallenge(challengeId: string, code: string, purpose: OtpDelivery['purpose'], userId?: string) {
+  const challenge = await OtpChallengeModel.findOne({ publicId: challengeId, purpose, ...(userId ? { userId } : {}) })
     .select('+codeHash +destination');
   if (!challenge || challenge.consumedAt || challenge.expiresAt.getTime() <= Date.now()) {
     throw new AppError(400, 'INVALID_OR_EXPIRED_OTP', 'This security code is invalid or has expired.');
@@ -67,12 +67,17 @@ export async function consumeOtpChallenge(challengeId: string, code: string, pur
     throw new AppError(429, 'OTP_ATTEMPTS_EXCEEDED', 'Too many incorrect code attempts. Request a new code.');
   }
   if (!codeMatches(challenge.publicId, code, challenge.codeHash)) {
-    challenge.attempts += 1;
-    if (challenge.attempts >= challenge.maxAttempts) challenge.consumedAt = new Date();
-    await challenge.save();
+    const attempted = await OtpChallengeModel.findOneAndUpdate(
+      { _id: challenge._id, consumedAt: null, expiresAt: { $gt: new Date() }, attempts: { $lt: challenge.maxAttempts } },
+      { $inc: { attempts: 1 } }, { returnDocument: 'after' },
+    );
+    if (!attempted) throw new AppError(400, 'INVALID_OR_EXPIRED_OTP', 'This security code is invalid or has expired.');
     throw new AppError(400, 'INVALID_OTP', 'The security code is incorrect.');
   }
-  challenge.consumedAt = new Date();
-  await challenge.save();
-  return challenge;
+  const consumed = await OtpChallengeModel.findOneAndUpdate(
+    { _id: challenge._id, consumedAt: null, expiresAt: { $gt: new Date() }, attempts: { $lt: challenge.maxAttempts } },
+    { $set: { consumedAt: new Date() } }, { returnDocument: 'after' },
+  );
+  if (!consumed) throw new AppError(400, 'INVALID_OR_EXPIRED_OTP', 'This security code is invalid or has expired.');
+  return consumed;
 }

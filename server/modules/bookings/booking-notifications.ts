@@ -1,6 +1,6 @@
 import { VendorModel } from '../../models/vendor.model.js';
 import { escapeHtml } from '../email/auth-email.templates.js';
-import { isEmailConfigured, sendTransactionalEmail } from '../email/brevo.service.js';
+import { isEmailConfigured, sendTransactionalEmail } from '../email/resend.service.js';
 
 export type BookingEvent = 'created' | 'confirmed' | 'cancelled';
 

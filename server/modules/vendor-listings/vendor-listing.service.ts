@@ -1,12 +1,15 @@
 import { connectDatabase } from '../../database/connection.js';
+import { inTransaction } from '../../database/transaction.js';
 import { HotelRoomTypeModel } from '../../models/hotel-room-type.model.js';
 import { ListingModel } from '../../models/listing.model.js';
 import { MediaModel } from '../../models/media.model.js';
 import { VendorMemberModel } from '../../models/vendor-member.model.js';
 import { VendorModel } from '../../models/vendor.model.js';
+import { RoomNightModel } from '../../models/room-night.model.js';
 import { AppError, ServiceUnavailableError } from '../../shared/app-error.js';
 import { recordAuditEvent } from '../audit/audit.service.js';
 import type { SessionMetadata } from '../auth/auth.service.js';
+import { todayInPakistan } from '../bookings/stay-dates.js';
 
 async function requireDatabase() {
   if (!await connectDatabase()) throw new ServiceUnavailableError('Listing management is unavailable while the database is disconnected.');
@@ -92,7 +95,7 @@ export async function createHotelListing(userId: string, input: any, metadata: S
 
 export async function updateHotelListing(userId: string, listingId: string, input: any, metadata: SessionMetadata) {
   const { listing } = await ownedListing(userId, listingId);
-  if (!['draft', 'rejected'].includes(listing.status)) throw new AppError(409, 'LISTING_LOCKED', 'Only draft or rejected listings can be edited.');
+  if (!['draft', 'rejected', 'published', 'paused'].includes(listing.status)) throw new AppError(409, 'LISTING_LOCKED', 'Listings cannot be edited while under review.');
   const update = { ...input };
   if (input.imageIds) {
     const images = await ownedImages(userId, input.imageIds);
@@ -103,7 +106,7 @@ export async function updateHotelListing(userId: string, listingId: string, inpu
   }
   if (input.price !== undefined) update.priceMinor = input.price * 100;
   delete update.homestaySpecs;
-  Object.assign(listing, update, listing.status === 'rejected' ? { status: 'draft', rejectionReason: null } : {});
+  Object.assign(listing, update, { status: 'draft', rejectionReason: null });
   if (listing.type === 'homestay') listing.homestaySpecs = homestaySpecsFor(listing, input.homestaySpecs);
   await listing.save();
   await recordAuditEvent({ actorId: userId, actorType: 'user', action: 'listing.updated', resourceType: 'listing', resourceId: listing.publicId, ...metadata });
@@ -148,10 +151,19 @@ export async function updateRoomType(userId: string, listingId: string, roomId: 
   }
   const update = { ...input };
   if (input.basePrice !== undefined) { update.basePriceMinor = input.basePrice * 100; delete update.basePrice; }
-  const room = await HotelRoomTypeModel.findOneAndUpdate(
-    { publicId: roomId, listingId: listing._id, deletedAt: null }, { $set: update }, { returnDocument: 'after', runValidators: true },
-  );
-  if (!room) throw new AppError(404, 'ROOM_TYPE_NOT_FOUND', 'Room type was not found.');
+  const room = await inTransaction(async (session) => {
+    const room = await HotelRoomTypeModel.findOneAndUpdate(
+      { publicId: roomId, listingId: listing._id, deletedAt: null },
+      { $set: update, $inc: { inventoryVersion: 1 } }, { session, returnDocument: 'after', runValidators: true },
+    );
+    if (!room) throw new AppError(404, 'ROOM_TYPE_NOT_FOUND', 'Room type was not found.');
+    if (input.totalRooms !== undefined && await RoomNightModel.exists({
+      roomTypeId: room._id, date: { $gte: todayInPakistan() }, booked: { $gt: input.totalRooms },
+    }).session(session)) {
+      throw new AppError(409, 'INVENTORY_BELOW_BOOKINGS', 'Room count cannot be lower than existing reservations.');
+    }
+    return room;
+  });
   await syncListingPrice(listing);
   await recordAuditEvent({
     actorId: userId, actorType: 'user', action: 'listing.room_updated', resourceType: 'listing', resourceId: listing.publicId, ...metadata,

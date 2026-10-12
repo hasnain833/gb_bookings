@@ -26,9 +26,9 @@ const envSchema = z.object({
   PASSWORD_RESET_TTL_MINUTES: z.coerce.number().int().min(5).max(120).default(30),
   OTP_TTL_MINUTES: z.coerce.number().int().min(2).max(30).default(10),
   OTP_MAX_ATTEMPTS: z.coerce.number().int().min(3).max(10).default(5),
-  BREVO_API_KEY: optionalString(z.string().min(1)),
-  BREVO_SENDER_EMAIL: optionalString(z.string().email()),
-  BREVO_SENDER_NAME: z.string().min(1).max(100).default('GBBookings'),
+  RESEND_API_KEY: optionalString(z.string().min(1)),
+  RESEND_SENDER_EMAIL: optionalString(z.string().email()),
+  RESEND_SENDER_NAME: z.string().min(1).max(100).regex(/^[^\r\n]+$/).default('GBBookings'),
   CLOUDINARY_CLOUD_NAME: optionalString(z.string().min(1)),
   CLOUDINARY_API_KEY: optionalString(z.string().min(1)),
   CLOUDINARY_API_SECRET: optionalString(z.string().min(1)),
@@ -50,12 +50,8 @@ if (parsed.data.NODE_ENV === 'production' && !parsed.data.MONGODB_URI) {
   throw new Error('MONGODB_URI is required when NODE_ENV=production.');
 }
 
-if (parsed.data.NODE_ENV === 'production' && parsed.data.JWT_ACCESS_SECRET.startsWith('development-only')) {
+if (parsed.data.NODE_ENV === 'production' && /^(development-only|replace-with)/.test(parsed.data.JWT_ACCESS_SECRET)) {
   throw new Error('JWT_ACCESS_SECRET must be configured when NODE_ENV=production.');
-}
-
-if (Boolean(parsed.data.BREVO_API_KEY) !== Boolean(parsed.data.BREVO_SENDER_EMAIL)) {
-  throw new Error('BREVO_API_KEY and BREVO_SENDER_EMAIL must be configured together.');
 }
 
 const cloudinaryValues = [parsed.data.CLOUDINARY_CLOUD_NAME, parsed.data.CLOUDINARY_API_KEY, parsed.data.CLOUDINARY_API_SECRET];

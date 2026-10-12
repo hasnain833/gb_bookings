@@ -53,6 +53,7 @@ const bookingSchema = new Schema({
   status: { type: String, enum: bookingStatuses, default: 'pending', index: true },
   statusHistory: { type: [statusEventSchema], default: [] },
   idempotencyKey: { type: String, maxlength: 100 },
+  requestHash: { type: String },
 }, { timestamps: true });
 
 bookingSchema.index({ customerId: 1, createdAt: -1 });

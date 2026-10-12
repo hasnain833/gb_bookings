@@ -11,6 +11,8 @@ export default function SecurityPanel() {
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -76,6 +78,28 @@ export default function SecurityPanel() {
   return (
     <div className="space-y-8 animate-fadeIn">
       {message && <p className="border-l-4 border-[#006F3C] bg-emerald-50 p-3 text-sm text-slate-700">{message}</p>}
+
+      {!user?.emailVerified && <section className="space-y-3 border-y border-slate-200 py-4">
+        <h3 className="font-bold">Verify your email</h3>
+        <p className="text-sm text-slate-600">Email verification is required for vendor registration and email security codes.</p>
+        <button type="button" disabled={busy} className="min-h-11 rounded-md bg-[#006F3C] px-4 text-sm font-bold text-white" onClick={async () => {
+          setBusy(true); setMessage('');
+          try { await api.requestEmailVerification(); setMessage('Verification email requested. Open the link in your inbox, then reload this page.'); }
+          catch (reason) { setMessage(reason instanceof Error ? reason.message : 'Unable to send verification email.'); }
+          finally { setBusy(false); }
+        }}>Send verification email</button>
+      </section>}
+
+      <form className="grid gap-3 border-y border-slate-200 py-4 sm:grid-cols-2" onSubmit={async (event) => {
+        event.preventDefault(); setBusy(true); setMessage('');
+        try { await api.changePassword(currentPassword, newPassword); window.location.reload(); }
+        catch (reason) { setMessage(reason instanceof Error ? reason.message : 'Unable to change password.'); setBusy(false); }
+      }}>
+        <h3 className="font-bold sm:col-span-2">Change password</h3>
+        <label className="text-xs font-semibold">Current password<input required type="password" autoComplete="current-password" className="mt-1 min-h-11 w-full rounded-md border border-slate-300 px-3" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} /></label>
+        <label className="text-xs font-semibold">New password<input required type="password" autoComplete="new-password" minLength={8} maxLength={72} pattern="(?=.*[A-Za-z])(?=.*[0-9]).{8,72}" title="Use 8–72 characters, including a letter and a number." className="mt-1 min-h-11 w-full rounded-md border border-slate-300 px-3" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} /></label>
+        <button disabled={busy} className="min-h-11 rounded-md bg-[#006F3C] px-4 text-sm font-bold text-white sm:col-span-2">Change password and sign out all devices</button>
+      </form>
 
       <section>
         <div className="mb-4 flex items-center gap-3">

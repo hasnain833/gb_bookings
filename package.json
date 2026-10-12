@@ -10,15 +10,10 @@
     "start": "tsx server/index.ts",
     "build": "npm run build:frontend && npm run build:backend",
     "build:frontend": "vite build",
-    "build:backend": "esbuild server/index.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
-    "start:production": "cross-env NODE_ENV=production node dist/server.cjs",
-    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
-    "lint": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "seed:listings": "tsx scripts/seed-listings.ts",
-    "grant-role": "tsx scripts/grant-role.ts",
-    "seed:demo": "tsx scripts/seed-demo-accounts.ts"
+    "build:backend": "esbuild server/index.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist-server/server.cjs",
+    "start:production": "cross-env NODE_ENV=production node dist-server/server.cjs",
+    "clean": "node -e \"for(const dir of ['dist','dist-server'])require('node:fs').rmSync(dir,{recursive:true,force:true})\"",
+    "lint": "tsc --noEmit"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -53,18 +48,14 @@
     "@types/node": "^22.14.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "@types/supertest": "^7.2.1",
     "@types/swagger-ui-express": "^4.1.8",
     "@vitejs/plugin-react": "^5.0.4",
     "autoprefixer": "^10.4.21",
     "cross-env": "^10.1.0",
     "esbuild": "^0.25.0",
-    "mongodb-memory-server": "^11.3.0",
-    "supertest": "^7.3.0",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
-    "vite": "^6.2.3",
-    "vitest": "^5.0.2"
+    "vite": "^6.2.3"
   }
 }

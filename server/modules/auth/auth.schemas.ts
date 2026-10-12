@@ -12,6 +12,7 @@ export const registerSchema = z.object({
   email,
   phone: z.string().trim().min(7).max(30).optional(),
   password,
+  accountType: z.enum(['customer', 'vendor']).default('customer'),
 }).strict();
 
 export const loginSchema = z.object({

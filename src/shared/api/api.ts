@@ -19,9 +19,11 @@ export class ApiError extends Error {
   }
 }
 
+let refreshInFlight: Promise<unknown> | null = null;
+
 async function request<T>(path: string, init: RequestInit = {}, allowRefresh = true): Promise<T> {
   const headers = new Headers(init.headers);
-  if (init.body && !headers.has('Content-Type')) {
+  if (init.body && !(init.body instanceof FormData) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
 
@@ -39,15 +41,20 @@ async function request<T>(path: string, init: RequestInit = {}, allowRefresh = t
   if (!response.ok) {
     const canRefresh = allowRefresh
       && response.status === 401
-      && !['/api/auth/login', '/api/auth/register', '/api/auth/refresh'].includes(path);
+      && !/\/auth\/(login(?:\/verify-otp)?|register|refresh|forgot-password|reset-password)$/.test(path);
     if (canRefresh) {
       try {
-        await request('/api/auth/refresh', { method: 'POST' }, false);
-        return request<T>(path, init, false);
+        if (!refreshInFlight) {
+          refreshInFlight = request('/api/auth/refresh', { method: 'POST' }, false)
+            .finally(() => { refreshInFlight = null; });
+        }
+        await refreshInFlight;
       } catch {
         // The session is gone; let the app shell drop its signed-in state.
         window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
+        throw new ApiError('Your session has expired. Please sign in again.', 401);
       }
+      return request<T>(path, init, false);
     }
 
     const message = payload?.message
@@ -132,6 +139,8 @@ export interface VendorListing {
   images: string[];
   status: 'draft' | 'submitted' | 'published' | 'rejected' | 'paused' | 'archived';
   rejectionReason?: string;
+  hotelSpecs?: { hotelType: string; amenities: string[]; facilities: string[]; policies: string[]; checkInTime: string; checkOutTime: string };
+  homestaySpecs?: { hostName: string; experienceType: typeof EXPERIENCE_TYPES[number] };
 }
 
 export interface VendorRoom {
@@ -161,6 +170,7 @@ export interface ListingFilters {
   guests?: number;
   sort?: 'recommended' | 'price-asc' | 'price-desc' | 'rating' | 'newest';
   limit?: number;
+  page?: number;
 }
 
 export interface RoomAvailability {
@@ -196,6 +206,7 @@ export interface CreateBookingInput {
   children: number;
   guest: { name: string; email: string; phone: string };
   specialRequests?: string;
+  expectedTotalMinor?: number;
 }
 
 export type VendorBookingAction = 'confirm' | 'cancel' | 'complete' | 'no_show';
@@ -247,6 +258,10 @@ export const api = {
     return params.type && params.type !== 'all'
       ? listings.filter((listing) => listing.type === params.type)
       : listings;
+  },
+
+  getListingsPage(params: { type?: ListingType | 'all'; search?: string } & ListingFilters = {}) {
+    return request<{ data: Listing[]; meta: Paginated<Listing>['pagination'] }>(`/api/v1/listings${queryString({ ...params })}`);
   },
 
   getListing(id: string) {
@@ -364,6 +379,12 @@ export const api = {
     return request<{ data: VendorListing }>('/api/v1/vendor/listings', { method: 'POST', body: JSON.stringify(input) });
   },
 
+  updateHotelListing(listingId: string, input: Partial<Pick<VendorListing, 'title' | 'location' | 'description' | 'hotelSpecs' | 'homestaySpecs'>> & { imageIds?: string[] }) {
+    return request<{ data: VendorListing }>(`/api/v1/vendor/listings/${encodeURIComponent(listingId)}`, {
+      method: 'PATCH', body: JSON.stringify(input),
+    }).then((result) => result.data);
+  },
+
   addHotelRoom(listingId: string, input: VendorRoomInput) {
     return request<{ data: VendorRoom }>(`/api/v1/vendor/listings/${encodeURIComponent(listingId)}/rooms`, {
       method: 'POST', body: JSON.stringify(input),
@@ -388,7 +409,7 @@ export const api = {
     return request<{ data: VendorListing }>(`/api/v1/vendor/listings/${encodeURIComponent(listingId)}/submit`, { method: 'POST' });
   },
 
-  register(input: { name: string; email: string; phone?: string; password: string }) {
+  register(input: { name: string; email: string; phone?: string; password: string; accountType?: 'customer' | 'vendor' }) {
     return request<AuthResponse>('/api/auth/register', {
       method: 'POST',
       body: JSON.stringify(input),
@@ -397,6 +418,10 @@ export const api = {
 
   logout() {
     return request<void>('/api/auth/logout', { method: 'POST' });
+  },
+
+  changePassword(currentPassword: string, newPassword: string) {
+    return request<void>('/api/auth/change-password', { method: 'POST', body: JSON.stringify({ currentPassword, newPassword }) });
   },
 
   forgotPassword(email: string) {
@@ -427,6 +452,9 @@ export const api = {
   getBookings() {
     return request<Booking[] | { data: Booking[] }>('/api/v1/bookings').then(unwrapCollection);
   },
+  getBookingsPage(page = 1) {
+    return request<Paginated<Booking>>(`/api/v1/bookings?page=${page}`);
+  },
 
   getListingAvailability(listingId: string, params: { checkIn: string; checkOut: string; adults: number; children?: number; rooms?: number }) {
     const query = new URLSearchParams({
@@ -453,9 +481,8 @@ export const api = {
     }).then((result) => result.data);
   },
 
-  getVendorBookings(status?: Booking['status']) {
-    const suffix = status ? `?status=${status}` : '';
-    return request<{ data: Booking[] }>(`/api/v1/vendor/bookings${suffix}`).then((result) => result.data);
+  getVendorBookings(params: { status?: Booking['status']; page?: number } = {}) {
+    return request<Paginated<Booking>>(`/api/v1/vendor/bookings${queryString(params)}`);
   },
 
   actOnVendorBooking(bookingId: string, action: VendorBookingAction, reason?: string) {
@@ -465,6 +492,11 @@ export const api = {
   },
 
   admin: {
+    createStaff(input: { name: string; email: string; role: 'support_agent' | 'admin' }) {
+      return request<{ data: AdminUser; invitationSent: boolean }>('/api/v1/admin/users', {
+        method: 'POST', body: JSON.stringify(input),
+      });
+    },
     listVendors(params: { status?: string; page?: number } = {}) {
       return request<Paginated<AdminVendor>>(`/api/v1/admin/vendors${queryString(params)}`);
     },

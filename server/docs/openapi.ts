@@ -135,7 +135,7 @@ export const openApiDocument = {
         responses: {
           '200': { description: 'Verification state returned and email sent when needed.' },
           '401': { description: 'Authentication is required.' },
-          '503': { description: 'Brevo transactional email is not configured.' },
+          '503': { description: 'Resend transactional email is not configured.' },
         },
       },
     },
@@ -155,7 +155,7 @@ export const openApiDocument = {
         summary: 'Request a password reset email',
         responses: {
           '202': { description: 'Generic response returned regardless of account existence.' },
-          '503': { description: 'Brevo transactional email is not configured.' },
+          '503': { description: 'Resend transactional email is not configured.' },
         },
       },
     },
@@ -325,9 +325,10 @@ export const openApiDocument = {
     },
     '/admin/users': {
       get: { tags: ['Admin'], summary: 'Search users by status, role, name or email', responses: { '200': { description: 'Paginated users.' } } },
+      post: { tags: ['Admin'], summary: 'Invite an employee or administrator with a Resend password setup link', requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['name', 'email', 'role'], properties: { name: { type: 'string' }, email: { type: 'string', format: 'email' }, role: { type: 'string', enum: ['support_agent', 'admin'] } } } } } }, responses: { '201': { description: 'Account created; invitationSent reports delivery.' }, '403': { description: 'Only platform admins can create staff accounts.' }, '409': { description: 'Email already registered.' } } },
     },
     '/admin/users/{id}/status': {
-      post: { tags: ['Admin'], summary: 'Activate, suspend, archive or verify a user (suspend/archive revoke sessions)', parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }], responses: { '200': { description: 'Updated user.' }, '403': { description: 'Only super admins can change administrators.' }, '409': { description: 'Cannot change own account.' } } },
+      post: { tags: ['Admin'], summary: 'Activate, suspend, archive or verify a user (suspend/archive revoke sessions)', parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }], responses: { '200': { description: 'Updated user.' }, '403': { description: 'Only platform admins can change administrators.' }, '409': { description: 'Cannot change own account.' } } },
     },
     '/ai/planner': {
       post: {

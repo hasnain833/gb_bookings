@@ -1,7 +1,9 @@
 node_modules/
 build/
 dist/
+dist-server/
 coverage/
+.cache/
 .DS_Store
 *.log
 .env*
@@ -10,3 +12,4 @@ coverage/
 # Local project briefs, proposals, and quotations
 *.docx
 *.pdf
+.cache

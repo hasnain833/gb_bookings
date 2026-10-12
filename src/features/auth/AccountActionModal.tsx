@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { AlertCircle, CheckCircle2, KeyRound, LoaderCircle, X } from 'lucide-react';
 import { api } from '../../shared/api/api';
 
@@ -19,18 +19,24 @@ export default function AccountActionModal() {
   const [message, setMessage] = useState('');
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
+  const verificationRequest = useRef<Promise<void> | null>(null);
 
   useEffect(() => {
     if (action?.action !== 'verify-email') return;
-    api.verifyEmail(action.token)
+    let active = true;
+    verificationRequest.current ??= api.verifyEmail(action.token);
+    verificationRequest.current
       .then(() => {
+        if (!active) return;
         setStatus('success');
         setMessage('Your email address has been verified.');
       })
       .catch((error) => {
+        if (!active) return;
         setStatus('error');
         setMessage(error instanceof Error ? error.message : 'Email verification failed.');
       });
+    return () => { active = false; };
   }, [action]);
 
   if (!action) return null;

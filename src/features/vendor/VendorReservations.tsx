@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { CalendarCheck, LoaderCircle } from 'lucide-react';
-import { api, type VendorBookingAction } from '../../shared/api/api';
+import { api, type Paginated, type VendorBookingAction } from '../../shared/api/api';
 import type { Booking } from '../../types';
 
 const statusFilters: Array<Booking['status'] | 'all'> = ['all', 'pending', 'confirmed', 'completed', 'cancelled', 'no_show'];
@@ -19,15 +19,19 @@ function actionsFor(booking: Booking): Array<{ action: VendorBookingAction; labe
 }
 
 interface ReservationsSource {
-  load: (status?: Booking['status']) => Promise<Booking[]>;
+  load: (params: { status?: Booking['status']; page?: number }) => Promise<Paginated<Booking>>;
   act: (bookingId: string, action: VendorBookingAction, reason?: string) => Promise<Booking>;
 }
 
 const vendorSource: ReservationsSource = { load: api.getVendorBookings, act: api.actOnVendorBooking };
 
 /** Vendor reservations by default; the admin workspace passes the all-bookings source. */
-export default function VendorReservations({ source = vendorSource, title = 'Reservations' }: { source?: ReservationsSource; title?: string }) {
+export default function VendorReservations({ source = vendorSource, title = 'Reservations', requestCancellationReason }: {
+  source?: ReservationsSource; title?: string; requestCancellationReason?: (booking: Booking) => Promise<string | null>;
+}) {
   const [status, setStatus] = useState<Booking['status'] | 'all'>('pending');
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState<Paginated<Booking>['pagination'] | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -37,19 +41,21 @@ export default function VendorReservations({ source = vendorSource, title = 'Res
     let active = true;
     setLoading(true);
     setError(null);
-    source.load(status === 'all' ? undefined : status)
-      .then((result) => active && setBookings(result))
+    source.load({ status: status === 'all' ? undefined : status, page })
+      .then((result) => { if (active) { setBookings(result.data); setPagination(result.pagination); } })
       .catch((reason: Error) => active && setError(reason.message))
       .finally(() => active && setLoading(false));
     return () => {
       active = false;
     };
-  }, [status, source]);
+  }, [status, source, page]);
 
   const act = async (booking: Booking, action: VendorBookingAction) => {
     let reason: string | undefined;
     if (action === 'cancel') {
-      reason = window.prompt('Reason for cancelling (shared with the guest):')?.trim();
+      reason = requestCancellationReason
+        ? (await requestCancellationReason(booking))?.trim()
+        : window.prompt('Reason for cancelling (shared with the guest):')?.trim();
       if (!reason || reason.length < 3) return;
     }
     setBusyId(booking.id);
@@ -76,7 +82,7 @@ export default function VendorReservations({ source = vendorSource, title = 'Res
         </div>
         <label className="text-xs font-semibold text-slate-600">
           <span className="sr-only">Filter by status</span>
-          <select value={status} onChange={(event) => setStatus(event.target.value as typeof status)}
+          <select value={status} onChange={(event) => { setStatus(event.target.value as typeof status); setPage(1); }}
             className="min-h-11 rounded-md border border-slate-300 bg-white px-3 text-sm capitalize">
             {statusFilters.map((value) => <option key={value} value={value}>{value.replace('_', ' ')}</option>)}
           </select>
@@ -116,6 +122,7 @@ export default function VendorReservations({ source = vendorSource, title = 'Res
           </div>
         ))}
       </div>
+      {pagination && pagination.pages > 1 && <nav aria-label="Reservation pages" className="flex items-center justify-end gap-3 text-sm"><button type="button" disabled={loading || page <= 1} onClick={() => setPage((value) => value - 1)} className="min-h-11 rounded border px-4 disabled:opacity-50">Previous</button><span>Page {pagination.page} of {pagination.pages}</span><button type="button" disabled={loading || page >= pagination.pages} onClick={() => setPage((value) => value + 1)} className="min-h-11 rounded border px-4 disabled:opacity-50">Next</button></nav>}
     </section>
   );
 }

@@ -42,19 +42,22 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
   const [checkIn, setCheckIn] = useState(initialFilters.startDate || '');
   const [checkOut, setCheckOut] = useState(initialFilters.endDate || '');
   const [showFilters, setShowFilters] = useState(false);
+  const [facilities, setFacilities] = useState('');
+  const [page, setPage] = useState(1);
   const guests = initialFilters.extra.guestCount || undefined;
   const supportsDates = type === 'hotel' || type === 'homestay';
   const datesValid = supportsDates && Boolean(checkIn && checkOut && checkOut > checkIn);
 
-  // Price, rating, sort and availability are filtered on the server; free-text matching stays client-side for partial words.
-  // ponytail: first 100 results only; add pagination when the catalog outgrows it.
-  const { listings, loading, error, reload } = useListings(type, '', {
+  // The server applies filters before pagination so matching properties cannot disappear beyond the first page.
+  const { listings, loading, error, reload, pagination } = useListings(type, query, {
     maxPrice: maxPrice < PRICE_CEILING ? maxPrice : undefined,
     minRating: minimumRating || undefined,
     sort: SORT_PARAM[sortBy],
     ...(datesValid ? { checkIn, checkOut, guests } : {}),
-    limit: 100,
+    amenities: facilities.trim() || undefined,
+    limit: 24, page,
   });
+  useEffect(() => { setPage(1); }, [query, maxPrice, minimumRating, sortBy, checkIn, checkOut, facilities, type]);
 
   useEffect(() => {
     setQuery(initialFilters.destination || '');
@@ -77,6 +80,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
     setMinimumRating(0);
     setSortBy('recommended');
     setTransmission('all');
+    setFacilities(''); setPage(1);
   };
 
   return (
@@ -84,7 +88,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
       <header className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-950 sm:text-3xl">{TYPE_LABELS[type]}{query.trim() && <span className="text-slate-500 font-normal"> in {query.trim()}</span>}</h1>
-          <p className="mt-1 text-sm text-slate-500">{loading ? 'Loading…' : `${results.length} ${results.length === 1 ? 'result' : 'results'}`}</p>
+          <p className="mt-1 text-sm text-slate-500">{loading ? 'Loading…' : `${pagination?.total ?? results.length} results`}</p>
         </div>
         <label className="relative w-full sm:max-w-md">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -138,6 +142,8 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
               <option value={4.5}>4.5+ stars</option>
             </select>
           </label>
+
+          {supportsDates && <label className="block space-y-2"><span className="text-xs font-bold text-slate-600">Facilities and amenities</span><input value={facilities} onChange={(event) => setFacilities(event.target.value)} placeholder="WiFi, Parking" className="min-h-10 w-full rounded-lg border border-slate-300 px-3 text-sm" /><span className="block text-[11px] text-slate-500">Separate required facilities with commas.</span></label>}
 
           {type === 'car' && (
             <label className="block space-y-2">
@@ -200,6 +206,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
           )}
         </main>
       </div>
+      {pagination && pagination.pages > 1 && <nav aria-label="Search pages" className="flex items-center justify-end gap-3 text-sm"><button disabled={loading || page <= 1} onClick={() => setPage((value) => value - 1)} className="min-h-11 rounded border px-4 disabled:opacity-50">Previous</button><span>Page {pagination.page} of {pagination.pages}</span><button disabled={loading || page >= pagination.pages} onClick={() => setPage((value) => value + 1)} className="min-h-11 rounded border px-4 disabled:opacity-50">Next</button></nav>}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { AppError } from '../../shared/app-error.js';
-import { sendTransactionalEmail } from '../email/brevo.service.js';
+import { sendTransactionalEmail } from '../email/resend.service.js';
 
 export type OtpChannel = 'email' | 'sms';
 
@@ -22,7 +22,7 @@ function escapeHtml(value: string) {
   }[character]!));
 }
 
-export class BrevoEmailOtpProvider implements OtpProvider {
+export class ResendEmailOtpProvider implements OtpProvider {
   readonly channel = 'email' as const;
 
   async send(delivery: OtpDelivery) {
@@ -52,7 +52,7 @@ export class UnconfiguredSmsOtpProvider implements OtpProvider {
 }
 
 const providers: Record<OtpChannel, OtpProvider> = {
-  email: new BrevoEmailOtpProvider(),
+  email: new ResendEmailOtpProvider(),
   sms: new UnconfiguredSmsOtpProvider(),
 };
 

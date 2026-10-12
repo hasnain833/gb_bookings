@@ -29,6 +29,7 @@ export const createBookingSchema = z.object({
     .refine((method) => method === 'pay_at_hotel', 'Only pay-at-hotel is available right now.')
     .default('pay_at_hotel'),
   specialRequests: z.string().trim().max(1_000).optional(),
+  expectedTotalMinor: z.number().int().nonnegative().optional(),
 }).strict();
 
 export const bookingIdParamsSchema = z.object({

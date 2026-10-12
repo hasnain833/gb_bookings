@@ -17,7 +17,7 @@ export async function startServer(app: Express) {
 
   finalizeApp(app);
   if (env.NODE_ENV === 'production') {
-    await connectDatabase();
+    if (!await connectDatabase()) throw new Error('Production startup requires a reachable MongoDB database.');
   } else {
     void connectDatabase();
   }
