@@ -9,12 +9,12 @@ export async function availableRoomCounts(roomTypes: RoomRef[], nights: string[]
   const counters = await RoomNightModel.find({
     roomTypeId: { $in: roomTypes.map((room) => room._id) },
     date: { $in: nights },
-  }).select('roomTypeId booked').lean();
+  }).select('roomTypeId booked closed').lean();
 
   const peakBooked = new Map<string, number>();
   for (const counter of counters as any[]) {
     const key = String(counter.roomTypeId);
-    peakBooked.set(key, Math.max(peakBooked.get(key) ?? 0, counter.booked));
+    peakBooked.set(key, Math.max(peakBooked.get(key) ?? 0, counter.booked + (counter.closed ?? 0)));
   }
   return new Map(roomTypes.map((room) => [
     String(room._id),
@@ -31,6 +31,14 @@ export async function releaseRooms(roomTypeId: Types.ObjectId, nights: string[],
   if (result.modifiedCount !== nights.length) {
     throw new AppError(409, 'INVENTORY_INCONSISTENT', 'Inventory could not be released safely. Please contact support.');
   }
+}
+
+/** True if any future night already uses more rooms (booked + closed) than `totalRooms`. */
+export async function inventoryExceeds(roomTypeId: Types.ObjectId, totalRooms: number, fromDate: string, session?: ClientSession) {
+  return Boolean(await RoomNightModel.exists({
+    roomTypeId, date: { $gte: fromDate },
+    $expr: { $gt: [{ $add: ['$booked', { $ifNull: ['$closed', 0] }] }, totalRooms] },
+  }).session(session ?? null));
 }
 
 const isDuplicateKey = (error: unknown) => (error as { code?: number })?.code === 11000;
@@ -53,7 +61,7 @@ export async function reserveRooms(room: RoomRef, nights: string[], quantity: nu
 
   for (const date of nights) {
     const result = await RoomNightModel.updateOne(
-      { roomTypeId: room._id, date, booked: { $lte: room.totalRooms - quantity } },
+      { roomTypeId: room._id, date, $expr: { $lte: [{ $add: ['$booked', { $ifNull: ['$closed', 0] }, quantity] }, room.totalRooms] } },
       { $inc: { booked: quantity } }, { session },
     );
     if (result.modifiedCount !== 1) throw unavailable();

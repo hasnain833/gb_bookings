@@ -2,12 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { X, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useLanguage } from '../../app/LanguageContext';
 import { useBodyScrollLock } from '../../shared/utils/scrollLock';
-import { api } from '../../shared/api/api';
+import { api, type AuthUser } from '../../shared/api/api';
+import { isValidPassword, passwordChecks, PASSWORD_REQUIREMENTS, PASSWORD_PATTERN } from '../../shared/utils/password';
 
 interface AuthModalProps {
   onClose: () => void;
   initialMode?: 'signin' | 'register';
-  onSuccessLogin: (email: string, name?: string) => void;
+  onSuccessLogin: (user: AuthUser) => void;
 }
 
 const inputClass = 'mt-1 w-full h-11 px-3 rounded-lg border border-slate-300 text-sm text-slate-900 focus:border-[#006F3C] focus:ring-2 focus:ring-[#006F3C]/20 outline-none';
@@ -19,9 +20,13 @@ export default function AuthModal({ onClose, initialMode = 'signin', onSuccessLo
   useBodyScrollLock(true);
   const [mode, setMode] = useState(initialMode);
   const [fullName, setFullName] = useState('');
-  const [accountType, setAccountType] = useState<'customer' | 'vendor'>('customer');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [otpPurpose, setOtpPurpose] = useState<'signup' | 'login'>('login');
+  const [resendAfter, setResendAfter] = useState(0);
+  const [remainingSeconds, setRemainingSeconds] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -50,30 +55,42 @@ export default function AuthModal({ onClose, initialMode = 'signin', onSuccessLo
     }
   };
 
-  const finish = (user: { email: string; name?: string }) => {
-    onSuccessLogin(user.email, user.name);
+  useEffect(() => {
+    if (!challengeId) return;
+    const tick = () => setRemainingSeconds(Math.max(0, Math.ceil((resendAfter - Date.now()) / 1000)));
+    tick();
+    const timer = window.setInterval(tick, 1000);
+    return () => window.clearInterval(timer);
+  }, [challengeId, resendAfter]);
+
+  const finish = (user: AuthUser) => {
+    onSuccessLogin(user);
     onClose();
   };
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    if (password.length < 8) {
-      setErrorMessage(isRtl ? 'پاس ورڈ کم از کم 8 حروف کا ہونا چاہئے' : 'Password must be at least 8 characters.');
+    if (!isSignIn && !isValidPassword(password)) {
+      setErrorMessage(PASSWORD_REQUIREMENTS);
       return;
     }
+    if (!isSignIn && password !== confirmPassword) { setErrorMessage('Passwords do not match.'); return; }
+    if (!isSignIn && !acceptTerms) { setErrorMessage('Please accept the Terms and Privacy Policy to continue.'); return; }
     const trimmedEmail = email.trim().toLowerCase();
     run(async () => {
       const response = isSignIn
         ? await api.login({ email: trimmedEmail, password, rememberMe })
-        : await api.register({ name: fullName.trim(), email: trimmedEmail, password, accountType });
-      if ('requiresTwoFactor' in response) setChallengeId(response.challengeId);
+        : await api.register({ name: fullName.trim(), email: trimmedEmail, password, confirmPassword, acceptTerms: true });
+      if ('requiresTwoFactor' in response || 'requiresEmailVerification' in response) {
+        setOtpPurpose(isSignIn ? 'login' : 'signup'); setChallengeId(response.challengeId); setOtpCode(''); setResendAfter(Date.now() + 60_000);
+      }
       else finish(response.user);
     });
   };
 
   const handleOtpSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    run(async () => finish((await api.verifyLoginOtp(challengeId, otpCode)).user));
+    run(async () => finish((await (otpPurpose === 'signup' ? api.verifySignupOtp(challengeId, otpCode) : api.verifyLoginOtp(challengeId, otpCode))).user));
   };
 
   const handleForgotPassword = () => {
@@ -94,11 +111,11 @@ export default function AuthModal({ onClose, initialMode = 'signin', onSuccessLo
   };
 
   const title = challengeId
-    ? 'Enter security code'
+    ? otpPurpose === 'signup' ? 'Verify your email' : 'Enter security code'
     : isSignIn ? (isRtl ? 'لاگ ان کریں' : 'Sign in') : (isRtl ? 'نیا اکاؤنٹ بنائیں' : 'Create your account');
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4">
+    <div className="fixed inset-0 z-100 flex items-end sm:items-center justify-center sm:p-4">
       <div className="fixed inset-0 bg-slate-950/60" onClick={onClose} />
 
       <div
@@ -134,7 +151,7 @@ export default function AuthModal({ onClose, initialMode = 'signin', onSuccessLo
 
         {challengeId ? (
           <form onSubmit={handleOtpSubmit} className="mt-5 space-y-4">
-            <p className="text-sm text-slate-500">We sent a 6-digit code to your email.</p>
+            <p className="text-sm leading-6 text-slate-500">We sent a 6-digit code to <strong>{email.trim()}</strong>. {otpPurpose === 'signup' && 'Your account will be created after you verify this code.'}</p>
             <input
               aria-label="Security code"
               inputMode="numeric"
@@ -148,23 +165,21 @@ export default function AuthModal({ onClose, initialMode = 'signin', onSuccessLo
               className={`${inputClass} text-center font-mono text-lg tracking-[0.4em]`}
             />
             <button type="submit" disabled={isLoading} className="w-full h-11 rounded-lg bg-[#006F3C] font-semibold text-white hover:bg-[#005c32] disabled:opacity-60">
-              {isLoading ? 'Verifying…' : 'Verify and sign in'}
+              {isLoading ? 'Verifying…' : otpPurpose === 'signup' ? 'Verify and create account' : 'Verify and sign in'}
             </button>
-            <button type="button" onClick={() => { setChallengeId(''); setOtpCode(''); setErrorMessage(''); }} className="w-full text-sm font-medium text-slate-600 hover:text-slate-900">
+            <button type="button" disabled={isLoading || remainingSeconds > 0} onClick={() => run(async () => {
+              const response = otpPurpose === 'signup'
+                ? await api.register({ name: fullName.trim(), email: email.trim().toLowerCase(), password, confirmPassword, acceptTerms: true })
+                : await api.login({ email: email.trim().toLowerCase(), password, rememberMe });
+              if ('challengeId' in response) { setChallengeId(response.challengeId); setOtpCode(''); setResendAfter(Date.now() + 60_000); setNotice('A new code is on its way. Check your spam folder too.'); }
+              else finish(response.user);
+            })} className="min-h-11 w-full text-sm font-semibold text-[#006F3C] disabled:text-slate-400">{remainingSeconds ? `Resend code in ${remainingSeconds}s` : 'Resend code'}</button>
+            <button type="button" disabled={isLoading} onClick={() => { setChallengeId(''); setOtpCode(''); setErrorMessage(''); setNotice(''); }} className="min-h-11 w-full text-sm font-medium text-slate-600 hover:text-slate-900">
               Back
             </button>
           </form>
         ) : (
           <form onSubmit={handleSubmit} className="mt-5 space-y-4">
-            {!isSignIn && (
-              <label className={labelClass}>
-                Account type
-                <select value={accountType} onChange={(event) => setAccountType(event.target.value as 'customer' | 'vendor')} className={inputClass}>
-                  <option value="customer">Customer — book a stay</option>
-                  <option value="vendor">Vendor — register a property business</option>
-                </select>
-              </label>
-            )}
             {!isSignIn && (
               <label className={labelClass}>
                 Full name
@@ -191,7 +206,10 @@ export default function AuthModal({ onClose, initialMode = 'signin', onSuccessLo
                   id="auth-password"
                   type={showPassword ? 'text' : 'password'}
                   required
-                  minLength={8}
+                  minLength={isSignIn ? 1 : 8}
+                  maxLength={72}
+                  pattern={isSignIn ? undefined : PASSWORD_PATTERN}
+                  title={isSignIn ? undefined : PASSWORD_REQUIREMENTS}
                   autoComplete={isSignIn ? 'current-password' : 'new-password'}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
@@ -206,18 +224,24 @@ export default function AuthModal({ onClose, initialMode = 'signin', onSuccessLo
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-              {!isSignIn && <p className="mt-1 text-xs text-slate-500">At least 8 characters.</p>}
+              {!isSignIn && <ul className="mt-2 space-y-1 text-xs">{passwordChecks(password).map((check) => <li key={check.label} className={`flex items-center gap-1.5 ${check.valid ? 'text-emerald-700' : 'text-slate-500'}`}><CheckCircle2 className="size-3" />{check.label}</li>)}</ul>}
             </div>
+
+            {!isSignIn && <>
+              <label className={labelClass}>Confirm password<input required type={showPassword ? 'text' : 'password'} autoComplete="new-password" maxLength={72} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} className={inputClass} /></label>
+              {confirmPassword && password !== confirmPassword && <p className="text-xs text-rose-700">Passwords do not match.</p>}
+              <label className="flex items-start gap-2 text-xs leading-5 text-slate-600"><input type="checkbox" required checked={acceptTerms} onChange={(event) => setAcceptTerms(event.target.checked)} className="mt-1 size-4 shrink-0 accent-[#006F3C]" /><span>I agree to the <a href="/terms" target="_blank" rel="noreferrer" className="font-semibold text-[#006F3C] underline">Terms</a> and <a href="/privacy" target="_blank" rel="noreferrer" className="font-semibold text-[#006F3C] underline">Privacy Policy</a>.</span></label>
+            </>}
 
             {isSignIn && (
               <label className="flex items-center gap-2 text-sm text-slate-600">
                 <input type="checkbox" checked={rememberMe} onChange={(event) => setRememberMe(event.target.checked)} className="w-4 h-4 accent-[#006F3C]" />
-                Keep me signed in
+                Remember me for 7 days
               </label>
             )}
 
             <button type="submit" disabled={isLoading} className="w-full h-11 rounded-lg bg-[#006F3C] font-semibold text-white hover:bg-[#005c32] disabled:opacity-60">
-              {isLoading ? 'Please wait…' : isSignIn ? 'Sign in' : 'Create account'}
+              {isLoading ? 'Please wait…' : isSignIn ? 'Sign in' : 'Send verification code'}
             </button>
 
             {!isSignIn && (

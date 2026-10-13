@@ -8,6 +8,25 @@ import type {
 } from '../../types';
 
 export const AUTH_EXPIRED_EVENT = 'gb:auth-expired';
+export const AUTH_CHANGED_EVENT = 'gb:auth-changed';
+let authGeneration = 0;
+let hasKnownSession = false;
+const activeRequests = new Set<AbortController>();
+
+export function resetApiSession() {
+  hasKnownSession = false;
+  authGeneration += 1;
+  for (const controller of activeRequests) controller.abort();
+  activeRequests.clear();
+  refreshInFlight = null;
+  window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
+}
+
+export function hasApiSession() { return hasKnownSession; }
+export function markApiSession() {
+  hasKnownSession = true;
+  window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
+}
 
 export class ApiError extends Error {
   status: number;
@@ -22,49 +41,63 @@ export class ApiError extends Error {
 let refreshInFlight: Promise<unknown> | null = null;
 
 async function request<T>(path: string, init: RequestInit = {}, allowRefresh = true): Promise<T> {
-  const headers = new Headers(init.headers);
-  if (init.body && !(init.body instanceof FormData) && !headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json');
-  }
-
-  const response = await fetch(path, {
-    ...init,
-    headers,
-    credentials: 'include',
-  });
-
-  const contentType = response.headers.get('content-type') ?? '';
-  const payload = contentType.includes('application/json')
-    ? await response.json()
-    : null;
-
-  if (!response.ok) {
-    const canRefresh = allowRefresh
-      && response.status === 401
-      && !/\/auth\/(login(?:\/verify-otp)?|register|refresh|forgot-password|reset-password)$/.test(path);
-    if (canRefresh) {
-      try {
-        if (!refreshInFlight) {
-          refreshInFlight = request('/api/auth/refresh', { method: 'POST' }, false)
-            .finally(() => { refreshInFlight = null; });
-        }
-        await refreshInFlight;
-      } catch {
-        // The session is gone; let the app shell drop its signed-in state.
-        window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
-        throw new ApiError('Your session has expired. Please sign in again.', 401);
-      }
-      return request<T>(path, init, false);
+  const generation = authGeneration;
+  const controller = new AbortController();
+  activeRequests.add(controller);
+  try {
+    const headers = new Headers(init.headers);
+    if (init.body && !(init.body instanceof FormData) && !headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json');
     }
 
-    const message = payload?.message
-      ?? payload?.error?.message
-      ?? (typeof payload?.error === 'string' ? payload.error : null)
-      ?? `Request failed (${response.status})`;
-    throw new ApiError(message, response.status);
-  }
+    const response = await fetch(path, {
+      ...init,
+      headers,
+      credentials: 'include',
+      signal: controller.signal,
+    }).catch(() => { throw new ApiError(controller.signal.aborted ? 'Your account session changed. Please try again.' : 'We couldn’t connect. Please check your connection and try again.', controller.signal.aborted ? 401 : 0); });
+    if (generation !== authGeneration) throw new ApiError('Your account session changed. Please try again.', 401);
 
-  return payload as T;
+    const contentType = response.headers.get('content-type') ?? '';
+    const payload = contentType.includes('application/json')
+      ? await response.json()
+      : null;
+    if (generation !== authGeneration) throw new ApiError('Your account session changed. Please try again.', 401);
+
+    if (!response.ok) {
+      const canRefresh = allowRefresh
+        && response.status === 401
+        && (hasKnownSession || path.endsWith('/auth/me'))
+        && !/\/auth\/(login(?:\/verify-otp)?|register(?:\/verify-otp)?|refresh|forgot-password|reset-password)$/.test(path);
+      if (canRefresh) {
+        try {
+          if (!refreshInFlight) {
+            const pending = request('/api/auth/refresh', { method: 'POST' }, false)
+              .finally(() => { if (refreshInFlight === pending) refreshInFlight = null; });
+            refreshInFlight = pending;
+          }
+          await refreshInFlight;
+          if (generation !== authGeneration) throw new ApiError('Your account session changed. Please try again.', 401);
+        } catch {
+          // The session is gone; let the app shell drop its signed-in state.
+          if (generation === authGeneration && hasKnownSession) window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
+          throw new ApiError('Your session has expired. Please sign in again.', 401);
+        }
+        return request<T>(path, init, false);
+      }
+
+      const suppliedMessage = payload?.message
+        ?? payload?.error?.message
+        ?? (typeof payload?.error === 'string' ? payload.error : null)
+        ?? 'We couldn’t complete this request. Please try again.';
+      const message = response.status === 503 ? 'This service is temporarily unavailable. Please try again shortly.'
+        : response.status >= 500 ? 'Something went wrong on our side. Please try again in a moment.'
+          : payload?.error?.code === 'VALIDATION_ERROR' ? Object.values(payload.error.details?.fieldErrors ?? {}).flat().join(' ') || 'Please check the information you entered.' : suppliedMessage;
+      throw new ApiError(message, response.status);
+    }
+
+    return payload as T;
+  } finally { activeRequests.delete(controller); }
 }
 
 function unwrapCollection<T>(payload: T[] | { data: T[] }): T[] {
@@ -92,6 +125,12 @@ export interface TwoFactorChallengeResponse {
   expiresInSeconds: number;
 }
 
+export interface SignupChallengeResponse {
+  requiresEmailVerification: true;
+  challengeId: string;
+  expiresInSeconds: number;
+}
+
 export interface AuthSession {
   id: string;
   current: boolean;
@@ -114,6 +153,7 @@ export interface VendorProfile {
   taxNumber?: string;
   address?: Record<string, string>;
   rejectionReason?: string;
+  submittedAt?: string;
   verificationDocuments?: Array<{ type: string; status: string }>;
 }
 
@@ -139,6 +179,9 @@ export interface VendorListing {
   images: string[];
   status: 'draft' | 'submitted' | 'published' | 'rejected' | 'paused' | 'archived';
   rejectionReason?: string;
+  /** Present in admin listings. */
+  vendorName?: string;
+  updatedAt?: string;
   hotelSpecs?: { hotelType: string; amenities: string[]; facilities: string[]; policies: string[]; checkInTime: string; checkOutTime: string };
   homestaySpecs?: { hostName: string; experienceType: typeof EXPERIENCE_TYPES[number] };
 }
@@ -157,6 +200,12 @@ export interface VendorRoom {
 }
 
 export type VendorRoomInput = Omit<VendorRoom, 'id' | 'status'>;
+
+export interface RoomCalendar {
+  roomId: string;
+  totalRooms: number;
+  days: Array<{ date: string; booked: number; closed: number; available: number }>;
+}
 
 /** Server-side listing filters; dates/guests only return listings with a free room that fits. */
 export interface ListingFilters {
@@ -209,7 +258,10 @@ export interface CreateBookingInput {
   expectedTotalMinor?: number;
 }
 
-export type VendorBookingAction = 'confirm' | 'cancel' | 'complete' | 'no_show';
+export type VendorBookingAction = 'confirm' | 'cancel' | 'complete' | 'no_show' | 'mark_paid';
+
+/** Reservation list filters; `from`/`to` bound the check-in date, `q` matches reference, guest name, email or phone. */
+export type BookingListParams = { status?: Booking['status']; from?: string; to?: string; q?: string; listingId?: string; page?: number };
 
 export interface Paginated<T> {
   data: T[];
@@ -401,6 +453,16 @@ export const api = {
     }).then((result) => result.data);
   },
 
+  getRoomCalendar(listingId: string, roomId: string, from: string, to: string) {
+    return request<{ data: RoomCalendar }>(`/api/v1/vendor/listings/${encodeURIComponent(listingId)}/rooms/${encodeURIComponent(roomId)}/calendar${queryString({ from, to })}`).then((result) => result.data);
+  },
+
+  setRoomClosures(listingId: string, roomId: string, input: { from: string; to: string; closed: number }) {
+    return request<{ data: RoomCalendar }>(`/api/v1/vendor/listings/${encodeURIComponent(listingId)}/rooms/${encodeURIComponent(roomId)}/calendar`, {
+      method: 'PUT', body: JSON.stringify(input),
+    }).then((result) => result.data);
+  },
+
   removeHotelRoom(listingId: string, roomId: string) {
     return request<void>(`/api/v1/vendor/listings/${encodeURIComponent(listingId)}/rooms/${encodeURIComponent(roomId)}`, { method: 'DELETE' });
   },
@@ -409,11 +471,29 @@ export const api = {
     return request<{ data: VendorListing }>(`/api/v1/vendor/listings/${encodeURIComponent(listingId)}/submit`, { method: 'POST' });
   },
 
-  register(input: { name: string; email: string; phone?: string; password: string; accountType?: 'customer' | 'vendor' }) {
-    return request<AuthResponse>('/api/auth/register', {
+  setListingStatus(listingId: string, status: 'paused' | 'published') {
+    return request<{ data: VendorListing }>(`/api/v1/vendor/listings/${encodeURIComponent(listingId)}/status`, {
+      method: 'POST', body: JSON.stringify({ status }),
+    }).then((result) => result.data);
+  },
+
+  duplicateListing(listingId: string) {
+    return request<{ data: VendorListing }>(`/api/v1/vendor/listings/${encodeURIComponent(listingId)}/duplicate`, { method: 'POST' }).then((result) => result.data);
+  },
+
+  archiveListing(listingId: string) {
+    return request<void>(`/api/v1/vendor/listings/${encodeURIComponent(listingId)}`, { method: 'DELETE' });
+  },
+
+  register(input: { name: string; email: string; phone?: string; password: string; confirmPassword: string; acceptTerms: true }) {
+    return request<SignupChallengeResponse>('/api/auth/register', {
       method: 'POST',
       body: JSON.stringify(input),
     });
+  },
+
+  verifySignupOtp(challengeId: string, code: string) {
+    return request<AuthResponse>('/api/auth/register/verify-otp', { method: 'POST', body: JSON.stringify({ challengeId, code }) });
   },
 
   logout() {
@@ -452,8 +532,8 @@ export const api = {
   getBookings() {
     return request<Booking[] | { data: Booking[] }>('/api/v1/bookings').then(unwrapCollection);
   },
-  getBookingsPage(page = 1) {
-    return request<Paginated<Booking>>(`/api/v1/bookings?page=${page}`);
+  getBookingsPage(page = 1, status?: Booking['status']) {
+    return request<Paginated<Booking>>(`/api/v1/bookings${queryString({ page, status })}`);
   },
 
   getListingAvailability(listingId: string, params: { checkIn: string; checkOut: string; adults: number; children?: number; rooms?: number }) {
@@ -481,7 +561,7 @@ export const api = {
     }).then((result) => result.data);
   },
 
-  getVendorBookings(params: { status?: Booking['status']; page?: number } = {}) {
+  getVendorBookings(params: BookingListParams = {}) {
     return request<Paginated<Booking>>(`/api/v1/vendor/bookings${queryString(params)}`);
   },
 
@@ -505,8 +585,11 @@ export const api = {
         method: 'POST', body: JSON.stringify({ decision, notes }),
       });
     },
-    listPendingListings() {
-      return request<{ data: VendorListing[] }>('/api/v1/admin/listings').then((result) => result.data);
+    listListings(params: { status?: VendorListing['status'] | 'all'; q?: string; page?: number } = {}) {
+      return request<Paginated<VendorListing>>(`/api/v1/admin/listings${queryString(params)}`);
+    },
+    listListingRooms(listingId: string) {
+      return request<{ data: VendorRoom[] }>(`/api/v1/admin/listings/${encodeURIComponent(listingId)}/rooms`).then((result) => result.data);
     },
     moderateListing(listingId: string, decision: 'published' | 'rejected', notes: string) {
       return request<{ data: VendorListing }>(`/api/v1/admin/listings/${encodeURIComponent(listingId)}/decision`, {
@@ -521,7 +604,7 @@ export const api = {
         method: 'POST', body: JSON.stringify({ action, reason }),
       }).then((result) => result.data);
     },
-    listBookings(params: { status?: string; from?: string; to?: string; page?: number } = {}) {
+    listBookings(params: BookingListParams = {}) {
       return request<Paginated<Booking>>(`/api/v1/admin/bookings${queryString(params)}`);
     },
     actOnBooking(bookingId: string, action: VendorBookingAction, reason?: string) {

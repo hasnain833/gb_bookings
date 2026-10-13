@@ -4,6 +4,7 @@ import express, { type Express } from 'express';
 import { env } from './config/env.js';
 import { connectDatabase, disconnectDatabase } from './database/connection.js';
 import { finalizeApp } from './app.js';
+import { expireStalePendingBookings } from './modules/bookings/booking.service.js';
 
 export async function startServer(app: Express) {
   const server = createServer(app);
@@ -38,6 +39,7 @@ export async function startServer(app: Express) {
   });
 
   console.log(`GBBookings API ready at http://localhost:${env.PORT}`);
+  setInterval(() => void expireStalePendingBookings(), 5 * 60_000).unref();
 
   server.on('error', (error) => {
     console.error('HTTP server error:', error);

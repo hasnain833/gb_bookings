@@ -50,6 +50,8 @@ const bookingSchema = new Schema({
   },
   paymentMethod: { type: String, enum: paymentMethods, required: true },
   paymentStatus: { type: String, enum: ['pending', 'paid', 'refunded'], default: 'pending' },
+  paidAt: { type: Date },
+  paymentCollectedBy: { type: Schema.Types.ObjectId, ref: 'User' },
   status: { type: String, enum: bookingStatuses, default: 'pending', index: true },
   statusHistory: { type: [statusEventSchema], default: [] },
   idempotencyKey: { type: String, maxlength: 100 },

@@ -9,6 +9,7 @@ import { RoomNightModel } from '../../models/room-night.model.js';
 import { AppError, ServiceUnavailableError } from '../../shared/app-error.js';
 import { recordAuditEvent } from '../audit/audit.service.js';
 import type { SessionMetadata } from '../auth/auth.service.js';
+import { inventoryExceeds, prepareRoomNights } from '../bookings/availability.service.js';
 import { todayInPakistan } from '../bookings/stay-dates.js';
 
 async function requireDatabase() {
@@ -157,10 +158,8 @@ export async function updateRoomType(userId: string, listingId: string, roomId: 
       { $set: update, $inc: { inventoryVersion: 1 } }, { session, returnDocument: 'after', runValidators: true },
     );
     if (!room) throw new AppError(404, 'ROOM_TYPE_NOT_FOUND', 'Room type was not found.');
-    if (input.totalRooms !== undefined && await RoomNightModel.exists({
-      roomTypeId: room._id, date: { $gte: todayInPakistan() }, booked: { $gt: input.totalRooms },
-    }).session(session)) {
-      throw new AppError(409, 'INVENTORY_BELOW_BOOKINGS', 'Room count cannot be lower than existing reservations.');
+    if (input.totalRooms !== undefined && await inventoryExceeds(room._id, input.totalRooms, todayInPakistan(), session)) {
+      throw new AppError(409, 'INVENTORY_BELOW_BOOKINGS', 'Room count cannot be lower than existing reservations plus closed rooms on any upcoming night.');
     }
     return room;
   });
@@ -170,6 +169,71 @@ export async function updateRoomType(userId: string, listingId: string, roomId: 
     metadata: { roomId: room.publicId, ...input },
   });
   return roomView(room);
+}
+
+const DAY_MS = 86_400_000;
+const MAX_CALENDAR_DAYS = 120;
+
+function dateRange(from: string, to: string) {
+  const start = Date.parse(`${from}T00:00:00Z`);
+  const days = Math.round((Date.parse(`${to}T00:00:00Z`) - start) / DAY_MS) + 1;
+  if (!Number.isFinite(days) || days < 1) throw new AppError(400, 'INVALID_DATE_RANGE', 'The end date must be on or after the start date.');
+  if (days > MAX_CALENDAR_DAYS) throw new AppError(400, 'INVALID_DATE_RANGE', `Choose at most ${MAX_CALENDAR_DAYS} days at a time.`);
+  return Array.from({ length: days }, (_, index) => new Date(start + index * DAY_MS).toISOString().slice(0, 10));
+}
+
+async function ownedRoom(userId: string, listingId: string, roomId: string) {
+  const { listing } = await ownedListing(userId, listingId);
+  const room = await HotelRoomTypeModel.findOne({ publicId: roomId, listingId: listing._id, deletedAt: null });
+  if (!room) throw new AppError(404, 'ROOM_TYPE_NOT_FOUND', 'Room type was not found.');
+  return { listing, room };
+}
+
+/** Per-night inventory for one room category: booked, closed by the property, and still available. */
+export async function getRoomCalendar(userId: string, listingId: string, roomId: string, from: string, to: string) {
+  const { room } = await ownedRoom(userId, listingId, roomId);
+  const dates = dateRange(from, to);
+  const counters = await RoomNightModel.find({ roomTypeId: room._id, date: { $in: dates } }).select('date booked closed').lean() as any[];
+  const byDate = new Map(counters.map((counter) => [counter.date, counter]));
+  return {
+    roomId: room.publicId, totalRooms: room.totalRooms,
+    days: dates.map((date) => {
+      const booked = byDate.get(date)?.booked ?? 0;
+      const closed = byDate.get(date)?.closed ?? 0;
+      return { date, booked, closed, available: Math.max(0, room.totalRooms - booked - closed) };
+    }),
+  };
+}
+
+/** Takes `closed` rooms out of sale for every night from..to (0 reopens them). Never closes rooms guests already hold. */
+export async function setRoomClosures(userId: string, listingId: string, roomId: string, input: { from: string; to: string; closed: number }, metadata: SessionMetadata) {
+  const { listing, room } = await ownedRoom(userId, listingId, roomId);
+  if (input.from < todayInPakistan()) throw new AppError(400, 'INVALID_DATE_RANGE', 'Past dates cannot be changed.');
+  if (input.closed > room.totalRooms) throw new AppError(400, 'INVALID_CLOSURE', `This category only has ${room.totalRooms} room(s).`);
+  const dates = dateRange(input.from, input.to);
+  await prepareRoomNights(room._id, dates);
+  await inTransaction(async (session) => {
+    // Writing the room document serializes closures with concurrent reservations of this category.
+    await HotelRoomTypeModel.updateOne({ _id: room._id }, { $inc: { inventoryVersion: 1 } }, { session });
+    const conflicts: string[] = [];
+    for (const date of dates) {
+      const result = await RoomNightModel.updateOne(
+        { roomTypeId: room._id, date, booked: { $lte: room.totalRooms - input.closed } },
+        { $set: { closed: input.closed } }, { session },
+      );
+      if (result.matchedCount !== 1) conflicts.push(date);
+    }
+    if (conflicts.length) {
+      throw new AppError(409, 'CLOSURE_CONFLICTS_WITH_BOOKINGS',
+        `Guests already hold rooms on ${conflicts.slice(0, 5).join(', ')}${conflicts.length > 5 ? ` and ${conflicts.length - 5} more night(s)` : ''}. Close fewer rooms on those nights.`,
+        { dates: conflicts });
+    }
+  });
+  await recordAuditEvent({
+    actorId: userId, actorType: 'user', action: 'listing.room_closures_set', resourceType: 'listing', resourceId: listing.publicId, ...metadata,
+    metadata: { roomId: room.publicId, ...input },
+  });
+  return getRoomCalendar(userId, listingId, roomId, input.from, input.to);
 }
 
 export async function archiveRoomType(userId: string, listingId: string, roomId: string) {
@@ -190,6 +254,17 @@ export async function submitListing(userId: string, listingId: string, metadata:
   listing.status = 'submitted'; listing.rejectionReason = null;
   await listing.save();
   await recordAuditEvent({ actorId: userId, actorType: 'user', action: 'listing.submitted', resourceType: 'listing', resourceId: listing.publicId, ...metadata });
+  return listingView(listing);
+}
+
+/** Pausing hides a live listing from search and new bookings; existing reservations are unaffected. */
+export async function setListingAvailability(userId: string, listingId: string, status: 'paused' | 'published', metadata: SessionMetadata) {
+  const { listing } = await ownedListing(userId, listingId);
+  const from = status === 'paused' ? 'published' : 'paused';
+  if (listing.status !== from) throw new AppError(409, 'INVALID_LISTING_STATUS', status === 'paused' ? 'Only live listings can be paused.' : 'Only paused listings can be resumed.');
+  listing.status = status;
+  await listing.save();
+  await recordAuditEvent({ actorId: userId, actorType: 'user', action: status === 'paused' ? 'listing.paused' : 'listing.resumed', resourceType: 'listing', resourceId: listing.publicId, ...metadata });
   return listingView(listing);
 }
 
@@ -219,16 +294,51 @@ export async function duplicateListing(userId: string, listingId: string, metada
   return listingView(duplicate);
 }
 
-export async function listListingsForModeration() {
+/** Admin view of vendor hotels and homestays in any state; the review queue is status=submitted (oldest first). */
+export async function listListingsForModeration(query: { status: string; q?: string; page: number; limit: number }) {
   await requireDatabase();
-  const records = await ListingModel.find({ status: 'submitted', deletedAt: null }).sort({ updatedAt: 1 }).lean();
-  return records.map(listingView);
+  const term = query.q && new RegExp(query.q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+  const filter: Record<string, unknown> = {
+    type: { $in: ['hotel', 'homestay'] }, ownerId: { $ne: null },
+    // Archiving also sets deletedAt, so archived listings are only shown when asked for.
+    ...(query.status === 'archived' ? { status: 'archived' } : { deletedAt: null, ...(query.status === 'all' ? {} : { status: query.status }) }),
+    ...(term ? { $or: [{ title: term }, { location: term }] } : {}),
+  };
+  const [records, total] = await Promise.all([
+    ListingModel.find(filter).sort(query.status === 'submitted' ? { updatedAt: 1 } : { updatedAt: -1 })
+      .skip((query.page - 1) * query.limit).limit(query.limit).lean(),
+    ListingModel.countDocuments(filter),
+  ]);
+  const vendors = await VendorModel.find({ _id: { $in: records.map((record: any) => record.ownerId) } }).select('name').lean() as any[];
+  const vendorNames = new Map(vendors.map((vendor) => [String(vendor._id), vendor.name]));
+  return {
+    data: records.map((record: any) => ({ ...listingView(record), vendorName: vendorNames.get(String(record.ownerId)) })),
+    pagination: { page: query.page, limit: query.limit, total, pages: Math.ceil(total / query.limit) },
+  };
+}
+
+export async function listRoomsForModeration(listingId: string) {
+  await requireDatabase();
+  const listing = await ListingModel.findOne({ publicId: listingId, deletedAt: null });
+  if (!listing) throw new AppError(404, 'LISTING_NOT_FOUND', 'Listing was not found.');
+  const rooms = await HotelRoomTypeModel.find({ listingId: listing._id, deletedAt: null }).sort({ createdAt: 1 }).lean();
+  return rooms.map(roomView);
 }
 
 export async function moderateListing(adminId: string, listingId: string, input: { decision: string; notes: string }, metadata: SessionMetadata) {
   await requireDatabase();
-  const listing = await ListingModel.findOne({ publicId: listingId, status: 'submitted', deletedAt: null });
-  if (!listing) throw new AppError(404, 'LISTING_NOT_FOUND', 'Submitted listing was not found.');
+  // Publishing needs a submitted listing; rejecting also takes down a live or paused one, returning it to the vendor.
+  const from = input.decision === 'published' ? ['submitted'] : ['submitted', 'published', 'paused'];
+  const listing = await ListingModel.findOne({ publicId: listingId, status: { $in: from }, deletedAt: null });
+  if (!listing) throw new AppError(404, 'LISTING_NOT_FOUND', input.decision === 'published' ? 'Submitted listing was not found.' : 'This listing cannot be rejected in its current state.');
+  if (input.decision === 'published') {
+    if (!await VendorModel.exists({ _id: listing.ownerId, status: 'approved', deletedAt: null })) {
+      throw new AppError(409, 'VENDOR_APPROVAL_REQUIRED', 'Approve the property business before publishing its hotel.');
+    }
+    if (!listing.imageMediaIds.length || !await HotelRoomTypeModel.exists({ listingId: listing._id, status: 'active', deletedAt: null })) {
+      throw new AppError(400, 'LISTING_INCOMPLETE', 'The hotel needs a property photo and an active room category before publication.');
+    }
+  }
   listing.status = input.decision;
   listing.rejectionReason = input.decision === 'rejected' ? input.notes : null;
   await listing.save();

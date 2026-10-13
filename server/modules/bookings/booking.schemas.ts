@@ -41,7 +41,7 @@ export const cancelBookingSchema = z.object({
 }).strict();
 
 export const vendorBookingActionSchema = z.object({
-  action: z.enum(['confirm', 'cancel', 'complete', 'no_show']),
+  action: z.enum(['confirm', 'cancel', 'complete', 'no_show', 'mark_paid']),
   reason: z.string().trim().max(1_000).optional(),
 }).strict().refine((input) => input.action !== 'cancel' || (input.reason?.length ?? 0) >= 3, {
   message: 'A reason is required to cancel a booking.',
@@ -52,6 +52,8 @@ export const listBookingsQuerySchema = z.object({
   status: z.enum(bookingStatuses).optional(),
   from: isoDate.optional(),
   to: isoDate.optional(),
+  q: z.string().trim().min(2).max(100).optional(),
+  listingId: z.string().regex(/^lst_[0-9a-f-]{36}$/i).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(25),
 }).strict();

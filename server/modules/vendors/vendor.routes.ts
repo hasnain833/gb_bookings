@@ -24,6 +24,7 @@ import {
 export const vendorRouter = Router();
 export const adminVendorRouter = Router();
 
+// Applicants are customers until approval; the service only lets the application's owner change it while draft/rejected.
 vendorRouter.use(authenticate);
 
 vendorRouter.post('/', validate('body', createVendorSchema), asyncHandler(async (request, response) => {
@@ -36,17 +37,17 @@ vendorRouter.get('/me', asyncHandler(async (request, response) => {
   response.json({ data: result.public, membership: { role: result.membership.role } });
 }));
 
-vendorRouter.patch('/me', authorizePermission('vendor:manage:own'), validate('body', updateVendorSchema), asyncHandler(async (request, response) => {
+vendorRouter.patch('/me', validate('body', updateVendorSchema), asyncHandler(async (request, response) => {
   const vendor = await updateOwnVendor(request.auth!.userId, request.body, sessionMetadata(request));
   response.json({ data: vendor });
 }));
 
-vendorRouter.post('/me/documents', authorizePermission('vendor:manage:own'), validate('body', attachVendorDocumentSchema), asyncHandler(async (request, response) => {
+vendorRouter.post('/me/documents', validate('body', attachVendorDocumentSchema), asyncHandler(async (request, response) => {
   const vendor = await attachVendorDocument(request.auth!.userId, request.body, sessionMetadata(request));
   response.status(201).json({ data: vendor });
 }));
 
-vendorRouter.post('/me/submit', authorizePermission('vendor:manage:own'), asyncHandler(async (request, response) => {
+vendorRouter.post('/me/submit', asyncHandler(async (request, response) => {
   const vendor = await submitOwnVendor(request.auth!.userId, sessionMetadata(request));
   response.json({ data: vendor });
 }));

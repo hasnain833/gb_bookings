@@ -625,3 +625,10 @@ html, body {
 }
 
 
+
+/* "Print voucher" on the booking receipt prints only the voucher card. */
+@media print {
+  body * { visibility: hidden; }
+  #printable-ticket-receipt, #printable-ticket-receipt * { visibility: visible; }
+  #printable-ticket-receipt { position: absolute; top: 0; left: 0; width: 100%; border: 0; }
+}

@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { ClientSession } from 'mongoose';
+import { env } from '../../config/env.js';
 import { connectDatabase } from '../../database/connection.js';
 import { inTransaction } from '../../database/transaction.js';
 import { BookingModel, type BookingStatus } from '../../models/booking.model.js';
@@ -24,6 +25,40 @@ type Actor = { userId: string; roles: UserRole[] };
 
 async function requireDatabase() {
   if (!await connectDatabase()) throw new ServiceUnavailableError('Bookings are unavailable while the database is disconnected.');
+  await expireStalePendingBookings();
+}
+
+const PENDING_TTL_MS = env.PENDING_BOOKING_HOURS * 3_600_000;
+const EXPIRY_REASON = `The property did not respond within ${env.PENDING_BOOKING_HOURS} hours, so the request expired and the rooms were released. No payment was taken.`;
+let lastSweepAt = 0;
+
+/**
+ * Cancels pending requests the property did not answer in time (or whose check-in date has passed), releasing their rooms.
+ * ponytail: runs lazily from booking requests (at most once a minute per instance) and on a timer on long-running servers;
+ * add a Vercel cron hitting a booking endpoint if guests must be emailed promptly during quiet periods.
+ */
+export async function expireStalePendingBookings(now = new Date()) {
+  if (now.getTime() - lastSweepAt < 60_000) return 0;
+  lastSweepAt = now.getTime();
+  let expired = 0;
+  try {
+    const stale = await BookingModel.find({
+      status: 'pending',
+      $or: [{ createdAt: { $lt: new Date(now.getTime() - PENDING_TTL_MS) } }, { checkIn: { $lt: todayInPakistan(now) } }],
+    }).limit(100);
+    for (const booking of stale) {
+      try {
+        await applyTransition({}, booking, 'cancel', EXPIRY_REASON, {});
+        expired += 1;
+      } catch (error) {
+        // 409: the property answered between the query and the update.
+        if (!(error instanceof AppError && error.status === 409)) console.error(`Expiring booking ${booking.reference} failed:`, error);
+      }
+    }
+  } catch (error) {
+    console.error('Pending booking sweep failed:', error);
+  }
+  return expired;
 }
 
 /** Response shape matches the frontend `Booking` type. */
@@ -54,7 +89,12 @@ export function serializeBooking(booking: any) {
     status: booking.status,
     paymentStatus: booking.paymentStatus,
     paymentMethod: booking.paymentMethod,
+    paidAt: booking.paidAt,
+    respondBy: booking.status === 'pending' && booking.createdAt ? new Date(new Date(booking.createdAt).getTime() + PENDING_TTL_MS) : undefined,
     specialRequests: booking.specialRequests,
+    checkInTime: booking.listingSnapshot.checkInTime,
+    checkOutTime: booking.listingSnapshot.checkOutTime,
+    history: (booking.statusHistory ?? []).map(({ status, at, reason }: any) => ({ status, at, reason })),
     createdAt: booking.createdAt,
   };
 }
@@ -221,9 +261,13 @@ function bookingFilter(query: ListBookingsQuery) {
     ...(query.from ? { $gte: query.from } : {}),
     ...(query.to ? { $lte: query.to } : {}),
   };
+  // ponytail: unindexed regex scan, fine at per-vendor volumes; add a text index if admin search slows down.
+  const term = query.q && new RegExp(query.q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
   return {
     ...(query.status ? { status: query.status } : {}),
     ...(Object.keys(checkIn).length ? { checkIn } : {}),
+    ...(query.listingId ? { 'listingSnapshot.publicId': query.listingId } : {}),
+    ...(term ? { $or: [{ reference: term }, { 'guest.name': term }, { 'guest.email': term }, { 'guest.phone': term }] } : {}),
   };
 }
 
@@ -289,7 +333,7 @@ const transitions = {
 
 export type BookingAction = keyof typeof transitions;
 
-async function applyTransition(actor: Actor, booking: any, action: BookingAction, reason: string | undefined, metadata: SessionMetadata) {
+async function applyTransition(actor: { userId?: string }, booking: any, action: BookingAction, reason: string | undefined, metadata: SessionMetadata) {
   const rule = transitions[action];
   if (rule.notBeforeCheckIn && todayInPakistan() < booking.checkIn) {
     throw new AppError(409, 'INVALID_BOOKING_STATUS', 'This action is only available from the check-in date.');
@@ -314,7 +358,7 @@ async function applyTransition(actor: Actor, booking: any, action: BookingAction
     return updated;
   });
   await recordAuditEvent({
-    actorId: actor.userId, actorType: 'user', action: `booking.${rule.to}`,
+    actorId: actor.userId, actorType: actor.userId ? 'user' : 'system', action: `booking.${rule.to}`,
     resourceType: 'booking', resourceId: booking.publicId, ...metadata,
     metadata: reason ? { reason } : undefined,
   });
@@ -332,9 +376,29 @@ export async function cancelOwnBooking(actor: Actor, bookingId: string, reason: 
   return applyTransition(actor, booking, 'cancel', reason, metadata);
 }
 
-export async function actOnVendorBooking(actor: Actor, bookingId: string, action: BookingAction, reason: string | undefined, metadata: SessionMetadata) {
+export async function actOnVendorBooking(actor: Actor, bookingId: string, action: BookingAction | 'mark_paid', reason: string | undefined, metadata: SessionMetadata) {
   await requireDatabase();
   const { booking, isVendor, isManager } = await accessibleBooking(actor, bookingId);
   if (!isVendor && !isManager) throw new AppError(404, 'BOOKING_NOT_FOUND', 'Booking not found.');
+  if (action === 'mark_paid') return markPaidAtProperty(actor, booking, metadata);
   return applyTransition(actor, booking, action, reason, metadata);
+}
+
+/** Records pay-at-hotel money as collected. Conditional, so a retried click cannot record it twice. */
+async function markPaidAtProperty(actor: Actor, booking: any, metadata: SessionMetadata) {
+  const updated = await BookingModel.findOneAndUpdate(
+    { _id: booking._id, paymentMethod: 'pay_at_hotel', paymentStatus: 'pending', status: { $in: ['confirmed', 'completed'] } },
+    { $set: { paymentStatus: 'paid', paidAt: new Date(), paymentCollectedBy: actor.userId } },
+    { returnDocument: 'after' },
+  );
+  if (!updated) {
+    throw new AppError(409, 'INVALID_PAYMENT_STATUS', booking.paymentStatus === 'paid'
+      ? 'Payment for this booking is already recorded.'
+      : 'Payment can only be recorded for confirmed or completed pay-at-hotel bookings.');
+  }
+  await recordAuditEvent({
+    actorId: actor.userId, actorType: 'user', action: 'booking.payment_collected', resourceType: 'booking', resourceId: booking.publicId, ...metadata,
+    metadata: { amountMinor: booking.pricing.totalMinor },
+  });
+  return serializeBooking(updated);
 }

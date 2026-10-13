@@ -1,10 +1,10 @@
-import React, { lazy, Suspense, useState, useEffect, useRef } from 'react';
+import { lazy, Suspense, useState, useEffect, useRef } from 'react';
+import { Sparkles } from 'lucide-react';
 import Navbar from '../shared/components/Navbar';
 import MobileAppBottomNav from '../shared/components/MobileAppBottomNav';
 import { Booking, Listing } from '../types';
 import type { CheckoutParams } from '../features/booking/CheckoutFlow';
-import { useLanguage } from './LanguageContext';
-import { api, AUTH_EXPIRED_EVENT } from '../shared/api/api';
+import { api, AUTH_EXPIRED_EVENT, resetApiSession, markApiSession, type AuthUser } from '../shared/api/api';
 import { OPEN_SIGN_IN_EVENT } from '../shared/hooks/useWishlist';
 
 const ExploreSection = lazy(() => import('../features/catalog/ExploreSection'));
@@ -19,8 +19,10 @@ const ListingDetails = lazy(() => import('../features/catalog/ListingDetails'));
 const CheckoutFlow = lazy(() => import('../features/booking/CheckoutFlow'));
 const UserDashboard = lazy(() => import('../features/account/UserDashboard'));
 const VendorDashboard = lazy(() => import('../features/vendor/VendorDashboard'));
+const BecomePartner = lazy(() => import('../features/partner/BecomePartner'));
 const AdminDashboard = lazy(() => import('../features/admin/AdminDashboard'));
-const AiPlanner = lazy(() => import('../features/planner/AiPlanner'));
+const AiPlannerWidget = lazy(() => import('../features/planner/AiPlannerWidget'));
+const LegalPage = lazy(() => import('../features/support/LegalPage'));
 const SupportCentre = lazy(() => import('../features/support/SupportCentre'));
 const AuthModal = lazy(() => import('../features/auth/AuthModal'));
 const AccountActionModal = lazy(() => import('../features/auth/AccountActionModal'));
@@ -30,6 +32,7 @@ const MobileInstallPrompt = lazy(() => import('../shared/components/MobileInstal
 // Views that need a signed-in user. Every navigation path (navbar, dashboards, deep flows) is gated at render time.
 const PROTECTED_VIEWS = new Set(['user-dashboard', 'vendor-dashboard', 'admin-dashboard', 'checkout']);
 const STAFF_ROLES = ['admin', 'support_agent'];
+// Granted only when an admin approves the business; applicants are customers until then.
 const VENDOR_ROLES = ['vendor_owner', 'vendor_staff'];
 
 // Each role's home: staff → admin panel, vendors → host portal, everyone else → traveler dashboard.
@@ -40,7 +43,7 @@ const homeDashboard = (roles: string[]) =>
 
 // URL <-> view sync so refresh, deep links and the browser Back button work.
 // ponytail: hand-rolled History API routing; move to a router library if routes need more params than a listing id.
-const PATH_VIEWS = new Set(['homestays', 'hotels', 'cars', 'tours', 'destinations', 'offers', 'user-dashboard', 'vendor-dashboard', 'admin-dashboard', 'ai-planner', 'support']);
+const PATH_VIEWS = new Set(['homestays', 'hotels', 'cars', 'tours', 'destinations', 'offers', 'user-dashboard', 'vendor-dashboard', 'become-partner', 'admin-dashboard', 'ai-planner', 'support', 'terms', 'privacy']);
 const SEARCH_TYPES = ['hotel', 'car', 'tour', 'homestay', 'destination', 'offer'] as const;
 type SearchType = typeof SEARCH_TYPES[number];
 
@@ -53,6 +56,7 @@ function readLocation() {
     const type = query.get('type') as SearchType;
     return { view: 'search', type: SEARCH_TYPES.includes(type) ? type : undefined, destination: query.get('destination') ?? undefined };
   }
+  if (first === 'list-property') return { view: 'become-partner' }; // old links
   return { view: PATH_VIEWS.has(first) ? first : 'explore' };
 }
 
@@ -64,7 +68,6 @@ function urlForView(view: string, listingId: string | null, search: { type: stri
 }
 
 export default function App() {
-  const { t, isRtl } = useLanguage();
   const [initialLocation] = useState(readLocation);
   const [view, setView] = useState<string>(initialLocation.view); // 'explore' (Homepage) | 'homestays' | 'hotels' | 'cars' | 'tours' | 'destinations' | 'offers' | 'search' | 'details' | 'checkout' | 'user-dashboard' | 'vendor-dashboard' | 'ai-planner' | 'support'
   const [selectedListingId, setSelectedListingId] = useState<string | null>(initialLocation.listingId ?? null);
@@ -111,48 +114,70 @@ export default function App() {
   const [receiptBooking, setReceiptBooking] = useState<Booking | null>(null);
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userId, setUserId] = useState('');
+  const accountGeneration = useRef(0);
+  const logoutInFlight = useRef<Promise<unknown> | null>(null);
+  const hasSession = useRef(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const [userName, setUserName] = useState('');
   const [userRoles, setUserRoles] = useState<string[]>([]);
   const isStaff = userRoles.some((role) => STAFF_ROLES.includes(role));
+  const isVendor = userRoles.some((role) => VENDOR_ROLES.includes(role));
   useEffect(() => {
     if (isLoggedIn && isStaff && view !== 'admin-dashboard') setView('admin-dashboard');
   }, [isLoggedIn, isStaff, view]);
   const [notificationsCount, setNotificationsCount] = useState(0);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'signin' | 'register'>('signin');
+  const [showPlanner, setShowPlanner] = useState(false);
+  useEffect(() => {
+    if (view === 'ai-planner') { setShowPlanner(true); setView('explore'); }
+  }, [view]);
 
   useEffect(() => {
     let active = true;
+    const generation = accountGeneration.current;
 
     api.getCurrentUser()
       .then(({ user }) => {
-        if (!active) return undefined;
+        if (!active || generation !== accountGeneration.current) return undefined;
+        setUserId(user.id);
+        hasSession.current = true;
+        markApiSession();
+        setAuthChecked(true);
         setUserEmail(user.email);
         setUserName(user.name);
         setUserRoles(user.roles ?? []);
         setIsLoggedIn(true);
-        return api.getNotifications();
+        return api.getNotifications().catch(() => []);
       })
       .then((notifications) => {
-        if (active && notifications) {
+        if (active && generation === accountGeneration.current && notifications) {
           setNotificationsCount(notifications.filter((notification) => !notification.read).length);
         }
       })
       .catch(() => {
-        if (active) setIsLoggedIn(false);
+        if (active && generation === accountGeneration.current) setIsLoggedIn(false);
       })
       .finally(() => {
-        if (active) setAuthChecked(true);
+        if (active && generation === accountGeneration.current) setAuthChecked(true);
       });
 
     const handleAuthExpired = () => {
+      setAuthChecked(true);
+      const wasSignedIn = hasSession.current;
+      hasSession.current = false;
+      accountGeneration.current += 1;
+      resetApiSession();
+      setUserId('');
       setIsLoggedIn(false);
       setUserEmail('');
       setUserName('');
       setUserRoles([]);
       setNotificationsCount(0);
+      setReceiptBooking(null); setBookingParams(null);
+      if (wasSignedIn) setView('explore');
     };
     window.addEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
 
@@ -171,40 +196,45 @@ export default function App() {
     }
   }, [needsSignIn]);
 
-  const handleOpenAuthModal = (mode: 'signin' | 'register' = 'signin') => {
+  const handleOpenAuthModal = async (mode: 'signin' | 'register' = 'signin') => {
+    // Finish clearing the old cookies before allowing a different account to sign in.
+    if (logoutInFlight.current) await logoutInFlight.current;
     setAuthModalMode(mode);
     setShowAuthModal(true);
   };
 
-  const handleSuccessLogin = (email: string, name?: string) => {
-    const finalName = name || email.split('@')[0];
-    setUserEmail(email);
-    setUserName(finalName);
+  const handleSuccessLogin = (user: AuthUser) => {
+    accountGeneration.current += 1;
+    resetApiSession();
+    markApiSession();
+    setUserId(user.id);
+    hasSession.current = true;
+    setUserEmail(user.email);
+    setUserName(user.name);
+    setUserRoles(user.roles ?? []);
+    setNotificationsCount(0);
+    setAuthChecked(true);
     setIsLoggedIn(true);
-    // The auth modal only reports email/name; fetch roles to pick the right dashboard.
-    // Resume a protected view the user was sent to sign in for (e.g. checkout); otherwise open their role's dashboard.
-    api.getCurrentUser()
-      .then(({ user }) => user.roles ?? [])
-      .catch(() => [])
-      .then((roles) => {
-        setUserRoles(roles);
-        setView((current) => roles.some((role) => STAFF_ROLES.includes(role)) ? 'admin-dashboard' : PROTECTED_VIEWS.has(current) ? current : homeDashboard(roles));
-      });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setView((current) => (user.roles ?? []).some((role) => STAFF_ROLES.includes(role)) ? 'admin-dashboard'
+      : current === 'admin-dashboard' ? homeDashboard(user.roles ?? [])
+        : current === 'vendor-dashboard' && !(user.roles ?? []).some((role) => VENDOR_ROLES.includes(role)) ? 'become-partner' : current);
   };
 
   const handleSignOut = async () => {
-    try {
-      await api.logout();
-    } catch {
-      // The client still clears an already-expired session.
-    }
-    setIsLoggedIn(false);
-    setUserEmail('');
-    setUserName('');
-    setUserRoles([]);
-    setNotificationsCount(0);
-    setView(isStaff ? 'admin-dashboard' : 'homestays');
+    if (logoutInFlight.current) { await logoutInFlight.current; return; }
+    const destination = PROTECTED_VIEWS.has(view) ? '/' : window.location.href;
+    const pending = api.logout().then(() => {
+      accountGeneration.current += 1;
+      resetApiSession();
+      hasSession.current = false;
+      setUserId(''); setIsLoggedIn(false); setUserEmail(''); setUserName(''); setUserRoles([]);
+      setNotificationsCount(0);
+      setReceiptBooking(null); setBookingParams(null); setSelectedListing(null); setSelectedListingId(null);
+      setShowAuthModal(false); setShowPlanner(false);
+      window.location.replace(destination);
+    }).finally(() => { if (logoutInFlight.current === pending) logoutInFlight.current = null; });
+    logoutInFlight.current = pending;
+    await pending;
   };
 
   useEffect(() => {
@@ -269,26 +299,53 @@ export default function App() {
     } else if (v === 'dashboard-user' || v === 'user-dashboard') {
       setView('user-dashboard');
     } else if (v === 'dashboard-vendor' || v === 'vendor-dashboard') {
-      setView('vendor-dashboard');
+      setView(isVendor ? 'vendor-dashboard' : 'become-partner');
     } else {
       setView(v);
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const refreshAccount = () => {
+    const generation = accountGeneration.current;
+    api.getCurrentUser().then(({ user }) => { if (generation === accountGeneration.current) setUserRoles(user.roles ?? []); }).catch(() => {});
+  };
+
+  // Only approved partners have a dashboard; everyone else is sent to the partner page.
+  const partnerDashboardBlocked = authChecked && isLoggedIn && view === 'vendor-dashboard' && !isVendor;
+  useEffect(() => { if (partnerDashboardBlocked) setView('become-partner'); }, [partnerDashboardBlocked]);
+
   // Staff have a separate application shell, including on refresh and after session expiry.
-  if (!authChecked || isStaff || view === 'admin-dashboard') {
+  if (isStaff || (authChecked && view === 'admin-dashboard')) {
     return (
       <div className="min-h-dvh bg-slate-100 font-sans text-slate-900 selection:bg-teal-100 selection:text-teal-950">
         <Suspense fallback={<div className="flex min-h-dvh items-center justify-center text-sm text-slate-500" role="status">Loading workspace…</div>}>
-          {!authChecked ? <div className="flex min-h-dvh items-center justify-center text-sm text-slate-500" role="status">Checking your session…</div>
-            : isLoggedIn && isStaff ? <AdminDashboard roles={userRoles} userName={userName} userEmail={userEmail} onSignOut={handleSignOut} />
+          {isLoggedIn && isStaff ? <AdminDashboard key={userId} roles={userRoles} userName={userName} userEmail={userEmail} onSignOut={handleSignOut} />
               : <main className="flex min-h-dvh items-center justify-center p-6"><section className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-teal-700">GBBookings · Administration</p>
                 <h1 className="mt-5 text-2xl font-bold">{isLoggedIn ? 'Staff access required' : 'Sign in to your workspace'}</h1>
                 <p className="mt-3 text-sm leading-6 text-slate-600">{isLoggedIn ? 'This area is reserved for platform administrators and employees.' : 'Use your administrator or employee account to continue.'}</p>
                 <button type="button" onClick={isLoggedIn ? () => setView(homeDashboard(userRoles)) : () => handleOpenAuthModal('signin')} className="mt-6 min-h-11 w-full rounded-lg bg-slate-900 px-5 text-sm font-semibold text-white hover:bg-slate-800">{isLoggedIn ? 'Return to your dashboard' : 'Staff sign in'}</button>
               </section></main>}
+          {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} initialMode={authModalMode} onSuccessLogin={handleSuccessLogin} />}
+          <AccountActionModal />
+        </Suspense>
+      </div>
+    );
+  }
+
+  if (authChecked && view === 'vendor-dashboard' && !partnerDashboardBlocked) {
+    return (
+      <div className="min-h-dvh bg-[#f4f6f8] font-sans text-slate-900">
+        <Suspense fallback={<div className="flex min-h-dvh items-center justify-center text-sm text-slate-500" role="status">Loading partner dashboard…</div>}>
+          {isLoggedIn && isVendor ? <VendorDashboard key={userId} setView={handleNavigation} userName={userName} userEmail={userEmail} onSignOut={handleSignOut} />
+            : <main className="flex min-h-dvh items-center justify-center p-6"><section className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">GBBookings partners</p>
+              <h1 className="mt-5 text-2xl font-bold">Sign in to your partner dashboard</h1>
+              <p className="mt-3 text-sm leading-6 text-slate-600">Use the account you registered your business with.</p>
+              <button type="button" onClick={() => handleOpenAuthModal('signin')} className="mt-6 min-h-11 w-full rounded-lg bg-[#006F3C] px-5 text-sm font-semibold text-white">Sign in</button>
+              <button type="button" onClick={() => handleNavigation('become-partner')} className="mt-3 min-h-11 w-full text-sm font-medium text-slate-600">Not a partner yet? Become a partner</button>
+            </section></main>}
           {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} initialMode={authModalMode} onSuccessLogin={handleSuccessLogin} />}
           <AccountActionModal />
         </Suspense>
@@ -317,6 +374,7 @@ export default function App() {
         userName={userName}
         isLoggedIn={isLoggedIn}
         isStaff={isStaff}
+        isPartner={isVendor}
         notificationsCount={notificationsCount}
         unreadNotifications={notificationsCount > 0}
         onOpenNotifications={() => {
@@ -351,10 +409,11 @@ export default function App() {
                 </button>
               </>
             ) : (
-              <div className="min-h-[30vh] animate-pulse rounded-lg bg-slate-100" aria-label="Checking your session" />
+              <div className="min-h-[30vh] animate-pulse rounded-lg bg-slate-100" aria-label="Loading workspace" />
             )}
           </section>
         ) : (<>
+        {(view === 'terms' || view === 'privacy') && <LegalPage policy={view} />}
         {view === 'explore' && (
           <ExploreSection 
             setView={handleNavigation}
@@ -450,7 +509,7 @@ export default function App() {
         )}
 
         {view === 'user-dashboard' && (
-          <UserDashboard 
+          <UserDashboard key={userId}
             userEmail={userEmail}
             userName={userName}
             setView={(v) => {
@@ -487,27 +546,16 @@ export default function App() {
           />
         )}
 
-        {view === 'vendor-dashboard' && (
-          <VendorDashboard 
-            setView={(v) => {
-              setView(v);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-          />
-        )}
-
-        {view === 'ai-planner' && (
-          <AiPlanner 
-            setView={(v) => {
-              setView(v);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            onSelectListing={handleSelectListing}
-          />
-        )}
-
         {view === 'support' && (
           <SupportCentre />
+        )}
+
+        {view === 'become-partner' && (
+          <BecomePartner key={userId} isLoggedIn={isLoggedIn} isPartner={isVendor}
+            onSignIn={() => handleOpenAuthModal('signin')}
+            onOpenDashboard={() => { refreshAccount(); setView('vendor-dashboard'); }}
+            onAccountChange={refreshAccount}
+            onSupport={() => handleNavigation('support')} />
         )}
         </>)}
         </Suspense>
@@ -515,6 +563,8 @@ export default function App() {
 
       <Suspense fallback={null}>
         <Footer onNavigate={handleNavigation} />
+
+        {showPlanner && <AiPlannerWidget onClose={() => setShowPlanner(false)} onNavigate={handleNavigation} onSelectListing={handleSelectListing} />}
 
         {showAuthModal && (
           <AuthModal
@@ -528,6 +578,8 @@ export default function App() {
 
         <MobileInstallPrompt />
       </Suspense>
+
+      <button type="button" aria-label="Open AI trip planner" aria-haspopup="dialog" onClick={() => setShowPlanner(true)} className="fixed right-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] z-40 flex min-h-12 items-center gap-2 rounded-full bg-[#006F3C] px-4 text-sm font-semibold text-white shadow-lg hover:bg-[#005c32] sm:right-6 lg:bottom-6"><Sparkles className="size-5" /><span className="hidden sm:inline">AI Planner</span></button>
 
       {/* Native-grade Mobile App Bottom Tab Navigation */}
       <MobileAppBottomNav 

@@ -3,6 +3,7 @@ import { MapPin, RefreshCw, Search, SlidersHorizontal } from 'lucide-react';
 import type { Listing, ListingType } from '../../types';
 import { tListing, useLanguage } from '../../app/LanguageContext';
 import { useListings } from '../../shared/hooks/useListings';
+import { useDebouncedValue } from '../../shared/hooks/useDebouncedValue';
 import { CardSkeleton } from '../../shared/components/SkeletonLoader';
 import ListingCard from '../../shared/components/ListingCard';
 
@@ -44,39 +45,39 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
   const [showFilters, setShowFilters] = useState(false);
   const [facilities, setFacilities] = useState('');
   const [page, setPage] = useState(1);
-  const guests = initialFilters.extra.guestCount || undefined;
+  const [guests, setGuests] = useState(initialFilters.extra.guestCount || 0);
+  const searchTerm = useDebouncedValue(query.trim());
+  const priceLimit = useDebouncedValue(maxPrice);
   const supportsDates = type === 'hotel' || type === 'homestay';
   const datesValid = supportsDates && Boolean(checkIn && checkOut && checkOut > checkIn);
 
   // The server applies filters before pagination so matching properties cannot disappear beyond the first page.
-  const { listings, loading, error, reload, pagination } = useListings(type, query, {
-    maxPrice: maxPrice < PRICE_CEILING ? maxPrice : undefined,
+  const { listings, loading, error, reload, pagination } = useListings(type, searchTerm, {
+    maxPrice: priceLimit < PRICE_CEILING ? priceLimit : undefined,
     minRating: minimumRating || undefined,
     sort: SORT_PARAM[sortBy],
-    ...(datesValid ? { checkIn, checkOut, guests } : {}),
+    ...(datesValid ? { checkIn, checkOut, guests: guests || undefined } : {}),
     amenities: facilities.trim() || undefined,
     limit: 24, page,
   });
-  useEffect(() => { setPage(1); }, [query, maxPrice, minimumRating, sortBy, checkIn, checkOut, facilities, type]);
+  useEffect(() => { setPage(1); }, [searchTerm, priceLimit, minimumRating, sortBy, checkIn, checkOut, guests, facilities, type]);
 
   useEffect(() => {
     setQuery(initialFilters.destination || '');
   }, [initialFilters.destination, type]);
 
-  const results = useMemo(() => {
-    const term = query.trim().toLowerCase();
-    return listings.filter((listing) => {
-      if (term && ![listing.title, listing.location, listing.description].some((value) => value.toLowerCase().includes(term))) return false;
-      if (type === 'car' && transmission !== 'all' && listing.carSpecs?.transmission !== transmission) return false;
-      return true;
-    });
-  }, [listings, query, transmission, type]);
+  const results = useMemo(() => listings.filter((listing) =>
+    type !== 'car' || transmission === 'all' || listing.carSpecs?.transmission === transmission,
+  ), [listings, transmission, type]);
+  // Keep the current results on screen while a filter change refreshes them; skeletons only on first load.
+  const firstLoad = loading && listings.length === 0;
 
   const resetFilters = () => {
     setQuery('');
     setMaxPrice(PRICE_CEILING);
     setCheckIn('');
     setCheckOut('');
+    setGuests(0);
     setMinimumRating(0);
     setSortBy('recommended');
     setTransmission('all');
@@ -88,7 +89,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
       <header className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-950 sm:text-3xl">{TYPE_LABELS[type]}{query.trim() && <span className="text-slate-500 font-normal"> in {query.trim()}</span>}</h1>
-          <p className="mt-1 text-sm text-slate-500">{loading ? 'Loading…' : `${pagination?.total ?? results.length} results`}</p>
+          <p className="mt-1 text-sm text-slate-500">{firstLoad ? 'Loading…' : `${pagination?.total ?? results.length} ${(pagination?.total ?? results.length) === 1 ? 'result' : 'results'}`}{loading && !firstLoad && <span className="ml-2 text-slate-400">· updating…</span>}</p>
         </div>
         <label className="relative w-full sm:max-w-md">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -124,7 +125,14 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                 <input type="date" min={checkIn || todayPk()} value={checkOut} onChange={(event) => setCheckOut(event.target.value)}
                   className="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm" />
               </label>
-              {datesValid && <p className="text-[11px] text-slate-500">Showing only properties with a free room{guests ? ` for ${guests} guests` : ''}.</p>}
+              <label className="block text-[11px] text-slate-500">Guests
+                <select value={guests} onChange={(event) => setGuests(Number(event.target.value))} className="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
+                  <option value={0}>Any</option>
+                  {Array.from({ length: 10 }, (_, index) => index + 1).map((count) => <option key={count} value={count}>{count} guest{count > 1 ? 's' : ''}</option>)}
+                </select>
+              </label>
+              {datesValid ? <p className="text-[11px] text-slate-500">Showing only properties with a free room{guests ? ` for ${guests} guest${guests > 1 ? 's' : ''}` : ''}.</p>
+                : <p className="text-[11px] text-slate-500">Add both dates to see only properties with free rooms.</p>}
             </fieldset>
           )}
 
@@ -167,7 +175,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
             </select>
           </div>
 
-          {loading ? (
+          {firstLoad ? (
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
               {[0, 1, 2, 3, 4, 5].map((item) => <CardSkeleton key={item} />)}
             </div>
@@ -183,9 +191,9 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
               <h2 className="mt-3 font-bold text-slate-900">
                 No {TYPE_LABELS[type].toLowerCase()}{query.trim() ? ` in "${query.trim()}"` : ''} match your filters
               </h2>
-              {query.trim() && listings.length > 0 ? (
+              {query.trim() ? (
                 <button onClick={() => setQuery('')} className="mt-4 rounded-lg bg-[#006F3C] px-4 py-2 text-sm font-semibold text-white hover:bg-[#005c32]">
-                  Show all {listings.length} {TYPE_LABELS[type].toLowerCase()}
+                  Clear search
                 </button>
               ) : (
                 <>
@@ -195,7 +203,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+            <div className={`grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3 transition-opacity ${loading ? 'opacity-60' : ''}`} aria-busy={loading}>
               {results.map((rawListing) => {
                 const listing = tListing(rawListing, isRtl);
                 return (

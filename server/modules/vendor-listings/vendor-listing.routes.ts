@@ -8,19 +8,27 @@ import {
   archiveListing,
   archiveRoomType,
   createHotelListing,
+  getRoomCalendar,
+  setRoomClosures,
   duplicateListing,
   listListingsForModeration,
+  listRoomsForModeration,
   listOwnListings,
   listRoomTypes,
   moderateListing,
+  setListingAvailability,
   submitListing,
   updateHotelListing,
   updateRoomType,
 } from './vendor-listing.service.js';
 import {
+  adminListingsQuerySchema,
   createHotelListingSchema,
   listingDecisionSchema,
   listingParamsSchema,
+  listingStatusSchema,
+  roomCalendarQuerySchema,
+  roomClosureSchema,
   roomParamsSchema,
   roomTypeSchema,
   updateHotelListingSchema,
@@ -56,6 +64,11 @@ vendorListingRouter.post('/:id/submit', validate('params', listingParamsSchema),
   response.json({ data: listing });
 }));
 
+vendorListingRouter.post('/:id/status', validate('params', listingParamsSchema), validate('body', listingStatusSchema), asyncHandler(async (request, response) => {
+  const listing = await setListingAvailability(request.auth!.userId, request.params.id, request.body.status, sessionMetadata(request));
+  response.json({ data: listing });
+}));
+
 vendorListingRouter.post('/:id/duplicate', validate('params', listingParamsSchema), asyncHandler(async (request, response) => {
   const listing = await duplicateListing(request.auth!.userId, request.params.id, sessionMetadata(request));
   response.status(201).json({ data: listing });
@@ -75,14 +88,27 @@ vendorListingRouter.patch('/:id/rooms/:roomId', validate('params', roomParamsSch
   response.json({ data: room });
 }));
 
+vendorListingRouter.get('/:id/rooms/:roomId/calendar', validate('params', roomParamsSchema), validate('query', roomCalendarQuerySchema), asyncHandler(async (request, response) => {
+  const { from, to } = request.query as { from: string; to: string };
+  response.json({ data: await getRoomCalendar(request.auth!.userId, request.params.id, request.params.roomId, from, to) });
+}));
+
+vendorListingRouter.put('/:id/rooms/:roomId/calendar', validate('params', roomParamsSchema), validate('body', roomClosureSchema), asyncHandler(async (request, response) => {
+  response.json({ data: await setRoomClosures(request.auth!.userId, request.params.id, request.params.roomId, request.body, sessionMetadata(request)) });
+}));
+
 vendorListingRouter.delete('/:id/rooms/:roomId', validate('params', roomParamsSchema), asyncHandler(async (request, response) => {
   await archiveRoomType(request.auth!.userId, request.params.id, request.params.roomId);
   response.status(204).send();
 }));
 
 adminListingRouter.use(authenticate, authorizePermission('listing:moderate'));
-adminListingRouter.get('/', asyncHandler(async (_request, response) => {
-  response.json({ data: await listListingsForModeration() });
+adminListingRouter.get('/', validate('query', adminListingsQuerySchema), asyncHandler(async (request, response) => {
+  response.json(await listListingsForModeration(request.query as any));
+}));
+
+adminListingRouter.get('/:id/rooms', validate('params', listingParamsSchema), asyncHandler(async (request, response) => {
+  response.json({ data: await listRoomsForModeration(request.params.id) });
 }));
 adminListingRouter.post('/:id/decision', validate('params', listingParamsSchema), validate('body', listingDecisionSchema), asyncHandler(async (request, response) => {
   const listing = await moderateListing(request.auth!.userId, request.params.id, request.body, sessionMetadata(request));

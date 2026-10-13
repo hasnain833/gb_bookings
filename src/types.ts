@@ -83,6 +83,12 @@ export interface Booking {
   children?: number;
   nightlyRate?: number;
   specialRequests?: string;
+  checkInTime?: string;
+  checkOutTime?: string;
+  paidAt?: string;
+  /** Pending requests expire automatically after this time. */
+  respondBy?: string;
+  history?: Array<{ status: Booking['status']; at: string; reason?: string }>;
 }
 
 export interface Review {

@@ -1,10 +1,9 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import { ArrowRight, Calendar, Car, Home, MapPin, RefreshCw, Search, TentTree, Users } from 'lucide-react';
+import { Calendar, Car, Home, MapPin, Search, TentTree, Users } from 'lucide-react';
 import type { Listing, ListingType } from '../../types';
 import { handleImageError } from '../../types';
 import { useListings } from '../../shared/hooks/useListings';
-import { CardSkeleton } from '../../shared/components/SkeletonLoader';
-import ListingCard from '../../shared/components/ListingCard';
+import FeaturedRow from './FeaturedRow';
 
 interface ExploreSectionProps {
   setView: (view: string) => void;
@@ -27,17 +26,12 @@ const SEARCH_TYPES: Array<{ id: SearchType; label: string; icon: typeof Home }> 
 ];
 
 export default function ExploreSection({ setView, setSearchFilters, onSelectListing }: ExploreSectionProps) {
-  const { listings, loading, error, reload } = useListings('all');
+  const { listings } = useListings('all');
   const [type, setType] = useState<SearchType>('hotel');
   const [destination, setDestination] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [guests, setGuests] = useState(2);
-
-  const featured = useMemo(() => {
-    const selected = listings.filter((listing) => listing.featured);
-    return (selected.length ? selected : listings).slice(0, 8);
-  }, [listings]);
 
   const destinations = useMemo(() => {
     const groups = new Map<string, { name: string; count: number; image: string }>();
@@ -120,29 +114,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
         </div>
       </section>
 
-      <section className="space-y-5">
-        <div className="flex items-end justify-between gap-4">
-          <h2 className="text-xl font-bold text-slate-950">Featured stays &amp; experiences</h2>
-          <button onClick={() => setView('hotels')} className="flex items-center gap-1 text-sm font-semibold text-[#006F3C] hover:underline">Browse all <ArrowRight className="h-4 w-4" /></button>
-        </div>
-
-        {loading ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">{[0, 1, 2, 3].map((item) => <CardSkeleton key={item} />)}</div>
-        ) : error ? (
-          <div className="rounded-lg border border-rose-200 bg-rose-50 p-8 text-center">
-            <p className="text-sm font-semibold text-rose-700">{error}</p>
-            <button onClick={() => void reload()} className="mt-3 inline-flex items-center gap-2 text-sm font-bold text-rose-800 underline"><RefreshCw className="h-4 w-4" /> Try again</button>
-          </div>
-        ) : featured.length === 0 ? (
-          <div className="rounded-lg border border-slate-200 bg-white p-10 text-center"><h3 className="font-bold text-slate-900">No listings available yet</h3><p className="mt-1 text-sm text-slate-500">Approved marketplace inventory will appear here.</p></div>
-        ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {featured.map((listing) => (
-              <ListingCard key={listing.id} listing={listing} tag={listing.type} onSelect={() => onSelectListing(listing)} />
-            ))}
-          </div>
-        )}
-      </section>
+      {SEARCH_TYPES.map((item) => <FeaturedRow key={item.id} type={item.id} label={item.label} onBrowse={() => setView(item.id === 'hotel' ? 'hotels' : item.id === 'homestay' ? 'homestays' : item.id === 'car' ? 'cars' : 'tours')} onSelectListing={onSelectListing} />)}
 
       {destinations.length > 0 && (
         <section className="space-y-5">

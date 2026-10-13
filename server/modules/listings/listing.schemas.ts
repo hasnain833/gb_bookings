@@ -84,5 +84,4 @@ const baseListingSchema = z.object({
   }).optional(),
 });
 
-export const listingSeedSchema = z.array(baseListingSchema);
 export type ListListingsQuery = z.infer<typeof listListingsQuerySchema>;

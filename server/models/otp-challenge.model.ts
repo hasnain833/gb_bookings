@@ -11,10 +11,10 @@ const otpChallengeSchema = new Schema({
     immutable: true,
     default: () => `otp_${randomUUID()}`,
   },
-  userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+  userId: { type: Schema.Types.ObjectId, ref: 'User', index: true },
   purpose: {
     type: String,
-    enum: ['two_factor_login', 'two_factor_setup', 'email_verification', 'phone_verification'],
+    enum: ['signup', 'two_factor_login', 'two_factor_setup', 'email_verification', 'phone_verification'],
     required: true,
     index: true,
   },
@@ -27,6 +27,7 @@ const otpChallengeSchema = new Schema({
   expiresAt: { type: Date, required: true },
   consumedAt: { type: Date, default: null },
   requestedIp: { type: String, maxlength: 100 },
+  registration: { type: new Schema({ name: String, email: String, phone: String, passwordHash: String, termsAcceptedAt: Date, policyVersion: String }, { _id: false }), select: false },
 }, { timestamps: true });
 
 otpChallengeSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });

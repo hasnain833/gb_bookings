@@ -127,7 +127,7 @@ export default function Footer({ onNavigate }: FooterProps) {
       </div>
 
       {/* 2. MAIN DARK FOOTER */}
-      <div className="bg-[#002816] text-slate-300 pt-10 sm:pt-12 pb-8">
+      <div className="bg-forest-950 text-slate-300 pt-10 sm:pt-12 pb-8">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-6 pb-10">
@@ -212,11 +212,11 @@ export default function Footer({ onNavigate }: FooterProps) {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Enter your email address"
-                    className="bg-white/5 border border-white/15 text-white text-xs px-3.5 py-2.5 rounded-xl sm:rounded-r-none sm:rounded-l-xl w-full min-h-[44px] focus:outline-none focus:border-emerald-400 placeholder-slate-400"
+                    className="bg-white/5 border border-white/15 text-white text-xs px-3.5 py-2.5 rounded-xl sm:rounded-r-none sm:rounded-l-xl w-full min-h-11 focus:outline-none focus:border-emerald-400 placeholder-slate-400"
                   />
                   <button
                     type="submit"
-                    className="bg-[#006F3C] hover:bg-[#005C32] text-white text-xs font-bold px-4 py-2.5 rounded-xl sm:rounded-l-none sm:rounded-r-xl min-h-[44px] flex items-center justify-center gap-1.5 shrink-0 transition-colors cursor-pointer"
+                    className="bg-[#006F3C] hover:bg-[#005C32] text-white text-xs font-bold px-4 py-2.5 rounded-xl sm:rounded-l-none sm:rounded-r-xl min-h-11 flex items-center justify-center gap-1.5 shrink-0 transition-colors cursor-pointer"
                   >
                     <span>Subscribe</span>
                     <Send className="w-3.5 h-3.5" />
@@ -439,13 +439,9 @@ export default function Footer({ onNavigate }: FooterProps) {
             {/* Background Mountain Contour Graphic */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-slate-400 relative z-10 text-left">
               <p className="text-left">
-                © 2026 GBBookings.com - All Rights Reserved.
+                © {new Date().getFullYear()} GBBookings.com - All Rights Reserved.
               </p>
-              <div className="flex items-center gap-1 text-slate-300 font-medium">
-                <span>Made with</span>
-                <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500 inline mx-0.5" />
-                <span>for travelers</span>
-              </div>
+              <div className="flex gap-4"><a href="/terms" className="hover:text-white">Terms</a><a href="/privacy" className="hover:text-white">Privacy Policy</a></div>
             </div>
           </div>
 

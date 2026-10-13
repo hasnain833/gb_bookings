@@ -60,6 +60,19 @@ export const updateRoomTypeSchema = roomTypeSchema.partial().extend({
   { message: 'At least one room field is required.' },
 );
 
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD dates.');
+export const roomCalendarQuerySchema = z.object({ from: isoDate, to: isoDate }).strict();
+export const roomClosureSchema = z.object({ from: isoDate, to: isoDate, closed: z.number().int().min(0).max(10_000) }).strict();
+
+export const listingStatusSchema = z.object({ status: z.enum(['paused', 'published']) }).strict();
+
+export const adminListingsQuerySchema = z.object({
+  status: z.enum(['all', 'draft', 'submitted', 'published', 'paused', 'rejected', 'archived']).default('submitted'),
+  q: z.string().trim().min(2).max(100).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+}).strict();
+
 export const listingDecisionSchema = z.object({
   decision: z.enum(['published', 'rejected']),
   notes: z.string().trim().min(3).max(2_000),

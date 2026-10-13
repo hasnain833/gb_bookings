@@ -2,7 +2,6 @@ import type { RequestHandler } from 'express';
 import { connectDatabase } from '../database/connection.js';
 import { SessionModel } from '../models/session.model.js';
 import { UserModel } from '../models/user.model.js';
-import type { UserRole } from '../models/user.model.js';
 import { hasPermission, type PermissionKey } from '../modules/auth/rbac.js';
 import { AppError, ServiceUnavailableError } from '../shared/app-error.js';
 import { ACCESS_COOKIE, verifyAccessToken } from '../modules/auth/auth.tokens.js';
@@ -30,16 +29,6 @@ export const authenticate: RequestHandler = asyncHandler(async (request, _respon
   request.auth = { userId: payload.sub, sessionId: payload.sid, roles: user.roles };
   next();
 });
-
-export function authorize(...allowedRoles: UserRole[]): RequestHandler {
-  return (request, _response, next) => {
-    if (!request.auth) return next(new AppError(401, 'AUTHENTICATION_REQUIRED', 'Please sign in to continue.'));
-    if (!request.auth.roles.some((role) => allowedRoles.includes(role))) {
-      return next(new AppError(403, 'PERMISSION_DENIED', 'You do not have permission to perform this action.'));
-    }
-    next();
-  };
-}
 
 export function authorizePermission(permission: PermissionKey): RequestHandler {
   return (request, _response, next) => {

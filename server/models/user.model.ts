@@ -35,6 +35,8 @@ const userSchema = new Schema({
     index: true,
   },
   emailVerifiedAt: { type: Date, default: null },
+  termsAcceptedAt: { type: Date, default: null },
+  policyVersion: { type: String },
   phoneVerifiedAt: { type: Date, default: null },
   twoFactor: {
     enabled: { type: Boolean, default: false },

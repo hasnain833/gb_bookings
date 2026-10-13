@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Listing, Review, handleImageError } from '../../types';
 import { useLanguage, tListing, tReview } from '../../app/LanguageContext';
 import { DetailsSkeleton } from '../../shared/components/SkeletonLoader';
-import { api, ApiError } from '../../shared/api/api';
+import { api, ApiError, AUTH_CHANGED_EVENT, hasApiSession } from '../../shared/api/api';
 import { OPEN_SIGN_IN_EVENT } from '../../shared/hooks/useWishlist';
 import RoomBookingPanel from '../booking/RoomBookingPanel';
 import type { CheckoutParams } from '../booking/CheckoutFlow';
@@ -24,10 +24,13 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
   const [activeImage, setActiveImage] = useState('');
   const [isWishlist, setIsWishlist] = useState(false);
   const [shareNote, setShareNote] = useState('');
+  const [loadError, setLoadError] = useState('');
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let active = true;
     setLoading(true);
+    setLoadError('');
     api.getListing(listingId)
       .then((data) => {
         if (!active) return;
@@ -35,14 +38,30 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
         setRawReviews((data.reviews || []) as Review[]);
         setActiveImage(data.images?.[0] ?? data.image);
       })
-      .catch((err) => console.error('Error fetching listing details:', err))
+      .catch((reason) => {
+        if (!active) return;
+        setRawListing(null);
+        // A 404 means the property is gone or unpublished; anything else is worth retrying.
+        if (!(reason instanceof ApiError && reason.status === 404)) setLoadError(reason instanceof Error ? reason.message : 'Unable to load this property.');
+      })
       .finally(() => active && setLoading(false));
-    api.getWishlist()
-      .then((wishlist) => active && setIsWishlist(wishlist.some((item) => item.id === listingId)))
-      .catch(() => active && setIsWishlist(false));
     return () => {
       active = false;
     };
+  }, [listingId, attempt]);
+
+  useEffect(() => {
+    let active = true;
+    let requestNumber = 0;
+    const updateSaved = () => {
+      const number = ++requestNumber;
+      if (!hasApiSession()) { setIsWishlist(false); return; }
+      api.getWishlist().then((items) => { if (active && number === requestNumber) setIsWishlist(items.some((item) => item.id === listingId)); })
+        .catch(() => { if (active && number === requestNumber) setIsWishlist(false); });
+    };
+    updateSaved();
+    window.addEventListener(AUTH_CHANGED_EVENT, updateSaved);
+    return () => { active = false; requestNumber += 1; window.removeEventListener(AUTH_CHANGED_EVENT, updateSaved); };
   }, [listingId]);
 
   const handleToggleWishlist = async () => {
@@ -70,9 +89,13 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
 
   if (!listing) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-16 text-center space-y-4" id="listing-details-notfound">
-        <h1 className="text-xl font-bold text-slate-900">Listing not found</h1>
-        <button onClick={onBack} className="rounded-lg bg-[#006F3C] px-5 py-2 text-sm font-semibold text-white hover:bg-[#005C32]">Back to results</button>
+      <div className="max-w-xl mx-auto px-4 py-16 text-center space-y-3" id="listing-details-notfound" role={loadError ? 'alert' : undefined}>
+        <h1 className="text-xl font-bold text-slate-900">{loadError ? 'We couldn’t load this property' : 'This property is no longer available'}</h1>
+        <p className="text-sm text-slate-600">{loadError || 'It may have been paused or removed by the host. Browse other stays instead.'}</p>
+        <div className="flex justify-center gap-3 pt-2">
+          {loadError && <button onClick={() => setAttempt((value) => value + 1)} className="min-h-11 rounded-lg bg-[#006F3C] px-5 text-sm font-semibold text-white hover:bg-[#005C32]">Try again</button>}
+          <button onClick={onBack} className={`min-h-11 rounded-lg px-5 text-sm font-semibold ${loadError ? 'border border-slate-300 text-slate-700 hover:bg-slate-50' : 'bg-[#006F3C] text-white hover:bg-[#005C32]'}`}>Back to results</button>
+        </div>
       </div>
     );
   }

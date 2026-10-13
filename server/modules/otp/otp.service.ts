@@ -1,5 +1,6 @@
 import { createHmac, randomInt, randomUUID, timingSafeEqual } from 'node:crypto';
 import { env } from '../../config/env.js';
+import type { ClientSession } from 'mongoose';
 import { OtpChallengeModel } from '../../models/otp-challenge.model.js';
 import { AppError } from '../../shared/app-error.js';
 import { otpProvider, type OtpChannel, type OtpDelivery } from './otp-provider.js';
@@ -15,7 +16,8 @@ function codeMatches(challengeId: string, code: string, storedHash: string) {
 }
 
 export async function createOtpChallenge(input: {
-  userId: string;
+  userId?: string;
+  registration?: { name: string; email: string; phone?: string; passwordHash: string; termsAcceptedAt: Date; policyVersion: string };
   channel: OtpChannel;
   destination: string;
   recipientName?: string;
@@ -26,7 +28,7 @@ export async function createOtpChallenge(input: {
   const publicId = `otp_${randomUUID()}`;
   const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
   await OtpChallengeModel.updateMany(
-    { userId: input.userId, purpose: input.purpose, consumedAt: null },
+    { ...(input.userId ? { userId: input.userId } : { destination: input.destination }), purpose: input.purpose, consumedAt: null },
     { $set: { consumedAt: new Date() } },
   );
   const challenge = await OtpChallengeModel.create({
@@ -40,6 +42,7 @@ export async function createOtpChallenge(input: {
     rememberMe: input.rememberMe ?? false,
     expiresAt: new Date(Date.now() + env.OTP_TTL_MINUTES * 60 * 1000),
     requestedIp: input.requestedIp,
+    registration: input.registration,
   });
 
   try {
@@ -57,9 +60,9 @@ export async function createOtpChallenge(input: {
   return { challengeId: challenge.publicId, expiresInSeconds: env.OTP_TTL_MINUTES * 60 };
 }
 
-export async function consumeOtpChallenge(challengeId: string, code: string, purpose: OtpDelivery['purpose'], userId?: string) {
+export async function consumeOtpChallenge(challengeId: string, code: string, purpose: OtpDelivery['purpose'], userId?: string, session?: ClientSession) {
   const challenge = await OtpChallengeModel.findOne({ publicId: challengeId, purpose, ...(userId ? { userId } : {}) })
-    .select('+codeHash +destination');
+    .select('+codeHash +destination +registration').session(session ?? null);
   if (!challenge || challenge.consumedAt || challenge.expiresAt.getTime() <= Date.now()) {
     throw new AppError(400, 'INVALID_OR_EXPIRED_OTP', 'This security code is invalid or has expired.');
   }
@@ -69,15 +72,15 @@ export async function consumeOtpChallenge(challengeId: string, code: string, pur
   if (!codeMatches(challenge.publicId, code, challenge.codeHash)) {
     const attempted = await OtpChallengeModel.findOneAndUpdate(
       { _id: challenge._id, consumedAt: null, expiresAt: { $gt: new Date() }, attempts: { $lt: challenge.maxAttempts } },
-      { $inc: { attempts: 1 } }, { returnDocument: 'after' },
+      { $inc: { attempts: 1 } }, { returnDocument: 'after', session },
     );
     if (!attempted) throw new AppError(400, 'INVALID_OR_EXPIRED_OTP', 'This security code is invalid or has expired.');
     throw new AppError(400, 'INVALID_OTP', 'The security code is incorrect.');
   }
   const consumed = await OtpChallengeModel.findOneAndUpdate(
     { _id: challenge._id, consumedAt: null, expiresAt: { $gt: new Date() }, attempts: { $lt: challenge.maxAttempts } },
-    { $set: { consumedAt: new Date() } }, { returnDocument: 'after' },
-  );
+    { $set: { consumedAt: new Date() } }, { returnDocument: 'after', session },
+  ).select('+registration');
   if (!consumed) throw new AppError(400, 'INVALID_OR_EXPIRED_OTP', 'This security code is invalid or has expired.');
   return consumed;
 }

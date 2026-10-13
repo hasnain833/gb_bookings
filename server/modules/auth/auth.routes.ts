@@ -4,14 +4,14 @@ import { authenticate } from '../../middleware/authenticate.js';
 import { validate } from '../../middleware/validate.js';
 import { AppError } from '../../shared/app-error.js';
 import { asyncHandler } from '../../shared/async-handler.js';
-import { isEmailConfigured } from '../email/resend.service.js';
 import {
   requestPasswordReset,
   resetPassword,
   sendEmailVerification,
   verifyEmail,
 } from './account-recovery.service.js';
-import { clearAuthCookies, setAuthCookies } from './auth.cookies.js';
+import { clearAuthCookies, setAuthCookies, setTrustedDeviceCookie, clearTrustedDeviceCookie } from './auth.cookies.js';
+import { TRUSTED_DEVICE_COOKIE } from './trusted-device.service.js';
 import {
   changePasswordSchema,
   disableTwoFactorSchema,
@@ -36,6 +36,7 @@ import {
   listUserSessions,
   refreshSession,
   registerUser,
+  completeRegistration,
   revokeAllSessions,
   revokeSession,
   revokeUserSession,
@@ -58,26 +59,23 @@ export const authenticationLimiter = rateLimit({
 
 authRouter.post('/register', authenticationLimiter, validate('body', registerSchema), asyncHandler(async (request, response) => {
   const result = await registerUser(request.body, sessionMetadata(request));
+  response.status(202).json(result);
+}));
+
+authRouter.post('/register/verify-otp', authenticationLimiter, validate('body', verifyOtpSchema), asyncHandler(async (request, response) => {
+  const result = await completeRegistration(request.body.challengeId, request.body.code, sessionMetadata(request));
   setAuthCookies(
     response,
     result.session.accessToken,
     result.session.refreshToken,
     result.session.refreshExpiresAt,
+    result.session.rememberMe,
   );
-  let emailVerificationSent = false;
-  if (isEmailConfigured()) {
-    try {
-      await sendEmailVerification(result.userId, { ...sessionMetadata(request), requestId: String(request.id) });
-      emailVerificationSent = true;
-    } catch (error) {
-      console.error(`Registration verification email failed [${request.id}]:`, error);
-    }
-  }
-  response.status(201).json({ user: result.user, emailVerificationSent });
+  response.status(201).json({ user: result.user });
 }));
 
 authRouter.post('/login', authenticationLimiter, validate('body', loginSchema), asyncHandler(async (request, response) => {
-  const result = await loginUser(request.body, sessionMetadata(request));
+  const result = await loginUser(request.body, sessionMetadata(request), request.cookies?.[TRUSTED_DEVICE_COOKIE]);
   if (result.requiresTwoFactor) {
     response.status(202).json(result);
     return;
@@ -87,13 +85,15 @@ authRouter.post('/login', authenticationLimiter, validate('body', loginSchema), 
     result.session.accessToken,
     result.session.refreshToken,
     result.session.refreshExpiresAt,
+    result.session.rememberMe,
   );
   response.json({ user: result.user });
 }));
 
 authRouter.post('/login/verify-otp', authenticationLimiter, validate('body', verifyOtpSchema), asyncHandler(async (request, response) => {
   const result = await completeTwoFactorLogin(request.body.challengeId, request.body.code, sessionMetadata(request));
-  setAuthCookies(response, result.session.accessToken, result.session.refreshToken, result.session.refreshExpiresAt);
+  setTrustedDeviceCookie(response, result.trustedDevice);
+  setAuthCookies(response, result.session.accessToken, result.session.refreshToken, result.session.refreshExpiresAt, result.session.rememberMe);
   response.json({ user: result.user });
 }));
 
@@ -106,19 +106,21 @@ authRouter.post('/refresh', authenticationLimiter, asyncHandler(async (request, 
     result.session.accessToken,
     result.session.refreshToken,
     result.session.refreshExpiresAt,
+    result.session.rememberMe,
   );
   response.json({ user: result.user });
 }));
 
 authRouter.post('/logout', asyncHandler(async (request, response) => {
-  await revokeSession(request.cookies?.[REFRESH_COOKIE]);
   clearAuthCookies(response);
+  await revokeSession(request.cookies?.[REFRESH_COOKIE]);
   response.status(204).send();
 }));
 
 authRouter.post('/logout-all', authenticate, asyncHandler(async (request, response) => {
   await revokeAllSessions(request.auth!.userId);
   clearAuthCookies(response);
+  clearTrustedDeviceCookie(response);
   response.status(204).send();
 }));
 
@@ -146,6 +148,7 @@ authRouter.patch('/me', authenticate, validate('body', updateProfileSchema), asy
 authRouter.post('/change-password', authenticate, validate('body', changePasswordSchema), asyncHandler(async (request, response) => {
   await changeUserPassword(request.auth!.userId, request.body.currentPassword, request.body.newPassword);
   clearAuthCookies(response);
+  clearTrustedDeviceCookie(response);
   response.status(204).send();
 }));
 
@@ -162,6 +165,7 @@ authRouter.post('/two-factor/enable', authenticationLimiter, authenticate, valid
 authRouter.post('/two-factor/disable', authenticationLimiter, authenticate, validate('body', disableTwoFactorSchema), asyncHandler(async (request, response) => {
   await disableTwoFactor(request.auth!.userId, request.body.password, sessionMetadata(request));
   clearAuthCookies(response);
+  clearTrustedDeviceCookie(response);
   response.status(204).send();
 }));
 
@@ -191,5 +195,6 @@ authRouter.post('/reset-password', authenticationLimiter, validate('body', reset
     requestId: String(request.id),
   });
   clearAuthCookies(response);
+  clearTrustedDeviceCookie(response);
   response.status(204).send();
 }));

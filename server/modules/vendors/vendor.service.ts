@@ -48,7 +48,8 @@ export async function createVendorApplication(userId: string, input: any, metada
   if (!user.emailVerifiedAt) throw new AppError(409, 'EMAIL_VERIFICATION_REQUIRED', 'Verify your email before registering as a vendor.');
   const vendor = await inTransaction(async (session) => {
     // Lock the user before checking membership; simultaneous applications cannot create two organizations.
-    await UserModel.updateOne({ _id: userId }, { $addToSet: { roles: 'vendor_owner' }, $inc: { __v: 1 } }, { session });
+    // The vendor_owner role is only granted when an admin approves the application.
+    await UserModel.updateOne({ _id: userId }, { $inc: { __v: 1 } }, { session });
     if (await VendorMemberModel.exists({ userId, deletedAt: null }).session(session)) {
       throw new AppError(409, 'VENDOR_MEMBERSHIP_EXISTS', 'This account already belongs to a vendor organization.');
     }
@@ -169,7 +170,12 @@ export async function decideVendorApplication(adminUserId: string, vendorId: str
   vendor.reviewedBy = adminUserId;
   vendor.verificationNotes = input.notes;
   vendor.rejectionReason = input.decision === 'rejected' ? input.notes : null;
-  await vendor.save();
+  // Approval grants the owner the vendor role (partner dashboard, listings); suspension takes it away again.
+  await inTransaction(async (session) => {
+    await vendor.save({ session });
+    if (input.decision === 'approved') await UserModel.updateOne({ _id: vendor.ownerId }, { $addToSet: { roles: 'vendor_owner' } }, { session });
+    if (input.decision === 'suspended') await UserModel.updateOne({ _id: vendor.ownerId }, { $pull: { roles: 'vendor_owner' } }, { session });
+  });
   await recordAuditEvent({
     actorId: adminUserId, actorType: 'user', action: `vendor.${input.decision}`,
     resourceType: 'vendor', resourceId: vendor.publicId, ...metadata,

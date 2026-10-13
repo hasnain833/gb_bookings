@@ -34,8 +34,25 @@ export const openApiDocument = {
     '/vendor/listings/{id}/submit': {
       post: { tags: ['Vendors'], summary: 'Submit a complete hotel for moderation', responses: { '200': { description: 'Listing submitted.' }, '400': { description: 'Image or room inventory is missing.' } } },
     },
+    '/vendor/listings/{id}': {
+      patch: { tags: ['Vendors'], summary: 'Edit an owned listing (returns it to draft)', responses: { '200': { description: 'Listing saved as draft.' } } },
+      delete: { tags: ['Vendors'], summary: 'Archive an owned listing; existing reservations are kept', responses: { '204': { description: 'Archived.' } } },
+    },
+    '/vendor/listings/{id}/status': {
+      post: { tags: ['Vendors'], summary: 'Pause a live listing or resume a paused one ({ status: paused | published })', responses: { '200': { description: 'Listing updated.' }, '409': { description: 'Listing is not live or paused.' } } },
+    },
+    '/vendor/listings/{id}/rooms/{roomId}/calendar': {
+      get: { tags: ['Vendors'], summary: 'Per-night booked/closed/available counts (from, to; max 120 days)', responses: { '200': { description: 'Room calendar.' } } },
+      put: { tags: ['Vendors'], summary: 'Close rooms for a date range ({ from, to, closed }; 0 reopens)', responses: { '200': { description: 'Updated calendar.' }, '409': { description: 'Guests already hold rooms on some nights.' } } },
+    },
+    '/vendor/listings/{id}/duplicate': {
+      post: { tags: ['Vendors'], summary: 'Copy a listing and its rooms into a new draft', responses: { '201': { description: 'Draft copy created.' } } },
+    },
     '/admin/listings': {
-      get: { tags: ['Vendors'], summary: 'List submitted listings for moderation', responses: { '200': { description: 'Moderation queue.' } } },
+      get: { tags: ['Vendors'], summary: 'List vendor hotels/homestays (status=submitted|published|paused|draft|rejected|archived|all, q, page)', responses: { '200': { description: 'Paginated listings with vendor names.' } } },
+    },
+    '/admin/listings/{id}/rooms': {
+      get: { tags: ['Admin'], summary: 'Inspect hotel room categories before publication', parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }], responses: { '200': { description: 'Room categories, prices and inventory.' }, '403': { description: 'Listing moderation permission required.' }, '404': { description: 'Listing not found.' } } },
     },
     '/vendors': {
       post: {
@@ -82,12 +99,15 @@ export const openApiDocument = {
     '/auth/register': {
       post: {
         tags: ['Authentication'],
-        summary: 'Register a customer account',
+        summary: 'Send a signup verification code without creating a user account',
         responses: {
-          '201': { description: 'Account created and authentication cookies issued.' },
+          '202': { description: 'Verification challenge sent to the signup email. No account/session created.' },
           '409': { description: 'Email address is already registered.' },
         },
       },
+    },
+    '/auth/register/verify-otp': {
+      post: { tags: ['Authentication'], summary: 'Verify signup OTP and create the account', responses: { '201': { description: 'Verified customer account created and authentication cookies issued.' }, '400': { description: 'OTP invalid, expired or already used.' }, '429': { description: 'Attempt limit exceeded.' } } },
     },
     '/auth/login': {
       post: {
@@ -95,6 +115,7 @@ export const openApiDocument = {
         summary: 'Sign in and create a session',
         responses: {
           '200': { description: 'Authentication cookies issued.' },
+          '202': { description: 'OTP required; valid remembered devices skip the challenge for seven days.' },
           '401': { description: 'Credentials are invalid.' },
           '429': { description: 'Account or IP is temporarily rate limited.' },
         },
@@ -312,7 +333,7 @@ export const openApiDocument = {
       post: { tags: ['Bookings'], summary: 'Cancel an own booking before the check-in date; releases the rooms', parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }], responses: { '200': { description: 'Cancelled.' }, '409': { description: 'Status or cancellation window does not allow it.' } } },
     },
     '/vendor/bookings': {
-      get: { tags: ['Bookings'], summary: "List reservations for the vendor's properties", responses: { '200': { description: 'Paginated reservations.' }, '403': { description: 'Vendor reservations role required.' } } },
+      get: { tags: ['Bookings'], summary: "List reservations for the vendor's properties", description: 'Filters: status, from/to (check-in date), listingId, q (reference, guest name, email or phone).', responses: { '200': { description: 'Paginated reservations.' }, '403': { description: 'Vendor reservations role required.' } } },
     },
     '/vendor/bookings/{id}/actions': {
       post: { tags: ['Bookings'], summary: 'Confirm, cancel, complete or mark a reservation as no-show', parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }], responses: { '200': { description: 'Updated booking.' }, '409': { description: 'Transition not allowed.' } } },

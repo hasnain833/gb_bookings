@@ -1,9 +1,11 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
-import { ArrowUpRight, Building2, CalendarCheck, ChevronRight, FileText, LoaderCircle, LogOut, ShieldCheck, Users, X } from 'lucide-react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { ArrowUpRight, Building2, CalendarCheck, ChevronRight, FileText, LoaderCircle, LogOut, ShieldCheck, Users } from 'lucide-react';
 import { api, type AdminUser, type AdminVendor, type Paginated, type UserStatusAction, type VendorListing } from '../../shared/api/api';
 import VendorReservations from '../vendor/VendorReservations';
 import SecurityPanel from '../account/SecurityPanel';
+import ListingReviewDetails from './ListingReviewDetails';
+import { useReasonDialog, type ReasonRequest } from '../../shared/components/ReasonDialog';
+import { useDebouncedValue } from '../../shared/hooks/useDebouncedValue';
 
 type Tab = 'vendors' | 'listings' | 'users' | 'bookings' | 'security';
 
@@ -36,83 +38,10 @@ const roleLabels: Record<string, string> = {
 };
 const roleLabel = (value: string) => roleLabels[value] ?? label(value);
 
-interface ReviewRequest {
-  title: string;
-  description: string;
-  confirmLabel: string;
-  destructive?: boolean;
-}
-
-function ReviewDialog({ request, onClose }: { request: ReviewRequest; onClose: (reason: string | null) => void }) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const titleId = useId();
-  const descriptionId = useId();
-  const noteId = useId();
-  const errorId = useId();
-  const [note, setNote] = useState('');
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    const previouslyFocused = document.activeElement;
-    const previousOverflow = document.body.style.overflow;
-    dialog?.showModal();
-    document.body.style.overflow = 'hidden';
-    return () => {
-      dialog?.close();
-      document.body.style.overflow = previousOverflow;
-      if (previouslyFocused instanceof HTMLElement && previouslyFocused.isConnected) previouslyFocused.focus();
-    };
-  }, []);
-
-  return createPortal(
-    <dialog ref={dialogRef} aria-labelledby={titleId} aria-describedby={descriptionId}
-      onCancel={(event) => { event.preventDefault(); onClose(null); }}
-      className="fixed inset-0 m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-2xl border border-slate-200 bg-white p-0 text-slate-900 shadow-2xl backdrop:bg-slate-950/50 backdrop:backdrop-blur-sm">
-      <form onSubmit={(event) => {
-        event.preventDefault();
-        const reason = note.trim();
-        if (reason.length < 3) { setError('Please enter a note of at least 3 characters.'); return; }
-        onClose(reason);
-      }}>
-        <div className="flex items-start gap-3 border-b border-slate-100 px-6 py-5">
-          <span className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${request.destructive ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-[#006F3C]'}`}><ShieldCheck className="size-5" /></span>
-          <div className="min-w-0 flex-1"><h2 id={titleId} className="text-lg font-bold">{request.title}</h2><p id={descriptionId} className="mt-1 break-words text-sm leading-6 text-slate-600">{request.description}</p></div>
-          <button type="button" onClick={() => onClose(null)} aria-label="Close review dialog" className="flex size-9 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-[#006F3C]"><X className="size-5" /></button>
-        </div>
-        <div className="space-y-2 px-6 py-5">
-          <label htmlFor={noteId} className="block text-sm font-semibold">Review note <span className="font-normal text-slate-500">(required)</span></label>
-          <textarea id={noteId} autoFocus required maxLength={1000} value={note}
-            onChange={(event) => { setNote(event.target.value); setError(''); }}
-            aria-invalid={Boolean(error)} aria-describedby={error ? errorId : undefined}
-            placeholder="Add a short note explaining your decision…"
-            className="min-h-32 w-full resize-y rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm leading-6 outline-none focus:border-[#006F3C] focus:ring-2 focus:ring-[#006F3C]/15" />
-          {error && <p id={errorId} role="alert" className="text-sm text-rose-700">{error}</p>}
-        </div>
-        <div className="flex flex-wrap justify-end gap-3 border-t border-slate-100 bg-slate-50 px-6 py-4">
-          <button type="button" className={`${secondaryButton} bg-white hover:bg-slate-100`} onClick={() => onClose(null)}>Cancel</button>
-          <button type="submit" className={request.destructive ? 'min-h-11 rounded-md bg-rose-700 px-4 text-sm font-bold text-white hover:bg-rose-800' : `${primaryButton} hover:bg-[#005c32]`}>{request.confirmLabel}</button>
-        </div>
-      </form>
-    </dialog>, document.body,
-  );
-}
-
+// Admin decisions always carry a review note.
 function useReviewDialog() {
-  const [request, setRequest] = useState<ReviewRequest | null>(null);
-  const resolver = useRef<((reason: string | null) => void) | null>(null);
-  useEffect(() => () => { resolver.current?.(null); resolver.current = null; }, []);
-  const askReason = (next: ReviewRequest) => new Promise<string | null>((resolve) => {
-    resolver.current?.(null);
-    resolver.current = resolve;
-    setRequest(next);
-  });
-  const close = (reason: string | null) => {
-    resolver.current?.(reason);
-    resolver.current = null;
-    setRequest(null);
-  };
-  return { askReason, dialog: request && <ReviewDialog request={request} onClose={close} /> };
+  const { askReason, dialog } = useReasonDialog();
+  return { dialog, askReason: (request: ReasonRequest) => askReason({ noteLabel: 'Review note', ...request }) };
 }
 
 function useAction() {
@@ -241,48 +170,83 @@ function VendorsPanel() {
   );
 }
 
+const listingStatusTabs: Array<[VendorListing['status'] | 'all', string]> = [
+  ['submitted', 'Awaiting review'], ['published', 'Live'], ['paused', 'Paused'], ['rejected', 'Returned'], ['draft', 'Drafts'], ['archived', 'Archived'], ['all', 'All'],
+];
+const listingTone: Record<VendorListing['status'], string> = {
+  submitted: 'bg-amber-50 text-amber-800', published: 'bg-emerald-50 text-emerald-800', paused: 'bg-sky-50 text-sky-800',
+  rejected: 'bg-rose-50 text-rose-700', draft: 'bg-slate-100 text-slate-700', archived: 'bg-slate-100 text-slate-500',
+};
+const listingStatusLabel = (status: VendorListing['status']) => listingStatusTabs.find(([value]) => value === status)?.[1] ?? label(status);
+
 function ListingsPanel() {
   const { askReason, dialog } = useReviewDialog();
-  const [listings, setListings] = useState<VendorListing[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { busyId, error, setError, run } = useAction();
-
-  useEffect(() => {
-    let active = true;
-    api.admin.listPendingListings()
-      .then((result) => active && setListings(result))
-      .catch((reason: Error) => active && setError(reason.message))
-      .finally(() => active && setLoading(false));
-    return () => {
-      active = false;
-    };
-  }, []);
+  const [status, setStatus] = useState<VendorListing['status'] | 'all'>('submitted');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [reviewingId, setReviewingId] = useState<string | null>(null);
+  const query = useDebouncedValue(search.trim());
+  const [revision, setRevision] = useState(0);
+  const { result, loading, loadError, replace } = usePaged(
+    () => api.admin.listListings({ status, q: query.length >= 2 ? query : undefined, page }), [status, query, page, revision],
+  );
+  const { busyId, error, run } = useAction();
+  useEffect(() => { setPage(1); }, [status, query]);
 
   const decide = async (listing: VendorListing, decision: 'published' | 'rejected') => {
-    const notes = await askReason({ title: `${decision === 'published' ? 'Publish' : 'Reject'} ${listing.title}`, confirmLabel: decision === 'published' ? 'Publish listing' : 'Reject listing', destructive: decision === 'rejected', description: decision === 'published' ? 'Add an approval note before publishing this property.' : 'Explain your decision. This note will be shared with the vendor.' });
+    const takeDown = decision === 'rejected' && listing.status !== 'submitted';
+    const notes = await askReason({
+      title: `${decision === 'published' ? 'Publish' : takeDown ? 'Take down' : 'Reject'} ${listing.title}`,
+      confirmLabel: decision === 'published' ? 'Publish listing' : takeDown ? 'Take down listing' : 'Reject listing',
+      destructive: decision === 'rejected',
+      description: decision === 'published' ? 'Add an approval note before publishing this property.'
+        : takeDown ? 'The property is removed from search and new bookings, and returned to the vendor to fix and resubmit. Existing reservations are kept. This note is shared with the vendor.'
+          : 'Explain your decision. This note will be shared with the vendor.',
+    });
     if (!notes) return;
     run(listing.id, async () => {
-      await api.admin.moderateListing(listing.id, decision, notes);
-      setListings((items) => items.filter((item) => item.id !== listing.id));
+      const updated = (await api.admin.moderateListing(listing.id, decision, notes)).data;
+      // Drop it from a status-filtered view once it no longer matches.
+      if (status !== 'all' && updated.status !== status) setRevision((value) => value + 1);
+      else replace(listing.id, { ...listing, ...updated });
     });
   };
 
   return (
-    <Panel title="Listings awaiting review" icon={FileText} error={error} loading={loading} empty={listings.length === 0 ? 'No listings are waiting for review.' : null}>
-      {listings.map((listing) => (
+    <Panel title="Hotels & homestays" icon={FileText} error={error ?? loadError} loading={loading}
+      empty={result?.data.length === 0 ? (query ? 'No listings match your search.' : status === 'submitted' ? 'No listings are waiting for review.' : `No ${listingStatusLabel(status as VendorListing['status']).toLowerCase()} listings.`) : null}
+      filter={
+        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+          <input type="search" aria-label="Search listings by name or location" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search name or location" className={`${selectClass} normal-case sm:w-56`} />
+          <select aria-label="Filter listings by status" value={status} onChange={(event) => setStatus(event.target.value as typeof status)} className={selectClass}>
+            {listingStatusTabs.map(([value, text]) => <option key={value} value={value}>{text}</option>)}
+          </select>
+        </div>
+      }>
+      {result?.pagination && <p className="pt-3 text-xs text-slate-500">{result.pagination.total} listing{result.pagination.total === 1 ? '' : 's'}</p>}
+      {result?.data.map((listing) => (
         <div key={listing.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-start">
           {listing.image && <img src={listing.image} alt="" className="h-20 w-28 shrink-0 rounded-md object-cover" />}
           <div className="min-w-0 flex-1 space-y-1">
-            <p className="font-semibold text-slate-900">{listing.title}</p>
-            <p className="text-xs text-slate-500">{label(listing.type)} · {listing.location} · from PKR {listing.price.toLocaleString()}/night · {listing.images.length} photo(s)</p>
-            <p className="line-clamp-3 text-xs text-slate-600">{listing.description}</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="font-semibold text-slate-900">{listing.title}</p>
+              <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${listingTone[listing.status]}`}>{listingStatusLabel(listing.status)}</span>
+            </div>
+            <p className="text-xs text-slate-500">{label(listing.type)} · {listing.location} · from PKR {listing.price.toLocaleString()}/night · {listing.images.length} photo(s){listing.vendorName ? ` · ${listing.vendorName}` : ''}</p>
+            {listing.rejectionReason && <p className="text-xs italic text-rose-700">Note to vendor: {listing.rejectionReason}</p>}
+            <button type="button" aria-expanded={reviewingId === listing.id} onClick={() => setReviewingId(reviewingId === listing.id ? null : listing.id)} className="min-h-11 text-xs font-semibold text-emerald-700 underline">{reviewingId === listing.id ? 'Close details' : 'Photos, policies & rooms'}</button>
+            {reviewingId === listing.id && <ListingReviewDetails listing={listing} />}
           </div>
           <div className="flex gap-2">
-            <button type="button" className={primaryButton} disabled={busyId === listing.id} onClick={() => decide(listing, 'published')}>Publish</button>
-            <button type="button" className={secondaryButton} disabled={busyId === listing.id} onClick={() => decide(listing, 'rejected')}>Reject</button>
+            {listing.status === 'submitted' && <>
+              <button type="button" className={primaryButton} disabled={busyId === listing.id} onClick={() => decide(listing, 'published')}>Publish</button>
+              <button type="button" className={secondaryButton} disabled={busyId === listing.id} onClick={() => decide(listing, 'rejected')}>Reject</button>
+            </>}
+            {(listing.status === 'published' || listing.status === 'paused') && <button type="button" className={secondaryButton} disabled={busyId === listing.id} onClick={() => decide(listing, 'rejected')}>Take down</button>}
           </div>
         </div>
       ))}
+      <div className="py-3"><Pager pagination={result?.pagination} onPage={setPage} /></div>
       {dialog}
     </Panel>
   );
@@ -388,7 +352,6 @@ export default function AdminDashboard({ roles, userName = 'Staff member', userE
   const allowed = tabs.filter((tab) => tabRoles[tab.id].some((role) => roles.includes(role)));
   const [tab, setTab] = useState<Tab | undefined>(allowed[0]?.id);
   const [signingOut, setSigningOut] = useState(false);
-  const { askReason, dialog } = useReviewDialog();
   const selected = allowed.find((item) => item.id === tab)?.id ?? allowed[0]?.id;
   const isAdmin = roles.some((role) => ['admin'].includes(role));
   const roleName = isAdmin ? 'Platform Admin' : 'Platform Employee';
@@ -419,13 +382,12 @@ export default function AdminDashboard({ roles, userName = 'Staff member', userE
             {selected === 'vendors' && <VendorsPanel />}
             {selected === 'listings' && <ListingsPanel />}
             {selected === 'users' && <UsersPanel roles={roles} />}
-            {selected === 'bookings' && <VendorReservations source={adminBookings} title="All bookings" requestCancellationReason={(booking) => askReason({ title: 'Cancel reservation', confirmLabel: 'Cancel reservation', destructive: true, description: `Explain why you are cancelling ${booking.reference ?? booking.id}. This note will be shared with the guest.` })} />}
+            {selected === 'bookings' && <VendorReservations source={adminBookings} title="All bookings" />}
             {selected === 'security' && <SecurityPanel />}
           </div>
           <p className="flex items-center gap-2 text-xs text-slate-400"><ArrowUpRight className="size-3" />GBBookings platform operations</p>
         </main>
       </div>
-      {dialog}
     </div>
   );
 }

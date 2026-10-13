@@ -23,7 +23,7 @@ public/         Static assets
 
 1. Copy `.env.example` to `.env` and set `MONGODB_URI`.
 2. Run `npm install`.
-3. Run `npm run dev`. This starts the API (port 3001, auto-restarts on change) and the frontend (port 3000) together.
+3. In two terminals, run `npm run dev:backend` (API, port 3001, auto-restarts on change) and `npm run dev:frontend` (frontend, port 3000).
 
 Open `http://localhost:3000`. Vite proxies `/api` to the backend. The API explorer is at `http://localhost:3001/api/docs`.
 
@@ -51,7 +51,6 @@ If startup says port `3000` or `3001` is already in use, an existing development
 ## Commands
 
 ```text
-npm run dev                 Start API + frontend together
 npm run dev:frontend        Frontend only (port 3000)
 npm run dev:backend         API only, with watch (port 3001)
 npm start                   API only, no watch
@@ -61,6 +60,14 @@ npm run start:production    Run the compiled server
 ```
 
 Create properties and room categories through the vendor workspace.
+
+All users share one signup/sign-in form. **List Property** opens the separate partner workspace: verify the account email, register the business, upload documents and submit for admin approval. Approved businesses can create hotels and rooms; each hotel then needs admin publication approval before guests can book it. Admins can inspect its photos, policies and room inventory from the listing review queue.
+
+Authentication checks: `node --import tsx --test server/tests/registration.test.ts server/tests/auth-flows.test.ts server/tests/api-session.test.ts`.
+
+Signup requires matching passwords, explicit acceptance of Terms/Privacy and email OTP verification. Passwords need at least eight characters with uppercase, lowercase, a number and a special character (maximum 72 bytes). `/auth/register` creates only a short-lived challenge containing hashed credentials; `/auth/register/verify-otp` creates the verified customer account after consuming the code. Resend must be configured for signup; email delivery failure never creates an account.
+
+For accounts with login OTP enabled, **Remember me for 7 days** creates an account-specific, hashed device token in an HttpOnly cookie after successful verification. The same browser can skip repeated OTP during those seven days while still providing its password at login. Ordinary logout preserves that device trust; password changes, password resets, account suspension and logout-all revoke it. The token cannot verify another account or a different browser user-agent, and reuse does not extend its expiry. Without Remember me, authentication cookies are browser-session cookies.
 
 ## Transactional email
 

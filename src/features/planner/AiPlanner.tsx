@@ -216,9 +216,9 @@ interface AiPlannerProps {
   onSelectListing: (listing: Listing) => void;
 }
 
-export default function AiPlanner({ setView, onSelectListing }: AiPlannerProps) {
+export default function AiPlanner({ onSelectListing }: AiPlannerProps) {
   const { listings } = useListings('all');
-  const { language, t, isRtl } = useLanguage();
+  const { isRtl } = useLanguage();
   const [destination, setDestination] = useState('Hunza Valley');
   const [budgetTier, setBudgetTier] = useState('Elite Luxury');
   const [budgetAmount, setBudgetAmount] = useState('150000');

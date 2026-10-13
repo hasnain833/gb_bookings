@@ -1,0 +1,18 @@
+export default function LegalPage({ policy }: { policy: 'terms' | 'privacy' }) {
+  const privacy = policy === 'privacy';
+  return <article className="mx-auto max-w-3xl space-y-6 rounded-xl border border-slate-200 bg-white p-6 text-sm leading-7 text-slate-600 sm:p-10">
+    <header><h1 className="text-2xl font-bold text-slate-900">{privacy ? 'Privacy Policy' : 'Terms of Use'}</h1><p className="mt-2 text-xs text-slate-500">Version: 13 October 2026</p></header>
+    {privacy ? <>
+      <section><h2 className="font-semibold text-slate-900">Information used by GBBookings</h2><p>We use your name, email address, contact details and booking information to manage your account and reservations. Property partners provide business information and verification documents for admin review.</p></section>
+      <section><h2 className="font-semibold text-slate-900">Account security and cookies</h2><p>Passwords are stored as hashes. We use cookies for sign-in sessions. If you choose “Remember me for 7 days,” a secure device token remembers completed login verification for that account and browser for seven days. Password changes and signing out all devices revoke remembered verification.</p></section>
+      <section><h2 className="font-semibold text-slate-900">Service providers and booking partners</h2><p>Account and reservation data is stored in our database. Resend delivers verification codes and account or booking emails. Cloudinary stores property photos and verification documents. Relevant guest and reservation details are available to the booked property and authorized platform staff.</p></section>
+      <section><h2 className="font-semibold text-slate-900">Verification and your choices</h2><p>Signup challenges expire if verification is not completed. You can update your profile and manage active sessions in account security. For questions about personal information or account deletion, contact <a className="text-emerald-700 underline" href="mailto:info@gbbookings.com">info@gbbookings.com</a>.</p></section>
+    </> : <>
+      <section><h2 className="font-semibold text-slate-900">Your account</h2><p>Provide accurate account and contact information. Confirm your email using the signup code before your account is created. Keep your password and verification codes private, and use only accounts you are authorized to access.</p></section>
+      <section><h2 className="font-semibold text-slate-900">Reservations and payment</h2><p>Review the property, room, dates, guests, displayed price and policies before requesting a reservation. Requests require confirmation by the property. The current hotel checkout uses payment at the property in PKR.</p></section>
+      <section><h2 className="font-semibold text-slate-900">Cancellations</h2><p>The current customer cancellation window closes on the check-in date in Pakistan. Contact the property or support for requests after that date. The reservation status and details are available in My Bookings.</p></section>
+      <section><h2 className="font-semibold text-slate-900">Property partners</h2><p>Property businesses must submit accurate registration information and verification documents for admin approval. Approved businesses can submit hotels and rooms; a hotel must be approved for publication before guests can book it.</p></section>
+      <section><h2 className="font-semibold text-slate-900">Contact</h2><p>For account, property or reservation questions, contact <a className="text-emerald-700 underline" href="mailto:info@gbbookings.com">info@gbbookings.com</a>. Read our <a className="text-emerald-700 underline" href="/privacy">Privacy Policy</a> for information about account and booking data.</p></section>
+    </>}
+  </article>;
+}

@@ -1,6 +1,8 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
-import { LoaderCircle, Plus } from 'lucide-react';
+import { CalendarDays, LoaderCircle, Plus } from 'lucide-react';
 import { api, type VendorListing, type VendorRoom, type VendorRoomInput } from '../../shared/api/api';
+import { useReasonDialog } from '../../shared/components/ReasonDialog';
+import RoomCalendar from './RoomCalendar';
 
 const inputClass = 'min-h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[#006F3C]';
 const primaryButton = 'min-h-11 rounded-md bg-[#006F3C] px-4 text-sm font-bold text-white disabled:opacity-50';
@@ -58,6 +60,8 @@ export default function RoomManager({ listing, onListingChange }: { listing: Ven
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  const [calendarId, setCalendarId] = useState<string | null>(null);
+  const { askReason, dialog } = useReasonDialog();
   const editable = listing.status === 'draft' || listing.status === 'rejected';
   const live = listing.status === 'published' || listing.status === 'paused';
 
@@ -89,6 +93,7 @@ export default function RoomManager({ listing, onListingChange }: { listing: Ven
 
   return (
     <div className="space-y-3 pb-2" aria-live="polite">
+      {dialog}
       {listing.status === 'rejected' && listing.rejectionReason && <p className="bg-rose-50 p-3 text-sm text-rose-700">Rejected: {listing.rejectionReason}</p>}
       {listing.status === 'submitted' && <p className="text-xs text-slate-500">Under review. Rooms can be changed again once the hotel is published or returned.</p>}
       {live && <p className="text-xs text-slate-500">This hotel is live: you can change prices, room counts and pause rooms. Other changes need a new review.</p>}
@@ -106,11 +111,12 @@ export default function RoomManager({ listing, onListingChange }: { listing: Ven
             {(editable || live) && editingId !== room.id && (
               <div className="flex flex-wrap gap-2">
                 <button type="button" className={secondaryButton} disabled={busy} onClick={() => setEditingId(room.id)}>Edit</button>
+                <button type="button" className={`${secondaryButton} inline-flex items-center gap-2`} aria-expanded={calendarId === room.id} onClick={() => setCalendarId(calendarId === room.id ? null : room.id)}><CalendarDays className="size-4" />{calendarId === room.id ? 'Close calendar' : 'Availability'}</button>
                 <button type="button" className={secondaryButton} disabled={busy} onClick={() => run(async () => {
                   replace(await api.updateHotelRoom(listing.id, room.id, { status: room.status === 'paused' ? 'active' : 'paused' }));
                 })}>{room.status === 'paused' ? 'Resume' : 'Pause'}</button>
-                {editable && <button type="button" className={secondaryButton} disabled={busy} onClick={() => {
-                  if (!window.confirm(`Remove "${room.name}"?`)) return;
+                {editable && <button type="button" className={secondaryButton} disabled={busy} onClick={async () => {
+                  if (await askReason({ title: `Remove "${room.name}"?`, destructive: true, confirmLabel: 'Remove room category', description: 'It is removed from this draft. You can add it again before submitting.' }) === null) return;
                   run(async () => {
                     await api.removeHotelRoom(listing.id, room.id);
                     setRooms((items) => items.filter((item) => item.id !== room.id));
@@ -119,6 +125,7 @@ export default function RoomManager({ listing, onListingChange }: { listing: Ven
               </div>
             )}
           </div>
+          {calendarId === room.id && <div className="mt-3"><RoomCalendar listingId={listing.id} room={room} /></div>}
           {editingId === room.id && (
             <div className="mt-3">
               <RoomForm initial={room} liveOnly={!editable} busy={busy} submitLabel="Save room" onCancel={() => setEditingId(null)}

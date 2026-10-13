@@ -7,7 +7,7 @@ export interface OtpDelivery {
   destination: string;
   recipientName?: string;
   code: string;
-  purpose: 'two_factor_login' | 'two_factor_setup' | 'email_verification' | 'phone_verification';
+  purpose: 'signup' | 'two_factor_login' | 'two_factor_setup' | 'email_verification' | 'phone_verification';
   expiresInMinutes: number;
 }
 

@@ -10,6 +10,8 @@ import { createRefreshToken, hashToken, signAccessToken } from './auth.tokens.js
 import { recordAuditEvent } from '../audit/audit.service.js';
 import { createOtpChallenge, consumeOtpChallenge } from '../otp/otp.service.js';
 import type { OtpChannel } from '../otp/otp-provider.js';
+import { TrustedDeviceModel } from '../../models/trusted-device.model.js';
+import { isTrustedDevice, rememberDevice, REMEMBER_DAYS } from './trusted-device.service.js';
 
 const PASSWORD_COST = 12;
 const MAX_FAILED_LOGINS = 5;
@@ -52,7 +54,7 @@ function publicUser(user: any) {
 
 export async function issueSession(user: any, rememberMe: boolean, metadata: SessionMetadata) {
   const refreshToken = createRefreshToken();
-  const ttlDays = rememberMe ? env.REMEMBER_ME_TTL_DAYS : env.REFRESH_TOKEN_TTL_DAYS;
+  const ttlDays = rememberMe ? REMEMBER_DAYS : env.REFRESH_TOKEN_TTL_DAYS;
   const expiresAt = new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000);
   const session = await SessionModel.create({
     userId: user._id,
@@ -70,6 +72,8 @@ export async function issueSession(user: any, rememberMe: boolean, metadata: Ses
     }),
     refreshToken,
     refreshExpiresAt: expiresAt,
+    sessionId: session.publicId,
+    rememberMe,
   };
 }
 
@@ -78,22 +82,40 @@ export async function registerUser(input: {
   email: string;
   phone?: string;
   password: string;
-  accountType?: 'customer' | 'vendor';
+  confirmPassword: string;
+  acceptTerms: true;
 }, metadata: SessionMetadata) {
   await requireDatabase();
 
   const existing = await UserModel.exists({ email: input.email, deletedAt: null });
   if (existing) throw new AppError(409, 'EMAIL_ALREADY_REGISTERED', 'An account already exists for this email address.');
 
+  const challenge = await createOtpChallenge({
+    channel: 'email', destination: input.email, recipientName: input.name, purpose: 'signup',
+    requestedIp: metadata.ipAddress,
+    registration: { name: input.name, email: input.email, phone: input.phone,
+      passwordHash: await bcrypt.hash(input.password, PASSWORD_COST), termsAcceptedAt: new Date(), policyVersion: '2026-10-13' },
+  });
+  return { requiresEmailVerification: true as const, ...challenge };
+}
+
+export async function completeRegistration(challengeId: string, code: string, metadata: SessionMetadata) {
+  await requireDatabase();
+  const challenge = await consumeOtpChallenge(challengeId, code, 'signup');
+  if (!challenge.registration) throw new AppError(400, 'INVALID_OR_EXPIRED_OTP', 'Please start signup again to request a new code.');
+  const registration = challenge.registration;
   try {
     const user = await UserModel.create({
-      name: input.name,
-      email: input.email,
-      phone: input.phone,
-      passwordHash: await bcrypt.hash(input.password, PASSWORD_COST),
-      roles: input.accountType === 'vendor' ? ['customer', 'vendor_owner'] : ['customer'],
+      name: registration.name,
+      email: registration.email,
+      phone: registration.phone,
+      passwordHash: registration.passwordHash,
+      termsAcceptedAt: registration.termsAcceptedAt,
+      policyVersion: registration.policyVersion,
+      emailVerifiedAt: new Date(),
+      roles: ['customer'],
     });
-    return { userId: String(user._id), user: publicUser(user), session: await issueSession(user, false, metadata) };
+    return { user: publicUser(user), session: await issueSession(user, false, metadata) };
   } catch (error: any) {
     if (error?.code === 11000) {
       throw new AppError(409, 'EMAIL_ALREADY_REGISTERED', 'An account already exists for this email address.');
@@ -105,6 +127,7 @@ export async function registerUser(input: {
 export async function loginUser(
   input: { email: string; password: string; rememberMe: boolean },
   metadata: SessionMetadata,
+  trustedDeviceToken?: string,
 ) {
   await requireDatabase();
   const user = await UserModel.findOne({ email: input.email, deletedAt: null })
@@ -152,7 +175,7 @@ export async function loginUser(
   user.failedLoginAttempts = 0;
   user.lockedUntil = null;
   await user.save();
-  if (user.twoFactor?.enabled) {
+  if (user.twoFactor?.enabled && !(input.rememberMe && await isTrustedDevice(String(user._id), trustedDeviceToken, metadata.userAgent))) {
     const challenge = await createOtpChallenge({
       userId: String(user._id),
       channel: user.twoFactor.channel,
@@ -184,11 +207,12 @@ export async function completeTwoFactorLogin(challengeId: string, code: string, 
     throw new AppError(401, 'AUTHENTICATION_REQUIRED', 'This two-factor challenge is no longer valid.');
   }
   const session = await issueSession(user, challenge.rememberMe, metadata);
+  const trustedDevice = challenge.rememberMe ? await rememberDevice(String(user._id), session.sessionId, metadata.userAgent) : undefined;
   await recordAuditEvent({
     actorId: String(user._id), actorType: 'user', action: 'auth.two_factor_login_succeeded',
     resourceType: 'session', ...metadata,
   });
-  return { user: publicUser(user), session };
+  return { user: publicUser(user), session, trustedDevice };
 }
 
 export async function refreshSession(rawRefreshToken: string, metadata: SessionMetadata) {
@@ -227,6 +251,7 @@ export async function refreshSession(rawRefreshToken: string, metadata: SessionM
       accessToken: signAccessToken({ sub: String(user._id), sid: rotated.publicId, roles: user.roles }),
       refreshToken,
       refreshExpiresAt: rotated.expiresAt,
+      rememberMe: Boolean(rotated.rememberMe),
     },
   };
 }
@@ -242,6 +267,7 @@ export async function revokeSession(rawRefreshToken?: string) {
 export async function revokeAllSessions(userId: string) {
   await requireDatabase();
   await SessionModel.updateMany({ userId, revokedAt: null }, { $set: { revokedAt: new Date() } });
+  await TrustedDeviceModel.deleteMany({ userId });
 }
 
 export async function getUserById(userId: string) {
@@ -361,6 +387,7 @@ export async function revokeUserSession(userId: string, sessionId: string, metad
     { returnDocument: 'after' },
   );
   if (!session) throw new AppError(404, 'SESSION_NOT_FOUND', 'Active session was not found.');
+  await TrustedDeviceModel.deleteMany({ userId, sessionId });
   await recordAuditEvent({
     actorId: userId, actorType: 'user', action: 'auth.session_revoked',
     resourceType: 'session', resourceId: sessionId, ...metadata,

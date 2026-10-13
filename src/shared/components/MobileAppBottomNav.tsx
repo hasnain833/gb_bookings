@@ -20,11 +20,8 @@ interface MobileAppBottomNavProps {
 export default function MobileAppBottomNav({
   currentView,
   setView,
-  isLoggedIn,
-  onOpenAuthModal,
-  unreadNotifications = false
 }: MobileAppBottomNavProps) {
-  const { t, isRtl } = useLanguage();
+  const { isRtl } = useLanguage();
 
   interface NavItem {
     id: string;

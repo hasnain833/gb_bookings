@@ -7,6 +7,8 @@ const roomNightSchema = new Schema({
   roomTypeId: { type: Schema.Types.ObjectId, ref: 'HotelRoomType', required: true },
   date: { type: String, required: true, match: /^\d{4}-\d{2}-\d{2}$/ },
   booked: { type: Number, required: true, min: 0, default: 0 },
+  // Rooms the property has taken out of sale that night (maintenance, private use). booked + closed never exceeds totalRooms.
+  closed: { type: Number, min: 0, default: 0 },
 }, { timestamps: true });
 
 roomNightSchema.index({ roomTypeId: 1, date: 1 }, { unique: true });

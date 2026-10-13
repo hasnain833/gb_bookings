@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { KeyRound, LoaderCircle, LogOut, MonitorSmartphone, ShieldCheck } from 'lucide-react';
 import { api, type AuthSession, type AuthUser } from '../../shared/api/api';
+import { PASSWORD_PATTERN, PASSWORD_REQUIREMENTS } from '../../shared/utils/password';
 
 export default function SecurityPanel() {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -96,8 +97,9 @@ export default function SecurityPanel() {
         catch (reason) { setMessage(reason instanceof Error ? reason.message : 'Unable to change password.'); setBusy(false); }
       }}>
         <h3 className="font-bold sm:col-span-2">Change password</h3>
+        <p className="text-xs leading-5 text-slate-500 sm:col-span-2">{PASSWORD_REQUIREMENTS}</p>
         <label className="text-xs font-semibold">Current password<input required type="password" autoComplete="current-password" className="mt-1 min-h-11 w-full rounded-md border border-slate-300 px-3" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} /></label>
-        <label className="text-xs font-semibold">New password<input required type="password" autoComplete="new-password" minLength={8} maxLength={72} pattern="(?=.*[A-Za-z])(?=.*[0-9]).{8,72}" title="Use 8–72 characters, including a letter and a number." className="mt-1 min-h-11 w-full rounded-md border border-slate-300 px-3" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} /></label>
+        <label className="text-xs font-semibold">New password<input required type="password" autoComplete="new-password" minLength={8} maxLength={72} pattern={PASSWORD_PATTERN} title={PASSWORD_REQUIREMENTS} className="mt-1 min-h-11 w-full rounded-md border border-slate-300 px-3" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} /></label>
         <button disabled={busy} className="min-h-11 rounded-md bg-[#006F3C] px-4 text-sm font-bold text-white sm:col-span-2">Change password and sign out all devices</button>
       </form>
 

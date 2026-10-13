@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { AlertCircle, CheckCircle2, KeyRound, LoaderCircle, X } from 'lucide-react';
 import { api } from '../../shared/api/api';
+import { isValidPassword, PASSWORD_REQUIREMENTS, PASSWORD_PATTERN } from '../../shared/utils/password';
 
 type Action = 'verify-email' | 'reset-password';
 
@@ -48,9 +49,9 @@ export default function AccountActionModal() {
 
   const submitReset = async (event: FormEvent) => {
     event.preventDefault();
-    if (password.length < 8 || !/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
+    if (!isValidPassword(password)) {
       setStatus('error');
-      setMessage('Use at least 8 characters with at least one letter and one number.');
+      setMessage(PASSWORD_REQUIREMENTS);
       return;
     }
     if (password !== confirmation) {
@@ -109,7 +110,8 @@ export default function AccountActionModal() {
             {message && <p className="rounded-md bg-rose-50 p-3 text-sm text-rose-700">{message}</p>}
             <label className="block text-sm font-semibold text-slate-700">
               New password
-              <input type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} className="mt-1 min-h-11 w-full rounded-md border border-slate-300 px-3 outline-none focus:border-[#006F3C]" required />
+              <input type="password" autoComplete="new-password" minLength={8} maxLength={72} pattern={PASSWORD_PATTERN} title={PASSWORD_REQUIREMENTS} value={password} onChange={(event) => setPassword(event.target.value)} className="mt-1 min-h-11 w-full rounded-md border border-slate-300 px-3 outline-none focus:border-[#006F3C]" required />
+              <p className="mt-2 text-xs leading-5 text-slate-500">{PASSWORD_REQUIREMENTS}</p>
             </label>
             <label className="block text-sm font-semibold text-slate-700">
               Confirm password

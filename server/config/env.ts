@@ -21,7 +21,8 @@ const envSchema = z.object({
   JWT_ACCESS_SECRET: z.string().min(32).default('development-only-access-secret-change-me'),
   ACCESS_TOKEN_TTL_MINUTES: z.coerce.number().int().min(5).max(60).default(15),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(7),
-  REMEMBER_ME_TTL_DAYS: z.coerce.number().int().min(1).max(365).default(30),
+  // Legacy setting accepted; remembered login/device trust is fixed at seven days.
+  REMEMBER_ME_TTL_DAYS: z.coerce.number().int().min(1).max(365).default(7),
   EMAIL_VERIFICATION_TTL_MINUTES: z.coerce.number().int().min(5).max(1440).default(60),
   PASSWORD_RESET_TTL_MINUTES: z.coerce.number().int().min(5).max(120).default(30),
   OTP_TTL_MINUTES: z.coerce.number().int().min(2).max(30).default(10),
@@ -34,6 +35,8 @@ const envSchema = z.object({
   CLOUDINARY_API_SECRET: optionalString(z.string().min(1)),
   MEDIA_MAX_FILE_MB: z.coerce.number().int().min(1).max(25).default(10),
   GEMINI_API_KEY: optionalString(z.string().min(1)),
+  // Hours a property has to accept or decline a booking request before it expires and the rooms are released.
+  PENDING_BOOKING_HOURS: z.coerce.number().int().min(1).max(168).default(24),
   VERCEL: z.string().optional(),
 });
 

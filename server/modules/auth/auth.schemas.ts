@@ -1,19 +1,20 @@
 import { z } from 'zod';
+import { isValidPassword, PASSWORD_REQUIREMENTS } from '../../../src/shared/utils/password.js';
 
 const email = z.string().trim().toLowerCase().email().max(254);
 const password = z.string()
   .min(8)
   .max(72)
-  .regex(/[A-Za-z]/, 'Password must contain at least one letter.')
-  .regex(/[0-9]/, 'Password must contain at least one number.');
+  .refine(isValidPassword, `${PASSWORD_REQUIREMENTS} Maximum 72 bytes.`);
 
 export const registerSchema = z.object({
   name: z.string().trim().min(2).max(120),
   email,
   phone: z.string().trim().min(7).max(30).optional(),
   password,
-  accountType: z.enum(['customer', 'vendor']).default('customer'),
-}).strict();
+  confirmPassword: z.string(),
+  acceptTerms: z.literal(true, { error: 'Please accept the Terms and Privacy Policy to continue.' }),
+}).strict().refine((input) => input.password === input.confirmPassword, { message: 'Passwords do not match.', path: ['confirmPassword'] });
 
 export const loginSchema = z.object({
   email,

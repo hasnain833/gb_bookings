@@ -1,566 +1,138 @@
-import React, { useState, useEffect } from 'react';
-import { Booking, Notification, WalletTransaction, Listing, handleImageError } from '../../types';
-import { useLanguage } from '../../app/LanguageContext';
-import { DashboardSkeleton } from '../../shared/components/SkeletonLoader';
-import { Calendar, Wallet, Award, Share2, Printer, AlertTriangle, Bell, Check, Trash, Heart, Eye, MapPin, X, ShieldCheck } from 'lucide-react';
-import { useBodyScrollLock } from '../../shared/utils/scrollLock';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { ArrowRight, CalendarDays, ChevronLeft, ChevronRight, Heart, LoaderCircle, MapPin, RefreshCw, ShieldCheck, Star, Trash2, Users, X } from 'lucide-react';
+import type { Booking, Listing } from '../../types';
+import { handleImageError } from '../../types';
 import { api, type Paginated } from '../../shared/api/api';
+import { formatDateForDisplay } from '../../shared/utils/date';
+import { useBodyScrollLock } from '../../shared/utils/scrollLock';
 import SecurityPanel from './SecurityPanel';
 
 interface UserDashboardProps {
-  userEmail: string;
-  userName?: string;
-  setView: (v: string) => void;
-  onSelectBooking: (booking: Booking) => void;
-  onSelectListing: (listing: Listing) => void;
+  userEmail: string; userName?: string; setView: (view: string) => void;
+  onSelectBooking: (booking: Booking) => void; onSelectListing: (listing: Listing) => void;
 }
+type Tab = 'bookings' | 'saved' | 'security';
+const tabs = [
+  { id: 'bookings', label: 'My bookings', icon: CalendarDays },
+  { id: 'saved', label: 'Saved stays', icon: Heart },
+  { id: 'security', label: 'Account & security', icon: ShieldCheck },
+] as const;
+const statusLabels: Record<Booking['status'], string> = {
+  pending: 'Awaiting confirmation', confirmed: 'Confirmed', completed: 'Completed', cancelled: 'Cancelled', no_show: 'No-show',
+};
+const statusColors: Record<Booking['status'], string> = {
+  pending: 'bg-amber-50 text-amber-800', confirmed: 'bg-emerald-50 text-emerald-800',
+  completed: 'bg-slate-100 text-slate-600', cancelled: 'bg-rose-50 text-rose-700', no_show: 'bg-slate-100 text-slate-600',
+};
+const primaryButton = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#006F3C] px-4 text-sm font-semibold text-white hover:bg-[#005c32] disabled:opacity-50';
+const secondaryButton = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50';
+const money = (amount: number) => 'PKR ' + amount.toLocaleString('en-PK', { maximumFractionDigits: 2 });
 
 export default function UserDashboard({ userEmail, userName, setView, onSelectBooking, onSelectListing }: UserDashboardProps) {
-  const { language, t, isRtl } = useLanguage();
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
-  const [wishlistItems, setWishlistItems] = useState<Listing[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'trips' | 'wishlist' | 'wallet' | 'rewards' | 'notifications' | 'security'>('trips');
-  const [cancelBookingConfirmId, setCancelBookingConfirmId] = useState<string | null>(null);
-  const [cancellingInProgress, setCancellingInProgress] = useState(false);
-  const [cancelError, setCancelError] = useState<string | null>(null);
-  const [dataError, setDataError] = useState<string | null>(null);
+  const [tab, setTab] = useState<Tab>('bookings');
+  const [status, setStatus] = useState<Booking['status'] | ''>('');
   const [page, setPage] = useState(1);
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [pagination, setPagination] = useState<Paginated<Booking>['pagination'] | null>(null);
-
-  useBodyScrollLock(!!cancelBookingConfirmId);
-
-  const loadDashboardData = async () => {
-    setLoading(true);
-    setDataError(null);
-    try {
-      const [bookingResult, notificationResult, transactionResult, wishlistResult] = await Promise.allSettled([
-        api.getBookingsPage(page),
-        api.getNotifications(),
-        api.getWalletTransactions(),
-        api.getWishlist(),
-      ]);
-
-      setBookings(bookingResult.status === 'fulfilled'
-        ? bookingResult.value.data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        : []);
-      setPagination(bookingResult.status === 'fulfilled' ? bookingResult.value.pagination : null);
-      if (bookingResult.status === 'rejected') setDataError(bookingResult.reason instanceof Error ? bookingResult.reason.message : 'Unable to load booking history.');
-      setNotifications(notificationResult.status === 'fulfilled' ? notificationResult.value : []);
-      setTransactions(transactionResult.status === 'fulfilled' ? transactionResult.value : []);
-      setWishlistItems(wishlistResult.status === 'fulfilled' ? wishlistResult.value : []);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [bookingLoading, setBookingLoading] = useState(true);
+  const [bookingError, setBookingError] = useState('');
+  const [saved, setSaved] = useState<Listing[]>([]);
+  const [savedLoading, setSavedLoading] = useState(true);
+  const [savedError, setSavedError] = useState('');
+  const [reload, setReload] = useState(0);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  const [cancelBooking, setCancelBooking] = useState<Booking | null>(null);
+  const [cancelBusy, setCancelBusy] = useState(false);
+  const [cancelError, setCancelError] = useState('');
+  const cancelLock = useRef(false);
+  const name = userName || userEmail.split('@')[0] || 'Traveler';
+  const initials = name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Karachi' }).format(new Date());
 
   useEffect(() => {
-    loadDashboardData();
-  }, [userEmail, activeTab, page]);
+    let active = true;
+    setBookingLoading(true); setBookingError('');
+    api.getBookingsPage(page, status || undefined).then((result) => {
+      if (!active) return;
+      if (page > Math.max(1, result.pagination.pages)) { setPage(Math.max(1, result.pagination.pages)); return; }
+      setBookings(result.data); setPagination(result.pagination);
+    }).catch((reason) => { if (active) setBookingError(reason instanceof Error ? reason.message : 'We couldn’t load your bookings. Please try again.'); })
+      .finally(() => { if (active) setBookingLoading(false); });
+    return () => { active = false; };
+  }, [page, status, reload, userEmail]);
 
-  // Cancel Booking Action
-  const handleCancelBooking = async (bookingId: string) => {
-    try {
-      setCancellingInProgress(true);
-      setCancelError(null);
-      await api.cancelBooking(bookingId, 'Cancelled by guest');
-      setCancelBookingConfirmId(null);
-      await loadDashboardData();
-    } catch (reason) {
-      setCancelError(reason instanceof Error ? reason.message : 'The booking could not be cancelled.');
-    } finally {
-      setCancellingInProgress(false);
-    }
+  useEffect(() => {
+    let active = true;
+    setSavedLoading(true); setSavedError('');
+    api.getWishlist().then((items) => { if (active) setSaved(items); })
+      .catch((reason) => { if (active) setSavedError(reason instanceof Error ? reason.message : 'We couldn’t load your saved stays. Please try again.'); })
+      .finally(() => { if (active) setSavedLoading(false); });
+    return () => { active = false; };
+  }, [reload, userEmail]);
+
+  const removeSaved = async (id: string) => {
+    setRemovingId(id); setSavedError('');
+    try { await api.removeWishlistItem(id); setSaved((items) => items.filter((item) => item.id !== id)); }
+    catch (reason) { setSavedError(reason instanceof Error ? reason.message : 'Unable to remove this saved stay.'); }
+    finally { setRemovingId(null); }
+  };
+  const confirmCancellation = async (reason: string) => {
+    if (!cancelBooking || cancelLock.current) return;
+    cancelLock.current = true; setCancelBusy(true); setCancelError('');
+    try { await api.cancelBooking(cancelBooking.id, reason.trim() || 'Cancelled by guest'); setCancelBooking(null); setReload((value) => value + 1); }
+    catch (error) { setCancelError(error instanceof Error ? error.message : 'We couldn’t cancel this booking. Please try again.'); }
+    finally { cancelLock.current = false; setCancelBusy(false); }
   };
 
-  // Mirrors the server rule: guests can cancel pending/confirmed stays before the check-in date.
-  const todayPk = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Karachi' }).format(new Date());
-  const canCancel = (booking: Booking) => ['pending', 'confirmed'].includes(booking.status) && todayPk < booking.startDate;
-
-  // Mark Notification as read
-  const handleReadNotification = async (notifId: string) => {
-    try {
-      const res = await fetch(`/api/notifications/${notifId}/read`, {
-        method: 'POST'
-      });
-      if (res.ok) {
-        setNotifications(notifications.map(n => n.id === notifId ? { ...n, read: true } : n));
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleRemoveWishlistItem = async (listingId: string) => {
-    try {
-      await api.removeWishlistItem(listingId);
-      setWishlistItems((items) => items.filter((item) => item.id !== listingId));
-    } catch (reason) {
-      console.error(reason);
-    }
-  };
-
-  const activeBookingsCount = bookings.filter(b => b.status === 'pending' || b.status === 'confirmed').length;
-  const displayName = userName || (userEmail ? userEmail.split('@')[0] : 'Traveler');
-  const userInitials = displayName
-    .split(' ')
-    .map(n => n[0])
-    .join('')
-    .substring(0, 2)
-    .toUpperCase() || 'GB';
-
-  return (
-    <div id="user-dashboard-view" className="space-y-8 pb-16">
-      
-      {/* Header Profile Summary */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 sm:gap-6 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-xs" id="user-profile-header">
-        <div className="flex items-center space-x-3.5 sm:space-x-4">
-          <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg bg-[#0F172A] flex items-center justify-center font-bold text-white text-xl sm:text-2xl shadow-xs shrink-0">
-            {userInitials}
-          </div>
-          <div className="min-w-0">
-            <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 flex flex-wrap items-center gap-2 uppercase tracking-tight">
-              <span>{displayName}</span>
-            </h2>
-            <p className="text-xs text-slate-500 mt-0.5 truncate">{userEmail}</p>
-          </div>
-        </div>
-
-        {/* Dynamic Metric cards inside Header */}
-        <div className="grid grid-cols-2 min-[480px]:grid-cols-3 gap-2.5 sm:gap-4" id="dashboard-metrics-summary">
-          <div className="bg-slate-50 border border-slate-200 p-3 sm:p-3.5 rounded-lg text-center shadow-xs">
-            <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Active on this page</span>
-            <span className="text-xs sm:text-sm font-bold text-slate-800 mt-0.5 sm:mt-1 block font-mono">{activeBookingsCount} Active</span>
-          </div>
-          <div className="bg-slate-50 border border-slate-200 p-3 sm:p-3.5 rounded-lg text-center shadow-xs">
-            <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Wallet Balance</span>
-            <span className="text-xs sm:text-sm font-bold text-indigo-600 mt-0.5 sm:mt-1 block font-mono">Coming soon</span>
-          </div>
-          <div className="col-span-2 min-[480px]:col-span-1 bg-slate-50 border border-slate-200 p-3 sm:p-3.5 rounded-lg text-center shadow-xs">
-            <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Loyalty Coins</span>
-            <span className="text-xs sm:text-sm font-bold text-amber-600 mt-0.5 sm:mt-1 block font-mono">Coming soon</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Tabs Controller */}
-      <div className="flex border-b border-slate-200 pb-1.5 space-x-3 sm:space-x-6 overflow-x-auto touch-scroll-x scrollbar-none" id="dashboard-tabs-bar">
-        {[
-          { id: 'trips', label: 'My Bookings', icon: Calendar },
-          { id: 'wishlist', label: 'Saved Wishlist', icon: Heart, count: wishlistItems.length },
-          { id: 'wallet', label: 'My Wallet', icon: Wallet },
-          { id: 'rewards', label: 'Rewards & Referrals', icon: Award },
-          { id: 'notifications', label: 'Alerts', icon: Bell, count: notifications.filter(n => !n.read).length },
-          { id: 'security', label: 'Security', icon: ShieldCheck }
-        ].map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              id={`tab-dash-${tab.id}`}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`min-h-[44px] px-2 sm:px-3 pb-3 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center space-x-2 relative whitespace-nowrap shrink-0 ${
-                isActive ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-900'
-              }`}
-            >
-              <Icon className="w-4 h-4 shrink-0" />
-              <span>{tab.label}</span>
-              {tab.count !== undefined && tab.count > 0 && (
-                <span className="bg-rose-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full font-mono">{tab.count}</span>
-              )}
-              {isActive && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 rounded-full" />
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {loading ? (
-        <DashboardSkeleton />
-      ) : (
-        <div id="dashboard-active-pane">
-          
-          {/* TAB 1: Trips and bookings */}
-          {activeTab === 'trips' && (
-            <div className="space-y-4 animate-fadeIn" id="dash-trips-pane">
-              {dataError ? <div role="alert" className="rounded-lg bg-rose-50 p-5 text-sm text-rose-700">{dataError}<button type="button" onClick={() => void loadDashboardData()} className="ml-3 font-semibold underline">Retry</button></div> : bookings.length === 0 ? (
-                <div className="bg-white rounded-2xl p-12 text-center border border-slate-200 shadow-xs">
-                  <p className="text-sm text-slate-500 font-medium">You have no booking coordinates registered on this email yet.</p>
-                  <button 
-                    id="btn-dash-empty-browse"
-                    onClick={() => setView('explore')} 
-                    className="mt-4 bg-[#0F172A] hover:bg-slate-800 text-white font-bold px-5 py-2.5 rounded-lg text-xs uppercase tracking-wider shadow-xs"
-                  >
-                    Browse Pakistan Destinations
-                  </button>
-                </div>
-              ) : (
-                bookings.map((booking) => (
-                  <div
-                    key={booking.id}
-                    id={`dash-booking-card-${booking.id}`}
-                    className="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col md:flex-row shadow-xs"
-                  >
-                    {/* Thumbnail */}
-                    <img src={booking.listingImage} alt="" className="w-full md:w-44 h-32 md:h-auto object-cover shrink-0 rounded-t-2xl md:rounded-tr-none md:rounded-l-2xl" referrerPolicy="no-referrer" onError={handleImageError} />
-
-                    {/* Metadata Content */}
-                    <div className="p-5 flex-1 flex flex-col md:flex-row justify-between gap-6">
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-100 border border-slate-200 text-slate-600 px-2 py-0.5 rounded">
-                            ID: {booking.id}
-                          </span>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider border ${
-                            booking.status === 'confirmed' ? 'bg-indigo-50 border-indigo-100 text-indigo-600' :
-                            booking.status === 'pending' ? 'bg-amber-50 border-amber-100 text-amber-700' :
-                            'bg-rose-50 border-rose-100 text-rose-600'
-                          }`}>
-                            {booking.status}
-                          </span>
-                        </div>
-                        <h4 className="text-base font-bold text-[#0F172A] uppercase tracking-tight">{booking.listingTitle}</h4>
-                        <p className="text-xs text-slate-500 flex items-center">
-                          <Calendar className="w-3.5 h-3.5 mr-1 text-indigo-600" />
-                          <span>{booking.startDate} to {booking.endDate} • {booking.duration} days</span>
-                        </p>
-                      </div>
-
-                      <div className="flex flex-col justify-between items-start md:items-end gap-3 shrink-0 w-full md:w-auto">
-                        <div className="text-left md:text-right w-full">
-                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Booking Total</span>
-                          <span className="text-base font-bold text-slate-800">PKR {booking.totalPrice.toLocaleString()}</span>
-                          <span className="text-[10px] text-slate-500 font-medium block capitalize">
-                            Via {booking.paymentMethod === 'pay_at_hotel' ? 'Pay at Hotel' : `${booking.paymentMethod} Payment`}
-                          </span>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-                          <button
-                            id={`btn-dash-view-${booking.id}`}
-                            onClick={() => onSelectBooking(booking)}
-                            className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-3.5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer flex items-center gap-1.5 shadow-xs min-h-[44px]"
-                          >
-                            <Printer className="w-4 h-4 text-slate-400 shrink-0" />
-                            <span>Reservation</span>
-                          </button>
-
-                          {canCancel(booking) && (
-                            <button
-                              id={`btn-dash-cancel-${booking.id}`}
-                              onClick={() => setCancelBookingConfirmId(booking.id)}
-                              className="bg-rose-50 border border-rose-100 text-rose-600 hover:bg-rose-100 px-3.5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer flex items-center gap-1.5 min-h-[44px]"
-                            >
-                              <AlertTriangle className="w-4 h-4 shrink-0" />
-                              <span>Cancel Trip</span>
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
-
-          {activeTab === 'trips' && pagination && pagination.pages > 1 && <nav aria-label="Booking history pages" className="my-4 flex items-center justify-end gap-3 text-sm"><button disabled={loading || page <= 1} onClick={() => setPage((value) => value - 1)} className="min-h-11 rounded border px-4 disabled:opacity-50">Previous</button><span>Page {pagination.page} of {pagination.pages}</span><button disabled={loading || page >= pagination.pages} onClick={() => setPage((value) => value + 1)} className="min-h-11 rounded border px-4 disabled:opacity-50">Next</button></nav>}
-
-          {/* TAB 1.5: Airbnb Style Saved Wishlist Panel (Airbnb Feature) */}
-          {activeTab === 'wishlist' && (
-            <div className="space-y-4 animate-fadeIn" id="dash-wishlist-pane">
-              {wishlistItems.length === 0 ? (
-                <div className="bg-white rounded-2xl p-12 text-center border border-slate-200 shadow-xs">
-                  <Heart className="w-10 h-10 text-rose-400 mx-auto mb-3" />
-                  <p className="text-sm text-slate-500 font-medium">Your wishlist is empty. Tap the heart icon on properties to save them here.</p>
-                  <button 
-                    id="btn-wishlist-empty-browse"
-                    onClick={() => setView('explore')} 
-                    className="mt-4 bg-[#0F172A] hover:bg-slate-800 text-white font-bold px-5 py-2.5 rounded-lg text-xs uppercase tracking-wider shadow-xs"
-                  >
-                    Discover Stays
-                  </button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="wishlist-properties-grid">
-                  {wishlistItems.map((item) => (
-                    <div 
-                      key={item.id} 
-                      className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col"
-                      id={`wishlist-item-card-${item.id}`}
-                    >
-                      <div className="relative aspect-[4/3] bg-slate-100">
-                        <img 
-                          src={item.image} 
-                          alt={item.title} 
-                          className="w-full h-full object-cover rounded-t-2xl" 
-                          referrerPolicy="no-referrer"
-                          onError={handleImageError}
-                        />
-                        <button
-                          id={`btn-remove-wishlist-dash-${item.id}`}
-                          onClick={() => handleRemoveWishlistItem(item.id)}
-                          className="absolute top-3 right-3 p-2 bg-white/95 backdrop-blur-xs text-rose-600 hover:text-rose-700 rounded-full shadow-md cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center transition-transform hover:scale-105"
-                          title="Remove from favorites"
-                          aria-label="Remove from favorites"
-                        >
-                          <Trash className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                      <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[9px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded">
-                              {item.type}
-                            </span>
-                            <span className="text-slate-800 font-bold text-xs flex items-center gap-0.5">
-                              ★ {item.rating}
-                            </span>
-                          </div>
-                          <h4 className="text-sm font-extrabold text-slate-950 uppercase tracking-tight line-clamp-1">{item.title}</h4>
-                          <p className="text-[10px] text-slate-400 font-bold uppercase flex items-center gap-0.5"><MapPin className="w-3 h-3 text-rose-500 shrink-0" /> {item.location}</p>
-                        </div>
-
-                        <div className="flex items-center justify-between border-t border-slate-100 pt-3 gap-2">
-                          <div className="min-w-0">
-                            <span className="text-[9px] text-slate-400 font-bold uppercase block tracking-wider truncate">Starting Rate</span>
-                            <span className="text-xs font-mono font-extrabold text-slate-800">PKR {item.price.toLocaleString()}</span>
-                          </div>
-                          
-                          <button
-                            id={`btn-wishlist-view-details-${item.id}`}
-                            onClick={() => onSelectListing(item)}
-                            className="bg-[#0F172A] hover:bg-slate-800 text-white font-bold py-2.5 px-3.5 rounded-xl text-[10px] uppercase tracking-wider flex items-center gap-1.5 cursor-pointer min-h-[44px] shrink-0 shadow-xs"
-                          >
-                            <Eye className="w-3.5 h-3.5 shrink-0" /> <span>View Stay</span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* TAB 2: Wallet Details */}
-          {activeTab === 'wallet' && (
-            <div className="space-y-6 animate-fadeIn" id="dash-wallet-pane">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                {/* Credit balance card */}
-                <div className="bg-white border border-slate-200 p-5 sm:p-6 flex flex-col justify-between min-h-48 sm:h-48 rounded-2xl shadow-xs space-y-4 sm:space-y-0">
-                  <div>
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Traveler Virtual Wallet</span>
-                    <span className="text-2xl sm:text-3xl font-bold text-[#0F172A] mt-2 block font-mono">PKR 0</span>
-                  </div>
-                  <div className="flex flex-wrap gap-2.5 sm:space-x-2">
-                    <button id="btn-topup-wallet" disabled className="bg-slate-300 text-slate-600 font-bold py-2.5 px-4 rounded-xl text-xs uppercase tracking-wider cursor-not-allowed shadow-xs min-h-[44px] flex items-center justify-center">
-                      Top-Up Balance
-                    </button>
-                    <button id="btn-withdraw-wallet" disabled className="bg-white border border-slate-200 text-slate-400 font-bold py-2.5 px-4 rounded-xl text-xs uppercase tracking-wider cursor-not-allowed shadow-xs min-h-[44px] flex items-center justify-center">
-                      Cash-Out
-                    </button>
-                  </div>
-                </div>
-
-                {/* Loyalty Tier details */}
-                <div className="bg-white border border-slate-200 p-6 space-y-4 rounded-2xl shadow-xs">
-                  <h4 className="font-bold text-[#0F172A] text-sm uppercase tracking-wider flex items-center"><Award className="w-4 h-4 mr-1 text-amber-500" /> Gold Tier Privileges</h4>
-                  <ul className="space-y-2 text-xs text-slate-600 font-medium">
-                    <li className="flex items-center"><Check className="w-3.5 h-3.5 text-indigo-600 mr-2 shrink-0" /> Late 2:00 PM checkout priority</li>
-                    <li className="flex items-center"><Check className="w-3.5 h-3.5 text-indigo-600 mr-2 shrink-0" /> Free airport shuttle transfers in Islamabad / Skardu</li>
-                    <li className="flex items-center"><Check className="w-3.5 h-3.5 text-indigo-600 mr-2 shrink-0" /> Double referral bonuses</li>
-                  </ul>
-                </div>
-              </div>
-
-              {/* Transaction Logs */}
-              <div className="space-y-3" id="dash-wallet-transactions">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Transaction Records</h4>
-                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{transactions.length} Total</span>
-                </div>
-                <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden divide-y divide-slate-100 shadow-xs">
-                  {transactions.map((tx) => (
-                    <div key={tx.id} className="p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 text-xs hover:bg-slate-50/50 transition-colors" id={`tx-item-${tx.id}`}>
-                      <div className="min-w-0 flex-1">
-                        <p className="font-bold text-slate-900 text-xs sm:text-sm truncate">{tx.description}</p>
-                        <p className="text-[10px] text-slate-400 font-medium mt-0.5">{tx.createdAt} • ID: <span className="font-mono">{tx.id}</span></p>
-                      </div>
-                      <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center shrink-0 pt-1 sm:pt-0 border-t sm:border-t-0 border-slate-50">
-                        <span className={`font-mono font-bold text-xs sm:text-sm ${tx.type === 'deposit' ? 'text-emerald-600' : 'text-slate-800'}`}>
-                          {tx.type === 'deposit' ? '+' : '-'} PKR {tx.amount.toLocaleString()}
-                        </span>
-                        <span className={`inline-block text-[9px] uppercase font-bold px-1.5 py-0.5 rounded mt-0.5 ${
-                          tx.status === 'completed' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-100 text-slate-600'
-                        }`}>
-                          {tx.status}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 3: Rewards & Referral Link */}
-          {activeTab === 'rewards' && (
-            <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 space-y-5 sm:space-y-6 shadow-xs animate-fadeIn" id="dash-rewards-pane">
-              <div className="space-y-2">
-                <h3 className="text-lg sm:text-xl font-bold text-[#0F172A] uppercase tracking-tight">Invite Friends, Travel for Free</h3>
-                <p className="text-xs text-slate-500 leading-relaxed font-medium">
-                  Refer your peers to GBBookings. When they book their first luxury Hunza stay, we credit PKR 5,000 instantly into your virtual wallet and award them 10% off.
-                </p>
-              </div>
-
-              {/* Referral Code link */}
-              <div className="bg-slate-50 border border-slate-200 p-3.5 sm:p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs" id="referral-box">
-                <div className="min-w-0">
-                  <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Personal Referral Code</span>
-                  <span className="text-xs sm:text-sm font-bold text-slate-700 mt-1 block truncate">https://gbbookings.com/invite/AR105</span>
-                </div>
-                <button
-                  id="btn-copy-referral"
-                  onClick={() => {
-                    alert('Referral invitation code copied to clipboard!');
-                  }}
-                  className="bg-[#0F172A] hover:bg-slate-800 text-white font-bold py-2.5 px-4 rounded-lg text-xs uppercase tracking-wider flex items-center justify-center space-x-1.5 cursor-pointer shadow-xs shrink-0"
-                >
-                  <Share2 className="w-3.5 h-3.5" />
-                  <span>Copy Code</span>
-                </button>
-              </div>
-
-              {/* Rewards metrics */}
-              <div className="grid grid-cols-1 min-[480px]:grid-cols-3 gap-3 sm:gap-4 text-center" id="referral-metrics">
-                <div className="bg-slate-50 p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-xs">
-                  <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Total Referred</span>
-                  <span className="text-base sm:text-lg font-bold text-[#0F172A] mt-1 block font-mono">12 Friends</span>
-                </div>
-                <div className="bg-slate-50 p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-xs">
-                  <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Bookings Cleared</span>
-                  <span className="text-base sm:text-lg font-bold text-[#0F172A] mt-1 block font-mono">1 Approved</span>
-                </div>
-                <div className="bg-slate-50 p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-xs">
-                  <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Total Earnings</span>
-                  <span className="text-base sm:text-lg font-bold text-indigo-600 mt-1 block font-mono">PKR 5,000</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 4: Alerts and Notifications */}
-          {activeTab === 'notifications' && (
-            <div className="space-y-4 animate-fadeIn" id="dash-notifications-pane">
-              {notifications.length === 0 ? (
-                <p className="text-xs text-slate-500 text-center py-8 font-medium">No current notification alerts.</p>
-              ) : (
-                notifications.map((notif) => (
-                  <div
-                    key={notif.id}
-                    id={`notif-card-${notif.id}`}
-                    className={`p-4 rounded-xl border flex items-start justify-between gap-4 transition-all shadow-xs ${
-                      notif.read 
-                        ? 'bg-white border-slate-200 text-slate-500' 
-                        : 'bg-indigo-50/30 border-indigo-100 text-slate-800'
-                    }`}
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center space-x-2">
-                        <span className={`w-1.5 h-1.5 rounded-full ${notif.read ? 'bg-slate-400' : 'bg-indigo-600'}`} />
-                        <h4 className="text-xs font-bold text-[#0F172A] uppercase tracking-wider">{notif.title}</h4>
-                      </div>
-                      <p className="text-[11px] leading-relaxed font-medium">{notif.message}</p>
-                      <p className="text-[9px] text-slate-400 font-bold uppercase">{new Date(notif.createdAt).toLocaleTimeString()}</p>
-                    </div>
-
-                    {!notif.read && (
-                      <button
-                        id={`btn-read-notif-${notif.id}`}
-                        onClick={() => handleReadNotification(notif.id)}
-                        className="bg-[#0F172A] hover:bg-slate-800 text-white p-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider cursor-pointer flex items-center justify-center"
-                      >
-                        Mark Read
-                      </button>
-                    )}
-                  </div>
-                ))
-              )}
-            </div>
-          )}
-
-          {activeTab === 'security' && <SecurityPanel />}
-
-        </div>
-      )}
-
-      {/* Cancel Booking Confirmation Modal Dialog */}
-      {cancelBookingConfirmId && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150 touch-none overscroll-none"
-          id="modal-cancel-booking-confirmation"
-          onClick={() => !cancellingInProgress && setCancelBookingConfirmId(null)}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md bg-white rounded-2xl sm:rounded-3xl border border-slate-200 shadow-2xl p-5 sm:p-6 space-y-4 text-left animate-in zoom-in-95 duration-150 max-h-[calc(100vh-2rem)] overflow-y-auto"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600 shrink-0">
-                <AlertTriangle className="w-6 h-6" />
-              </div>
-              <button
-                type="button"
-                aria-label="Close dialog"
-                disabled={cancellingInProgress}
-                onClick={() => setCancelBookingConfirmId(null)}
-                className="w-9 h-9 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-1.5">
-              <h3 className="text-base sm:text-lg font-black text-slate-900">
-                Cancel Trip Reservation?
-              </h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Are you sure you want to cancel booking <span className="font-mono font-bold text-slate-800">{bookings.find((booking) => booking.id === cancelBookingConfirmId)?.reference ?? cancelBookingConfirmId}</span>? The room will be released. Nothing was charged, so no refund is needed.
-              </p>
-              {cancelError && <p id="cancel-booking-error" role="alert" className="mt-2 text-xs font-bold text-rose-600">{cancelError}</p>}
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 border-t border-slate-100">
-              <button
-                type="button"
-                disabled={cancellingInProgress}
-                onClick={() => setCancelBookingConfirmId(null)}
-                className="w-full min-h-[44px] py-2.5 px-4 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer flex items-center justify-center"
-              >
-                Keep Booking
-              </button>
-              <button
-                type="button"
-                disabled={cancellingInProgress}
-                onClick={() => handleCancelBooking(cancelBookingConfirmId)}
-                aria-describedby={cancelError ? 'cancel-booking-error' : undefined}
-                className="w-full min-h-[44px] py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
-              >
-                {cancellingInProgress ? 'Cancelling...' : 'Confirm Cancel'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+  return <div id="user-dashboard-view" className="mx-auto max-w-5xl space-y-6 pb-10">
+    <header className="flex flex-wrap items-center justify-between gap-5 rounded-2xl border border-slate-200 bg-white px-5 py-6 sm:px-7 sm:py-8">
+      <div className="flex min-w-0 items-center gap-4"><div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-lg font-semibold text-emerald-800">{initials}</div><div className="min-w-0"><p className="text-xs font-medium text-emerald-700">Your travel space</p><h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">Hi, {name.split(' ')[0]}</h1><p className="mt-1 truncate text-sm text-slate-500">{userEmail}</p></div></div>
+      <button type="button" onClick={() => setView('hotels')} className={secondaryButton}>Find your next stay<ArrowRight className="size-4" /></button>
+    </header>
+    <div role="tablist" aria-label="Your account" className="flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1.5">
+      {tabs.map((item) => <button key={item.id} type="button" role="tab" aria-selected={tab === item.id} aria-controls={'account-panel-' + item.id} id={'account-tab-' + item.id} onClick={() => setTab(item.id)} className={'flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium transition sm:flex-1 ' + (tab === item.id ? 'bg-emerald-50 text-emerald-800' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900')}><item.icon className="size-4" />{item.label}{item.id === 'saved' && saved.length > 0 && <span className="rounded-full bg-slate-100 px-2 text-xs text-slate-600">{saved.length}</span>}</button>)}
     </div>
-  );
+    <section role="tabpanel" id={'account-panel-' + tab} aria-labelledby={'account-tab-' + tab} className="space-y-4">
+      {tab === 'bookings' && <>
+        <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-semibold text-slate-900">Your reservations</h2><p className="mt-1 text-sm text-slate-500">View your stay details and track confirmation.</p></div><div className="flex items-center gap-2"><label className="sr-only" htmlFor="booking-status">Filter reservations</label><select id="booking-status" value={status} onChange={(event) => { setStatus(event.target.value as typeof status); setPage(1); }} className="min-h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700"><option value="">All reservations</option>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><button type="button" disabled={bookingLoading} onClick={() => setReload((value) => value + 1)} aria-label="Refresh reservations" className="flex size-11 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-40"><RefreshCw className="size-4" /></button></div></div>
+        {bookingError ? <ErrorNotice message={bookingError} onRetry={() => setReload((value) => value + 1)} /> : bookingLoading ? <LoadingCards /> : bookings.length === 0 ? <EmptyState icon={<CalendarDays className="size-6" />} title={status ? 'No matching reservations' : 'Your next trip starts here'} text={status ? 'Choose another status to see your reservations.' : 'Once you book a stay, your reservation details will appear here.'} action={<button type="button" onClick={() => status ? setStatus('') : setView('hotels')} className={primaryButton}>{status ? 'View all reservations' : 'Explore hotels'}<ArrowRight className="size-4" /></button>} /> : <div className="space-y-4">{bookings.map((booking) => <BookingCard key={booking.id} booking={booking} canCancel={['pending', 'confirmed'].includes(booking.status) && today < booking.startDate} onView={() => onSelectBooking(booking)} onCancel={() => { setCancelError(''); setCancelBooking(booking); }} />)}</div>}
+        {!bookingLoading && !bookingError && pagination && pagination.pages > 1 && <nav aria-label="Reservation pages" className="flex flex-wrap items-center justify-between gap-3 pt-2"><p className="text-xs text-slate-500">Page {page} of {pagination.pages} · {pagination.total} reservation(s)</p><div className="flex gap-2"><button type="button" disabled={page <= 1} onClick={() => setPage((value) => value - 1)} className={secondaryButton}><ChevronLeft className="size-4" />Previous</button><button type="button" disabled={page >= pagination.pages} onClick={() => setPage((value) => value + 1)} className={secondaryButton}>Next<ChevronRight className="size-4" /></button></div></nav>}
+      </>}
+      {tab === 'saved' && <>
+        <div><h2 className="text-lg font-semibold text-slate-900">Places you’d love to stay</h2><p className="mt-1 text-sm text-slate-500">Your saved properties, ready whenever you are.</p></div>
+        {savedError && <ErrorNotice message={savedError} onRetry={() => setReload((value) => value + 1)} />}
+        {savedLoading ? <LoadingCards /> : !savedError && saved.length === 0 ? <EmptyState icon={<Heart className="size-6" />} title="Keep your favorite stays close" text="Tap the heart on a property to save it here while you plan your trip." action={<button type="button" onClick={() => setView('hotels')} className={primaryButton}>Discover stays<ArrowRight className="size-4" /></button>} /> : <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{saved.map((listing) => <article key={listing.id} className="overflow-hidden rounded-xl border border-slate-200 bg-white"><div className="relative"><button type="button" onClick={() => onSelectListing(listing)} aria-label={'View ' + listing.title} className="block w-full"><img src={listing.image} alt={listing.title} onError={handleImageError} className="aspect-[4/3] w-full object-cover" /></button><button type="button" disabled={removingId !== null} onClick={() => void removeSaved(listing.id)} aria-label={'Remove ' + listing.title + ' from saved stays'} className="absolute right-3 top-3 flex size-10 items-center justify-center rounded-full bg-white text-rose-700 shadow-sm hover:bg-rose-50 disabled:opacity-50">{removingId === listing.id ? <LoaderCircle className="size-4 animate-spin" /> : <Trash2 className="size-4" />}</button></div><div className="space-y-2 p-4"><p className="flex items-center gap-1 text-xs text-slate-500"><MapPin className="size-3.5" />{listing.location}</p><button type="button" onClick={() => onSelectListing(listing)} className="text-left text-base font-semibold text-slate-900 hover:text-emerald-700">{listing.title}</button><div className="flex items-center justify-between gap-2"><p className="text-sm font-semibold text-slate-900">{money(listing.price)}<span className="font-normal text-slate-400">{['hotel', 'homestay'].includes(listing.type) ? ' / night' : listing.type === 'car' ? ' / day' : ''}</span></p>{listing.reviewsCount > 0 && <span className="flex items-center gap-1 text-xs text-slate-600"><Star className="size-3 fill-amber-400 text-amber-400" />{listing.rating}</span>}</div></div></article>)}</div>}
+      </>}
+      {tab === 'security' && <div className="rounded-xl border border-slate-200 bg-white p-5 sm:p-7"><SecurityPanel /></div>}
+    </section>
+    {cancelBooking && <CancelReservationDialog booking={cancelBooking} busy={cancelBusy} error={cancelError} onClose={() => setCancelBooking(null)} onConfirm={confirmCancellation} />}
+  </div>;
+}
+
+function BookingCard({ booking, canCancel, onView, onCancel }: { booking: Booking; canCancel: boolean; onView: () => void; onCancel: () => void }) {
+  return <article className="overflow-hidden rounded-xl border border-slate-200 bg-white sm:flex">
+    <img src={booking.listingImage} alt={booking.listingTitle} onError={handleImageError} className="h-44 w-full shrink-0 object-cover sm:h-auto sm:w-44" />
+    <div className="min-w-0 flex-1 space-y-4 p-5"><div className="flex flex-wrap items-center justify-between gap-2"><span className={'rounded-full px-3 py-1 text-xs font-medium ' + statusColors[booking.status]}>{statusLabels[booking.status]}</span><span className="break-all font-mono text-xs text-slate-400">{booking.reference || booking.id}</span></div><div><h3 className="text-lg font-semibold text-slate-900">{booking.listingTitle}</h3><p className="mt-1 flex items-center gap-1.5 text-sm text-slate-500"><MapPin className="size-3.5 shrink-0" />{booking.listingLocation}</p></div>
+      <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-600"><span className="flex items-center gap-2"><CalendarDays className="size-4 text-slate-400" />{formatDateForDisplay(booking.startDate)} – {formatDateForDisplay(booking.endDate)}</span><span className="flex items-center gap-2"><Users className="size-4 text-slate-400" />{booking.rooms || 1} room(s) · {booking.guests || booking.adults || 1} guest(s)</span></div>{booking.roomName && <p className="text-sm text-slate-500">{booking.roomName}{booking.duration ? ' · ' + booking.duration + ' night(s)' : ''}</p>}
+      <div className="flex flex-wrap items-end justify-between gap-4 border-t border-slate-100 pt-4"><div><p className="text-lg font-semibold text-slate-900">{money(booking.totalPrice)}</p><p className="mt-0.5 text-xs text-slate-500">{booking.status === 'cancelled' ? 'Reservation cancelled' : booking.paymentStatus === 'paid' ? 'Paid' : booking.paymentMethod === 'pay_at_hotel' ? 'Payment at the property' : 'See reservation for payment details'}</p></div><div className="flex flex-wrap gap-2"><button type="button" onClick={onView} className={secondaryButton}>View reservation<ChevronRight className="size-4" /></button>{canCancel && <button type="button" onClick={onCancel} className="min-h-11 rounded-lg px-3 text-sm font-medium text-rose-700 hover:bg-rose-50">Cancel booking</button>}</div></div>
+    </div>
+  </article>;
+}
+function ErrorNotice({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-5"><p className="text-sm text-slate-600">{message}</p><button type="button" onClick={onRetry} className={secondaryButton}><RefreshCw className="size-4" />Try again</button></div>;
+}
+function LoadingCards() {
+  return <div role="status" aria-label="Loading your account" className="space-y-4">{[0, 1].map((value) => <div key={value} className="h-48 animate-pulse rounded-xl border border-slate-200 bg-slate-100" />)}<span className="sr-only">Loading…</span></div>;
+}
+function EmptyState({ icon, title, text, action }: { icon: ReactNode; title: string; text: string; action: ReactNode }) {
+  return <div className="rounded-xl border border-slate-200 bg-white px-5 py-12 text-center"><div className="mx-auto flex size-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">{icon}</div><h3 className="mt-5 text-lg font-semibold text-slate-900">{title}</h3><p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">{text}</p><div className="mt-6">{action}</div></div>;
+}
+function CancelReservationDialog({ booking, busy, error, onClose, onConfirm }: {
+  booking: Booking; busy: boolean; error: string; onClose: () => void; onConfirm: (reason: string) => Promise<void>;
+}) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const [reason, setReason] = useState('');
+  useBodyScrollLock(true);
+  useEffect(() => { const element = dialog.current; element?.showModal(); return () => element?.close(); }, []);
+  return <dialog ref={dialog} aria-labelledby="cancel-reservation-title" aria-describedby="cancel-reservation-description" onCancel={(event) => { event.preventDefault(); if (!busy) onClose(); }} className="m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl backdrop:bg-slate-950/50"><div className="flex items-start justify-between gap-4"><h2 id="cancel-reservation-title" className="text-xl font-semibold text-slate-900">Cancel this reservation?</h2><button type="button" disabled={busy} onClick={onClose} aria-label="Close cancellation dialog" className="flex size-9 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50"><X className="size-5" /></button></div><p id="cancel-reservation-description" className="mt-3 text-sm leading-6 text-slate-500">Your stay at {booking.listingTitle} ({booking.reference || booking.id}) will be cancelled and the reserved rooms released.</p><form onSubmit={(event) => { event.preventDefault(); void onConfirm(reason); }}><label className="mt-4 block text-sm font-medium text-slate-700">Reason (optional)<textarea value={reason} onChange={(event) => setReason(event.target.value)} maxLength={1000} minLength={3} disabled={busy} className="mt-2 min-h-24 w-full rounded-lg border border-slate-200 p-3 text-sm outline-none focus:border-emerald-600" /></label>{error && <p role="alert" className="mt-3 text-sm text-rose-700">{error}</p>}<div className="mt-5 flex flex-wrap justify-end gap-2"><button type="button" autoFocus disabled={busy} onClick={onClose} className={secondaryButton}>Keep reservation</button><button type="submit" disabled={busy} className="min-h-11 rounded-lg bg-rose-600 px-4 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-50">{busy ? 'Cancelling…' : 'Cancel reservation'}</button></div></form></dialog>;
 }
