@@ -301,11 +301,6 @@ export async function listVendorBookings(userId: string, query: ListBookingsQuer
   return listWithFilter({ vendorId: { $in: vendorIds }, ...bookingFilter(query) }, query, { checkIn: 1 });
 }
 
-export async function listAllBookings(query: ListBookingsQuery) {
-  await requireDatabase();
-  return listWithFilter(bookingFilter(query), query, { createdAt: -1 });
-}
-
 /** Loads a booking only if the actor is its customer, a reservations member of its vendor, or a booking manager. */
 async function accessibleBooking(actor: Actor, bookingId: string) {
   const booking = await BookingModel.findOne({ publicId: bookingId });
@@ -378,10 +373,28 @@ export async function cancelOwnBooking(actor: Actor, bookingId: string, reason: 
 
 export async function actOnVendorBooking(actor: Actor, bookingId: string, action: BookingAction | 'mark_paid', reason: string | undefined, metadata: SessionMetadata) {
   await requireDatabase();
-  const { booking, isVendor, isManager } = await accessibleBooking(actor, bookingId);
-  if (!isVendor && !isManager) throw new AppError(404, 'BOOKING_NOT_FOUND', 'Booking not found.');
+  // Hotel operations belong to the hotel's own team; the platform admin can only cancel (see adminCancelBooking).
+  const { booking, isVendor } = await accessibleBooking(actor, bookingId);
+  if (!isVendor) throw new AppError(404, 'BOOKING_NOT_FOUND', 'Booking not found.');
   if (action === 'mark_paid') return markPaidAtProperty(actor, booking, metadata);
   return applyTransition(actor, booking, action, reason, metadata);
+}
+
+/** Admin lookup of one booking by the reference a guest or hotel quotes; there is no admin booking list. */
+export async function findBookingForAdmin(reference: string) {
+  await requireDatabase();
+  const booking = await BookingModel.findOne({ reference }).lean() as any;
+  if (!booking) throw new AppError(404, 'BOOKING_NOT_FOUND', `No booking found with reference ${reference}.`);
+  const vendor = booking.vendorId ? await VendorModel.findById(booking.vendorId).select('name email phone').lean() as any : null;
+  return { ...serializeBooking(booking), vendor: vendor ? { name: vendor.name, email: vendor.email, phone: vendor.phone } : undefined };
+}
+
+/** Exceptional platform cancellation (dispute, fraud) on the guest's behalf. Releases rooms and emails guest and hotel. */
+export async function adminCancelBooking(actor: Actor, bookingId: string, reason: string, metadata: SessionMetadata) {
+  await requireDatabase();
+  const { booking, isManager } = await accessibleBooking(actor, bookingId);
+  if (!isManager) throw new AppError(404, 'BOOKING_NOT_FOUND', 'Booking not found.');
+  return applyTransition(actor, booking, 'cancel', `Cancelled by GBBookings: ${reason}`, metadata);
 }
 
 /** Records pay-at-hotel money as collected. Conditional, so a retried click cannot record it twice. */

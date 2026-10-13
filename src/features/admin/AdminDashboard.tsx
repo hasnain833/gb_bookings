@@ -1,39 +1,28 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { ArrowUpRight, Building2, CalendarCheck, ChevronRight, FileText, LoaderCircle, LogOut, ShieldCheck, Users } from 'lucide-react';
-import { api, type AdminUser, type AdminVendor, type Paginated, type UserStatusAction, type VendorListing } from '../../shared/api/api';
-import VendorReservations from '../vendor/VendorReservations';
+import { ArrowUpRight, Building2, CalendarX, Search, ChevronRight, FileText, LoaderCircle, LogOut, ShieldCheck, Users } from 'lucide-react';
+import { api, type AdminBookingLookup, type AdminUser, type AdminVendor, type Paginated, type UserStatusAction, type VendorListing } from '../../shared/api/api';
 import SecurityPanel from '../account/SecurityPanel';
 import ListingReviewDetails from './ListingReviewDetails';
 import { useReasonDialog, type ReasonRequest } from '../../shared/components/ReasonDialog';
 import { useDebouncedValue } from '../../shared/hooks/useDebouncedValue';
 
-type Tab = 'vendors' | 'listings' | 'users' | 'bookings' | 'security';
-
-// Mirrors server/modules/auth/rbac.ts; the server enforces it, this only hides tabs a role cannot use.
-const tabRoles: Record<Tab, string[]> = {
-  vendors: ['admin'],
-  listings: ['admin'],
-  users: ['admin'],
-  bookings: ['admin', 'support_agent'],
-  security: ['admin', 'support_agent'],
-};
+type Tab = 'vendors' | 'listings' | 'users' | 'cancellations' | 'security';
 
 const tabs: Array<{ id: Tab; label: string; icon: typeof Users }> = [
   { id: 'vendors', label: 'Vendors', icon: Building2 },
   { id: 'listings', label: 'Listings', icon: FileText },
   { id: 'users', label: 'Users', icon: Users },
-  { id: 'bookings', label: 'Bookings', icon: CalendarCheck },
+  { id: 'cancellations', label: 'Cancel a booking', icon: CalendarX },
   { id: 'security', label: 'Account security', icon: ShieldCheck },
 ];
 
-const adminBookings = { load: api.admin.listBookings, act: api.admin.actOnBooking };
 
 const primaryButton = 'min-h-11 rounded-lg bg-[#006F3C] px-4 text-sm font-semibold text-white transition hover:bg-[#005c32] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 disabled:opacity-50';
 const secondaryButton = 'min-h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 disabled:opacity-50';
 const selectClass = 'min-h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm capitalize outline-none focus:border-teal-700 focus:ring-2 focus:ring-teal-700/10';
 const label = (value: string) => value.replace(/_/g, ' ');
 const roleLabels: Record<string, string> = {
-  admin: 'Platform Admin', support_agent: 'Platform Employee',
+  admin: 'Platform Admin',
   vendor_owner: 'Vendor Owner', vendor_staff: 'Vendor Employee', customer: 'Customer',
 };
 const roleLabel = (value: string) => roleLabels[value] ?? label(value);
@@ -121,7 +110,10 @@ function VendorsPanel() {
   const { askReason, dialog } = useReviewDialog();
   const [status, setStatus] = useState('submitted');
   const [page, setPage] = useState(1);
-  const { result, loading, loadError, replace } = usePaged(() => api.admin.listVendors({ status: status || undefined, page }), [status, page]);
+  const changeRequests = status === 'changes';
+  const { result, loading, loadError, replace } = usePaged(
+    () => api.admin.listVendors(changeRequests ? { changes: 'pending', page } : { status: status || undefined, page }), [status, page],
+  );
   const { busyId, error, run } = useAction();
 
   const decide = async (vendor: AdminVendor, decision: 'approved' | 'rejected' | 'suspended') => {
@@ -131,13 +123,24 @@ function VendorsPanel() {
     run(vendor.id, async () => replace(vendor.id, (await api.admin.decideVendor(vendor.id, decision, notes)).data));
   };
 
+  const decideChanges = async (vendor: AdminVendor, decision: 'approved' | 'rejected') => {
+    const notes = await askReason({
+      title: `${decision === 'approved' ? 'Approve' : 'Reject'} changes for ${vendor.name}`, confirmLabel: decision === 'approved' ? 'Apply changes' : 'Reject changes',
+      destructive: decision === 'rejected',
+      description: decision === 'approved' ? 'The new business details replace the current ones immediately.' : 'Explain what is wrong. This note is shown to the vendor.',
+    });
+    if (!notes) return;
+    run(vendor.id, async () => replace(vendor.id, { ...vendor, ...(await api.admin.decideVendorChanges(vendor.id, decision, notes)) }));
+  };
+
   return (
     <Panel title="Vendor applications" icon={Building2} error={error ?? loadError} loading={loading}
-      empty={result?.data.length === 0 ? `No ${status ? label(status) : ''} vendors.` : null}
+      empty={result?.data.length === 0 ? (changeRequests ? 'No change requests.' : `No ${status ? label(status) : ''} vendors.`) : null}
       filter={
         <select aria-label="Filter vendors by status" value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }} className={selectClass}>
           <option value="">All</option>
           {['submitted', 'approved', 'rejected', 'suspended', 'draft'].map((value) => <option key={value} value={value}>{value}</option>)}
+          <option value="changes">Change requests</option>
         </select>
       }>
       {result?.data.map((vendor) => (
@@ -153,6 +156,7 @@ function VendorsPanel() {
                 : <span key={document.type} className="text-xs text-slate-500">{label(document.type)} (link unavailable)</span>)}
             </div>
             {(vendor.verificationNotes || vendor.rejectionReason) && <p className="text-xs italic text-slate-600">Note: {vendor.rejectionReason ?? vendor.verificationNotes}</p>}
+            {vendor.pendingChanges && <ChangeRequestDiff vendor={vendor} />}
           </div>
           <span className="text-xs font-bold uppercase text-indigo-700">{label(vendor.status)}</span>
           <div className="flex gap-2">
@@ -160,7 +164,11 @@ function VendorsPanel() {
               <button type="button" className={primaryButton} disabled={busyId === vendor.id} onClick={() => decide(vendor, 'approved')}>Approve</button>
               <button type="button" className={secondaryButton} disabled={busyId === vendor.id} onClick={() => decide(vendor, 'rejected')}>Reject</button>
             </>}
-            {vendor.status === 'approved' && <button type="button" className={secondaryButton} disabled={busyId === vendor.id} onClick={() => decide(vendor, 'suspended')}>Suspend</button>}
+            {vendor.pendingChanges && <>
+              <button type="button" className={primaryButton} disabled={busyId === vendor.id} onClick={() => decideChanges(vendor, 'approved')}>Approve changes</button>
+              <button type="button" className={secondaryButton} disabled={busyId === vendor.id} onClick={() => decideChanges(vendor, 'rejected')}>Reject changes</button>
+            </>}
+            {vendor.status === 'approved' && !vendor.pendingChanges && <button type="button" className={secondaryButton} disabled={busyId === vendor.id} onClick={() => decide(vendor, 'suspended')}>Suspend</button>}
           </div>
         </div>
       ))}
@@ -252,7 +260,7 @@ function ListingsPanel() {
   );
 }
 
-function UsersPanel({ roles }: { roles: string[] }) {
+function UsersPanel() {
   const { askReason, dialog } = useReviewDialog();
   const [status, setStatus] = useState('');
   const [role, setRole] = useState('');
@@ -260,7 +268,7 @@ function UsersPanel({ roles }: { roles: string[] }) {
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
   const [revision, setRevision] = useState(0);
-  const [staff, setStaff] = useState({ name: '', email: '', role: 'support_agent' as 'support_agent' | 'admin' });
+  const [staff, setStaff] = useState({ name: '', email: '' });
   const [notice, setNotice] = useState('');
   const { result, loading, loadError, replace } = usePaged(
     () => api.admin.listUsers({ status: status || undefined, role: role || undefined, search: query || undefined, page }),
@@ -282,7 +290,7 @@ function UsersPanel({ roles }: { roles: string[] }) {
             className="min-h-11 rounded-md border border-slate-300 px-3 text-sm" />
           <select aria-label="Filter users by role" value={role} onChange={(event) => { setRole(event.target.value); setPage(1); }} className={selectClass}>
             <option value="">All roles</option>
-            {['customer', 'vendor_owner', 'vendor_staff', 'support_agent', 'admin'].map((value) => <option key={value} value={value}>{roleLabel(value)}</option>)}
+            {['customer', 'vendor_owner', 'vendor_staff', 'admin'].map((value) => <option key={value} value={value}>{roleLabel(value)}</option>)}
           </select>
           <select aria-label="Filter users by status" value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }} className={selectClass}>
             <option value="">All statuses</option>
@@ -294,22 +302,18 @@ function UsersPanel({ roles }: { roles: string[] }) {
         event.preventDefault();
         setNotice('');
         run('new-staff', async () => {
-          const created = await api.admin.createStaff(staff);
+          const created = await api.admin.createStaff({ ...staff, role: 'admin' });
           setNotice(created.invitationSent
             ? 'Account created. A password setup link has been emailed to the recipient.'
             : 'Account created, but email delivery failed. Use Resend setup link below.');
-          setStaff({ name: '', email: '', role: 'support_agent' });
+          setStaff({ name: '', email: '' });
           setRevision((value) => value + 1);
         });
       }}>
-        <h3 className="font-semibold sm:col-span-3">Invite an employee{roles.includes('admin') ? ' or administrator' : ''}</h3>
+        <h3 className="font-semibold sm:col-span-3">Invite an administrator</h3>
         <label className="text-xs font-semibold">Full name<input required minLength={2} maxLength={120} className={`${selectClass} mt-1 w-full`} value={staff.name} onChange={(event) => setStaff({ ...staff, name: event.target.value })} /></label>
         <label className="text-xs font-semibold">Email<input type="email" required className={`${selectClass} mt-1 w-full`} value={staff.email} onChange={(event) => setStaff({ ...staff, email: event.target.value })} /></label>
-        <label className="text-xs font-semibold">Access level<select className={`${selectClass} mt-1 w-full`} value={staff.role} onChange={(event) => setStaff({ ...staff, role: event.target.value as typeof staff.role })}>
-          <option value="support_agent">Employee — reservations</option>
-          {roles.includes('admin') && <option value="admin">Platform Admin</option>}
-        </select></label>
-        <button disabled={busyId !== null} className={`${primaryButton} sm:col-span-3`}>Create account and send setup link</button>
+        <button disabled={busyId !== null} className={`${primaryButton} self-end`}>Create account and send setup link</button>
         {notice && <p role="status" className="text-sm sm:col-span-3">{notice}</p>}
       </form>
       {result?.data.map((user) => (
@@ -321,7 +325,7 @@ function UsersPanel({ roles }: { roles: string[] }) {
           </div>
           <span className="text-xs font-bold uppercase text-indigo-700">{user.status}</span>
           <div className="flex flex-wrap gap-2">
-            {user.status === 'active' && user.roles.some((value) => ['support_agent', 'admin'].includes(value)) && <button type="button" className={secondaryButton} disabled={busyId !== null} onClick={() => run(user.id, async () => {
+            {user.status === 'active' && user.roles.includes('admin') && <button type="button" className={secondaryButton} disabled={busyId !== null} onClick={() => run(user.id, async () => {
               await api.forgotPassword(user.email);
               setNotice('Password setup instructions requested. The recipient can also use Forgot password on the sign-in screen.');
             })}>Resend setup link</button>}
@@ -338,51 +342,120 @@ function UsersPanel({ roles }: { roles: string[] }) {
   );
 }
 
+function ChangeRequestDiff({ vendor }: { vendor: AdminVendor }) {
+  const next = vendor.pendingChanges!;
+  const address = (value?: { line1?: string; city?: string; region?: string }) => [value?.line1, value?.city, value?.region].filter(Boolean).join(', ');
+  const rows: Array<[string, string | undefined, string | undefined]> = [
+    ['Name', vendor.name, next.name], ['Email', vendor.email, next.email], ['Phone', vendor.phone, next.phone],
+    ['Registration no.', vendor.registrationNumber, next.registrationNumber], ['NTN', vendor.taxNumber, next.taxNumber],
+    ['Address', address(vendor.address as any), address(next.address)],
+  ];
+  const changed = rows.filter(([, before, after]) => (before ?? '') !== (after ?? ''));
+  return (
+    <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs">
+      <p className="font-semibold text-amber-900">Requested business changes · {new Date(next.requestedAt).toLocaleDateString('en-GB', { dateStyle: 'medium' })}</p>
+      {changed.length === 0 ? <p className="mt-1 text-amber-800">No differences from the current details.</p>
+        : <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">{changed.map(([field, before, after]) => <div key={field} className="contents"><dt className="text-slate-500">{field}</dt><dd><span className="text-slate-500 line-through">{before || '—'}</span> → <strong className="text-slate-900">{after || '—'}</strong></dd></div>)}</dl>}
+    </div>
+  );
+}
+
+function CancelBookingPanel() {
+  const { askReason, dialog } = useReviewDialog();
+  const [reference, setReference] = useState('');
+  const [booking, setBooking] = useState<AdminBookingLookup | null>(null);
+  const [notice, setNotice] = useState('');
+  const { busyId, error, setError, run } = useAction();
+
+  const find = (event: React.FormEvent) => {
+    event.preventDefault();
+    setBooking(null); setNotice('');
+    run('find', async () => setBooking(await api.admin.findBooking(reference.trim().toUpperCase())));
+  };
+  const cancel = async () => {
+    if (!booking) return;
+    const reason = await askReason({
+      title: `Cancel ${booking.reference}?`, confirmLabel: 'Cancel booking', destructive: true,
+      description: 'Rooms are released and both the guest and the hotel are emailed this reason. Only use this for disputes or fraud.',
+    });
+    if (!reason) return;
+    run(booking.id, async () => {
+      const updated = await api.admin.cancelBooking(booking.id, reason);
+      setBooking({ ...booking, ...updated });
+      setNotice(`${booking.reference} was cancelled and both parties were notified.`);
+    });
+  };
+  const cancellable = booking && (booking.status === 'pending' || booking.status === 'confirmed');
+
+  return (
+    <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6">
+      {dialog}
+      <form onSubmit={find} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <label className="flex-1 text-sm font-semibold text-slate-800">Booking reference
+          <input required value={reference} onChange={(event) => { setReference(event.target.value); setError(null); }} placeholder="GB-1A2B3C4D" className={`${selectClass} mt-1.5 w-full normal-case font-mono`} />
+        </label>
+        <button className={`${primaryButton} inline-flex items-center justify-center gap-2`} disabled={busyId === 'find'}><Search className="size-4" />Find booking</button>
+      </form>
+      {error && <p role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
+      {notice && <p role="status" className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">{notice}</p>}
+      {booking && <div className="space-y-4 rounded-xl border border-slate-200 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3"><p className="font-mono text-lg font-bold">{booking.reference}</p><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold capitalize">{label(booking.status)}</span></div>
+        <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+          {[['Hotel', booking.listingTitle], ['Room', `${booking.rooms ?? 1} × ${booking.roomName}`], ['Stay', `${booking.startDate} → ${booking.endDate}`], ['Total', `PKR ${booking.totalPrice.toLocaleString()}`],
+            ['Guest', `${booking.customerName} · ${booking.customerEmail}`], ['Hotel business', booking.vendor ? `${booking.vendor.name} · ${booking.vendor.email}${booking.vendor.phone ? ` · ${booking.vendor.phone}` : ''}` : '—'],
+          ].map(([term, value]) => <div key={term}><dt className="text-slate-500">{term}</dt><dd className="font-medium text-slate-900 break-words">{value}</dd></div>)}
+        </dl>
+        {cancellable ? <button type="button" onClick={cancel} disabled={busyId === booking.id} className="min-h-11 rounded-lg bg-rose-700 px-4 text-sm font-semibold text-white hover:bg-rose-800 disabled:opacity-50">Cancel on guest’s behalf</button>
+          : <p className="text-sm text-slate-500">This booking is {label(booking.status)} and can no longer be cancelled.</p>}
+      </div>}
+    </section>
+  );
+}
+
 const sectionDetails: Record<Tab, { title: string; description: string }> = {
   vendors: { title: 'Partner reviews', description: 'Review vendor applications, verify documents and manage partner access.' },
   listings: { title: 'Property moderation', description: 'Review submitted properties before they appear on the platform.' },
-  users: { title: 'People & access', description: 'Manage customer accounts, invite staff and control platform access.' },
-  bookings: { title: 'Reservation operations', description: 'Oversee reservations across all partners and assist guests with their stays.' },
+  users: { title: 'People & access', description: 'Manage customer and partner accounts, invite administrators and control platform access.' },
+  cancellations: { title: 'Cancel a booking', description: 'For disputes or fraud only. Hotels run their own reservations; find a booking by its reference to cancel it on the guest’s behalf.' },
   security: { title: 'Account security', description: 'Manage your password, active sessions and two-factor authentication.' },
 };
 
 export default function AdminDashboard({ roles, userName = 'Staff member', userEmail = '', onSignOut }: {
   roles: string[]; userName?: string; userEmail?: string; onSignOut: () => Promise<void>;
 }) {
-  const allowed = tabs.filter((tab) => tabRoles[tab.id].some((role) => roles.includes(role)));
+  const allowed = roles.includes('admin') ? tabs : [];
   const [tab, setTab] = useState<Tab | undefined>(allowed[0]?.id);
   const [signingOut, setSigningOut] = useState(false);
   const selected = allowed.find((item) => item.id === tab)?.id ?? allowed[0]?.id;
-  const isAdmin = roles.some((role) => ['admin'].includes(role));
-  const roleName = isAdmin ? 'Platform Admin' : 'Platform Employee';
+  const roleName = 'Platform Admin';
   const navigate = (next: Tab) => { setTab(next); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   const signOut = async () => { setSigningOut(true); try { await onSignOut(); } finally { setSigningOut(false); } };
 
-  if (!selected) return <main className="p-8"><h1 className="text-xl font-bold">Staff access required</h1></main>;
+  if (!selected) return <main className="p-8"><h1 className="text-xl font-bold">Admin access required</h1></main>;
   const section = sectionDetails[selected];
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[260px_minmax(0,1fr)]">
       <a href="#admin-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:p-3">Skip to workspace</a>
       <aside className="hidden min-h-dvh flex-col border-r border-slate-800 bg-slate-950 text-slate-300 lg:sticky lg:top-0 lg:flex lg:h-dvh">
         <div className="flex items-center gap-3 border-b border-white/10 px-6 py-7"><span className="flex size-10 items-center justify-center rounded-xl bg-teal-400/10 text-teal-300"><ShieldCheck className="size-6" /></span><div><p className="text-lg font-bold tracking-tight text-white">GBBookings<span className="text-teal-300">.</span></p><p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400">Control center</p></div></div>
-        <div className="px-6 pb-3 pt-8 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">{isAdmin ? 'Platform management' : 'Operations'}</div>
+        <div className="px-6 pb-3 pt-8 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">Platform management</div>
         <nav className="space-y-1 px-3" aria-label="Admin sections">{allowed.map(({ id, label: text, icon: Icon }) => <button key={id} type="button" onClick={() => navigate(id)} aria-current={selected === id ? 'page' : undefined} className={
           'flex min-h-12 w-full items-center gap-3 rounded-xl px-4 text-left text-sm font-medium transition ' + (selected === id ? 'bg-teal-400/10 text-teal-300 ring-1 ring-inset ring-teal-400/20' : 'text-slate-400 hover:bg-white/5 hover:text-white')
         }><Icon className="size-5 shrink-0" /><span className="flex-1">{text}</span>{selected === id && <ChevronRight className="size-4" />}</button>)}</nav>
-        <div className="mt-auto space-y-4 p-5"><div className="rounded-xl border border-white/10 bg-white/5 p-4"><ShieldCheck className="mb-3 size-5 text-teal-300" /><p className="text-xs font-semibold text-slate-200">Staff workspace</p><p className="mt-2 text-xs leading-5 text-slate-400">Manage the platform with access tailored to your role.</p></div><button type="button" onClick={signOut} disabled={signingOut} className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-sm text-slate-400 hover:bg-white/5 hover:text-white disabled:opacity-50"><LogOut className="size-4" />{signingOut ? 'Signing out…' : 'Sign out'}</button></div>
+        <div className="mt-auto space-y-4 p-5"><div className="rounded-xl border border-white/10 bg-white/5 p-4"><ShieldCheck className="mb-3 size-5 text-teal-300" /><p className="text-xs font-semibold text-slate-200">Admin workspace</p><p className="mt-2 text-xs leading-5 text-slate-400">Partners, listings, users and booking disputes.</p></div><button type="button" onClick={signOut} disabled={signingOut} className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-sm text-slate-400 hover:bg-white/5 hover:text-white disabled:opacity-50"><LogOut className="size-4" />{signingOut ? 'Signing out…' : 'Sign out'}</button></div>
       </aside>
       <div className="min-w-0">
         <header className="border-b border-slate-200 bg-white">
-          <div className="flex min-h-20 items-center justify-between gap-4 px-4 sm:px-8"><div><p className="text-sm font-bold text-slate-900 lg:hidden">GBBookings · Control center</p><div className="hidden items-center gap-2 text-sm text-slate-500 lg:flex"><span>{isAdmin ? 'Administration' : 'Operations'}</span><ChevronRight className="size-3" /><span className="font-medium text-slate-900">{tabs.find(item => item.id === selected)?.label}</span></div><p className="mt-1 text-xs text-slate-500 lg:hidden">{roleName}</p></div><div className="flex min-w-0 items-center gap-3"><span className="hidden rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 xl:inline-flex">{roleName}</span><div className="hidden min-w-0 text-right sm:block"><p className="max-w-48 truncate text-sm font-semibold text-slate-900">{userName}</p><p className="max-w-48 truncate text-xs text-slate-500">{userEmail}</p></div><span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-700" aria-hidden="true">{userName.charAt(0).toUpperCase()}</span><button type="button" onClick={signOut} disabled={signingOut} aria-label="Sign out" className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 lg:hidden"><LogOut className="size-4" /></button></div></div>
+          <div className="flex min-h-20 items-center justify-between gap-4 px-4 sm:px-8"><div><p className="text-sm font-bold text-slate-900 lg:hidden">GBBookings · Control center</p><div className="hidden items-center gap-2 text-sm text-slate-500 lg:flex"><span>Administration</span><ChevronRight className="size-3" /><span className="font-medium text-slate-900">{tabs.find(item => item.id === selected)?.label}</span></div><p className="mt-1 text-xs text-slate-500 lg:hidden">{roleName}</p></div><div className="flex min-w-0 items-center gap-3"><span className="hidden rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 xl:inline-flex">{roleName}</span><div className="hidden min-w-0 text-right sm:block"><p className="max-w-48 truncate text-sm font-semibold text-slate-900">{userName}</p><p className="max-w-48 truncate text-xs text-slate-500">{userEmail}</p></div><span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-700" aria-hidden="true">{userName.charAt(0).toUpperCase()}</span><button type="button" onClick={signOut} disabled={signingOut} aria-label="Sign out" className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 lg:hidden"><LogOut className="size-4" /></button></div></div>
           <nav aria-label="Admin sections" className="flex gap-2 overflow-x-auto px-4 pb-3 lg:hidden">{allowed.map(({ id, label: text, icon: Icon }) => <button key={id} type="button" onClick={() => navigate(id)} aria-current={selected === id ? 'page' : undefined} className={'flex min-h-10 shrink-0 items-center gap-2 rounded-lg px-3 text-xs font-semibold ' + (selected === id ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600')}><Icon className="size-4" />{text}</button>)}</nav>
         </header>
         <main id="admin-content" className="mx-auto max-w-[1440px] space-y-6 p-4 sm:p-8 xl:p-10">
-          <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-teal-700">{isAdmin ? 'Platform administration' : 'Reservations workspace'}</p><h1 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">{section.title}</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">{section.description}</p></div><span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600"><ShieldCheck className="size-4 text-teal-700" />{isAdmin ? 'Platform staff' : 'Reservations access'}</span></div>
+          <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-teal-700">Platform administration</p><h1 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">{section.title}</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">{section.description}</p></div><span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600"><ShieldCheck className="size-4 text-teal-700" />Platform admin</span></div>
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
             {selected === 'vendors' && <VendorsPanel />}
             {selected === 'listings' && <ListingsPanel />}
-            {selected === 'users' && <UsersPanel roles={roles} />}
-            {selected === 'bookings' && <VendorReservations source={adminBookings} title="All bookings" />}
+            {selected === 'users' && <UsersPanel />}
+            {selected === 'cancellations' && <CancelBookingPanel />}
             {selected === 'security' && <SecurityPanel />}
           </div>
           <p className="flex items-center gap-2 text-xs text-slate-400"><ArrowUpRight className="size-3" />GBBookings platform operations</p>

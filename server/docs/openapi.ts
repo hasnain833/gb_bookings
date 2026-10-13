@@ -338,15 +338,15 @@ export const openApiDocument = {
     '/vendor/bookings/{id}/actions': {
       post: { tags: ['Bookings'], summary: 'Confirm, cancel, complete or mark a reservation as no-show', parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }], responses: { '200': { description: 'Updated booking.' }, '409': { description: 'Transition not allowed.' } } },
     },
-    '/admin/bookings': {
-      get: { tags: ['Admin'], summary: 'List all bookings', responses: { '200': { description: 'Paginated bookings.' } } },
+    '/admin/bookings/lookup': {
+      get: { tags: ['Admin'], summary: 'Find one booking by reference (no admin booking list)', parameters: [{ name: 'reference', in: 'query', required: true, schema: { type: 'string' } }], responses: { '200': { description: 'Booking with its hotel business.' }, '404': { description: 'No booking with that reference.' } } },
     },
-    '/admin/bookings/{id}/actions': {
-      post: { tags: ['Admin'], summary: 'Apply a booking transition as an administrator', parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }], responses: { '200': { description: 'Updated booking.' } } },
+    '/admin/bookings/{id}/cancel': {
+      post: { tags: ['Admin'], summary: 'Cancel a booking on the guest’s behalf (disputes, fraud); requires a reason', parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }], responses: { '200': { description: 'Cancelled; rooms released.' }, '409': { description: 'Booking cannot be cancelled.' } } },
     },
     '/admin/users': {
       get: { tags: ['Admin'], summary: 'Search users by status, role, name or email', responses: { '200': { description: 'Paginated users.' } } },
-      post: { tags: ['Admin'], summary: 'Invite an employee or administrator with a Resend password setup link', requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['name', 'email', 'role'], properties: { name: { type: 'string' }, email: { type: 'string', format: 'email' }, role: { type: 'string', enum: ['support_agent', 'admin'] } } } } } }, responses: { '201': { description: 'Account created; invitationSent reports delivery.' }, '403': { description: 'Only platform admins can create staff accounts.' }, '409': { description: 'Email already registered.' } } },
+      post: { tags: ['Admin'], summary: 'Invite a platform administrator with a Resend password setup link', requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['name', 'email', 'role'], properties: { name: { type: 'string' }, email: { type: 'string', format: 'email' }, role: { type: 'string', enum: ['admin'] } } } } } }, responses: { '201': { description: 'Account created; invitationSent reports delivery.' }, '403': { description: 'Only platform admins can create staff accounts.' }, '409': { description: 'Email already registered.' } } },
     },
     '/admin/users/{id}/status': {
       post: { tags: ['Admin'], summary: 'Activate, suspend, archive or verify a user (suspend/archive revoke sessions)', parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }], responses: { '200': { description: 'Updated user.' }, '403': { description: 'Only platform admins can change administrators.' }, '409': { description: 'Cannot change own account.' } } },

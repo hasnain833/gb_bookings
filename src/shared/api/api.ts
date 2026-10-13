@@ -155,6 +155,14 @@ export interface VendorProfile {
   rejectionReason?: string;
   submittedAt?: string;
   verificationDocuments?: Array<{ type: string; status: string }>;
+  /** Business-detail changes awaiting admin approval (approved vendors only). */
+  pendingChanges?: VendorChangeRequest & { requestedAt: string };
+  changeRejectionReason?: string;
+}
+
+export interface VendorChangeRequest {
+  name: string; email: string; phone: string; registrationNumber: string; taxNumber?: string;
+  address: { line1: string; city: string; region: string };
 }
 
 export interface MediaAsset {
@@ -274,6 +282,8 @@ export interface AdminVendor extends Omit<VendorProfile, 'verificationDocuments'
   createdAt: string;
   verificationDocuments: Array<{ type: string; status: string; mimeType?: string; url?: string }>;
 }
+
+export type AdminBookingLookup = Booking & { vendor?: { name: string; email: string; phone?: string } };
 
 export interface AdminUser {
   id: string;
@@ -402,6 +412,10 @@ export const api = {
     return request<{ data: VendorProfile }>('/api/vendors/me/documents', {
       method: 'POST', body: JSON.stringify({ type, mediaId }),
     });
+  },
+
+  requestVendorChanges(input: VendorChangeRequest) {
+    return request<{ data: VendorProfile }>('/api/vendors/me/change-request', { method: 'POST', body: JSON.stringify(input) }).then((result) => result.data);
   },
 
   submitVendorApplication() {
@@ -572,13 +586,18 @@ export const api = {
   },
 
   admin: {
-    createStaff(input: { name: string; email: string; role: 'support_agent' | 'admin' }) {
+    createStaff(input: { name: string; email: string; role: 'admin' }) {
       return request<{ data: AdminUser; invitationSent: boolean }>('/api/v1/admin/users', {
         method: 'POST', body: JSON.stringify(input),
       });
     },
-    listVendors(params: { status?: string; page?: number } = {}) {
+    listVendors(params: { status?: string; changes?: 'pending'; page?: number } = {}) {
       return request<Paginated<AdminVendor>>(`/api/v1/admin/vendors${queryString(params)}`);
+    },
+    decideVendorChanges(vendorId: string, decision: 'approved' | 'rejected', notes: string) {
+      return request<{ data: AdminVendor }>(`/api/v1/admin/vendors/${encodeURIComponent(vendorId)}/changes/decision`, {
+        method: 'POST', body: JSON.stringify({ decision, notes }),
+      }).then((result) => result.data);
     },
     decideVendor(vendorId: string, decision: 'approved' | 'rejected' | 'suspended', notes: string) {
       return request<{ data: AdminVendor }>(`/api/v1/admin/vendors/${encodeURIComponent(vendorId)}/decision`, {
@@ -604,12 +623,12 @@ export const api = {
         method: 'POST', body: JSON.stringify({ action, reason }),
       }).then((result) => result.data);
     },
-    listBookings(params: BookingListParams = {}) {
-      return request<Paginated<Booking>>(`/api/v1/admin/bookings${queryString(params)}`);
+    findBooking(reference: string) {
+      return request<{ data: AdminBookingLookup }>(`/api/v1/admin/bookings/lookup${queryString({ reference })}`).then((result) => result.data);
     },
-    actOnBooking(bookingId: string, action: VendorBookingAction, reason?: string) {
-      return request<{ data: Booking }>(`/api/v1/admin/bookings/${encodeURIComponent(bookingId)}/actions`, {
-        method: 'POST', body: JSON.stringify({ action, ...(reason ? { reason } : {}) }),
+    cancelBooking(bookingId: string, reason: string) {
+      return request<{ data: Booking }>(`/api/v1/admin/bookings/${encodeURIComponent(bookingId)}/cancel`, {
+        method: 'POST', body: JSON.stringify({ reason }),
       }).then((result) => result.data);
     },
   },

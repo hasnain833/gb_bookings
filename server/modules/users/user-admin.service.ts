@@ -30,7 +30,7 @@ function serializeAdminUser(user: any) {
 
 export async function createStaffAccount(
   actor: { userId: string; roles: UserRole[] },
-  input: { name: string; email: string; role: 'support_agent' | 'admin' },
+  input: { name: string; email: string; role: 'admin' },
   metadata: SessionMetadata,
 ) {
   await requireDatabase();

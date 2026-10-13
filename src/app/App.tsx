@@ -31,7 +31,7 @@ const MobileInstallPrompt = lazy(() => import('../shared/components/MobileInstal
 
 // Views that need a signed-in user. Every navigation path (navbar, dashboards, deep flows) is gated at render time.
 const PROTECTED_VIEWS = new Set(['user-dashboard', 'vendor-dashboard', 'admin-dashboard', 'checkout']);
-const STAFF_ROLES = ['admin', 'support_agent'];
+const STAFF_ROLES = ['admin'];
 // Granted only when an admin approves the business; applicants are customers until then.
 const VENDOR_ROLES = ['vendor_owner', 'vendor_staff'];
 
@@ -323,9 +323,9 @@ export default function App() {
           {isLoggedIn && isStaff ? <AdminDashboard key={userId} roles={userRoles} userName={userName} userEmail={userEmail} onSignOut={handleSignOut} />
               : <main className="flex min-h-dvh items-center justify-center p-6"><section className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-teal-700">GBBookings · Administration</p>
-                <h1 className="mt-5 text-2xl font-bold">{isLoggedIn ? 'Staff access required' : 'Sign in to your workspace'}</h1>
-                <p className="mt-3 text-sm leading-6 text-slate-600">{isLoggedIn ? 'This area is reserved for platform administrators and employees.' : 'Use your administrator or employee account to continue.'}</p>
-                <button type="button" onClick={isLoggedIn ? () => setView(homeDashboard(userRoles)) : () => handleOpenAuthModal('signin')} className="mt-6 min-h-11 w-full rounded-lg bg-slate-900 px-5 text-sm font-semibold text-white hover:bg-slate-800">{isLoggedIn ? 'Return to your dashboard' : 'Staff sign in'}</button>
+                <h1 className="mt-5 text-2xl font-bold">{isLoggedIn ? 'Admin access required' : 'Sign in to your workspace'}</h1>
+                <p className="mt-3 text-sm leading-6 text-slate-600">{isLoggedIn ? 'This area is reserved for platform administrators.' : 'Use your administrator account to continue.'}</p>
+                <button type="button" onClick={isLoggedIn ? () => setView(homeDashboard(userRoles)) : () => handleOpenAuthModal('signin')} className="mt-6 min-h-11 w-full rounded-lg bg-slate-900 px-5 text-sm font-semibold text-white hover:bg-slate-800">{isLoggedIn ? 'Return to your dashboard' : 'Admin sign in'}</button>
               </section></main>}
           {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} initialMode={authModalMode} onSuccessLogin={handleSuccessLogin} />}
           <AccountActionModal />

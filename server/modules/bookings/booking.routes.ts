@@ -6,7 +6,9 @@ import { asyncHandler } from '../../shared/async-handler.js';
 import { sessionMetadata } from '../auth/auth.service.js';
 import { listingIdParamsSchema } from '../listings/listing.schemas.js';
 import {
+  adminCancelBookingSchema,
   availabilityQuerySchema,
+  bookingReferenceQuerySchema,
   bookingIdParamsSchema,
   cancelBookingSchema,
   createBookingSchema,
@@ -15,11 +17,12 @@ import {
 } from './booking.schemas.js';
 import {
   actOnVendorBooking,
+  adminCancelBooking,
+  findBookingForAdmin,
   cancelOwnBooking,
   createBooking,
   getBooking,
   getListingAvailability,
-  listAllBookings,
   listCustomerBookings,
   listVendorBookings,
 } from './booking.service.js';
@@ -75,8 +78,10 @@ vendorBookingRouter.post('/:id/actions', authorizePermission('booking:manage:own
 export const adminBookingRouter = Router();
 adminBookingRouter.use(authenticate, authorizePermission('booking:manage'));
 
-adminBookingRouter.get('/', validate('query', listBookingsQuerySchema), asyncHandler(async (request, response) => {
-  response.json(await listAllBookings(request.query as any));
+adminBookingRouter.get('/lookup', validate('query', bookingReferenceQuerySchema), asyncHandler(async (request, response) => {
+  response.json({ data: await findBookingForAdmin((request.query as { reference: string }).reference) });
 }));
 
-adminBookingRouter.post('/:id/actions', validate('params', bookingIdParamsSchema), validate('body', vendorBookingActionSchema), bookingActionHandler);
+adminBookingRouter.post('/:id/cancel', validate('params', bookingIdParamsSchema), validate('body', adminCancelBookingSchema), asyncHandler(async (request, response) => {
+  response.json({ data: await adminCancelBooking(actor(request), request.params.id, request.body.reason, sessionMetadata(request)) });
+}));

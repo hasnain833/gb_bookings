@@ -7,7 +7,6 @@ export const userRoles = [
   'customer',
   'vendor_owner',
   'vendor_staff',
-  'support_agent',
   'admin',
 ] as const;
 

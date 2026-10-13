@@ -1,13 +1,14 @@
-import { ArrowLeft, Building2, CalendarCheck, ChevronRight, LayoutDashboard, LogOut, Plus, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Briefcase, Building2, CalendarCheck, ChevronRight, LayoutDashboard, LogOut, Plus, ShieldCheck } from 'lucide-react';
 import type { ReactNode } from 'react';
 import GBLogo from '../../shared/components/GBLogo';
 
-export type VendorTab = 'overview' | 'properties' | 'new-property' | 'reservations' | 'security';
+export type VendorTab = 'overview' | 'properties' | 'new-property' | 'reservations' | 'business' | 'security';
 
 const navigation = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
   { id: 'properties', label: 'Hotels & rooms', icon: Building2 },
   { id: 'reservations', label: 'Reservations', icon: CalendarCheck },
+  { id: 'business', label: 'Business profile', icon: Briefcase },
   { id: 'security', label: 'Account security', icon: ShieldCheck },
 ] as const;
 
@@ -16,6 +17,7 @@ const titles: Record<VendorTab, [string, string]> = {
   properties: ['Hotels & rooms', 'Manage your properties, room categories and publication reviews.'],
   'new-property': ['Add a hotel', 'Create a property draft, add its rooms, then submit it for admin approval.'],
   reservations: ['Reservations', 'Review guest requests and manage upcoming stays.'],
+  business: ['Business profile', 'Your verified business details. Changes are approved by GBBookings before they apply.'],
   security: ['Account security', 'Manage email verification, your password and active sessions.'],
 };
 
@@ -37,7 +39,7 @@ export default function VendorWorkspace({ tab, onTab, businessName, status, user
         </div>
         <nav aria-label="Partner navigation" className="flex gap-1 overflow-x-auto px-3 py-3 lg:mt-4 lg:flex-col lg:overflow-visible">
           {navigation.map((item) => {
-            const disabled = status !== undefined && status !== 'approved' && item.id !== 'overview' && item.id !== 'security';
+            const disabled = status !== undefined && status !== 'approved' && item.id !== 'overview' && item.id !== 'security' && item.id !== 'business';
             const selected = tab === item.id || (item.id === 'properties' && tab === 'new-property');
             return <button key={item.id} type="button" disabled={disabled} onClick={() => onTab(item.id)} title={disabled ? 'Unavailable while your partner account is not active' : undefined}
               aria-current={selected ? 'page' : undefined}

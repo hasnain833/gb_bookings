@@ -7,6 +7,8 @@ import {
   attachVendorDocument,
   createVendorApplication,
   decideVendorApplication,
+  decideVendorChanges,
+  requestVendorChanges,
   getOwnVendor,
   listVendorApplications,
   submitOwnVendor,
@@ -17,6 +19,8 @@ import {
   createVendorSchema,
   listVendorsQuerySchema,
   updateVendorSchema,
+  vendorChangeDecisionSchema,
+  vendorChangeRequestSchema,
   vendorDecisionSchema,
   vendorIdParamsSchema,
 } from './vendor.schemas.js';
@@ -47,6 +51,10 @@ vendorRouter.post('/me/documents', validate('body', attachVendorDocumentSchema),
   response.status(201).json({ data: vendor });
 }));
 
+vendorRouter.post('/me/change-request', validate('body', vendorChangeRequestSchema), asyncHandler(async (request, response) => {
+  response.json({ data: await requestVendorChanges(request.auth!.userId, request.body, sessionMetadata(request)) });
+}));
+
 vendorRouter.post('/me/submit', asyncHandler(async (request, response) => {
   const vendor = await submitOwnVendor(request.auth!.userId, sessionMetadata(request));
   response.json({ data: vendor });
@@ -66,4 +74,8 @@ adminVendorRouter.post('/:id/decision', validate('params', vendorIdParamsSchema)
     sessionMetadata(request),
   );
   response.json({ data: vendor });
+}));
+
+adminVendorRouter.post('/:id/changes/decision', validate('params', vendorIdParamsSchema), validate('body', vendorChangeDecisionSchema), asyncHandler(async (request, response) => {
+  response.json({ data: await decideVendorChanges(request.auth!.userId, request.params.id, request.body, sessionMetadata(request)) });
 }));

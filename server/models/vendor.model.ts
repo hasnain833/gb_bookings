@@ -54,6 +54,16 @@ const vendorSchema = new Schema({
   reviewedAt: Date,
   reviewedBy: { type: Schema.Types.ObjectId, ref: 'User' },
   rejectionReason: { type: String, trim: true, maxlength: 2_000 },
+  // Approved vendors' business details only change through an admin-approved request.
+  pendingChanges: {
+    type: new Schema({
+      name: String, email: String, phone: String, registrationNumber: String, taxNumber: String,
+      address: { line1: String, city: String, region: String },
+      requestedAt: { type: Date, required: true },
+    }, { _id: false }),
+    default: undefined,
+  },
+  changeRejectionReason: { type: String, trim: true, maxlength: 2_000 },
   deletedAt: { type: Date, default: null, index: true },
 }, { timestamps: true, minimize: true });
 

@@ -58,5 +58,11 @@ export const listBookingsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(25),
 }).strict();
 
+export const bookingReferenceQuerySchema = z.object({
+  reference: z.string().trim().toUpperCase().regex(/^GB-[0-9A-F]{8}$/, 'Enter a reference like GB-1A2B3C4D.'),
+}).strict();
+
+export const adminCancelBookingSchema = z.object({ reason: z.string().trim().min(3).max(900) }).strict();
+
 export type CreateBookingInput = z.infer<typeof createBookingSchema>;
 export type ListBookingsQuery = z.infer<typeof listBookingsQuerySchema>;

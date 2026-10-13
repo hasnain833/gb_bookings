@@ -24,7 +24,6 @@ export const rolePermissions: Record<UserRole, readonly PermissionKey[]> = {
   customer: ['profile:read', 'profile:update', 'booking:read:own', 'booking:manage:own', 'listing:read'],
   vendor_owner: ['profile:read', 'profile:update', 'booking:read:own', 'booking:manage:own', 'listing:read', 'listing:manage:own', 'vendor:manage:own'],
   vendor_staff: ['profile:read', 'profile:update', 'booking:read:own', 'booking:manage:own', 'listing:read', 'listing:manage:own'],
-  support_agent: ['profile:read', 'profile:update', 'booking:manage', 'support:manage'],
   admin: Object.keys(permissionDescriptions) as PermissionKey[],
 };
 

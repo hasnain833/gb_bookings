@@ -30,7 +30,22 @@ export const attachVendorDocumentSchema = z.object({
   mediaId: z.string().regex(/^med_[0-9a-f-]{36}$/i, 'Invalid media identifier.'),
 }).strict();
 
+export const vendorChangeRequestSchema = z.object({
+  name: z.string().trim().min(2).max(160),
+  email: z.string().trim().toLowerCase().email().max(254),
+  phone: z.string().trim().min(7).max(30),
+  registrationNumber: z.string().trim().min(2).max(100),
+  taxNumber: z.string().trim().max(100).optional(),
+  address: z.object({ line1: z.string().trim().min(2).max(200), city: z.string().trim().min(2).max(100), region: z.string().trim().min(2).max(100) }).strict(),
+}).strict();
+
+export const vendorChangeDecisionSchema = z.object({
+  decision: z.enum(['approved', 'rejected']),
+  notes: z.string().trim().min(3).max(2_000),
+}).strict();
+
 export const listVendorsQuerySchema = z.object({
+  changes: z.literal('pending').optional(),
   status: z.enum(['draft', 'submitted', 'approved', 'rejected', 'suspended', 'archived']).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(25),

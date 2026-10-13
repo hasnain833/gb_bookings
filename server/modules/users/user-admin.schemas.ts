@@ -4,7 +4,8 @@ import { userRoles } from '../../models/user.model.js';
 export const createStaffSchema = z.object({
   name: z.string().trim().min(2).max(120),
   email: z.string().trim().toLowerCase().email().max(254),
-  role: z.enum(['support_agent', 'admin']),
+  // The platform has administrators only; there is no employee role.
+  role: z.literal('admin'),
 }).strict();
 
 export const listUsersQuerySchema = z.object({

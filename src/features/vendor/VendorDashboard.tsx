@@ -6,6 +6,7 @@ import VendorReservations from './VendorReservations';
 import PropertyEditor from './PropertyEditor';
 import SecurityPanel from '../account/SecurityPanel';
 import VendorWorkspace, { type VendorTab } from './VendorWorkspace';
+import BusinessProfile from './BusinessProfile';
 import { useReasonDialog } from '../../shared/components/ReasonDialog';
 
 interface VendorDashboardProps { setView: (view: string) => void; userName: string; userEmail: string; onSignOut: () => Promise<void> }
@@ -142,6 +143,8 @@ export default function VendorDashboard({ setView, userName, userEmail, onSignOu
         ].map(([label, value, detail]) => <div key={label} className="rounded-xl border border-slate-200 bg-white p-5"><p className="text-xs font-medium text-slate-500">{label}</p><p className="mt-3 text-2xl font-semibold">{value}</p><p className="mt-2 text-xs text-slate-400">{detail}</p></div>)}</div>
         <section className="rounded-xl border border-slate-200 bg-white p-6"><h2 className="font-semibold">Getting a hotel live</h2><ol className="mt-5 grid gap-5 md:grid-cols-4">{['Add the hotel, photos and policies', 'Add room categories and prices', 'Submit it for review', 'Once approved, guests can book it'].map((label, index) => <li key={label} className="flex items-start gap-3"><span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-xs font-bold text-emerald-800">{index + 1}</span><p className="pt-1 text-sm leading-5 text-slate-600">{label}</p></li>)}</ol></section>
       </>}
+
+      {tab === 'business' && vendor && <BusinessProfile vendor={vendor} onChange={setVendor} />}
 
       {tab === 'security' && <section className="rounded-xl border border-slate-200 bg-white p-6"><SecurityPanel /></section>}
 

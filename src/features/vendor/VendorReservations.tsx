@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { CalendarCheck, ChevronDown, LoaderCircle, Search, X } from 'lucide-react';
-import { api, type BookingListParams, type Paginated, type VendorBookingAction } from '../../shared/api/api';
+import { api, type Paginated, type VendorBookingAction } from '../../shared/api/api';
 import { useReasonDialog } from '../../shared/components/ReasonDialog';
 import { useDebouncedValue } from '../../shared/hooks/useDebouncedValue';
 import { formatDateForDisplay } from '../../shared/utils/date';
@@ -33,21 +33,12 @@ function actionsFor(booking: Booking): Array<{ action: VendorBookingAction; labe
   return [];
 }
 
-interface ReservationsSource {
-  load: (params: BookingListParams) => Promise<Paginated<Booking>>;
-  act: (bookingId: string, action: VendorBookingAction, reason?: string) => Promise<Booking>;
-}
-
-const vendorSource: ReservationsSource = { load: api.getVendorBookings, act: api.actOnVendorBooking };
-
 export function StatusBadge({ status }: { status: Booking['status'] }) {
   return <span className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1 ring-inset ${statusStyle[status]}`}>{statusLabel(status)}</span>;
 }
 
-/** Vendor reservations by default; the admin workspace passes the all-bookings source. */
-export default function VendorReservations({ source = vendorSource, title = 'Reservations', properties = [] }: {
-  source?: ReservationsSource; title?: string; properties?: Array<{ id: string; title: string }>;
-}) {
+/** The hotel's own reservations; only the vendor's team operates them. */
+export default function VendorReservations({ properties = [] }: { properties?: Array<{ id: string; title: string }> }) {
   const [status, setStatus] = useState<Booking['status'] | 'all'>('pending');
   const [search, setSearch] = useState('');
   const [from, setFrom] = useState('');
@@ -70,12 +61,12 @@ export default function VendorReservations({ source = vendorSource, title = 'Res
     let active = true;
     setLoading(true);
     setError(null);
-    source.load({ status: status === 'all' ? undefined : status, q: query.length >= 2 ? query : undefined, from: from || undefined, to: to || undefined, listingId: listingId || undefined, page })
+    api.getVendorBookings({ status: status === 'all' ? undefined : status, q: query.length >= 2 ? query : undefined, from: from || undefined, to: to || undefined, listingId: listingId || undefined, page })
       .then((result) => { if (active) { setBookings(result.data); setPagination(result.pagination); } })
       .catch((reason: Error) => active && setError(reason.message))
       .finally(() => active && setLoading(false));
     return () => { active = false; };
-  }, [status, query, from, to, listingId, source, page]);
+  }, [status, query, from, to, listingId, page]);
 
   const clearFilters = () => { setSearch(''); setFrom(''); setTo(''); setListingId(''); };
 
@@ -98,7 +89,7 @@ export default function VendorReservations({ source = vendorSource, title = 'Res
     setBusyId(booking.id);
     setError(null);
     try {
-      const updated = await source.act(booking.id, action, reason);
+      const updated = await api.actOnVendorBooking(booking.id, action, reason);
       // Drop it from a filtered list once it no longer matches.
       setBookings((items) => items
         .map((item) => item.id === updated.id ? updated : item)
@@ -116,7 +107,7 @@ export default function VendorReservations({ source = vendorSource, title = 'Res
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <CalendarCheck className="size-5 text-[#006F3C]" />
-          <h2 id="vendor-reservations-heading" className="font-bold text-slate-900">{title}</h2>
+          <h2 id="vendor-reservations-heading" className="font-bold text-slate-900">Reservations</h2>
           {pagination && <span className="text-sm text-slate-500">{pagination.total} found</span>}
         </div>
       </div>

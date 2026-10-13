@@ -34,6 +34,8 @@ function serializeVendor(vendor: any) {
     verificationDocuments: vendor.verificationDocuments ?? [],
     verificationNotes: vendor.verificationNotes,
     rejectionReason: vendor.rejectionReason,
+    pendingChanges: vendor.pendingChanges ?? undefined,
+    changeRejectionReason: vendor.changeRejectionReason,
     submittedAt: vendor.submittedAt,
     reviewedAt: vendor.reviewedAt,
     createdAt: vendor.createdAt,
@@ -127,9 +129,43 @@ export async function submitOwnVendor(userId: string, metadata: SessionMetadata)
   return serializeVendor(vendor);
 }
 
-export async function listVendorApplications(query: { status?: string; page: number; limit: number }) {
+/** An approved vendor asks to change its business details; nothing changes until an admin approves. */
+export async function requestVendorChanges(userId: string, input: any, metadata: SessionMetadata) {
+  const { vendor, membership } = await getOwnVendor(userId);
+  if (membership.role !== 'owner') throw new AppError(403, 'PERMISSION_DENIED', 'Only the business owner can request changes.');
+  if (vendor.status !== 'approved') throw new AppError(409, 'INVALID_VENDOR_STATUS', 'Only approved businesses can request changes.');
+  vendor.pendingChanges = { ...input, requestedAt: new Date() };
+  vendor.changeRejectionReason = null;
+  await vendor.save();
+  await recordAuditEvent({ actorId: userId, actorType: 'user', action: 'vendor.changes_requested', resourceType: 'vendor', resourceId: vendor.publicId, ...metadata, metadata: input });
+  return serializeVendor(vendor);
+}
+
+export async function decideVendorChanges(adminUserId: string, vendorId: string, input: { decision: 'approved' | 'rejected'; notes: string }, metadata: SessionMetadata) {
   await requireDatabase();
-  const filter = { deletedAt: null, ...(query.status ? { status: query.status } : {}) };
+  const vendor = await VendorModel.findOne({ publicId: vendorId, deletedAt: null });
+  if (!vendor?.pendingChanges?.requestedAt) throw new AppError(404, 'CHANGE_REQUEST_NOT_FOUND', 'This business has no pending change request.');
+  const changes = vendor.pendingChanges.toObject ? vendor.pendingChanges.toObject() : vendor.pendingChanges;
+  if (input.decision === 'approved') {
+    const { requestedAt, address, ...fields } = changes;
+    Object.assign(vendor, fields);
+    vendor.address = { ...(vendor.address?.toObject?.() ?? vendor.address ?? {}), ...address };
+    vendor.changeRejectionReason = null;
+  } else {
+    vendor.changeRejectionReason = input.notes;
+  }
+  vendor.pendingChanges = undefined;
+  await vendor.save();
+  await recordAuditEvent({
+    actorId: adminUserId, actorType: 'user', action: `vendor.changes_${input.decision}`, resourceType: 'vendor', resourceId: vendor.publicId, ...metadata,
+    metadata: { notes: input.notes, changes },
+  });
+  return serializeVendor(vendor);
+}
+
+export async function listVendorApplications(query: { status?: string; changes?: 'pending'; page: number; limit: number }) {
+  await requireDatabase();
+  const filter = { deletedAt: null, ...(query.status ? { status: query.status } : {}), ...(query.changes ? { 'pendingChanges.requestedAt': { $exists: true } } : {}) };
   const [vendors, total] = await Promise.all([
     VendorModel.find(filter).sort({ submittedAt: -1, createdAt: -1 }).skip((query.page - 1) * query.limit).limit(query.limit).lean(),
     VendorModel.countDocuments(filter),
