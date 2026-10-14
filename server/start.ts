@@ -23,7 +23,7 @@ export async function startServer(app: Express) {
     void connectDatabase();
   }
 
-  await new Promise<void>((resolve, reject) => {
+  const listen = () => new Promise<void>((resolve, reject) => {
     const handleStartupError = (error: NodeJS.ErrnoException) => {
       server.off('listening', handleListening);
       reject(error);
@@ -38,6 +38,17 @@ export async function startServer(app: Express) {
     server.listen(env.PORT, '0.0.0.0');
   });
 
+  // On a watch reload the previous process may still be releasing the port; give it a few seconds in development.
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      await listen();
+      break;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'EADDRINUSE' || env.NODE_ENV === 'production' || attempt >= 10) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+  }
+
   console.log(`GBBookings API ready at http://localhost:${env.PORT}`);
   setInterval(() => void expireStalePendingBookings(), 5 * 60_000).unref();
 
@@ -51,6 +62,8 @@ export async function startServer(app: Express) {
       await disconnectDatabase();
       process.exit(0);
     });
+    // Idle keep-alive sockets (e.g. the Vite proxy) would otherwise hold the port open until they time out.
+    server.closeIdleConnections();
     setTimeout(() => process.exit(1), 10_000).unref();
   };
 

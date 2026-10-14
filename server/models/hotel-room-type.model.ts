@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import mongoose, { type Model } from 'mongoose';
+import { photoSchema } from './listing.model.js';
 
 const { Schema } = mongoose;
 
@@ -15,6 +16,9 @@ const hotelRoomTypeSchema = new Schema({
   inventoryVersion: { type: Number, default: 0 },
   basePriceMinor: { type: Number, required: true, min: 0 },
   amenities: { type: [String], default: [] },
+  photos: { type: [photoSchema], default: [] },
+  // Guest-facing edits on a live listing ({ changes, isNew? }); reviewed together with the listing's revision.
+  pendingRevision: { type: Schema.Types.Mixed, default: undefined },
   status: { type: String, enum: ['active', 'paused', 'archived'], default: 'active', index: true },
   deletedAt: { type: Date, default: null, index: true },
 }, { timestamps: true });

@@ -2,9 +2,6 @@ import type {
   Booking,
   Listing,
   ListingType,
-  Notification,
-  SupportTicket,
-  WalletTransaction,
 } from '../../types';
 
 export const AUTH_EXPIRED_EVENT = 'gb:auth-expired';
@@ -176,6 +173,13 @@ export interface MediaAsset {
 
 export const EXPERIENCE_TYPES = ['Mountain View', 'Family Friendly', 'Lakeside Stays', 'Local Culture', 'Budget Friendly'] as const;
 
+export interface ListingPhoto { url: string; caption?: string }
+/** Photo sent when saving: an existing photo by url, or a fresh upload by mediaId. First is the cover. */
+export interface PhotoInput { url?: string; mediaId?: string; caption?: string }
+
+type ListingContent = Pick<VendorListing, 'title' | 'location' | 'description' | 'hotelSpecs' | 'homestaySpecs'> & { photos: ListingPhoto[] };
+type RoomContent = Pick<VendorRoom, 'name' | 'description' | 'bedType' | 'maxAdults' | 'maxChildren' | 'amenities' | 'photos'>;
+
 export interface VendorListing {
   id: string;
   type: 'hotel' | 'homestay';
@@ -185,8 +189,12 @@ export interface VendorListing {
   price: number;
   image: string;
   images: string[];
+  photos: ListingPhoto[];
   status: 'draft' | 'submitted' | 'published' | 'rejected' | 'paused' | 'archived';
   rejectionReason?: string;
+  /** Edits to a live listing waiting for admin review; guests still see the published version. */
+  pendingRevision?: { changes: Partial<ListingContent>; submittedAt: string };
+  revisionRejectionReason?: string;
   /** Present in admin listings. */
   vendorName?: string;
   updatedAt?: string;
@@ -204,10 +212,13 @@ export interface VendorRoom {
   totalRooms: number;
   basePrice: number;
   amenities: string[];
+  photos: ListingPhoto[];
   status: 'active' | 'paused' | 'archived';
+  /** On a live hotel: guest-facing edits (or a whole new room) waiting for review. */
+  pendingRevision?: { changes: Partial<RoomContent>; isNew: boolean };
 }
 
-export type VendorRoomInput = Omit<VendorRoom, 'id' | 'status'>;
+export type VendorRoomInput = Omit<VendorRoom, 'id' | 'status' | 'photos' | 'pendingRevision'> & { photos?: PhotoInput[] };
 
 export interface RoomCalendar {
   roomId: string;
@@ -238,6 +249,7 @@ export interface RoomAvailability {
   maxAdults: number;
   maxChildren: number;
   amenities: string[];
+  photos: ListingPhoto[];
   available: number;
   bookable: boolean;
   nightlyRate: number;
@@ -266,7 +278,7 @@ export interface CreateBookingInput {
   expectedTotalMinor?: number;
 }
 
-export type VendorBookingAction = 'confirm' | 'cancel' | 'complete' | 'no_show' | 'mark_paid';
+export type VendorBookingAction = 'confirm' | 'cancel' | 'complete' | 'no_show' | 'mark_paid' | 'check_in';
 
 /** Reservation list filters; `from`/`to` bound the check-in date, `q` matches reference, guest name, email or phone. */
 export type BookingListParams = { status?: Booking['status']; from?: string; to?: string; q?: string; listingId?: string; page?: number };
@@ -307,41 +319,12 @@ function queryString(params: Record<string, string | number | undefined>) {
 }
 
 export const api = {
-  async getListings(params: { type?: ListingType | 'all'; search?: string } & ListingFilters = {}) {
-    const query = new URLSearchParams();
-    for (const [key, value] of Object.entries(params)) {
-      if (value !== undefined && value !== '') query.set(key, String(value));
-    }
-    const suffix = query.size ? `?${query.toString()}` : '';
-    const payload = await request<Listing[] | { data: Listing[] }>(`/api/listings${suffix}`);
-    const listings = unwrapCollection(payload);
-
-    // Keep clients correct even while an older API ignores its type parameter.
-    return params.type && params.type !== 'all'
-      ? listings.filter((listing) => listing.type === params.type)
-      : listings;
-  },
-
   getListingsPage(params: { type?: ListingType | 'all'; search?: string } & ListingFilters = {}) {
     return request<{ data: Listing[]; meta: Paginated<Listing>['pagination'] }>(`/api/v1/listings${queryString({ ...params })}`);
   },
 
   getListing(id: string) {
-    return request<Listing & { reviews?: unknown[] }>(`/api/listings/${encodeURIComponent(id)}`);
-  },
-
-  createListing(input: Omit<Listing, 'id' | 'rating' | 'reviewsCount' | 'featured'>) {
-    return request<Listing>('/api/listings', {
-      method: 'POST',
-      body: JSON.stringify(input),
-    });
-  },
-
-  updateListing(id: string, input: Partial<Listing>) {
-    return request<Listing>(`/api/listings/${encodeURIComponent(id)}`, {
-      method: 'PATCH',
-      body: JSON.stringify(input),
-    });
+    return request<{ data: Listing & { reviews?: unknown[] } }>(`/api/v1/listings/${encodeURIComponent(id)}`).then((result) => result.data);
   },
 
   getCurrentUser() {
@@ -432,6 +415,15 @@ export const api = {
     return request<{ data: VendorListing[] }>('/api/v1/vendor/listings').then((result) => result.data);
   },
 
+  /** Re-reads one own listing, e.g. to pick up its review flag after a room edit. */
+  getHotelListing(listingId: string) {
+    return api.getVendorListings().then((listings) => {
+      const listing = listings.find((item) => item.id === listingId);
+      if (!listing) throw new Error('Property not found.');
+      return listing;
+    });
+  },
+
   createHotelListing(input: {
     type: VendorListing['type'];
     homestaySpecs?: { hostName: string; experienceType: typeof EXPERIENCE_TYPES[number] };
@@ -440,12 +432,14 @@ export const api = {
     description: string;
     price: number;
     imageIds: string[];
+    /** Same photos as imageIds, with order and captions. */
+    photos?: PhotoInput[];
     hotelSpecs: { hotelType: string; amenities: string[]; facilities: string[]; policies: string[]; checkInTime: string; checkOutTime: string };
   }) {
     return request<{ data: VendorListing }>('/api/v1/vendor/listings', { method: 'POST', body: JSON.stringify(input) });
   },
 
-  updateHotelListing(listingId: string, input: Partial<Pick<VendorListing, 'title' | 'location' | 'description' | 'hotelSpecs' | 'homestaySpecs'>> & { imageIds?: string[] }) {
+  updateHotelListing(listingId: string, input: Partial<Pick<VendorListing, 'title' | 'location' | 'description' | 'hotelSpecs' | 'homestaySpecs'>> & { imageIds?: string[]; photos?: PhotoInput[] }) {
     return request<{ data: VendorListing }>(`/api/v1/vendor/listings/${encodeURIComponent(listingId)}`, {
       method: 'PATCH', body: JSON.stringify(input),
     }).then((result) => result.data);
@@ -579,6 +573,13 @@ export const api = {
     return request<Paginated<Booking>>(`/api/v1/vendor/bookings${queryString(params)}`);
   },
 
+  /** New dates, room category or room count; the server re-quotes the price at today's rate. */
+  changeVendorBooking(bookingId: string, input: { checkIn: string; checkOut: string; roomTypeId: string; rooms: number }) {
+    return request<{ data: Booking }>(`/api/v1/vendor/bookings/${encodeURIComponent(bookingId)}/change`, {
+      method: 'POST', body: JSON.stringify(input),
+    }).then((result) => result.data);
+  },
+
   actOnVendorBooking(bookingId: string, action: VendorBookingAction, reason?: string) {
     return request<{ data: Booking }>(`/api/v1/vendor/bookings/${encodeURIComponent(bookingId)}/actions`, {
       method: 'POST', body: JSON.stringify({ action, ...(reason ? { reason } : {}) }),
@@ -604,7 +605,7 @@ export const api = {
         method: 'POST', body: JSON.stringify({ decision, notes }),
       });
     },
-    listListings(params: { status?: VendorListing['status'] | 'all'; q?: string; page?: number } = {}) {
+    listListings(params: { status?: VendorListing['status'] | 'all' | 'revisions'; q?: string; page?: number } = {}) {
       return request<Paginated<VendorListing>>(`/api/v1/admin/listings${queryString(params)}`);
     },
     listListingRooms(listingId: string) {
@@ -612,6 +613,11 @@ export const api = {
     },
     moderateListing(listingId: string, decision: 'published' | 'rejected', notes: string) {
       return request<{ data: VendorListing }>(`/api/v1/admin/listings/${encodeURIComponent(listingId)}/decision`, {
+        method: 'POST', body: JSON.stringify({ decision, notes }),
+      });
+    },
+    decideListingRevision(listingId: string, decision: 'approved' | 'rejected', notes: string) {
+      return request<{ data: VendorListing }>(`/api/v1/admin/listings/${encodeURIComponent(listingId)}/revision/decision`, {
         method: 'POST', body: JSON.stringify({ decision, notes }),
       });
     },
@@ -633,14 +639,6 @@ export const api = {
     },
   },
 
-  getNotifications() {
-    return request<Notification[] | { data: Notification[] }>('/api/notifications').then(unwrapCollection);
-  },
-
-  getWalletTransactions() {
-    return request<WalletTransaction[] | { data: WalletTransaction[] }>('/api/wallet/transactions').then(unwrapCollection);
-  },
-
   getWishlist() {
     return request<Listing[] | { data: Listing[] }>('/api/wishlist').then(unwrapCollection);
   },
@@ -656,14 +654,4 @@ export const api = {
     });
   },
 
-  validateCoupon(input: { code: string; listingId: string; subtotal: number }) {
-    return request<{ code: string; discountAmount: number; message?: string }>('/api/coupons/validate', {
-      method: 'POST',
-      body: JSON.stringify(input),
-    });
-  },
-
-  getSupportTickets() {
-    return request<SupportTicket[] | { data: SupportTicket[] }>('/api/support/tickets').then(unwrapCollection);
-  },
 };

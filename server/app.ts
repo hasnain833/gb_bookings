@@ -9,7 +9,7 @@ import swaggerUi from 'swagger-ui-express';
 import { env } from './config/env.js';
 import { openApiDocument } from './docs/openapi.js';
 import { errorHandler, notFoundHandler } from './middleware/errors.js';
-import { aiRouter, legacyAiRouter } from './modules/ai/ai.routes.js';
+import { aiRouter } from './modules/ai/ai.routes.js';
 import { authRouter } from './modules/auth/auth.routes.js';
 import { healthRouter } from './modules/health/health.routes.js';
 import { mediaRouter } from './modules/media/media.routes.js';
@@ -97,7 +97,6 @@ export function createApp(): Express {
   app.use('/api/auth', authRouter);
   app.get(['/api/v1/listings/:id/availability', '/api/listings/:id/availability'], ...availabilityHandlers);
   app.use('/api/v1/listings', createListingRouter());
-  app.use('/api/listings', createListingRouter({ legacy: true }));
   app.use('/api/v1/vendors', vendorRouter);
   app.use('/api/vendors', vendorRouter);
   app.use('/api/v1/admin/vendors', adminVendorRouter);
@@ -113,7 +112,6 @@ export function createApp(): Express {
   app.use('/api/v1/wishlist', wishlistRouter);
   app.use('/api/wishlist', wishlistRouter);
   app.use('/api/v1/ai', aiRouter);
-  app.use('/api/ai-planner', legacyAiRouter);
   app.use('/api', compatibilityRouter);
 
   return app;

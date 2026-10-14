@@ -47,10 +47,24 @@ const PATH_VIEWS = new Set(['homestays', 'hotels', 'cars', 'tours', 'destination
 const SEARCH_TYPES = ['hotel', 'car', 'tour', 'homestay', 'destination', 'offer'] as const;
 type SearchType = typeof SEARCH_TYPES[number];
 
+// The chosen room, dates and guests survive a refresh of /listing/:id/checkout for this browser tab only.
+const CHECKOUT_STORAGE_KEY = 'gb.checkout';
+function savedCheckout(listingId: string): CheckoutParams | null {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(CHECKOUT_STORAGE_KEY) ?? 'null');
+    return saved?.listingId === listingId ? saved : null;
+  } catch { return null; }
+}
+function saveCheckout(params: CheckoutParams | null) {
+  try { if (params) sessionStorage.setItem(CHECKOUT_STORAGE_KEY, JSON.stringify(params)); else sessionStorage.removeItem(CHECKOUT_STORAGE_KEY); } catch { /* storage unavailable: refresh reopens the listing */ }
+}
+
 function readLocation() {
-  const [, first = '', id] = window.location.pathname.split('/');
-  // Checkout state (dates, rooms) lives in memory only, so a refreshed /listing/:id/checkout reopens the listing.
-  if (first === 'listing' && id) return { view: 'details', listingId: decodeURIComponent(id) };
+  const [, first = '', id, sub] = window.location.pathname.split('/');
+  if (first === 'listing' && id) {
+    const listingId = decodeURIComponent(id);
+    return { view: sub === 'checkout' && savedCheckout(listingId) ? 'checkout' : 'details', listingId };
+  }
   if (first === 'search') {
     const query = new URLSearchParams(window.location.search);
     const type = query.get('type') as SearchType;
@@ -98,6 +112,7 @@ export default function App() {
     const handlePopState = () => {
       const next = readLocation();
       if (next.listingId) setSelectedListingId(next.listingId);
+      if (next.view === 'checkout') setBookingParams((current) => current ?? savedCheckout(next.listingId!));
       if (next.view === 'search') {
         setSearchParams((prev) => ({ ...prev, type: next.type ?? prev.type, destination: next.destination ?? prev.destination }));
       }
@@ -109,7 +124,7 @@ export default function App() {
 
 
   // Booking details passed to Checkout Flow
-  const [bookingParams, setBookingParams] = useState<CheckoutParams | null>(null);
+  const [bookingParams, setBookingParams] = useState<CheckoutParams | null>(() => initialLocation.view === 'checkout' ? savedCheckout(initialLocation.listingId!) : null);
   // Set when reopening a past booking's receipt, so checkout never re-submits it.
   const [receiptBooking, setReceiptBooking] = useState<Booking | null>(null);
 
@@ -127,7 +142,6 @@ export default function App() {
   useEffect(() => {
     if (isLoggedIn && isStaff && view !== 'admin-dashboard') setView('admin-dashboard');
   }, [isLoggedIn, isStaff, view]);
-  const [notificationsCount, setNotificationsCount] = useState(0);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'signin' | 'register'>('signin');
   const [showPlanner, setShowPlanner] = useState(false);
@@ -150,12 +164,6 @@ export default function App() {
         setUserName(user.name);
         setUserRoles(user.roles ?? []);
         setIsLoggedIn(true);
-        return api.getNotifications().catch(() => []);
-      })
-      .then((notifications) => {
-        if (active && generation === accountGeneration.current && notifications) {
-          setNotificationsCount(notifications.filter((notification) => !notification.read).length);
-        }
       })
       .catch(() => {
         if (active && generation === accountGeneration.current) setIsLoggedIn(false);
@@ -175,7 +183,6 @@ export default function App() {
       setUserEmail('');
       setUserName('');
       setUserRoles([]);
-      setNotificationsCount(0);
       setReceiptBooking(null); setBookingParams(null);
       if (wasSignedIn) setView('explore');
     };
@@ -212,7 +219,6 @@ export default function App() {
     setUserEmail(user.email);
     setUserName(user.name);
     setUserRoles(user.roles ?? []);
-    setNotificationsCount(0);
     setAuthChecked(true);
     setIsLoggedIn(true);
     setView((current) => (user.roles ?? []).some((role) => STAFF_ROLES.includes(role)) ? 'admin-dashboard'
@@ -228,7 +234,6 @@ export default function App() {
       resetApiSession();
       hasSession.current = false;
       setUserId(''); setIsLoggedIn(false); setUserEmail(''); setUserName(''); setUserRoles([]);
-      setNotificationsCount(0);
       setReceiptBooking(null); setBookingParams(null); setSelectedListing(null); setSelectedListingId(null);
       setShowAuthModal(false); setShowPlanner(false);
       window.location.replace(destination);
@@ -262,14 +267,19 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // A checkout restored after a refresh has its room and dates but not the listing yet.
+  useEffect(() => {
+    if (view !== 'checkout' || !bookingParams || selectedListing?.id === bookingParams.listingId) return;
+    let active = true;
+    api.getListing(bookingParams.listingId).then((listing) => active && setSelectedListing(listing)).catch(() => active && setView('details'));
+    return () => { active = false; };
+  }, [view, bookingParams, selectedListing?.id]);
+
   // Launch checkout flow helper
   const handleProceedToCheckout = (params: CheckoutParams) => {
     setReceiptBooking(null);
     setBookingParams(params);
-    // Opened from a refreshed/deep-linked listing page: checkout still needs the full listing.
-    if (selectedListing?.id !== params.listingId) {
-      api.getListing(params.listingId).then(setSelectedListing).catch(() => setSelectedListing(null));
-    }
+    saveCheckout(params);
     setView('checkout');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -375,8 +385,6 @@ export default function App() {
         isLoggedIn={isLoggedIn}
         isStaff={isStaff}
         isPartner={isVendor}
-        notificationsCount={notificationsCount}
-        unreadNotifications={notificationsCount > 0}
         onOpenNotifications={() => {
           setView('user-dashboard');
           window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -502,6 +510,7 @@ export default function App() {
             existingBooking={receiptBooking ?? undefined}
             onCancel={() => setView(receiptBooking ? 'user-dashboard' : 'details')}
             onSuccess={() => {
+              saveCheckout(null);
               setView('user-dashboard');
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
@@ -587,7 +596,6 @@ export default function App() {
         setView={handleNavigation}
         isLoggedIn={isLoggedIn}
         onOpenAuthModal={handleOpenAuthModal}
-        unreadNotifications={notificationsCount > 0}
       />
 
     </div>

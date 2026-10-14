@@ -10,6 +10,8 @@ export interface Listing {
   reviewsCount: number;
   image: string;
   images: string[];
+  /** Only present when at least one photo has a caption; same order as `images`. */
+  photos?: { url: string; caption?: string }[];
   description: string;
   featured: boolean;
   // Specific fields
@@ -86,6 +88,8 @@ export interface Booking {
   checkInTime?: string;
   checkOutTime?: string;
   paidAt?: string;
+  /** Set once the hotel marks the guest as arrived. */
+  checkedInAt?: string;
   /** Pending requests expire automatically after this time. */
   respondBy?: string;
   history?: Array<{ status: Booking['status']; at: string; reason?: string }>;
@@ -108,24 +112,6 @@ export interface SupportTicket {
   status: 'open' | 'resolved';
   createdAt: string;
   replies?: { id: string; sender: 'user' | 'support'; message: string; createdAt: string }[];
-}
-
-export interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  type: 'info' | 'success' | 'warning';
-  read: boolean;
-  createdAt: string;
-}
-
-export interface WalletTransaction {
-  id: string;
-  type: 'deposit' | 'payment' | 'refund' | 'payout';
-  amount: number;
-  status: 'pending' | 'completed' | 'failed';
-  description: string;
-  createdAt: string;
 }
 
 export const handleImageError = (e: any) => {

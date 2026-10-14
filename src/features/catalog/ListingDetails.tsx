@@ -173,8 +173,9 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
       {/* Gallery */}
       <div className="space-y-2" id="gallery-container">
         <div className="aspect-[16/9] max-h-[460px] w-full overflow-hidden rounded-xl bg-slate-100">
-          <img src={activeImage} alt={listing.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" onError={handleImageError} />
+          <img src={activeImage} alt={listing.photos?.find((photo) => photo.url === activeImage)?.caption || listing.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" onError={handleImageError} />
         </div>
+        {listing.photos?.find((photo) => photo.url === activeImage)?.caption && <p className="text-sm text-slate-600">{listing.photos.find((photo) => photo.url === activeImage)!.caption}</p>}
         {listing.images && listing.images.length > 1 && (
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none" id="gallery-thumbnails">
             {listing.images.map((img, i) => (

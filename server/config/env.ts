@@ -1,35 +1,56 @@
-import 'dotenv/config';
-import { z } from 'zod';
+import "dotenv/config";
+import { z } from "zod";
 
 const booleanFromString = z.preprocess(
-  (value) => value === true || value === 'true',
+  (value) => value === true || value === "true",
   z.boolean(),
 );
 
-const optionalString = (schema: z.ZodString) => z.preprocess(
-  (value) => value === '' ? undefined : value,
-  schema.optional(),
-);
+const optionalString = (schema: z.ZodString) =>
+  z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    schema.optional(),
+  );
 
 const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  PORT: z.coerce.number().int().min(1).max(65535).default(3001),
+  NODE_ENV: z
+    .enum(["development", "test", "production"])
+    .default("development"),
+  PORT: z.coerce.number().int().min(1).max(65535).default(8000),
   APP_URL: optionalString(z.string().url()),
   MONGODB_URI: optionalString(z.string().min(1)),
-  MONGODB_DB_NAME: z.string().min(1).default('gbbookings'),
+  MONGODB_DB_NAME: z.string().min(1).default("gbbookings"),
   TRUST_PROXY: booleanFromString.default(false),
-  JWT_ACCESS_SECRET: z.string().min(32).default('development-only-access-secret-change-me'),
+  JWT_ACCESS_SECRET: z
+    .string()
+    .min(32)
+    .default("development-only-access-secret-change-me"),
   ACCESS_TOKEN_TTL_MINUTES: z.coerce.number().int().min(5).max(60).default(15),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(7),
   // Legacy setting accepted; remembered login/device trust is fixed at seven days.
   REMEMBER_ME_TTL_DAYS: z.coerce.number().int().min(1).max(365).default(7),
-  EMAIL_VERIFICATION_TTL_MINUTES: z.coerce.number().int().min(5).max(1440).default(60),
-  PASSWORD_RESET_TTL_MINUTES: z.coerce.number().int().min(5).max(120).default(30),
+  EMAIL_VERIFICATION_TTL_MINUTES: z.coerce
+    .number()
+    .int()
+    .min(5)
+    .max(1440)
+    .default(60),
+  PASSWORD_RESET_TTL_MINUTES: z.coerce
+    .number()
+    .int()
+    .min(5)
+    .max(120)
+    .default(30),
   OTP_TTL_MINUTES: z.coerce.number().int().min(2).max(30).default(10),
   OTP_MAX_ATTEMPTS: z.coerce.number().int().min(3).max(10).default(5),
   RESEND_API_KEY: optionalString(z.string().min(1)),
   RESEND_SENDER_EMAIL: optionalString(z.string().email()),
-  RESEND_SENDER_NAME: z.string().min(1).max(100).regex(/^[^\r\n]+$/).default('GBBookings'),
+  RESEND_SENDER_NAME: z
+    .string()
+    .min(1)
+    .max(100)
+    .regex(/^[^\r\n]+$/)
+    .default("GBBookings"),
   CLOUDINARY_CLOUD_NAME: optionalString(z.string().min(1)),
   CLOUDINARY_API_KEY: optionalString(z.string().min(1)),
   CLOUDINARY_API_SECRET: optionalString(z.string().min(1)),
@@ -44,22 +65,33 @@ const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
   const issues = parsed.error.issues
-    .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
-    .join('; ');
+    .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+    .join("; ");
   throw new Error(`Invalid environment configuration: ${issues}`);
 }
 
-if (parsed.data.NODE_ENV === 'production' && !parsed.data.MONGODB_URI) {
-  throw new Error('MONGODB_URI is required when NODE_ENV=production.');
+if (parsed.data.NODE_ENV === "production" && !parsed.data.MONGODB_URI) {
+  throw new Error("MONGODB_URI is required when NODE_ENV=production.");
 }
 
-if (parsed.data.NODE_ENV === 'production' && /^(development-only|replace-with)/.test(parsed.data.JWT_ACCESS_SECRET)) {
-  throw new Error('JWT_ACCESS_SECRET must be configured when NODE_ENV=production.');
+if (
+  parsed.data.NODE_ENV === "production" &&
+  /^(development-only|replace-with)/.test(parsed.data.JWT_ACCESS_SECRET)
+) {
+  throw new Error(
+    "JWT_ACCESS_SECRET must be configured when NODE_ENV=production.",
+  );
 }
 
-const cloudinaryValues = [parsed.data.CLOUDINARY_CLOUD_NAME, parsed.data.CLOUDINARY_API_KEY, parsed.data.CLOUDINARY_API_SECRET];
+const cloudinaryValues = [
+  parsed.data.CLOUDINARY_CLOUD_NAME,
+  parsed.data.CLOUDINARY_API_KEY,
+  parsed.data.CLOUDINARY_API_SECRET,
+];
 if (cloudinaryValues.some(Boolean) && !cloudinaryValues.every(Boolean)) {
-  throw new Error('CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET must be configured together.');
+  throw new Error(
+    "CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET must be configured together.",
+  );
 }
 
 export const env = parsed.data;

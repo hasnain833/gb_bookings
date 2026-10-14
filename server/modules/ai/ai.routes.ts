@@ -25,7 +25,6 @@ function getAiClient() {
 }
 
 export const aiRouter = Router();
-export const legacyAiRouter = Router();
 
 const plannerValidation = validate('body', plannerSchema);
 const plannerHandler = asyncHandler(async (request, response) => {
@@ -48,4 +47,3 @@ const plannerHandler = asyncHandler(async (request, response) => {
 });
 
 aiRouter.post('/planner', plannerValidation, plannerHandler);
-legacyAiRouter.post('/', plannerValidation, plannerHandler);

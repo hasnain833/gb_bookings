@@ -41,7 +41,7 @@ export const cancelBookingSchema = z.object({
 }).strict();
 
 export const vendorBookingActionSchema = z.object({
-  action: z.enum(['confirm', 'cancel', 'complete', 'no_show', 'mark_paid']),
+  action: z.enum(['confirm', 'cancel', 'complete', 'no_show', 'mark_paid', 'check_in']),
   reason: z.string().trim().max(1_000).optional(),
 }).strict().refine((input) => input.action !== 'cancel' || (input.reason?.length ?? 0) >= 3, {
   message: 'A reason is required to cancel a booking.',
@@ -56,6 +56,14 @@ export const listBookingsQuerySchema = z.object({
   listingId: z.string().regex(/^lst_[0-9a-f-]{36}$/i).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(25),
+}).strict();
+
+// Dates, room category and room count of an upcoming booking; the price is re-quoted at today's rate.
+export const changeBookingSchema = z.object({
+  checkIn: isoDate,
+  checkOut: isoDate,
+  roomTypeId: z.string().regex(/^rom_[0-9a-f-]{36}$/i, 'Invalid room identifier.'),
+  rooms: z.number().int().min(1).max(20),
 }).strict();
 
 export const bookingReferenceQuerySchema = z.object({

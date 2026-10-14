@@ -14,7 +14,6 @@ interface MobileAppBottomNavProps {
   setView: (view: string) => void;
   isLoggedIn: boolean;
   onOpenAuthModal: (mode?: 'signin' | 'register') => void;
-  unreadNotifications?: boolean;
 }
 
 export default function MobileAppBottomNav({

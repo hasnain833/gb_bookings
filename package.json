@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "dev": "vite",
     "dev:frontend": "vite",
     "dev:backend": "tsx watch server/index.ts",
     "start": "tsx server/index.ts",

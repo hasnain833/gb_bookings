@@ -11,17 +11,36 @@ import { recordAuditEvent } from '../audit/audit.service.js';
 import type { SessionMetadata } from '../auth/auth.service.js';
 import { inventoryExceeds, prepareRoomNights } from '../bookings/availability.service.js';
 import { todayInPakistan } from '../bookings/stay-dates.js';
+import { notifyVendorDecision } from '../vendors/vendor-notifications.js';
 
 async function requireDatabase() {
   if (!await connectDatabase()) throw new ServiceUnavailableError('Listing management is unavailable while the database is disconnected.');
+}
+
+const publicPhotos = (photos: any[] = []) => photos.map((photo) => ({ url: photo.url, ...(photo.caption ? { caption: photo.caption } : {}) }));
+
+/** Listings created before photos existed only have `images`; treat those as uncaptioned photos. */
+export function photosOf(listing: any) {
+  if (listing.photos?.length) return listing.photos.map((photo: any) => photo.toObject?.() ?? photo);
+  const images: string[] = listing.images ?? [];
+  const ids = listing.imageMediaIds?.length === images.length ? listing.imageMediaIds : [];
+  return images.map((url, index) => ({ url, ...(ids[index] ? { mediaId: ids[index] } : {}) }));
+}
+
+function revisionView(revision: any) {
+  if (!revision?.submittedAt) return undefined;
+  const { photos, ...changes } = revision.changes ?? {};
+  return { changes: { ...changes, ...(photos ? { photos: publicPhotos(photos) } : {}) }, submittedAt: revision.submittedAt };
 }
 
 function listingView(listing: any) {
   return {
     id: listing.publicId, type: listing.type, title: listing.title, location: listing.location,
     description: listing.description, price: listing.price, currency: listing.currency,
-    image: listing.image, images: listing.images ?? [], hotelSpecs: listing.hotelSpecs, homestaySpecs: listing.homestaySpecs,
+    image: listing.image, images: listing.images ?? [], photos: publicPhotos(photosOf(listing)),
+    hotelSpecs: listing.hotelSpecs, homestaySpecs: listing.homestaySpecs,
     status: listing.status, rejectionReason: listing.rejectionReason,
+    pendingRevision: revisionView(listing.pendingRevision), revisionRejectionReason: listing.revisionRejectionReason || undefined,
     createdAt: listing.createdAt, updatedAt: listing.updatedAt,
   };
 }
@@ -38,10 +57,13 @@ function homestaySpecsFor(listing: any, input: any) {
 }
 
 function roomView(room: any) {
+  const revision = room.pendingRevision;
+  const { photos, ...changes } = revision?.changes ?? {};
   return {
     id: room.publicId, name: room.name, description: room.description, bedType: room.bedType,
     maxAdults: room.maxAdults, maxChildren: room.maxChildren, totalRooms: room.totalRooms,
-    basePrice: room.basePriceMinor / 100, amenities: room.amenities ?? [], status: room.status,
+    basePrice: room.basePriceMinor / 100, amenities: room.amenities ?? [], photos: publicPhotos(room.photos), status: room.status,
+    ...(revision ? { pendingRevision: { changes: { ...changes, ...(photos ? { photos: publicPhotos(photos) } : {}) }, isNew: Boolean(revision.isNew) } } : {}),
   };
 }
 
@@ -70,6 +92,68 @@ async function ownedImages(userId: string, imageIds: string[]) {
   return imageIds.map((id) => byId.get(id));
 }
 
+/** Turns photo input into stored photos: new uploads must be owned, existing ones must already belong to this listing/room. */
+async function resolvePhotos(userId: string, input: { mediaId?: string; url?: string; caption?: string }[], known: any[]) {
+  const byUrl = new Map(known.map((photo) => [photo.url, photo]));
+  const uploads = await ownedImages(userId, input.flatMap((photo) => photo.mediaId ? [photo.mediaId] : []));
+  let next = 0;
+  return input.map((photo) => {
+    const source = photo.mediaId ? { url: uploads[next].url, mediaId: uploads[next++]._id } : byUrl.get(photo.url!);
+    if (!source) throw new AppError(400, 'INVALID_LISTING_MEDIA', 'A photo does not belong to this property. Upload it again.');
+    return { url: source.url, ...(source.mediaId ? { mediaId: source.mediaId } : {}), ...(photo.caption ? { caption: photo.caption } : {}) };
+  });
+}
+
+function setListingPhotos(listing: any, photos: any[]) {
+  listing.photos = photos;
+  listing.images = photos.map((photo) => photo.url);
+  listing.image = photos[0]?.url ?? listing.image;
+  listing.imageMediaIds = photos.flatMap((photo) => photo.mediaId ? [photo.mediaId] : []);
+}
+
+// What guests read. Edits to these on a live listing (or its rooms) wait for review; everything else applies at once.
+const listingContent = (listing: any) => ({
+  title: listing.title, location: listing.location, description: listing.description,
+  hotelSpecs: listing.hotelSpecs && {
+    hotelType: listing.hotelSpecs.hotelType, amenities: [...listing.hotelSpecs.amenities ?? []], facilities: [...listing.hotelSpecs.facilities ?? []],
+    policies: [...listing.hotelSpecs.policies ?? []], checkInTime: listing.hotelSpecs.checkInTime, checkOutTime: listing.hotelSpecs.checkOutTime,
+  },
+  homestaySpecs: listing.type === 'homestay' ? { hostName: listing.homestaySpecs?.hostName, experienceType: listing.homestaySpecs?.experienceType } : undefined,
+  photos: photosOf(listing),
+});
+const roomContent = (room: any) => ({
+  name: room.name, description: room.description, bedType: room.bedType, maxAdults: room.maxAdults,
+  maxChildren: room.maxChildren, amenities: [...room.amenities ?? []], photos: (room.photos ?? []).map((photo: any) => photo.toObject?.() ?? photo),
+});
+
+const comparable = (value: any): string => JSON.stringify(value, (key, item) => {
+  if (key === 'mediaId') return undefined;
+  if (item && typeof item === 'object' && !Array.isArray(item)) return Object.fromEntries(Object.keys(item).sort().map((name) => [name, item[name] ?? null]));
+  return item ?? null;
+});
+
+/** Folds new edits into a pending revision, keeping only fields that still differ from the live version. */
+function mergeRevision(live: Record<string, any>, pending: Record<string, any> | undefined, edits: Record<string, any>) {
+  const merged = { ...pending, ...edits };
+  return Object.fromEntries(Object.entries(merged).filter(([key, value]) => value !== undefined && comparable(value) !== comparable(live[key])));
+}
+
+function applyListingChanges(listing: any, changes: Record<string, any>) {
+  const { photos, homestaySpecs, ...fields } = changes;
+  Object.assign(listing, fields);
+  if (photos) setListingPhotos(listing, photos);
+  if (listing.type === 'homestay') listing.homestaySpecs = homestaySpecsFor(listing, homestaySpecs);
+}
+
+const hasRevision = (listing: any) => Boolean(listing.pendingRevision?.submittedAt);
+
+/** Marks the listing as having changes in review (its own, or only its rooms'). */
+function touchRevision(listing: any, changes?: Record<string, any>) {
+  listing.pendingRevision = { changes: changes ?? listing.pendingRevision?.changes ?? {}, submittedAt: new Date() };
+  listing.revisionRejectionReason = null;
+  listing.markModified('pendingRevision');
+}
+
 export async function listOwnListings(userId: string) {
   const vendor = await approvedVendor(userId);
   const records = await ListingModel.find({ ownerId: vendor._id, deletedAt: null }).sort({ updatedAt: -1 }).lean();
@@ -78,47 +162,55 @@ export async function listOwnListings(userId: string) {
 
 export async function createHotelListing(userId: string, input: any, metadata: SessionMetadata) {
   const vendor = await approvedVendor(userId);
-  const images = await ownedImages(userId, input.imageIds);
-  const listing = await ListingModel.create({
+  const photos = await resolvePhotos(userId, input.photos ?? input.imageIds.map((id: string) => ({ mediaId: id })), []);
+  const listing = new ListingModel({
     ownerId: vendor._id, type: input.type, title: input.title, location: input.location,
     description: input.description, price: input.price, priceMinor: input.price * 100,
-    image: images[0].url, images: images.map((image: any) => image.url),
-    imageMediaIds: images.map((image: any) => image._id), hotelSpecs: input.hotelSpecs,
-    status: 'draft', featured: false,
+    hotelSpecs: input.hotelSpecs, status: 'draft', featured: false,
   });
-  if (listing.type === 'homestay') {
-    listing.homestaySpecs = homestaySpecsFor(listing, input.homestaySpecs);
-    await listing.save();
-  }
+  setListingPhotos(listing, photos);
+  if (listing.type === 'homestay') listing.homestaySpecs = homestaySpecsFor(listing, input.homestaySpecs);
+  await listing.save();
   await recordAuditEvent({ actorId: userId, actorType: 'user', action: 'listing.created', resourceType: 'listing', resourceId: listing.publicId, ...metadata });
   return listingView(listing);
 }
 
+/** Draft and rejected listings change directly. Live ones stay bookable as published; the edit waits as a pending revision. */
 export async function updateHotelListing(userId: string, listingId: string, input: any, metadata: SessionMetadata) {
   const { listing } = await ownedListing(userId, listingId);
   if (!['draft', 'rejected', 'published', 'paused'].includes(listing.status)) throw new AppError(409, 'LISTING_LOCKED', 'Listings cannot be edited while under review.');
-  const update = { ...input };
-  if (input.imageIds) {
-    const images = await ownedImages(userId, input.imageIds);
-    update.image = images[0].url;
-    update.images = images.map((image: any) => image.url);
-    update.imageMediaIds = images.map((image: any) => image._id);
-    delete update.imageIds;
+  const { price, imageIds, photos, ...edits } = input;
+  if (price !== undefined) { listing.price = price; listing.priceMinor = price * 100; }
+  const pending = listing.pendingRevision?.changes;
+  const photoInput = photos ?? imageIds?.map((id: string) => ({ mediaId: id }));
+  if (photoInput) edits.photos = await resolvePhotos(userId, photoInput, [...photosOf(listing), ...pending?.photos ?? []]);
+  const live = ['published', 'paused'].includes(listing.status);
+  if (live) {
+    const changes = mergeRevision(listingContent(listing), pending, edits);
+    const roomsPending = await HotelRoomTypeModel.exists({ listingId: listing._id, pendingRevision: { $exists: true }, deletedAt: null });
+    if (Object.keys(changes).length || roomsPending) touchRevision(listing, changes);
+    else { listing.pendingRevision = undefined; listing.revisionRejectionReason = null; }
+  } else {
+    applyListingChanges(listing, edits);
+    Object.assign(listing, { status: 'draft', rejectionReason: null });
   }
-  if (input.price !== undefined) update.priceMinor = input.price * 100;
-  delete update.homestaySpecs;
-  Object.assign(listing, update, { status: 'draft', rejectionReason: null });
-  if (listing.type === 'homestay') listing.homestaySpecs = homestaySpecsFor(listing, input.homestaySpecs);
   await listing.save();
-  await recordAuditEvent({ actorId: userId, actorType: 'user', action: 'listing.updated', resourceType: 'listing', resourceId: listing.publicId, ...metadata });
+  await recordAuditEvent({ actorId: userId, actorType: 'user', action: live ? 'listing.revision_submitted' : 'listing.updated', resourceType: 'listing', resourceId: listing.publicId, ...metadata });
   return listingView(listing);
 }
 
 export async function addRoomType(userId: string, listingId: string, input: any, metadata: SessionMetadata) {
   const { listing } = await ownedListing(userId, listingId);
-  if (!['draft', 'rejected'].includes(listing.status)) throw new AppError(409, 'LISTING_LOCKED', 'Room types can only change while a listing is editable.');
-  const { basePrice, ...fields } = input;
-  const room = await HotelRoomTypeModel.create({ listingId: listing._id, ...fields, basePriceMinor: basePrice * 100 });
+  const live = ['published', 'paused'].includes(listing.status);
+  if (!live && !['draft', 'rejected'].includes(listing.status)) throw new AppError(409, 'LISTING_LOCKED', 'Room types cannot change while the listing is under review.');
+  const { basePrice, photos, ...fields } = input;
+  const room = await HotelRoomTypeModel.create({
+    listingId: listing._id, ...fields, basePriceMinor: basePrice * 100,
+    photos: photos ? await resolvePhotos(userId, photos, []) : [],
+    // A room added to a live hotel stays hidden (paused) until the revision is approved.
+    ...(live ? { status: 'paused', pendingRevision: { changes: {}, isNew: true } } : {}),
+  });
+  if (live) { touchRevision(listing); await listing.save(); }
   await syncListingPrice(listing);
   await recordAuditEvent({ actorId: userId, actorType: 'user', action: 'listing.room_created', resourceType: 'listing', resourceId: listing.publicId, ...metadata, metadata: { roomId: room.publicId } });
   return roomView(room);
@@ -140,22 +232,39 @@ async function syncListingPrice(listing: any) {
   await listing.save();
 }
 
-// Price, inventory and pausing are day-to-day operations; everything guests read needs re-moderation.
+// Price, inventory and pausing are day-to-day operations and apply at once; on a live listing, what guests read waits for review.
 const LIVE_ROOM_FIELDS = ['basePrice', 'totalRooms', 'status'];
 
 export async function updateRoomType(userId: string, listingId: string, roomId: string, input: any, metadata: SessionMetadata) {
   const { listing } = await ownedListing(userId, listingId);
-  const editable = ['draft', 'rejected'].includes(listing.status);
   const live = ['published', 'paused'].includes(listing.status);
-  if (!editable && !(live && Object.keys(input).every((field) => LIVE_ROOM_FIELDS.includes(field)))) {
-    throw new AppError(409, 'LISTING_LOCKED', 'Live listings can only change room price, room count and availability.');
+  if (!live && !['draft', 'rejected'].includes(listing.status)) throw new AppError(409, 'LISTING_LOCKED', 'Room types cannot change while the listing is under review.');
+  const current = await HotelRoomTypeModel.findOne({ publicId: roomId, listingId: listing._id, deletedAt: null });
+  if (!current) throw new AppError(404, 'ROOM_TYPE_NOT_FOUND', 'Room type was not found.');
+  if (current.pendingRevision?.isNew && input.status === 'active') {
+    throw new AppError(409, 'ROOM_AWAITING_REVIEW', 'This room category goes live once GBBookings approves it.');
   }
-  const update = { ...input };
-  if (input.basePrice !== undefined) { update.basePriceMinor = input.basePrice * 100; delete update.basePrice; }
+  const { photos, ...fields } = input;
+  const update: Record<string, any> = {};
+  const edits: Record<string, any> = {};
+  for (const [key, value] of Object.entries(fields)) (LIVE_ROOM_FIELDS.includes(key) ? update : edits)[key] = value;
+  if (update.basePrice !== undefined) { update.basePriceMinor = update.basePrice * 100; delete update.basePrice; }
+  const pending = current.pendingRevision?.changes;
+  if (photos) edits.photos = await resolvePhotos(userId, photos, [...current.photos ?? [], ...pending?.photos ?? []]);
+  let revisionTouched = false;
+  const unset: Record<string, 1> = {};
+  if (live) {
+    const changes = mergeRevision(roomContent(current), pending, edits);
+    if (Object.keys(changes).length || current.pendingRevision?.isNew) { update.pendingRevision = { ...current.pendingRevision, changes }; revisionTouched = true; }
+    else if (current.pendingRevision) { unset.pendingRevision = 1; revisionTouched = true; }
+  } else {
+    Object.assign(update, edits);
+  }
   const room = await inTransaction(async (session) => {
     const room = await HotelRoomTypeModel.findOneAndUpdate(
-      { publicId: roomId, listingId: listing._id, deletedAt: null },
-      { $set: update, $inc: { inventoryVersion: 1 } }, { session, returnDocument: 'after', runValidators: true },
+      { _id: current._id, deletedAt: null },
+      { $set: update, ...(revisionTouched && unset.pendingRevision ? { $unset: unset } : {}), $inc: { inventoryVersion: 1 } },
+      { session, returnDocument: 'after', runValidators: true },
     );
     if (!room) throw new AppError(404, 'ROOM_TYPE_NOT_FOUND', 'Room type was not found.');
     if (input.totalRooms !== undefined && await inventoryExceeds(room._id, input.totalRooms, todayInPakistan(), session)) {
@@ -163,12 +272,23 @@ export async function updateRoomType(userId: string, listingId: string, roomId: 
     }
     return room;
   });
+  if (revisionTouched) await refreshRevisionFlag(listing);
   await syncListingPrice(listing);
   await recordAuditEvent({
     actorId: userId, actorType: 'user', action: 'listing.room_updated', resourceType: 'listing', resourceId: listing.publicId, ...metadata,
-    metadata: { roomId: room.publicId, ...input },
+    metadata: { roomId: room.publicId, ...fields },
   });
   return roomView(room);
+}
+
+/** Keeps the listing's review flag in step after a room edit: set while it or any room has changes waiting. */
+async function refreshRevisionFlag(listing: any) {
+  const own = Object.keys(listing.pendingRevision?.changes ?? {}).length > 0;
+  const rooms = await HotelRoomTypeModel.exists({ listingId: listing._id, pendingRevision: { $exists: true }, deletedAt: null });
+  if (own || rooms) touchRevision(listing);
+  else if (hasRevision(listing)) listing.pendingRevision = undefined;
+  else return;
+  await listing.save();
 }
 
 const DAY_MS = 86_400_000;
@@ -238,11 +358,18 @@ export async function setRoomClosures(userId: string, listingId: string, roomId:
 
 export async function archiveRoomType(userId: string, listingId: string, roomId: string) {
   const { listing } = await ownedListing(userId, listingId);
-  if (!['draft', 'rejected'].includes(listing.status)) throw new AppError(409, 'LISTING_LOCKED', 'Room types can only change while a listing is editable.');
+  const editable = ['draft', 'rejected'].includes(listing.status);
   const room = await HotelRoomTypeModel.findOneAndUpdate(
-    { publicId: roomId, listingId: listing._id, deletedAt: null }, { $set: { status: 'archived', deletedAt: new Date() } },
+    // On a live hotel only a room still waiting for its first approval can be withdrawn.
+    { publicId: roomId, listingId: listing._id, deletedAt: null, ...(editable ? {} : { 'pendingRevision.isNew': true }) },
+    { $set: { status: 'archived', deletedAt: new Date() }, $unset: { pendingRevision: 1 } },
   );
-  if (!room) throw new AppError(404, 'ROOM_TYPE_NOT_FOUND', 'Room type was not found.');
+  if (!room) {
+    throw editable || !['published', 'paused'].includes(listing.status)
+      ? new AppError(editable ? 404 : 409, editable ? 'ROOM_TYPE_NOT_FOUND' : 'LISTING_LOCKED', editable ? 'Room type was not found.' : 'Room types cannot change while the listing is under review.')
+      : new AppError(409, 'LISTING_LOCKED', 'Live room categories can be paused, not removed.');
+  }
+  if (!editable) await refreshRevisionFlag(listing);
   await syncListingPrice(listing);
 }
 
@@ -279,6 +406,7 @@ export async function duplicateListing(userId: string, listingId: string, metada
   const { vendor, listing } = await ownedListing(userId, listingId);
   const source = listing.toObject();
   delete source._id; delete source.publicId; delete source.createdAt; delete source.updatedAt;
+  delete source.pendingRevision; delete source.revisionRejectionReason;
   const duplicate = await ListingModel.create({
     ...source, ownerId: vendor._id, title: `${listing.title} Copy`, status: 'draft',
     featured: false, rejectionReason: null, deletedAt: null,
@@ -286,7 +414,7 @@ export async function duplicateListing(userId: string, listingId: string, metada
   const rooms = await HotelRoomTypeModel.find({ listingId: listing._id, deletedAt: null }).lean();
   if (rooms.length) {
     await HotelRoomTypeModel.insertMany(rooms.map((room: any) => {
-      const { _id, publicId, createdAt, updatedAt, ...fields } = room;
+      const { _id, publicId, createdAt, updatedAt, pendingRevision, ...fields } = room;
       return { ...fields, listingId: duplicate._id, status: 'active', deletedAt: null };
     }));
   }
@@ -301,11 +429,13 @@ export async function listListingsForModeration(query: { status: string; q?: str
   const filter: Record<string, unknown> = {
     type: { $in: ['hotel', 'homestay'] }, ownerId: { $ne: null },
     // Archiving also sets deletedAt, so archived listings are only shown when asked for.
-    ...(query.status === 'archived' ? { status: 'archived' } : { deletedAt: null, ...(query.status === 'all' ? {} : { status: query.status }) }),
+    ...(query.status === 'archived' ? { status: 'archived' }
+      : query.status === 'revisions' ? { deletedAt: null, 'pendingRevision.submittedAt': { $exists: true } }
+        : { deletedAt: null, ...(query.status === 'all' ? {} : { status: query.status }) }),
     ...(term ? { $or: [{ title: term }, { location: term }] } : {}),
   };
   const [records, total] = await Promise.all([
-    ListingModel.find(filter).sort(query.status === 'submitted' ? { updatedAt: 1 } : { updatedAt: -1 })
+    ListingModel.find(filter).sort(query.status === 'submitted' ? { updatedAt: 1 } : query.status === 'revisions' ? { 'pendingRevision.submittedAt': 1 } : { updatedAt: -1 })
       .skip((query.page - 1) * query.limit).limit(query.limit).lean(),
     ListingModel.countDocuments(filter),
   ]);
@@ -339,9 +469,54 @@ export async function moderateListing(adminId: string, listingId: string, input:
       throw new AppError(400, 'LISTING_INCOMPLETE', 'The hotel needs a property photo and an active room category before publication.');
     }
   }
+  const wasLive = listing.status !== 'submitted';
   listing.status = input.decision;
   listing.rejectionReason = input.decision === 'rejected' ? input.notes : null;
-  await listing.save();
+  // A taken-down listing is editable again, so any edits waiting for review simply become its draft content.
+  await inTransaction(async (session) => {
+    if (hasRevision(listing)) await resolveRevision(listing, 'approved', session);
+    await listing.save({ session });
+  });
   await recordAuditEvent({ actorId: adminId, actorType: 'user', action: `listing.${input.decision}`, resourceType: 'listing', resourceId: listing.publicId, ...metadata, metadata: { notes: input.notes } });
+  const vendor = await VendorModel.findById(listing.ownerId).select('name email').lean();
+  if (vendor) {
+    await notifyVendorDecision(vendor, input.decision === 'published' ? 'listing.published' : wasLive ? 'listing.taken_down' : 'listing.rejected',
+      { hotel: listing.title, reason: input.decision === 'rejected' ? input.notes : undefined });
+  }
+  return listingView(listing);
+}
+
+/** Applies (or discards) the listing's pending revision and its rooms' changes. The caller saves the listing. */
+async function resolveRevision(listing: any, decision: 'approved' | 'rejected', session: any) {
+  const rooms = await HotelRoomTypeModel.find({ listingId: listing._id, pendingRevision: { $exists: true }, deletedAt: null }).session(session);
+  for (const room of rooms) {
+    const { changes = {}, isNew } = room.pendingRevision;
+    const set = decision === 'approved' ? { ...changes, ...(isNew ? { status: 'active' } : {}) }
+      : isNew ? { status: 'archived', deletedAt: new Date() } : {};
+    await HotelRoomTypeModel.updateOne({ _id: room._id }, { $set: set, $unset: { pendingRevision: 1 }, $inc: { inventoryVersion: 1 } }, { session, runValidators: true });
+  }
+  if (decision === 'approved') applyListingChanges(listing, listing.pendingRevision?.changes ?? {});
+  listing.pendingRevision = undefined;
+}
+
+export async function decideListingRevision(adminId: string, listingId: string, input: { decision: 'approved' | 'rejected'; notes: string }, metadata: SessionMetadata) {
+  await requireDatabase();
+  const listing = await ListingModel.findOne({ publicId: listingId, deletedAt: null, 'pendingRevision.submittedAt': { $exists: true } });
+  if (!listing) throw new AppError(404, 'REVISION_NOT_FOUND', 'This listing has no changes waiting for review.');
+  const changes = listing.pendingRevision.changes;
+  listing.revisionRejectionReason = input.decision === 'rejected' ? input.notes : null;
+  await inTransaction(async (session) => {
+    await resolveRevision(listing, input.decision, session);
+    await listing.save({ session });
+  });
+  await syncListingPrice(listing);
+  await recordAuditEvent({
+    actorId: adminId, actorType: 'user', action: `listing.revision_${input.decision}`, resourceType: 'listing', resourceId: listing.publicId, ...metadata,
+    metadata: { notes: input.notes, fields: Object.keys(changes ?? {}) },
+  });
+  const vendor = await VendorModel.findById(listing.ownerId).select('name email').lean();
+  if (vendor) {
+    await notifyVendorDecision(vendor, `listing.revision_${input.decision}`, { hotel: listing.title, reason: input.decision === 'rejected' ? input.notes : undefined });
+  }
   return listingView(listing);
 }

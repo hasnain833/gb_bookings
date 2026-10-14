@@ -1,0 +1,9 @@
+{
+  "name": "gbbookings-server",
+  "private": true,
+  "type": "module",
+  "description": "Run the API from this folder with `npm start`. Dependencies and .env live in the project root.",
+  "scripts": {
+    "start": "cd .. && tsx watch --clear-screen=false server/index.ts"
+  }
+}

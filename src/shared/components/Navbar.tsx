@@ -5,7 +5,7 @@ import GBLogo from './GBLogo';
 
 interface NavbarProps {
   currentView: string; setView: (view: string) => void; userEmail: string; userName?: string;
-  isLoggedIn: boolean; isStaff?: boolean; isPartner?: boolean; notificationsCount: number; unreadNotifications: boolean;
+  isLoggedIn: boolean; isStaff?: boolean; isPartner?: boolean;
   onOpenNotifications: () => void; onOpenAuthModal: (mode?: 'signin' | 'register') => void;
   onSignOut: () => void | Promise<void>;
 }

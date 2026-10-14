@@ -21,6 +21,13 @@ const coordinatesSchema = new Schema({
   },
 }, { _id: false });
 
+// Ordered photos; the first is the cover. `images`/`image`/`imageMediaIds` are kept in step for older readers.
+export const photoSchema = new Schema({
+  url: { type: String, required: true, trim: true },
+  mediaId: { type: Schema.Types.ObjectId, ref: 'Media' },
+  caption: { type: String, trim: true, maxlength: 200 },
+}, { _id: false });
+
 const listingSchema = new Schema({
   publicId: {
     type: String,
@@ -48,6 +55,7 @@ const listingSchema = new Schema({
   image: { type: String, required: true, trim: true },
   images: { type: [String], default: [] },
   imageMediaIds: { type: [{ type: Schema.Types.ObjectId, ref: 'Media' }], default: [] },
+  photos: { type: [photoSchema], default: undefined },
   description: { type: String, required: true, trim: true, maxlength: 10_000 },
   featured: { type: Boolean, default: false, index: true },
   status: {
@@ -97,6 +105,9 @@ const listingSchema = new Schema({
   },
   deletedAt: { type: Date, default: null, index: true },
   rejectionReason: { type: String, trim: true, maxlength: 2_000 },
+  // Edits to a live listing wait here ({ changes, submittedAt }) while the published version stays bookable.
+  pendingRevision: { type: Schema.Types.Mixed, default: undefined },
+  revisionRejectionReason: { type: String, trim: true, maxlength: 2_000 },
 }, {
   timestamps: true,
   minimize: true,

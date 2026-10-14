@@ -15,6 +15,7 @@ import {
   listRoomsForModeration,
   listOwnListings,
   listRoomTypes,
+  decideListingRevision,
   moderateListing,
   setListingAvailability,
   submitListing,
@@ -25,6 +26,7 @@ import {
   adminListingsQuerySchema,
   createHotelListingSchema,
   listingDecisionSchema,
+  revisionDecisionSchema,
   listingParamsSchema,
   listingStatusSchema,
   roomCalendarQuerySchema,
@@ -112,5 +114,10 @@ adminListingRouter.get('/:id/rooms', validate('params', listingParamsSchema), as
 }));
 adminListingRouter.post('/:id/decision', validate('params', listingParamsSchema), validate('body', listingDecisionSchema), asyncHandler(async (request, response) => {
   const listing = await moderateListing(request.auth!.userId, request.params.id, request.body, sessionMetadata(request));
+  response.json({ data: listing });
+}));
+
+adminListingRouter.post('/:id/revision/decision', validate('params', listingParamsSchema), validate('body', revisionDecisionSchema), asyncHandler(async (request, response) => {
+  const listing = await decideListingRevision(request.auth!.userId, request.params.id, request.body, sessionMetadata(request));
   response.json({ data: listing });
 }));

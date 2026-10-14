@@ -90,6 +90,7 @@ export function serializeBooking(booking: any) {
     paymentStatus: booking.paymentStatus,
     paymentMethod: booking.paymentMethod,
     paidAt: booking.paidAt,
+    checkedInAt: booking.checkedInAt,
     respondBy: booking.status === 'pending' && booking.createdAt ? new Date(new Date(booking.createdAt).getTime() + PENDING_TTL_MS) : undefined,
     specialRequests: booking.specialRequests,
     checkInTime: booking.listingSnapshot.checkInTime,
@@ -143,6 +144,7 @@ export async function getListingAvailability(
         maxAdults: room.maxAdults,
         maxChildren: room.maxChildren,
         amenities: room.amenities ?? [],
+        photos: (room.photos ?? []).map((photo: any) => ({ url: photo.url, ...(photo.caption ? { caption: photo.caption } : {}) })),
         available: free,
         bookable: free >= query.rooms && partyFits(room, query.adults, query.children, query.rooms),
         nightlyRate: room.basePriceMinor / 100,
@@ -371,13 +373,90 @@ export async function cancelOwnBooking(actor: Actor, bookingId: string, reason: 
   return applyTransition(actor, booking, 'cancel', reason, metadata);
 }
 
-export async function actOnVendorBooking(actor: Actor, bookingId: string, action: BookingAction | 'mark_paid', reason: string | undefined, metadata: SessionMetadata) {
+export async function actOnVendorBooking(actor: Actor, bookingId: string, action: BookingAction | 'mark_paid' | 'check_in', reason: string | undefined, metadata: SessionMetadata) {
   await requireDatabase();
   // Hotel operations belong to the hotel's own team; the platform admin can only cancel (see adminCancelBooking).
   const { booking, isVendor } = await accessibleBooking(actor, bookingId);
   if (!isVendor) throw new AppError(404, 'BOOKING_NOT_FOUND', 'Booking not found.');
   if (action === 'mark_paid') return markPaidAtProperty(actor, booking, metadata);
+  if (action === 'check_in') return checkInGuest(actor, booking, metadata);
+  if (action === 'no_show' && booking.checkedInAt) throw new AppError(409, 'GUEST_CHECKED_IN', 'This guest has checked in, so the booking cannot be a no-show.');
   return applyTransition(actor, booking, action, reason, metadata);
+}
+
+/** Marks a confirmed guest as arrived. Conditional, so a double click records one arrival. */
+async function checkInGuest(actor: Actor, booking: any, metadata: SessionMetadata) {
+  if (todayInPakistan() < booking.checkIn) throw new AppError(409, 'INVALID_BOOKING_STATUS', 'Guests can be checked in from the check-in date.');
+  const updated = await BookingModel.findOneAndUpdate(
+    { _id: booking._id, status: 'confirmed', checkedInAt: null },
+    { $set: { checkedInAt: new Date(), checkedInBy: actor.userId } },
+    { returnDocument: 'after' },
+  );
+  if (!updated) {
+    throw new AppError(409, 'INVALID_BOOKING_STATUS', booking.checkedInAt ? 'This guest is already checked in.' : 'Only confirmed bookings can be checked in.');
+  }
+  await recordAuditEvent({ actorId: actor.userId, actorType: 'user', action: 'booking.checked_in', resourceType: 'booking', resourceId: booking.publicId, ...metadata });
+  return serializeBooking(updated);
+}
+
+const pkr = (minor: number) => `PKR ${(minor / 100).toLocaleString('en-PK')}`;
+
+/**
+ * Moves an upcoming booking to new dates, room category or room count in one transaction:
+ * the old nights are released, the new ones reserved, and the price re-quoted at the room's current rate.
+ */
+export async function changeVendorBooking(actor: Actor, bookingId: string, input: { checkIn: string; checkOut: string; roomTypeId: string; rooms: number }, metadata: SessionMetadata) {
+  await requireDatabase();
+  const { booking, isVendor } = await accessibleBooking(actor, bookingId);
+  if (!isVendor) throw new AppError(404, 'BOOKING_NOT_FOUND', 'Booking not found.');
+  if (!['pending', 'confirmed'].includes(booking.status) || booking.checkedInAt) {
+    throw new AppError(409, 'INVALID_BOOKING_STATUS', 'Only pending or confirmed bookings whose guest has not checked in can be changed.');
+  }
+  // ponytail: no refund rules yet (Phase 2), so a re-quote must not leave recorded money out of step with the total.
+  if (booking.paymentStatus === 'paid') throw new AppError(409, 'BOOKING_ALREADY_PAID', 'Payment is already recorded for this booking. Cancel it and make a new one instead.');
+  const nights = stayNights(input.checkIn, input.checkOut);
+  const roomRef = await HotelRoomTypeModel.findOne({ publicId: input.roomTypeId, listingId: booking.listingId, status: 'active', deletedAt: null });
+  if (!roomRef) throw new AppError(404, 'ROOM_NOT_FOUND', 'That room category is not bookable at this property.');
+  if (!partyFits(roomRef, booking.adults, booking.children, input.rooms)) {
+    throw new AppError(422, 'OCCUPANCY_EXCEEDED', `${input.rooms} × ${roomRef.name} cannot hold ${booking.adults} adult(s) and ${booking.children} child(ren).`);
+  }
+  if (input.checkIn === booking.checkIn && input.checkOut === booking.checkOut && String(roomRef._id) === String(booking.roomTypeId) && input.rooms === booking.rooms) {
+    throw new AppError(400, 'NO_CHANGE', 'Nothing was changed.');
+  }
+  await prepareRoomNights(roomRef._id, nights);
+  const oldNights = stayNights(booking.checkIn, booking.checkOut, booking.checkIn);
+  const before = `${booking.checkIn} → ${booking.checkOut}, ${booking.rooms} × ${booking.roomSnapshot.name}, ${pkr(booking.pricing.totalMinor)}`;
+
+  const updated = await inTransaction(async (session) => {
+    const room = await HotelRoomTypeModel.findOneAndUpdate(
+      { _id: roomRef._id, status: 'active', deletedAt: null }, { $inc: { inventoryVersion: 1 } }, { session, returnDocument: 'after' },
+    );
+    if (!room) throw new AppError(409, 'ROOM_UNAVAILABLE', 'The selected room is no longer available.');
+    const totalMinor = room.basePriceMinor * nights.length * input.rooms;
+    // Matching the loaded stay makes a concurrent change or cancellation fail instead of double-moving inventory.
+    const changed = await BookingModel.findOneAndUpdate(
+      { _id: booking._id, status: booking.status, checkedInAt: null, paymentStatus: { $ne: 'paid' }, checkIn: booking.checkIn, checkOut: booking.checkOut, roomTypeId: booking.roomTypeId, rooms: booking.rooms },
+      {
+        $set: {
+          checkIn: input.checkIn, checkOut: input.checkOut, nights: nights.length, rooms: input.rooms, roomTypeId: room._id,
+          roomSnapshot: { publicId: room.publicId, name: room.name, bedType: room.bedType },
+          pricing: { currency: 'PKR', nightlyRateMinor: room.basePriceMinor, subtotalMinor: totalMinor, totalMinor },
+        },
+        $push: { statusHistory: { status: booking.status, by: actor.userId, at: new Date(), reason: `Changed from ${before} to ${input.checkIn} → ${input.checkOut}, ${input.rooms} × ${room.name}, ${pkr(totalMinor)}.` } },
+      },
+      { session, returnDocument: 'after' },
+    );
+    if (!changed) throw new AppError(409, 'BOOKING_CHANGED', 'This booking was updated meanwhile. Reload it and try again.');
+    await releaseRooms(booking.roomTypeId, oldNights, booking.rooms, session);
+    await reserveRooms(room, nights, input.rooms, session);
+    return changed;
+  });
+  await recordAuditEvent({
+    actorId: actor.userId, actorType: 'user', action: 'booking.changed', resourceType: 'booking', resourceId: booking.publicId, ...metadata,
+    metadata: { ...input, previous: { checkIn: booking.checkIn, checkOut: booking.checkOut, roomTypeId: booking.roomSnapshot.publicId, rooms: booking.rooms, totalMinor: booking.pricing.totalMinor } },
+  });
+  await notifyBooking(updated, 'changed');
+  return serializeBooking(updated);
 }
 
 /** Admin lookup of one booking by the reference a guest or hotel quotes; there is no admin booking list. */

@@ -52,6 +52,9 @@ const bookingSchema = new Schema({
   paymentStatus: { type: String, enum: ['pending', 'paid', 'refunded'], default: 'pending' },
   paidAt: { type: Date },
   paymentCollectedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+  // Arrival is a fact about a confirmed stay, not a status: the booking stays "confirmed" until completed.
+  checkedInAt: { type: Date },
+  checkedInBy: { type: Schema.Types.ObjectId, ref: 'User' },
   status: { type: String, enum: bookingStatuses, default: 'pending', index: true },
   statusHistory: { type: [statusEventSchema], default: [] },
   idempotencyKey: { type: String, maxlength: 100 },

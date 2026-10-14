@@ -23,9 +23,9 @@ public/         Static assets
 
 1. Copy `.env.example` to `.env` and set `MONGODB_URI`.
 2. Run `npm install`.
-3. In two terminals, run `npm run dev:backend` (API, port 3001, auto-restarts on change) and `npm run dev:frontend` (frontend, port 3000).
+3. In two terminals: `npm run dev` in the project root (frontend, port 3000), and `npm start` inside `server/` (API on `PORT` from `.env`, auto-restarts on change).
 
-Open `http://localhost:3000`. Vite proxies `/api` to the backend. The API explorer is at `http://localhost:3001/api/docs`.
+Open `http://localhost:3000`. Vite proxies `/api` to the backend. The API explorer is at `http://localhost:8000/api/docs`.
 
 Use MongoDB Atlas or a local MongoDB replica set (`replicaSet=rs0`). Booking creation, cancellation, room inventory changes, and vendor application creation use transactions; standalone MongoDB cannot run these operations safely.
 
@@ -42,7 +42,7 @@ If Atlas reports `ReplicaSetNoPrimary`, a server-selection timeout, or a TLS ale
 3. URL-encode special characters in the database user's password.
 4. Ensure the local firewall, VPN, or company network permits outbound TCP traffic to Atlas on port `27017`.
 
-If startup says port `3000` or `3001` is already in use, an existing development server is still running. Stop it before starting another.
+If startup says port `3000` or `8000` is already in use, an existing development server is still running. Stop it before starting another.
 
 ## Production
 
@@ -51,8 +51,9 @@ If startup says port `3000` or `3001` is already in use, an existing development
 ## Commands
 
 ```text
-npm run dev:frontend        Frontend only (port 3000)
-npm run dev:backend         API only, with watch (port 3001)
+npm run dev                 Frontend (port 3000)
+cd server && npm start      API with watch (PORT from .env)
+npm run dev:backend         Same API with watch, from the root
 npm start                   API only, no watch
 npm run lint                Type-check the project
 npm run build               Build frontend (dist/) and backend (dist-server/server.cjs)

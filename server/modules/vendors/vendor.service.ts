@@ -9,6 +9,7 @@ import { AppError, ServiceUnavailableError } from '../../shared/app-error.js';
 import { recordAuditEvent } from '../audit/audit.service.js';
 import type { SessionMetadata } from '../auth/auth.service.js';
 import { isCloudinaryConfigured, signedDownloadUrl } from '../media/cloudinary.service.js';
+import { notifyVendorDecision } from './vendor-notifications.js';
 
 async function requireDatabase() {
   if (!await connectDatabase()) throw new ServiceUnavailableError('Vendor services are unavailable while the database is disconnected.');
@@ -160,6 +161,7 @@ export async function decideVendorChanges(adminUserId: string, vendorId: string,
     actorId: adminUserId, actorType: 'user', action: `vendor.changes_${input.decision}`, resourceType: 'vendor', resourceId: vendor.publicId, ...metadata,
     metadata: { notes: input.notes, changes },
   });
+  await notifyVendorDecision(vendor, `vendor.changes_${input.decision}`, { reason: input.decision === 'rejected' ? input.notes : undefined });
   return serializeVendor(vendor);
 }
 
@@ -217,5 +219,7 @@ export async function decideVendorApplication(adminUserId: string, vendorId: str
     resourceType: 'vendor', resourceId: vendor.publicId, ...metadata,
     metadata: { notes: input.notes },
   });
+  const decision = input.decision as 'approved' | 'rejected' | 'suspended';
+  await notifyVendorDecision(vendor, `vendor.${decision}`, { reason: decision === 'approved' ? undefined : input.notes });
   return serializeVendor(vendor);
 }

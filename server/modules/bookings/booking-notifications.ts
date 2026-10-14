@@ -2,12 +2,13 @@ import { VendorModel } from '../../models/vendor.model.js';
 import { escapeHtml } from '../email/auth-email.templates.js';
 import { isEmailConfigured, sendTransactionalEmail } from '../email/resend.service.js';
 
-export type BookingEvent = 'created' | 'confirmed' | 'cancelled';
+export type BookingEvent = 'created' | 'confirmed' | 'cancelled' | 'changed';
 
 const guestCopy: Record<BookingEvent, { subject: string; message: string }> = {
   created: { subject: 'Booking request received', message: 'We have received your booking request. The property will confirm it shortly.' },
   confirmed: { subject: 'Booking confirmed', message: 'Your booking has been confirmed by the property. Payment is collected at the hotel.' },
   cancelled: { subject: 'Booking cancelled', message: 'Your booking has been cancelled.' },
+  changed: { subject: 'Booking changed', message: 'The property has changed your booking. The updated details and price are below.' },
 };
 
 const vendorCopy: Partial<Record<BookingEvent, { subject: string; message: string }>> = {

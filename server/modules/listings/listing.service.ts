@@ -23,6 +23,7 @@ function toPublicListing(record: ListingRecord): Listing {
     reviewsCount: record.reviewsCount,
     image: record.image,
     images: record.images ?? [],
+    ...(record.photos?.some((photo: any) => photo.caption) ? { photos: record.photos.map((photo: any) => ({ url: photo.url, ...(photo.caption ? { caption: photo.caption } : {}) })) } : {}),
     description: record.description,
     featured: record.featured,
     ...(record.hotelSpecs ? { hotelSpecs: record.hotelSpecs } : {}),

@@ -21,13 +21,13 @@ const titles: Record<VendorTab, [string, string]> = {
   security: ['Account security', 'Manage email verification, your password and active sessions.'],
 };
 
-export default function VendorWorkspace({ tab, onTab, businessName, status, userName, userEmail, onBrowse, onSignOut, children }: {
-  tab: VendorTab; onTab: (tab: VendorTab) => void; businessName?: string;
+export default function VendorWorkspace({ tab, onTab, businessName, status, userName, userEmail, onBrowse, onSignOut, hideHeading = false, children }: {
+  tab: VendorTab; hideHeading?: boolean; onTab: (tab: VendorTab) => void; businessName?: string;
   status?: string; userName: string; userEmail: string; onBrowse: () => void;
   onSignOut: () => Promise<void>; children: ReactNode;
 }) {
   return (
-    <div className="min-h-dvh bg-[#f4f6f8] text-slate-900 lg:flex">
+    <div className="min-h-dvh bg-[#F5F6F2] font-jakarta text-slate-900 lg:flex">
       <aside className="border-b border-slate-200 bg-white lg:fixed lg:inset-y-0 lg:left-0 lg:z-20 lg:flex lg:w-64 lg:flex-col lg:border-r lg:border-b-0">
         <div className="flex items-center justify-between gap-3 px-5 py-6 lg:block">
           <button type="button" onClick={onBrowse} aria-label="Go to GBBookings"><GBLogo size="sm" /></button>
@@ -59,7 +59,7 @@ export default function VendorWorkspace({ tab, onTab, businessName, status, user
           <div className="flex items-center gap-3"><div className="hidden text-right sm:block"><p className="max-w-48 truncate text-sm font-semibold">{userName}</p><p className="max-w-48 truncate text-xs text-slate-500">{userEmail}</p></div><span className="flex size-10 items-center justify-center rounded-full bg-emerald-50 font-semibold text-emerald-800">{userName.charAt(0).toUpperCase() || 'P'}</span><button type="button" onClick={onSignOut} aria-label="Sign out" className="rounded-lg border border-slate-200 p-3 text-slate-500 lg:hidden"><LogOut className="size-4" /></button></div>
         </header>
         <main className="mx-auto max-w-6xl space-y-6 px-4 py-7 sm:px-8 sm:py-9">
-          <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="mb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-emerald-700">GBBookings partners</p><h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{titles[tab][0]}</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">{titles[tab][1]}</p></div>{status === 'approved' && tab !== 'new-property' && <button type="button" onClick={() => onTab('new-property')} className="flex min-h-11 items-center gap-2 rounded-lg bg-[#006F3C] px-4 text-sm font-semibold text-white hover:bg-[#005c32]"><Plus className="size-4" />Add hotel</button>}</div>
+          {!hideHeading && <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="mb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-emerald-700">GBBookings partners</p><h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{titles[tab][0]}</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">{titles[tab][1]}</p></div>{status === 'approved' && tab !== 'new-property' && <button type="button" onClick={() => onTab('new-property')} className="flex min-h-11 items-center gap-2 rounded-lg bg-[#006F3C] px-4 text-sm font-semibold text-white hover:bg-[#005c32]"><Plus className="size-4" />Add hotel</button>}</div>}
           {children}
         </main>
       </div>

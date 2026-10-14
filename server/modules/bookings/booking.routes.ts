@@ -11,6 +11,7 @@ import {
   bookingReferenceQuerySchema,
   bookingIdParamsSchema,
   cancelBookingSchema,
+  changeBookingSchema,
   createBookingSchema,
   listBookingsQuerySchema,
   vendorBookingActionSchema,
@@ -25,6 +26,7 @@ import {
   getListingAvailability,
   listCustomerBookings,
   listVendorBookings,
+  changeVendorBooking,
 } from './booking.service.js';
 
 const actor = (request: Parameters<RequestHandler>[0]) => ({ userId: request.auth!.userId, roles: request.auth!.roles });
@@ -74,6 +76,10 @@ vendorBookingRouter.get('/', validate('query', listBookingsQuerySchema), asyncHa
 }));
 
 vendorBookingRouter.post('/:id/actions', authorizePermission('booking:manage:own'), validate('params', bookingIdParamsSchema), validate('body', vendorBookingActionSchema), bookingActionHandler);
+
+vendorBookingRouter.post('/:id/change', authorizePermission('booking:manage:own'), validate('params', bookingIdParamsSchema), validate('body', changeBookingSchema), asyncHandler(async (request, response) => {
+  response.json({ data: await changeVendorBooking(actor(request), request.params.id, request.body, sessionMetadata(request)) });
+}));
 
 export const adminBookingRouter = Router();
 adminBookingRouter.use(authenticate, authorizePermission('booking:manage'));

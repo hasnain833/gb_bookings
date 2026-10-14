@@ -258,7 +258,7 @@ export default function AiPlanner({ onSelectListing }: AiPlannerProps) {
     }, 1500);
 
     try {
-      const res = await fetch('/api/ai-planner', {
+      const res = await fetch('/api/v1/ai/planner', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

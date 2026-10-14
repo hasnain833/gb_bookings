@@ -118,7 +118,8 @@ export default function RoomBookingPanel({ listingId, onProceed }: RoomBookingPa
               room.id === selectedRoomId ? 'border-[#006F3C] bg-emerald-50/60 ring-1 ring-[#006F3C]' : 'border-slate-200 bg-white hover:border-slate-300'
             } disabled:cursor-not-allowed disabled:opacity-50`}
           >
-            <div className="min-w-0">
+            {room.photos?.[0] && <img src={room.photos[0].url} alt={room.photos[0].caption || room.name} className="size-16 shrink-0 rounded-md object-cover" />}
+            <div className="min-w-0 flex-1">
               <span className="text-sm font-semibold text-slate-900 block">{room.name}</span>
               <span className="text-xs text-slate-500 block mt-0.5">
                 {room.bedType} · up to {room.maxAdults} adults{room.maxChildren ? `, ${room.maxChildren} child` : ''}

@@ -2,6 +2,12 @@ import { z } from 'zod';
 
 const mediaId = z.string().regex(/^med_[0-9a-f-]{36}$/i, 'Invalid media identifier.');
 const cleanList = z.array(z.string().trim().min(1).max(100)).max(100).default([]);
+// A photo is either a new upload (mediaId) or one the listing/room already has (url). Order matters: first is the cover.
+const photo = z.object({
+  mediaId: mediaId.optional(),
+  url: z.string().trim().url().max(2_000).optional(),
+  caption: z.string().trim().max(200).optional(),
+}).strict().refine((value) => Boolean(value.mediaId) !== Boolean(value.url), { message: 'Give either mediaId or url for each photo.' });
 
 export const experienceTypes = ['Mountain View', 'Family Friendly', 'Lakeside Stays', 'Local Culture', 'Budget Friendly'] as const;
 
@@ -12,6 +18,7 @@ const listingFields = z.object({
   description: z.string().trim().min(20).max(10_000),
   price: z.number().int().nonnegative(),
   imageIds: z.array(mediaId).min(1).max(20),
+  photos: z.array(photo).min(1).max(20).optional(),
   hotelSpecs: z.object({
     hotelType: z.string().trim().min(2).max(80),
     amenities: cleanList,
@@ -49,6 +56,7 @@ export const roomTypeSchema = z.object({
   totalRooms: z.number().int().min(1).max(10_000),
   basePrice: z.number().int().nonnegative(),
   amenities: cleanList,
+  photos: z.array(photo).max(10).optional(),
 }).strict();
 
 // Re-declare amenities without its default, or every partial update would reset them to [].
@@ -67,7 +75,7 @@ export const roomClosureSchema = z.object({ from: isoDate, to: isoDate, closed: 
 export const listingStatusSchema = z.object({ status: z.enum(['paused', 'published']) }).strict();
 
 export const adminListingsQuerySchema = z.object({
-  status: z.enum(['all', 'draft', 'submitted', 'published', 'paused', 'rejected', 'archived']).default('submitted'),
+  status: z.enum(['all', 'draft', 'submitted', 'published', 'paused', 'rejected', 'archived', 'revisions']).default('submitted'),
   q: z.string().trim().min(2).max(100).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
@@ -75,5 +83,10 @@ export const adminListingsQuerySchema = z.object({
 
 export const listingDecisionSchema = z.object({
   decision: z.enum(['published', 'rejected']),
+  notes: z.string().trim().min(3).max(2_000),
+}).strict();
+
+export const revisionDecisionSchema = z.object({
+  decision: z.enum(['approved', 'rejected']),
   notes: z.string().trim().min(3).max(2_000),
 }).strict();
