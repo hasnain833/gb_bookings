@@ -6,7 +6,7 @@ export type BookingEvent = 'created' | 'confirmed' | 'cancelled' | 'changed';
 
 const guestCopy: Record<BookingEvent, { subject: string; message: string }> = {
   created: { subject: 'Booking request received', message: 'We have received your booking request. The property will confirm it shortly.' },
-  confirmed: { subject: 'Booking confirmed', message: 'Your booking has been confirmed by the property. Payment is collected at the hotel.' },
+  confirmed: { subject: 'Booking confirmed', message: 'Your booking has been confirmed by the property. Payment is made at the property on arrival.' },
   cancelled: { subject: 'Booking cancelled', message: 'Your booking has been cancelled.' },
   changed: { subject: 'Booking changed', message: 'The property has changed your booking. The updated details and price are below.' },
 };
@@ -24,6 +24,8 @@ function bookingEmail(title: string, name: string, message: string, booking: any
     ['Check-in', booking.checkIn],
     ['Check-out', `${booking.checkOut} (${booking.nights} night${booking.nights === 1 ? '' : 's'})`],
     ['Guests', `${booking.adults} adult(s), ${booking.children} child(ren)`],
+    ...(booking.meals?.length ? [['Meals', booking.meals.map((meal: any) => meal.type).join(', ')] as [string, string]] : []),
+    ...(booking.status === 'confirmed' && booking.listingSnapshot.phone ? [['Property phone / WhatsApp', booking.listingSnapshot.phone] as [string, string]] : []),
     ['Total', `${booking.pricing.currency} ${(booking.pricing.totalMinor / 100).toLocaleString('en-PK')}`],
     ...(reason ? [['Reason', reason] as [string, string]] : []),
   ];

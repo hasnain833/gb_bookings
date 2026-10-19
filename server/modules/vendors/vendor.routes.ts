@@ -3,7 +3,11 @@ import { authenticate, authorizePermission } from '../../middleware/authenticate
 import { validate } from '../../middleware/validate.js';
 import { asyncHandler } from '../../shared/async-handler.js';
 import { sessionMetadata } from '../auth/auth.service.js';
+import { accessFor } from './member-access.js';
 import {
+  addTeamMember,
+  listTeam,
+  removeTeamMember,
   attachVendorDocument,
   createVendorApplication,
   decideVendorApplication,
@@ -15,6 +19,8 @@ import {
   updateOwnVendor,
 } from './vendor.service.js';
 import {
+  addTeamMemberSchema,
+  teamMemberParamsSchema,
   attachVendorDocumentSchema,
   createVendorSchema,
   listVendorsQuerySchema,
@@ -38,7 +44,7 @@ vendorRouter.post('/', validate('body', createVendorSchema), asyncHandler(async 
 
 vendorRouter.get('/me', asyncHandler(async (request, response) => {
   const result = await getOwnVendor(request.auth!.userId);
-  response.json({ data: result.public, membership: { role: result.membership.role } });
+  response.json({ data: result.public, membership: { role: result.membership.role, access: accessFor(result.membership.role) } });
 }));
 
 vendorRouter.patch('/me', validate('body', updateVendorSchema), asyncHandler(async (request, response) => {
@@ -58,6 +64,19 @@ vendorRouter.post('/me/change-request', validate('body', vendorChangeRequestSche
 vendorRouter.post('/me/submit', asyncHandler(async (request, response) => {
   const vendor = await submitOwnVendor(request.auth!.userId, sessionMetadata(request));
   response.json({ data: vendor });
+}));
+
+vendorRouter.get('/me/team', asyncHandler(async (request, response) => {
+  response.json({ data: await listTeam(request.auth!.userId) });
+}));
+
+vendorRouter.post('/me/team', validate('body', addTeamMemberSchema), asyncHandler(async (request, response) => {
+  response.status(201).json(await addTeamMember(request.auth!.userId, request.body, sessionMetadata(request)));
+}));
+
+vendorRouter.delete('/me/team/:id', validate('params', teamMemberParamsSchema), asyncHandler(async (request, response) => {
+  await removeTeamMember(request.auth!.userId, request.params.id, sessionMetadata(request));
+  response.status(204).end();
 }));
 
 adminVendorRouter.use(authenticate, authorizePermission('vendor:manage'));

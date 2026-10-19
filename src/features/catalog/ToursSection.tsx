@@ -6,20 +6,13 @@ import { useWishlist } from '../../shared/hooks/useWishlist';
 import { useLanguage } from '../../app/LanguageContext';
 import {
   CategoryGrid, CounterRow, DateField, LandingHero, ListingGrid, Popover, PopoverDone, PopoverField, PlaceField, SearchConsole,
-  filterListings, type LandingCategory, type PlaceOption,
+  type LandingCategory, usePlaces,
 } from './LandingKit';
 
 interface ToursSectionProps {
   onSelectListing: (listing: Listing) => void;
   onTriggerSearch?: (params: any) => void;
 }
-
-const PLACES: PlaceOption[] = [
-  { name: 'Hunza & Skardu Expedition', region: 'Gilgit-Baltistan', desc: 'Autumn poplars, lakes & Karakoram forts' },
-  { name: 'Deosai Plateau Wilderness', region: 'Skardu', desc: 'Brown bear safari & high-altitude stargazing' },
-  { name: 'Khunjerab & Upper Hunza', region: 'Gojal', desc: 'China border, Passu Cones & Attabad lake' },
-  { name: 'Cherry Blossom Special', region: 'Hunza Valley', desc: 'Spring blooms, Karimabad & Altit orchard walks' },
-];
 
 const CATEGORIES: LandingCategory[] = [
   { id: 'autumn-tours', title: 'Autumn Odyssey', subtitle: 'Golden poplars & red foliage landscapes', icon: Sparkles, bgImage: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=800&q=80', iconBg: 'bg-[#FF7D29]/20 text-[#FF7D29] border-[#FF7D29]/40' },
@@ -32,8 +25,8 @@ const CATEGORIES: LandingCategory[] = [
 const DURATIONS = ['3 Days / 2 Nights', '5 Days / 4 Nights', '7 Days / 6 Nights', '10 Days / 9 Nights'];
 
 export default function ToursSection({ onSelectListing, onTriggerSearch }: ToursSectionProps) {
+  const places = usePlaces('tour', 'tour');
   const { isRtl } = useLanguage();
-  const { listings } = useListings('tour');
   const wishlist = useWishlist();
 
   const [region, setRegion] = useState('Hunza & Skardu');
@@ -44,7 +37,7 @@ export default function ToursSection({ onSelectListing, onTriggerSearch }: Tours
   const [category, setCategory] = useState('All');
   const [location, setLocation] = useState('All');
 
-  const tours = filterListings(listings, location, 'All');
+  const { listings: tours, pagination } = useListings('tour', '', { location: location === 'All' ? undefined : location });
 
   return (
     <div className="space-y-12 pb-20 text-left" id="tours-page-container">
@@ -71,7 +64,7 @@ export default function ToursSection({ onSelectListing, onTriggerSearch }: Tours
           heading="Popular Tour Expeditions"
           value={region}
           defaultValue="Hunza & Skardu"
-          options={PLACES}
+          options={places.options}
           onChange={setRegion}
         />
         <DateField label="Departure Date" value={departureDate} onChange={setDepartureDate} />
@@ -111,11 +104,12 @@ export default function ToursSection({ onSelectListing, onTriggerSearch }: Tours
 
       <ListingGrid
         filterLabel="Destination"
-        locations={['All', 'Hunza', 'Skardu', 'Deosai', 'Passu']}
+        locations={places.chips}
         location={location}
         onLocation={setLocation}
         countText="guided tour packages"
         listings={tours}
+        total={pagination?.total}
         details={(tour) => {
           const specs = tour.tourSpecs;
           return {

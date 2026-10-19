@@ -1,26 +1,27 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrowRight, Check, Heart, Home, MapPin, Mountain, Send, Star, User, Users, Wallet, Waves } from 'lucide-react';
 import { Listing, handleImageError } from '../../types';
 import { useListings } from '../../shared/hooks/useListings';
 import { useWishlist } from '../../shared/hooks/useWishlist';
 import { useLanguage } from '../../app/LanguageContext';
-import { CounterRow, DateField, LandingHero, Popover, PopoverDone, PopoverField, PlaceField, SearchConsole, type PlaceOption } from './LandingKit';
+import { api } from '../../shared/api/api';
+import { CounterRow, DateField, LandingHero, Popover, PopoverDone, PopoverField, PlaceField, SearchConsole, usePlaces } from './LandingKit';
 
 interface HomestaysSectionProps {
   onSelectListing: (listing: Listing) => void;
   onTriggerSearch?: (params: any) => void;
 }
 
-const PLACES: PlaceOption[] = [
-  { name: 'Hunza Valley', region: 'Gilgit-Baltistan', desc: 'Karimabad, Attabad Lake, Passu Cones' },
-  { name: 'Skardu', region: 'Gilgit-Baltistan', desc: 'Shangrila Lake, Cold Desert, Deosai' },
-  { name: 'Karimabad', region: 'Hunza', desc: 'Baltit Fort, Altit Fort & Local Bazaar' },
-  { name: 'Shigar Valley', region: 'Baltistan', desc: 'Historic Shigar Fort & Orchards' },
-  { name: 'Passu & Gojal', region: 'Upper Hunza', desc: 'Passu Cones & Glacier Views' },
-  { name: 'Ghanche & Khaplu', region: 'Baltistan', desc: 'Khaplu Palace & Organic Farms' },
-  { name: 'Gilgit City', region: 'Capital District', desc: 'Gilgit River & Naltar Valley Access' },
-  { name: 'Attabad Lake', region: 'Hunza', desc: 'Turquoise Water Resorts & Chalets' },
+const DESTINATIONS = [
+  { name: 'Hunza Valley', img: 'https://images.unsplash.com/photo-1542718610-a1d656d1884c?auto=format&fit=crop&w=600&q=80' },
+  { name: 'Skardu', img: 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&w=600&q=80' },
+  { name: 'Khaplu', img: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=600&q=80' },
+  { name: 'Astore Valley', img: 'https://images.unsplash.com/photo-1510312305653-8ed496efae75?auto=format&fit=crop&w=600&q=80' },
+  { name: 'Shigar Valley', img: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=600&q=80' },
+  { name: 'Gojal Valley', img: 'https://images.unsplash.com/photo-1445019980597-93fa8acb246c?auto=format&fit=crop&w=600&q=80' },
 ];
+// Counted on the first word ("Hunza" matches "Altit, Hunza").
+const placeKey = (name: string) => name.split(' ')[0];
 
 const experiences = [
   { id: 'mountain-view', title: 'Mountain View', subtitle: 'Wake up to stunning mountain views', icon: Mountain, bgImage: 'https://images.unsplash.com/photo-1542718610-a1d656d1884c?auto=format&fit=crop&w=800&q=80' },
@@ -31,8 +32,12 @@ const experiences = [
 ];
 
 export default function HomestaysSection({ onSelectListing, onTriggerSearch }: HomestaysSectionProps) {
-  const { t, isRtl } = useLanguage();
-  const { listings } = useListings('homestay');
+  const places = usePlaces('homestay', 'homestay');
+  const { isRtl } = useLanguage();
+  const [selectedExperience, setSelectedExperience] = useState('All');
+  const { listings: homestayListings } = useListings('homestay', '', { experience: selectedExperience === 'All' ? undefined : selectedExperience, limit: 5 });
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  useEffect(() => { api.getPlaceCounts('homestay', DESTINATIONS.map((dest) => placeKey(dest.name))).then(setCounts).catch(() => undefined); }, []);
   const wishlist = useWishlist();
 
   const [destination, setDestination] = useState('Hunza Valley');
@@ -40,15 +45,7 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
   const [checkOut, setCheckOut] = useState('');
   const [guestCount, setGuestCount] = useState(2);
   const [roomCount, setRoomCount] = useState(1);
-  const [selectedExperience, setSelectedExperience] = useState('All');
-
-  const homestayListings = listings.filter((item) => {
-    const expType = item.homestaySpecs?.experienceType;
-    return selectedExperience === 'All' || !expType || expType.toLowerCase() === selectedExperience.toLowerCase();
-  });
-
-  // Real counts from the catalog (matched on the first word of the place name, e.g. "Hunza").
-  const homestaysIn = (place: string) => listings.filter((item) => item.location.toLowerCase().includes(place.split(' ')[0].toLowerCase())).length;
+  const homestaysIn = (place: string) => counts[placeKey(place)] ?? 0;
 
   return (
     <div className="space-y-12 pb-20 text-left" id="homestays-page-container">
@@ -75,12 +72,12 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
           heading="Popular Homestay Locations"
           value={destination}
           defaultValue="Hunza Valley"
-          options={PLACES}
+          options={places.options}
           onChange={setDestination}
         />
         <DateField label={isRtl ? 'چیک ان' : 'Check-in'} value={checkIn} onChange={(date) => { setCheckIn(date); if (date > checkOut) setCheckOut(date); }} />
         <DateField label={isRtl ? 'چیک آؤٹ' : 'Check-out'} value={checkOut} minDate={checkIn} onChange={setCheckOut} />
-        <PopoverField label={t('search.guests')} icon={User} span="lg:col-span-3" value={`${guestCount} Guest${guestCount > 1 ? 's' : ''}, ${roomCount} Room${roomCount > 1 ? 's' : ''}`}>
+        <PopoverField label={isRtl ? 'مہمان' : 'Guests'} icon={User} span="lg:col-span-3" value={`${guestCount} Guest${guestCount > 1 ? 's' : ''}, ${roomCount} Room${roomCount > 1 ? 's' : ''}`}>
           {(close) => (
             <Popover>
               <CounterRow label="Guests" hint="Ages 13 or above" value={guestCount} min={1} max={20} onChange={setGuestCount} />
@@ -391,22 +388,45 @@ export default function HomestaysSection({ onSelectListing, onTriggerSearch }: H
             </p>
           </div>
 
-          <form onSubmit={(e) => { e.preventDefault(); alert('Subscribed successfully!'); }} className="flex gap-2">
-            <input
-              type="email"
-              required
-              placeholder="Enter your email address"
-              className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs text-slate-800 focus:outline-none focus:border-[#006F3C]"
-            />
-            <button
-              type="submit"
-              className="px-5 py-3 bg-[#006F3C] hover:bg-[#005C32] text-white rounded-xl text-xs font-bold flex items-center justify-center shrink-0 cursor-pointer"
-            >
-              <Send className="w-4 h-4" />
-            </button>
-          </form>
+          <NewsletterForm />
         </div>
       </section>
+    </div>
+  );
+}
+
+function NewsletterForm() {
+  const [email, setEmail] = useState('');
+  const [state, setState] = useState<{ done?: boolean; error?: string; busy?: boolean }>({});
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setState({ busy: true });
+    try { await api.subscribeNewsletter(email.trim(), 'homestays'); setEmail(''); setState({ done: true }); }
+    catch (error) { setState({ error: error instanceof Error ? error.message : 'Subscription failed. Please try again.' }); }
+  };
+  return (
+    <div className="space-y-2">
+      <form onSubmit={submit} className="flex gap-2">
+        <input
+          type="email"
+          required
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          aria-label="Email address"
+          placeholder="Enter your email address"
+          className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs text-slate-800 focus:outline-none focus:border-[#006F3C]"
+        />
+        <button
+          type="submit"
+          disabled={state.busy}
+          aria-label="Subscribe"
+          className="px-5 py-3 bg-[#006F3C] hover:bg-[#005C32] text-white rounded-xl text-xs font-bold flex items-center justify-center shrink-0 cursor-pointer disabled:opacity-50"
+        >
+          <Send className="w-4 h-4" />
+        </button>
+      </form>
+      {state.done && <p role="status" className="text-xs font-semibold text-[#006F3C]">Thank you for subscribing!</p>}
+      {state.error && <p role="alert" className="text-xs font-semibold text-rose-700">{state.error}</p>}
     </div>
   );
 }

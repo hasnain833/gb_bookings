@@ -11,6 +11,41 @@ const photo = z.object({
 
 export const experienceTypes = ['Mountain View', 'Family Friendly', 'Lakeside Stays', 'Local Culture', 'Budget Friendly'] as const;
 
+export const mealTypes = ['breakfast', 'lunch', 'dinner'] as const;
+
+const homestaySpecs = z.object({
+  hostName: z.string().trim().min(2).max(120),
+  experienceType: z.enum(experienceTypes),
+  stayType: z.enum(['rooms', 'entire_home']).default('rooms'),
+  hostBio: z.string().trim().max(1_000).optional(),
+  hostPhoto: photo.optional(),
+  languages: cleanList,
+  familyOnSite: z.boolean().default(false),
+  meals: z.array(z.object({
+    type: z.enum(mealTypes),
+    included: z.boolean(),
+    price: z.number().int().min(0).max(100_000),
+  }).strict()).max(3).default([])
+    .refine((meals) => new Set(meals.map((meal) => meal.type)).size === meals.length, 'List each meal once.'),
+}).strict();
+
+export const stayInfoSchema = z.object({
+  childrenAllowed: z.boolean(),
+  minCheckInAge: z.number().int().min(0).max(30).optional(),
+  extraBedPrice: z.number().int().min(0).max(100_000).optional(),
+  petsAllowed: z.boolean(),
+  smokingAllowed: z.boolean(),
+  paymentMethods: z.array(z.enum(['cash', 'card', 'jazzcash', 'easypaisa', 'bank_transfer'])).min(1, 'Choose at least one way guests can pay.').max(5),
+  powerBackup: z.array(z.enum(['generator', 'solar', 'ups'])).max(3).default([]),
+  heating: z.array(z.enum(['electric', 'gas', 'wood', 'central'])).max(4).default([]),
+  hotWater: z.enum(['always', 'scheduled', 'on_request', 'none']),
+  mobileNetworks: z.array(z.enum(['scom', 'zong', 'jazz', 'telenor', 'ufone'])).max(5).default([]),
+  roadAccess: z.enum(['car', 'jeep', 'walk']),
+  roadNote: z.string().trim().max(300).optional(),
+  openMonths: z.array(z.number().int().min(1).max(12)).min(1, 'Choose the months you receive guests.').max(12)
+    .refine((months) => new Set(months).size === months.length, 'List each month once.'),
+}).strict();
+
 const listingFields = z.object({
   type: z.enum(['hotel', 'homestay']).default('hotel'),
   title: z.string().trim().min(2).max(160),
@@ -27,10 +62,10 @@ const listingFields = z.object({
     checkInTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
     checkOutTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
   }).strict(),
-  homestaySpecs: z.object({
-    hostName: z.string().trim().min(2).max(120),
-    experienceType: z.enum(experienceTypes),
-  }).strict().optional(),
+  homestaySpecs: homestaySpecs.optional(),
+  stayInfo: stayInfoSchema.optional(),
+  // Map pin, e.g. from a pasted Google Maps link. Pakistan sits well inside these bounds.
+  coordinates: z.object({ lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180) }).strict().optional(),
 }).strict();
 
 export const createHotelListingSchema = listingFields.refine(
@@ -38,8 +73,8 @@ export const createHotelListingSchema = listingFields.refine(
   { message: 'Homestays need a host name and experience type.', path: ['homestaySpecs'] },
 );
 
-// The listing type is fixed at creation; omitting it also stops its default from applying to partial updates.
-export const updateHotelListingSchema = listingFields.omit({ type: true }).partial().strict().refine(
+// The listing type and a homestay's stay type are fixed at creation; omitting type also stops its default from applying to partial updates.
+export const updateHotelListingSchema = listingFields.omit({ type: true }).extend({ homestaySpecs: homestaySpecs.omit({ stayType: true }).optional() }).partial().strict().refine(
   (input) => Object.keys(input).length > 0,
   { message: 'At least one listing field is required.' },
 );

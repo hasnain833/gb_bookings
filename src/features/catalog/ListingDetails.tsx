@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Listing, Review, handleImageError } from '../../types';
-import { useLanguage, tListing, tReview } from '../../app/LanguageContext';
+import { Listing, handleImageError } from '../../types';
+import { ListingReviews } from '../reviews/ReviewParts';
 import { DetailsSkeleton } from '../../shared/components/SkeletonLoader';
-import { api, ApiError, AUTH_CHANGED_EVENT, hasApiSession } from '../../shared/api/api';
+import { api, ApiError, AUTH_CHANGED_EVENT, hasApiSession, mealLabel } from '../../shared/api/api';
 import { OPEN_SIGN_IN_EVENT } from '../../shared/hooks/useWishlist';
 import RoomBookingPanel from '../booking/RoomBookingPanel';
+import { MapEmbed } from '../../shared/components/MapPin';
+import { HEATING_LABELS, HOT_WATER_LABELS, NETWORK_LABELS, openSeason, PAYMENT_LABELS, POWER_LABELS, ROAD_LABELS } from '../../shared/utils/stayInfo';
 import type { CheckoutParams } from '../booking/CheckoutFlow';
-import { ArrowLeft, ArrowRight, Star, MapPin, Heart, Share2, Check, Clock, Info } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Star, MapPin, Heart, Share2, Check, Clock, Info, Utensils, Languages, Home, Zap, Flame, Droplets, Signal, Car, CalendarRange } from 'lucide-react';
 
 interface ListingDetailsProps {
   listingId: string;
@@ -15,11 +17,8 @@ interface ListingDetailsProps {
 }
 
 export default function ListingDetails({ listingId, onBack, onProceedToCheckout }: ListingDetailsProps) {
-  const { isRtl } = useLanguage();
   const [rawListing, setRawListing] = useState<Listing | null>(null);
-  const [rawReviews, setRawReviews] = useState<Review[]>([]);
-  const listing = rawListing ? tListing(rawListing, isRtl) : null;
-  const reviews = rawReviews.map(r => tReview(r, isRtl));
+  const listing = rawListing;
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState('');
   const [isWishlist, setIsWishlist] = useState(false);
@@ -35,7 +34,6 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
       .then((data) => {
         if (!active) return;
         setRawListing(data);
-        setRawReviews((data.reviews || []) as Review[]);
         setActiveImage(data.images?.[0] ?? data.image);
       })
       .catch((reason) => {
@@ -110,7 +108,27 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
     ...(listing.homestaySpecs?.houseRules ?? specs?.policies ?? []),
   ];
   const facilities = specs?.facilities ?? [];
-  const hostName = listing.homestaySpecs?.hostName;
+  const homestay = listing.homestaySpecs;
+  const hostName = homestay?.hostName;
+  const entireHome = homestay?.stayType === 'entire_home';
+  const meals = homestay?.meals ?? [];
+  const info = listing.stayInfo;
+  const policyRules = info ? [
+    info.childrenAllowed ? 'Children welcome' : 'Children not allowed',
+    ...(info.minCheckInAge ? [`Minimum check-in age: ${info.minCheckInAge}`] : []),
+    info.extraBedPrice !== undefined ? `Extra bed: PKR ${info.extraBedPrice.toLocaleString()} per night` : 'No extra beds',
+    info.petsAllowed ? 'Pets allowed' : 'No pets',
+    info.smokingAllowed ? 'Smoking allowed' : 'No smoking indoors',
+    `Pay at the property: ${info.paymentMethods.map((method) => PAYMENT_LABELS[method]).join(', ')}`,
+  ] : [];
+  const essentials = info ? [
+    { icon: Zap, label: 'Power backup', value: info.powerBackup.length ? info.powerBackup.map((item) => POWER_LABELS[item]).join(', ') : 'No backup during power cuts' },
+    { icon: Flame, label: 'Heating', value: info.heating.length ? info.heating.map((item) => HEATING_LABELS[item]).join(', ') : 'Rooms are not heated' },
+    { icon: Droplets, label: 'Hot water', value: HOT_WATER_LABELS[info.hotWater] },
+    { icon: Signal, label: 'Mobile signal', value: info.mobileNetworks.length ? info.mobileNetworks.map((item) => NETWORK_LABELS[item]).join(', ') : 'No mobile signal' },
+    { icon: Car, label: 'Getting there', value: `${ROAD_LABELS[info.roadAccess]}${info.roadNote ? `. ${info.roadNote}` : ''}` },
+    { icon: CalendarRange, label: 'Season', value: openSeason(info.openMonths) },
+  ] : [];
 
   const sectionClass = 'border-t border-slate-200 pt-6 space-y-4';
   const headingClass = 'text-lg font-semibold text-slate-900';
@@ -133,8 +151,8 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
       {/* Title row */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between" id="listing-details-header">
         <div className="space-y-1.5 min-w-0">
-          <span className="inline-block rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium capitalize text-[#006F3C]">{listing.type}</span>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-950 leading-tight break-words">{listing.title}</h1>
+          <span className="inline-block rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium capitalize text-[#006F3C]">{listing.type === 'homestay' ? `Homestay · ${entireHome ? 'Entire home' : 'Private rooms'}` : listing.type}</span>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-950 leading-tight wrap-break-word">{listing.title}</h1>
           <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-600">
             <span className="inline-flex items-center gap-1"><MapPin className="w-4 h-4 text-slate-400 shrink-0" /> {listing.location}</span>
             {listing.reviewsCount > 0 ? (
@@ -172,7 +190,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
 
       {/* Gallery */}
       <div className="space-y-2" id="gallery-container">
-        <div className="aspect-[16/9] max-h-[460px] w-full overflow-hidden rounded-xl bg-slate-100">
+        <div className="aspect-video max-h-115 w-full overflow-hidden rounded-xl bg-slate-100">
           <img src={activeImage} alt={listing.photos?.find((photo) => photo.url === activeImage)?.caption || listing.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" onError={handleImageError} />
         </div>
         {listing.photos?.find((photo) => photo.url === activeImage)?.caption && <p className="text-sm text-slate-600">{listing.photos.find((photo) => photo.url === activeImage)!.caption}</p>}
@@ -184,7 +202,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
                 id={`thumb-btn-${i}`}
                 onClick={() => setActiveImage(img)}
                 aria-label={`Show photo ${i + 1}`}
-                className={`w-20 aspect-[4/3] shrink-0 overflow-hidden rounded-lg border-2 ${activeImage === img ? 'border-[#006F3C]' : 'border-transparent opacity-80 hover:opacity-100'}`}
+                className={`w-20 aspect-4/3 shrink-0 overflow-hidden rounded-lg border-2 ${activeImage === img ? 'border-[#006F3C]' : 'border-transparent opacity-80 hover:opacity-100'}`}
               >
                 <img src={img} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" onError={handleImageError} />
               </button>
@@ -235,7 +253,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
               <ol className="relative ml-2 space-y-5 border-l border-slate-200 pl-5">
                 {listing.tourSpecs.itinerary.map((day) => (
                   <li key={day.day} className="relative" id={`itinerary-day-${day.day}`}>
-                    <span className="absolute -left-[27px] top-1 h-3 w-3 rounded-full border-2 border-white bg-[#006F3C]" />
+                    <span className="absolute -left-6.75 top-1 h-3 w-3 rounded-full border-2 border-white bg-[#006F3C]" />
                     <p className="text-sm font-semibold text-slate-900">Day {day.day}: {day.title}</p>
                     <p className="mt-1 text-sm text-slate-600 leading-relaxed">{day.desc}</p>
                   </li>
@@ -253,50 +271,76 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
             </section>
           )}
 
-          {rules.length > 0 && (
+          {(rules.length > 0 || policyRules.length > 0) && (
             <section className={sectionClass} id="house-rules-section">
               <h2 className={headingClass}>{listing.type === 'homestay' ? 'House rules' : 'Policies'}</h2>
               <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5 text-sm text-slate-700">
-                {rules.map((rule) => <li key={rule} className="flex items-center gap-2"><Clock className="w-4 h-4 text-slate-400 shrink-0" /> {rule}</li>)}
+                {[...rules, ...policyRules, ...(bookable ? ['Free cancellation until the day before check-in'] : [])].map((rule) => <li key={rule} className="flex items-center gap-2"><Clock className="w-4 h-4 text-slate-400 shrink-0" /> {rule}</li>)}
               </ul>
             </section>
           )}
 
+          {essentials.length > 0 && (
+            <section className={sectionClass} id="essentials-section">
+              <h2 className={headingClass}>Good to know before you go</h2>
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {essentials.map(({ icon: Icon, label, value }) => (
+                  <div key={label} className={statClass}>
+                    <dt className="flex items-center gap-1.5 text-xs text-slate-500"><Icon className="w-4 h-4 text-[#006F3C]" />{label}</dt>
+                    <dd className="mt-0.5 text-sm font-medium text-slate-900">{value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          )}
+
+          {meals.length > 0 && (
+            <section className={sectionClass} id="meals-section">
+              <h2 className={headingClass}>Meals</h2>
+              <ul className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {meals.map((meal) => (
+                  <li key={meal.type} className={statClass}>
+                    <span className="flex items-center gap-1.5 text-sm font-semibold text-slate-900"><Utensils className="w-4 h-4 text-[#006F3C]" />{mealLabel(meal.type)}</span>
+                    <span className="mt-0.5 block text-xs text-slate-600">{meal.included ? 'Included in the price' : `PKR ${meal.price.toLocaleString()} per guest per night`}</span>
+                  </li>
+                ))}
+              </ul>
+              {meals.some((meal) => !meal.included) && <p className="text-xs text-slate-500">Choose extra meals when you reserve; you pay for them at check-in.</p>}
+            </section>
+          )}
+
           {hostName && (
-            <section className="border-t border-slate-200 pt-6 flex items-center gap-3" id="host-profile-card">
-              <div className="w-11 h-11 rounded-full bg-[#006F3C] flex items-center justify-center text-sm font-semibold text-white shrink-0" aria-hidden="true">
-                {hostName.split(/\s+/).map((word) => word[0]).join('').slice(0, 2).toUpperCase()}
+            <section className="border-t border-slate-200 pt-6 space-y-3" id="host-profile-card">
+              <div className="flex items-center gap-3">
+                {homestay?.hostImage
+                  ? <img src={homestay.hostImage} alt={hostName} className="w-14 h-14 rounded-full object-cover shrink-0" referrerPolicy="no-referrer" />
+                  : <div className="w-14 h-14 rounded-full bg-[#006F3C] flex items-center justify-center text-sm font-semibold text-white shrink-0" aria-hidden="true">
+                      {hostName.split(/\s+/).map((word) => word[0]).join('').slice(0, 2).toUpperCase()}
+                    </div>}
+                <div>
+                  <p className="text-xs text-slate-500">Hosted by</p>
+                  <p className="text-base font-semibold text-slate-900">{hostName}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-slate-500">Hosted by</p>
-                <p className="text-base font-semibold text-slate-900">{hostName}</p>
-              </div>
+              {homestay?.hostBio && <p className="text-sm leading-relaxed text-slate-600">{homestay.hostBio}</p>}
+              <ul className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-700">
+                {homestay?.languages?.length ? <li className="flex items-center gap-1.5"><Languages className="w-4 h-4 text-slate-400" />Speaks {homestay.languages.join(', ')}</li> : null}
+                {homestay?.familyOnSite && <li className="flex items-center gap-1.5"><Home className="w-4 h-4 text-slate-400" />The host family lives here</li>}
+              </ul>
+            </section>
+          )}
+
+          {bookable && (
+            <section className={sectionClass} id="location-map-section">
+              <h2 className={headingClass}>Where you’ll be</h2>
+              <p className="flex items-center gap-1 text-sm text-slate-600"><MapPin className="w-4 h-4 text-slate-400 shrink-0" />{listing.location}</p>
+              <MapEmbed coordinates={listing.coordinates} location={listing.location} title={listing.title} />
             </section>
           )}
 
           <section className={sectionClass} id="details-reviews-block">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className={headingClass}>Guest reviews</h2>
-              {listing.reviewsCount > 0 && (
-                <span className="inline-flex items-center gap-1 text-sm text-slate-600">
-                  <Star className="w-4 h-4 fill-amber-400 text-amber-400" /> <strong className="font-semibold text-slate-900">{listing.rating}</strong> · {listing.reviewsCount} reviews
-                </span>
-              )}
-            </div>
-            {reviews.length === 0 && <p className="text-sm text-slate-500">No written reviews yet. Guests can review a stay after it is completed.</p>}
-            <div className="space-y-3" id="reviews-list">
-              {reviews.map((rev) => (
-                <div key={rev.id} className="rounded-lg border border-slate-200 bg-white p-4 space-y-1.5" id={`review-item-${rev.id}`}>
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-semibold text-slate-900">{rev.author} <span className="font-normal text-slate-400">· {rev.createdAt}</span></p>
-                    <span className="flex gap-0.5" aria-label={`${rev.rating} out of 5`}>
-                      {Array(rev.rating).fill(0).map((_, i) => <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />)}
-                    </span>
-                  </div>
-                  <p className="text-sm text-slate-600 leading-relaxed">{rev.comment}</p>
-                </div>
-              ))}
-            </div>
+            <h2 className={headingClass}>Guest reviews</h2>
+            <ListingReviews listingId={listing.id} rating={listing.rating} count={listing.reviewsCount} scores={listing.reviewScores} />
           </section>
         </div>
 
@@ -308,7 +352,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
             </p>
 
             {bookable ? (
-              <RoomBookingPanel listingId={listingId} onProceed={onProceedToCheckout} />
+              <RoomBookingPanel listingId={listingId} meals={meals} entireHome={entireHome} breakfastIncluded={listing.breakfastIncluded} paymentMethods={info?.paymentMethods} openMonths={info?.openMonths} onProceed={onProceedToCheckout} />
             ) : (
               <p className="flex items-start gap-2 rounded-lg bg-slate-50 p-4 text-sm text-slate-600" id="booking-coming-soon">
                 <Info className="w-4 h-4 text-[#006F3C] shrink-0 mt-0.5" />
@@ -322,7 +366,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
       {/* Mobile book bar (above the bottom tab navigation) */}
       <div
         id="mobile-sticky-book-bar"
-        className="lg:hidden fixed bottom-[68px] left-0 right-0 z-40 bg-white border-t border-slate-200 px-4 py-2.5 shadow-lg flex items-center justify-between gap-3"
+        className="lg:hidden fixed bottom-17 left-0 right-0 z-40 bg-white border-t border-slate-200 px-4 py-2.5 shadow-lg flex items-center justify-between gap-3"
       >
         <div>
           <p className="text-sm text-slate-600"><span className="text-base font-bold text-slate-950">PKR {(listing.price || 0).toLocaleString()}</span> / {unit}</p>
@@ -333,7 +377,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
         <button
           type="button"
           onClick={() => document.getElementById('details-booking-column')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-          className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg bg-[#006F3C] px-5 text-sm font-semibold text-white hover:bg-[#005C32]"
+          className="inline-flex min-h-11 items-center gap-1.5 rounded-lg bg-[#006F3C] px-5 text-sm font-semibold text-white hover:bg-[#005C32]"
         >
           {bookable ? 'Check availability' : 'Details'} <ArrowRight className="w-4 h-4" />
         </button>

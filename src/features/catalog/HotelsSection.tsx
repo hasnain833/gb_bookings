@@ -6,22 +6,13 @@ import { useWishlist } from '../../shared/hooks/useWishlist';
 import { useLanguage } from '../../app/LanguageContext';
 import {
   CategoryGrid, CounterRow, DateField, LandingHero, ListingGrid, Popover, PopoverDone, PopoverField, PlaceField, SearchConsole,
-  filterListings, type LandingCategory, type PlaceOption,
+  type LandingCategory, usePlaces,
 } from './LandingKit';
 
 interface HotelsSectionProps {
   onSelectListing: (listing: Listing) => void;
   onTriggerSearch?: (params: any) => void;
 }
-
-const PLACES: PlaceOption[] = [
-  { name: 'Attabad Lake', region: 'Hunza Valley', desc: 'Luxury lakeside resorts & cliffside views' },
-  { name: 'Skardu', region: 'Gilgit-Baltistan', desc: 'Shangrila, Lower Kachura & Deosai access' },
-  { name: 'Karimabad', region: 'Hunza', desc: 'Heritage hotels & Eagle Nest viewpoints' },
-  { name: 'Islamabad', region: 'Capital District', desc: '5-Star luxury & Margalla Hills views' },
-  { name: 'Malam Jabba', region: 'Swat Valley', desc: 'Alpine ski resorts & chairlift access' },
-  { name: 'Shigar Valley', region: 'Baltistan', desc: 'Fort resorts & historic stone architecture' },
-];
 
 const CATEGORIES: LandingCategory[] = [
   { id: 'luxury-resorts', title: 'Luxury Resorts', subtitle: '5-Star world-class amenities & views', icon: Sparkles, bgImage: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80', iconBg: 'bg-emerald-500/20 text-emerald-400 border-emerald-400/40' },
@@ -32,8 +23,8 @@ const CATEGORIES: LandingCategory[] = [
 ];
 
 export default function HotelsSection({ onSelectListing, onTriggerSearch }: HotelsSectionProps) {
+  const places = usePlaces('hotel', 'hotel');
   const { isRtl } = useLanguage();
-  const { listings } = useListings('hotel');
   const wishlist = useWishlist();
 
   const [destination, setDestination] = useState('Skardu');
@@ -44,7 +35,7 @@ export default function HotelsSection({ onSelectListing, onTriggerSearch }: Hote
   const [category, setCategory] = useState('All');
   const [location, setLocation] = useState('All');
 
-  const hotels = filterListings(listings, location, category, (item) => item.hotelSpecs?.hotelType);
+  const { listings: hotels, pagination } = useListings('hotel', '', { location: location === 'All' ? undefined : location, category: category === 'All' ? undefined : category });
 
   return (
     <div className="space-y-12 pb-20 text-left" id="hotels-page-container">
@@ -71,7 +62,7 @@ export default function HotelsSection({ onSelectListing, onTriggerSearch }: Hote
           heading="Popular Hotel Locations"
           value={destination}
           defaultValue="Skardu"
-          options={PLACES}
+          options={places.options}
           onChange={setDestination}
         />
         <DateField label="Check-in Date" value={checkIn} onChange={(date) => { setCheckIn(date); if (date > checkOut) setCheckOut(date); }} />
@@ -98,11 +89,12 @@ export default function HotelsSection({ onSelectListing, onTriggerSearch }: Hote
 
       <ListingGrid
         filterLabel="Location"
-        locations={['All', 'Attabad Lake', 'Skardu', 'Islamabad', 'Swat']}
+        locations={places.chips}
         location={location}
         onLocation={setLocation}
         countText="luxury hotels & resorts"
         listings={hotels}
+        total={pagination?.total}
         details={(hotel) => ({
           badgeIcon: Building2,
           badge: hotel.hotelSpecs?.hotelType || 'Luxury Hotel',

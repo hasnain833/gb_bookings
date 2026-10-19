@@ -34,7 +34,8 @@ export const vendorChangeRequestSchema = z.object({
   name: z.string().trim().min(2).max(160),
   email: z.string().trim().toLowerCase().email().max(254),
   phone: z.string().trim().min(7).max(30),
-  registrationNumber: z.string().trim().min(2).max(100),
+  // Required for hotel businesses; homestay hosts are verified by CNIC and proof of property instead.
+  registrationNumber: z.string().trim().min(2).max(100).optional(),
   taxNumber: z.string().trim().max(100).optional(),
   address: z.object({ line1: z.string().trim().min(2).max(200), city: z.string().trim().min(2).max(100), region: z.string().trim().min(2).max(100) }).strict(),
 }).strict();
@@ -58,4 +59,15 @@ export const vendorIdParamsSchema = z.object({
 export const vendorDecisionSchema = z.object({
   decision: z.enum(['approved', 'rejected', 'suspended']),
   notes: z.string().trim().min(3).max(2_000),
+}).strict();
+
+// Roles an owner can hand out: managers run hotels and reservations, reception only works reservations.
+export const addTeamMemberSchema = z.object({
+  name: z.string().trim().min(2).max(120),
+  email: z.string().trim().toLowerCase().email().max(254),
+  role: z.enum(['manager', 'reservations']),
+}).strict();
+
+export const teamMemberParamsSchema = z.object({
+  id: z.string().regex(/^vmb_[0-9a-f-]{36}$/i, 'Invalid team member identifier.'),
 }).strict();

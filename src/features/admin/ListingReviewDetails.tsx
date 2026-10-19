@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
-import { api, type ListingPhoto, type VendorListing, type VendorRoom } from '../../shared/api/api';
+import { api, mealLabel, type ListingPhoto, type MealOption, type VendorListing, type VendorRoom } from '../../shared/api/api';
 
-const text = (value: unknown) => Array.isArray(value) ? value.join(', ') : value == null || value === '' ? '—' : String(value);
+const mealText = (meal: MealOption) => `${mealLabel(meal.type)} ${meal.included ? 'included' : `PKR ${meal.price}`}`;
+const text = (value: unknown): string => Array.isArray(value) ? value.map((item) => item && typeof item === 'object' && 'type' in item ? mealText(item as MealOption) : String(item)).join(', ')
+  : value == null || value === '' ? '—' : String(value);
+const mapLink = (lat: number, lng: number) => `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
 
 function Photos({ photos, label }: { photos: ListingPhoto[]; label: string }) {
   return <div className="flex gap-2 overflow-x-auto">{photos.map((photo, index) => <a key={`${photo.url}-${index}`} href={photo.url} target="_blank" rel="noreferrer" className="w-32 shrink-0" aria-label={`Open ${label} ${index + 1}`}>
@@ -54,6 +57,23 @@ export default function ListingReviewDetails({ listing }: { listing: VendorListi
     </section>}
     <p className="whitespace-pre-wrap text-sm leading-6 text-slate-600">{listing.description}</p>
     <Photos photos={listing.photos?.length ? listing.photos : listing.images.map((url) => ({ url }))} label="Property photo" />
+    {listing.homestaySpecs && <div className="flex gap-3 rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-600">
+      {listing.homestaySpecs.hostImage && <img src={listing.homestaySpecs.hostImage} alt="Host" className="size-14 shrink-0 rounded-full object-cover" />}
+      <dl className="grid flex-1 gap-1 sm:grid-cols-2">
+        {([['Host', listing.homestaySpecs.hostName], ['Stay', listing.homestaySpecs.stayType === 'entire_home' ? 'Entire home' : 'Private rooms'], ['Experience', listing.homestaySpecs.experienceType],
+          ['Languages', text(listing.homestaySpecs.languages)], ['Family on site', listing.homestaySpecs.familyOnSite ? 'Yes' : 'No'], ['Meals', text(listing.homestaySpecs.meals)],
+        ] as const).map(([term, value]) => <div key={term}><dt className="inline font-semibold">{term}: </dt><dd className="inline">{value || '—'}</dd></div>)}
+        {listing.homestaySpecs.hostBio && <p className="sm:col-span-2">{listing.homestaySpecs.hostBio}</p>}
+      </dl>
+    </div>}
+    {listing.stayInfo && <p className="text-xs text-slate-600"><span className="font-semibold">Policies & essentials: </span>{[
+      `children ${listing.stayInfo.childrenAllowed ? 'yes' : 'no'}`, `pets ${listing.stayInfo.petsAllowed ? 'yes' : 'no'}`, `pay by ${text(listing.stayInfo.paymentMethods)}`,
+      `power backup ${text(listing.stayInfo.powerBackup)}`, `heating ${text(listing.stayInfo.heating)}`, `hot water ${listing.stayInfo.hotWater}`,
+      `signal ${text(listing.stayInfo.mobileNetworks)}`, `road ${listing.stayInfo.roadAccess}${listing.stayInfo.roadNote ? ` (${listing.stayInfo.roadNote})` : ''}`, `open months ${text(listing.stayInfo.openMonths)}`,
+    ].join(' · ')}</p>}
+    <p className="text-xs text-slate-600"><span className="font-semibold">Map pin: </span>{listing.coordinates
+      ? <a href={mapLink(listing.coordinates.lat, listing.coordinates.lng)} target="_blank" rel="noreferrer" className="font-semibold text-[#006F3C] underline">{listing.coordinates.lat}, {listing.coordinates.lng}</a>
+      : 'not set'}</p>
     {listing.hotelSpecs && <dl className="grid gap-2 text-xs text-slate-600"><div><dt className="font-semibold">Check-in / check-out</dt><dd>{listing.hotelSpecs.checkInTime} / {listing.hotelSpecs.checkOutTime}</dd></div>{(['amenities', 'facilities', 'policies'] as const).map((key) => <div key={key}><dt className="font-semibold capitalize">{key}</dt><dd>{listing.hotelSpecs?.[key].join(', ') || 'None provided'}</dd></div>)}</dl>}
     <h3 className="text-sm font-semibold">Room categories for approval</h3>
     {loading && <p role="status" className="text-xs text-slate-500">Loading rooms…</p>}

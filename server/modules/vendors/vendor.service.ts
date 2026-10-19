@@ -1,3 +1,4 @@
+import bcrypt from 'bcryptjs';
 import { randomBytes } from 'node:crypto';
 import { connectDatabase } from '../../database/connection.js';
 import { inTransaction } from '../../database/transaction.js';
@@ -8,8 +9,17 @@ import { VendorModel } from '../../models/vendor.model.js';
 import { AppError, ServiceUnavailableError } from '../../shared/app-error.js';
 import { recordAuditEvent } from '../audit/audit.service.js';
 import type { SessionMetadata } from '../auth/auth.service.js';
+import { requestPasswordReset } from '../auth/account-recovery.service.js';
+import { isEmailConfigured } from '../email/resend.service.js';
 import { isCloudinaryConfigured, signedDownloadUrl } from '../media/cloudinary.service.js';
 import { notifyVendorDecision } from './vendor-notifications.js';
+import { canAccess } from './member-access.js';
+
+// Hotels prove a registered business; homestay hosts are usually families, verified by CNIC and proof of the property.
+const REQUIRED_DOCUMENTS: Record<string, string[]> = {
+  hotel: ['business_registration', 'identity'],
+  homestay: ['identity', 'property_authorization'],
+};
 
 async function requireDatabase() {
   if (!await connectDatabase()) throw new ServiceUnavailableError('Vendor services are unavailable while the database is disconnected.');
@@ -113,10 +123,12 @@ export async function submitOwnVendor(userId: string, metadata: SessionMetadata)
   const { vendor, membership } = await getOwnVendor(userId);
   if (membership.role !== 'owner') throw new AppError(403, 'PERMISSION_DENIED', 'Only the vendor owner can submit this application.');
   if (!['draft', 'rejected'].includes(vendor.status)) throw new AppError(409, 'INVALID_VENDOR_STATUS', 'This vendor application cannot be submitted.');
+  const attached = new Set(vendor.verificationDocuments.map((document: any) => document.type));
   const missing = [
-    !vendor.registrationNumber && 'registrationNumber',
+    !vendor.registrationNumber && vendor.businessType !== 'homestay' && 'registrationNumber',
     !vendor.address?.line1 && 'address',
     vendor.verificationDocuments.length === 0 && 'verificationDocuments',
+    ...(REQUIRED_DOCUMENTS[vendor.businessType] ?? []).filter((type) => !attached.has(type)),
   ].filter(Boolean);
   if (missing.length) throw new AppError(400, 'VENDOR_PROFILE_INCOMPLETE', 'Complete the vendor profile before submission.', { missing });
   vendor.status = 'submitted';
@@ -133,8 +145,9 @@ export async function submitOwnVendor(userId: string, metadata: SessionMetadata)
 /** An approved vendor asks to change its business details; nothing changes until an admin approves. */
 export async function requestVendorChanges(userId: string, input: any, metadata: SessionMetadata) {
   const { vendor, membership } = await getOwnVendor(userId);
-  if (membership.role !== 'owner') throw new AppError(403, 'PERMISSION_DENIED', 'Only the business owner can request changes.');
+  if (!canAccess(membership.role, 'business')) throw new AppError(403, 'PERMISSION_DENIED', 'Only the business owner can request changes.');
   if (vendor.status !== 'approved') throw new AppError(409, 'INVALID_VENDOR_STATUS', 'Only approved businesses can request changes.');
+  if (!input.registrationNumber && vendor.businessType !== 'homestay') throw new AppError(400, 'VALIDATION_ERROR', 'Hotel businesses must keep a registration number.');
   vendor.pendingChanges = { ...input, requestedAt: new Date() };
   vendor.changeRejectionReason = null;
   await vendor.save();
@@ -222,4 +235,81 @@ export async function decideVendorApplication(adminUserId: string, vendorId: str
   const decision = input.decision as 'approved' | 'rejected' | 'suspended';
   await notifyVendorDecision(vendor, `vendor.${decision}`, { reason: decision === 'approved' ? undefined : input.notes });
   return serializeVendor(vendor);
+}
+
+/** Owner-only access to an approved business's team. */
+async function ownedApprovedVendor(userId: string) {
+  const { vendor, membership } = await getOwnVendor(userId);
+  if (!canAccess(membership.role, 'team')) throw new AppError(403, 'PERMISSION_DENIED', 'Only the business owner can manage the team.');
+  if (vendor.status !== 'approved') throw new AppError(409, 'INVALID_VENDOR_STATUS', 'Your business must be approved before adding staff.');
+  return vendor;
+}
+
+function serializeMember(member: any, user: any) {
+  return { id: member.publicId, role: member.role, status: member.status, name: user?.name, email: user?.email, createdAt: member.createdAt };
+}
+
+export async function listTeam(userId: string) {
+  const { vendor, membership } = await getOwnVendor(userId);
+  if (!canAccess(membership.role, 'team')) throw new AppError(403, 'PERMISSION_DENIED', 'Only the business owner can view the team.');
+  const members = await VendorMemberModel.find({ vendorId: vendor._id, deletedAt: null }).sort({ createdAt: 1 }).lean() as any[];
+  const users = new Map((await UserModel.find({ _id: { $in: members.map((member) => member.userId) } }).select('name email').lean() as any[])
+    .map((user) => [String(user._id), user]));
+  return members.map((member) => serializeMember(member, users.get(String(member.userId))));
+}
+
+/**
+ * Adds hotel staff. An existing account is linked; a new one is created without a usable password and sent a
+ * one-time password setup link, the same way platform admins are invited.
+ */
+export async function addTeamMember(userId: string, input: { name: string; email: string; role: 'manager' | 'reservations' }, metadata: SessionMetadata) {
+  const vendor = await ownedApprovedVendor(userId);
+  if (!isEmailConfigured()) throw new ServiceUnavailableError('Email must be configured before inviting staff.');
+  let created = false;
+  const result = await inTransaction(async (session) => {
+    let user = await UserModel.findOne({ email: input.email, deletedAt: null }).session(session);
+    if (user) {
+      if (user.status !== 'active') throw new AppError(409, 'USER_NOT_ACTIVE', 'This account is not active.');
+      if (user.roles.includes('admin')) throw new AppError(409, 'USER_IS_ADMIN', 'Platform administrators cannot join a hotel team.');
+      // Lock the user so two simultaneous invites cannot add them to two businesses.
+      await UserModel.updateOne({ _id: user._id }, { $inc: { __v: 1 } }, { session });
+      if (await VendorMemberModel.exists({ userId: user._id, deletedAt: null }).session(session)) {
+        throw new AppError(409, 'VENDOR_MEMBERSHIP_EXISTS', 'This person already belongs to a hotel business on GBBookings.');
+      }
+      await UserModel.updateOne({ _id: user._id }, { $addToSet: { roles: 'vendor_staff' } }, { session });
+    } else {
+      [user] = await UserModel.create([{
+        name: input.name, email: input.email, roles: ['customer', 'vendor_staff'],
+        passwordHash: await bcrypt.hash(randomBytes(48).toString('base64url'), 12),
+      }], { session });
+      created = true;
+    }
+    // Upsert: someone removed earlier keeps their (vendor, user) record, which the unique index would otherwise reject.
+    const member = await VendorMemberModel.findOneAndUpdate(
+      { vendorId: vendor._id, userId: user._id },
+      { $set: { role: input.role, status: 'active', invitedBy: userId, deletedAt: null } },
+      { upsert: true, setDefaultsOnInsert: true, returnDocument: 'after', session },
+    );
+    return { member, user };
+  });
+  const passwordSetupSent = created ? await requestPasswordReset(result.user.email, metadata) : undefined;
+  await notifyVendorDecision({ name: result.user.name, email: result.user.email }, 'team.added', { hotel: vendor.name });
+  await recordAuditEvent({
+    actorId: userId, actorType: 'user', action: 'vendor.member_added', resourceType: 'vendor', resourceId: vendor.publicId, ...metadata,
+    metadata: { memberId: result.member.publicId, role: input.role, newAccount: created },
+  });
+  return { data: serializeMember(result.member, result.user), newAccount: created, passwordSetupSent };
+}
+
+/** Removes a staff member's access at once; bookings and listings re-check membership on every request. */
+export async function removeTeamMember(userId: string, memberId: string, metadata: SessionMetadata) {
+  const vendor = await ownedApprovedVendor(userId);
+  const member = await VendorMemberModel.findOne({ publicId: memberId, vendorId: vendor._id, deletedAt: null });
+  if (!member) throw new AppError(404, 'MEMBER_NOT_FOUND', 'Team member not found.');
+  if (member.role === 'owner') throw new AppError(409, 'CANNOT_REMOVE_OWNER', 'The business owner cannot be removed.');
+  await inTransaction(async (session) => {
+    await VendorMemberModel.updateOne({ _id: member._id }, { $set: { deletedAt: new Date(), status: 'suspended' } }, { session });
+    await UserModel.updateOne({ _id: member.userId }, { $pull: { roles: 'vendor_staff' } }, { session });
+  });
+  await recordAuditEvent({ actorId: userId, actorType: 'user', action: 'vendor.member_removed', resourceType: 'vendor', resourceId: vendor.publicId, ...metadata, metadata: { memberId } });
 }

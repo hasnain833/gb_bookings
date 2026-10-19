@@ -21,6 +21,9 @@ const coordinatesSchema = new Schema({
   },
 }, { _id: false });
 
+/** Stored GeoJSON point → { lat, lng } for clients. */
+export const latLng = (geo: any) => geo?.coordinates?.length === 2 ? { lat: geo.coordinates[1] as number, lng: geo.coordinates[0] as number } : undefined;
+
 // Ordered photos; the first is the cover. `images`/`image`/`imageMediaIds` are kept in step for older readers.
 export const photoSchema = new Schema({
   url: { type: String, required: true, trim: true },
@@ -47,11 +50,33 @@ const listingSchema = new Schema({
   slug: { type: String, trim: true, lowercase: true },
   location: { type: String, required: true, trim: true, maxlength: 240 },
   coordinates: { type: coordinatesSchema, default: undefined },
+  // Policies and practical facts guests check before booking (hotels and homestays). See STAY_INFO in vendor-listing.schemas.
+  stayInfo: {
+    childrenAllowed: Boolean,
+    minCheckInAge: { type: Number, min: 0, max: 30 },
+    // PKR per night; absent means no extra beds.
+    extraBedPrice: { type: Number, min: 0 },
+    petsAllowed: Boolean,
+    smokingAllowed: Boolean,
+    paymentMethods: { type: [{ type: String, enum: ['cash', 'card', 'jazzcash', 'easypaisa', 'bank_transfer'] }], default: undefined },
+    powerBackup: { type: [{ type: String, enum: ['generator', 'solar', 'ups'] }], default: undefined },
+    heating: { type: [{ type: String, enum: ['electric', 'gas', 'wood', 'central'] }], default: undefined },
+    hotWater: { type: String, enum: ['always', 'scheduled', 'on_request', 'none'] },
+    mobileNetworks: { type: [{ type: String, enum: ['scom', 'zong', 'jazz', 'telenor', 'ufone'] }], default: undefined },
+    roadAccess: { type: String, enum: ['car', 'jeep', 'walk'] },
+    roadNote: { type: String, trim: true, maxlength: 300 },
+    // Months (1-12) the property normally receives guests.
+    openMonths: { type: [Number], default: undefined },
+  },
   price: { type: Number, required: true, min: 0 },
   priceMinor: { type: Number, min: 0 },
   currency: { type: String, enum: ['PKR'], default: 'PKR' },
   rating: { type: Number, min: 0, max: 5, default: 0 },
   reviewsCount: { type: Number, min: 0, default: 0 },
+  // Averages of published reviews per category (1-5), kept in step by refreshListingRating.
+  reviewScores: {
+    staff: Number, cleanliness: Number, comfort: Number, value: Number, location: Number, wifi: Number,
+  },
   image: { type: String, required: true, trim: true },
   images: { type: [String], default: [] },
   imageMediaIds: { type: [{ type: Schema.Types.ObjectId, ref: 'Media' }], default: [] },
@@ -79,7 +104,21 @@ const listingSchema = new Schema({
     houseRules: { type: [String], default: undefined },
     hostName: String,
     hostImage: String,
+    hostBio: { type: String, trim: true, maxlength: 1_000 },
+    languages: { type: [String], default: undefined },
+    familyOnSite: Boolean,
     experienceType: String,
+    // 'rooms': guests book private rooms in the home; 'entire_home': one booking takes the whole place (a single room type of 1).
+    stayType: { type: String, enum: ['rooms', 'entire_home'] },
+    // Per guest per night, in PKR. Included meals cost nothing; the rest are chosen at booking and paid at check-in.
+    meals: {
+      type: [new Schema({
+        type: { type: String, enum: ['breakfast', 'lunch', 'dinner'], required: true },
+        included: { type: Boolean, default: false },
+        price: { type: Number, min: 0, default: 0 },
+      }, { _id: false })],
+      default: undefined,
+    },
   },
   carSpecs: {
     category: String,

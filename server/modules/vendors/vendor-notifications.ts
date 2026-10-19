@@ -6,23 +6,25 @@ export type VendorDecision =
   | 'vendor.approved' | 'vendor.rejected' | 'vendor.suspended'
   | 'vendor.changes_approved' | 'vendor.changes_rejected'
   | 'listing.published' | 'listing.rejected' | 'listing.taken_down'
-  | 'listing.revision_approved' | 'listing.revision_rejected';
+  | 'listing.revision_approved' | 'listing.revision_rejected'
+  | 'team.added';
 
 const copy: Record<VendorDecision, { subject: string; message: string }> = {
-  'vendor.approved': { subject: 'Your business is approved', message: 'Your business has been approved. You can now add your hotel from the partner dashboard.' },
+  'vendor.approved': { subject: 'Your business is approved', message: 'Your business has been approved. You can now add your property from the partner dashboard.' },
   'vendor.rejected': { subject: 'Your business application was not approved', message: 'Your business application was not approved. Update your details and submit it again.' },
   'vendor.suspended': { subject: 'Your business has been suspended', message: 'Your business has been suspended and your partner access is paused. Contact GBBookings support for details.' },
   'vendor.changes_approved': { subject: 'Business details updated', message: 'Your requested changes to your business details have been approved and are now live.' },
   'vendor.changes_rejected': { subject: 'Business change request declined', message: 'Your requested changes to your business details were not approved. Your current details stay as they are.' },
-  'listing.published': { subject: 'Your hotel is live', message: 'Your hotel has been approved and is now visible to guests.' },
-  'listing.rejected': { subject: 'Your hotel was not approved', message: 'Your hotel was not approved. Make the changes below and submit it again.' },
-  'listing.revision_approved': { subject: 'Your hotel changes are live', message: 'Your edits have been approved and guests now see the updated details.' },
-  'listing.revision_rejected': { subject: 'Your hotel changes were not approved', message: 'Your edits were not approved. Your hotel stays live with its current details. Make the changes below and save again.' },
-  'listing.taken_down': { subject: 'Your hotel has been taken down', message: 'Your hotel has been removed from the site and is no longer bookable. Make the changes below and submit it again.' },
+  'listing.published': { subject: 'Your property is live', message: 'Your property has been approved and is now visible to guests.' },
+  'listing.rejected': { subject: 'Your property was not approved', message: 'Your property was not approved. Make the changes below and submit it again.' },
+  'listing.revision_approved': { subject: 'Your property changes are live', message: 'Your edits have been approved and guests now see the updated details.' },
+  'listing.revision_rejected': { subject: 'Your property changes were not approved', message: 'Your edits were not approved. Your property stays live with its current details. Make the changes below and save again.' },
+  'team.added': { subject: 'You have been added to a partner team', message: 'You now have access to this partner business on GBBookings. If you are new to GBBookings, first choose your password using the separate password email we sent, then sign in and open the partner dashboard.' },
+  'listing.taken_down': { subject: 'Your property has been taken down', message: 'Your property has been removed from the site and is no longer bookable. Make the changes below and submit it again.' },
 };
 
 function decisionEmail(title: string, name: string, message: string, subject: string | undefined, reason: string | undefined, url: string) {
-  const rows = [...(subject ? [['Hotel', subject]] : []), ...(reason ? [['Reason', reason]] : [])];
+  const rows = [...(subject ? [['Property', subject]] : []), ...(reason ? [['Reason', reason]] : [])];
   const table = rows.map(([label, value]) =>
     `<tr><td style="padding:6px 12px 6px 0;color:#5e6d64">${escapeHtml(label)}</td><td style="padding:6px 0;font-weight:700">${escapeHtml(value)}</td></tr>`).join('');
   return `<!doctype html>

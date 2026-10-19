@@ -28,6 +28,8 @@ const bookingSchema = new Schema({
   listingSnapshot: {
     publicId: String, type: { type: String }, title: String, image: String, location: String,
     checkInTime: String, checkOutTime: String,
+    // Business phone at booking time; shown to the guest once the stay is confirmed.
+    phone: String,
   },
   roomSnapshot: { publicId: String, name: String, bedType: String },
   checkIn: { type: String, required: true, match: /^\d{4}-\d{2}-\d{2}$/ },
@@ -42,10 +44,16 @@ const bookingSchema = new Schema({
     phone: { type: String, required: true, trim: true, maxlength: 30 },
   },
   specialRequests: { type: String, trim: true, maxlength: 1_000 },
+  // Homestay meals chosen at booking; price per guest per night, snapshotted.
+  meals: {
+    type: [new Schema({ type: { type: String, enum: ['breakfast', 'lunch', 'dinner'], required: true }, priceMinor: { type: Number, required: true, min: 0 } }, { _id: false })],
+    default: undefined,
+  },
   pricing: {
     currency: { type: String, enum: ['PKR'], default: 'PKR' },
     nightlyRateMinor: { type: Number, required: true, min: 0 },
     subtotalMinor: { type: Number, required: true, min: 0 },
+    mealsMinor: { type: Number, min: 0, default: 0 },
     totalMinor: { type: Number, required: true, min: 0 },
   },
   paymentMethod: { type: String, enum: paymentMethods, required: true },

@@ -1,17 +1,20 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Building2, CalendarX, Inbox, Search, FileText, LoaderCircle, LogOut, ShieldCheck, Users } from 'lucide-react';
+import { Building2, CalendarX, Inbox, Search, FileText, LoaderCircle, LogOut, ShieldCheck, Star, Users } from 'lucide-react';
 import { api, type AdminBookingLookup, type AdminUser, type AdminVendor, type Paginated, type UserStatusAction, type VendorListing } from '../../shared/api/api';
 import SecurityPanel from '../account/SecurityPanel';
 import ListingReviewDetails from './ListingReviewDetails';
+import { ReviewCard } from '../reviews/ReviewParts';
+import type { Review } from '../../types';
 import { useReasonDialog, type ReasonRequest } from '../../shared/components/ReasonDialog';
 import { useDebouncedValue } from '../../shared/hooks/useDebouncedValue';
 
-type Tab = 'inbox' | 'vendors' | 'listings' | 'users' | 'cancellations' | 'security';
+type Tab = 'inbox' | 'vendors' | 'listings' | 'reviews' | 'users' | 'cancellations' | 'security';
 
 const tabs: Array<{ id: Tab; label: string; icon: typeof Users }> = [
   { id: 'inbox', label: 'Review inbox', icon: Inbox },
   { id: 'listings', label: 'Hotels', icon: FileText },
   { id: 'vendors', label: 'Partners', icon: Building2 },
+  { id: 'reviews', label: 'Guest reviews', icon: Star },
   { id: 'users', label: 'Users', icon: Users },
   { id: 'cancellations', label: 'Cancel a booking', icon: CalendarX },
   { id: 'security', label: 'Account security', icon: ShieldCheck },
@@ -275,6 +278,50 @@ function ListingsPanel() {
           </div>
         </div>
       ))}
+      <div className="py-3"><Pager pagination={result?.pagination} onPage={setPage} /></div>
+      {dialog}
+    </Panel>
+  );
+}
+
+function ReviewsPanel() {
+  const { askReason, dialog } = useReviewDialog();
+  const [status, setStatus] = useState<'reported' | 'hidden' | 'all'>('reported');
+  const [page, setPage] = useState(1);
+  const [revision, setRevision] = useState(0);
+  const { result, loading, loadError } = usePaged(() => api.admin.listReviews({ status, page }), [status, page, revision]);
+  const { busyId, error, run } = useAction();
+  useEffect(() => { setPage(1); }, [status]);
+
+  const moderate = async (review: Review, action: 'hide' | 'restore' | 'dismiss') => {
+    const reason = (await askReason({
+      title: action === 'hide' ? 'Hide this review?' : action === 'restore' ? 'Show this review again?' : 'Keep this review public?',
+      destructive: action === 'hide', confirmLabel: action === 'hide' ? 'Hide review' : action === 'restore' ? 'Restore review' : 'Dismiss report',
+      description: action === 'hide' ? 'It disappears from the property page and stops counting towards the rating. The partner sees your reason.' : 'The rating is recalculated.',
+    }))?.trim();
+    if (!reason) return;
+    await run(review.id, async () => { await api.admin.moderateReview(review.id, action, reason); setRevision((value) => value + 1); });
+  };
+
+  return (
+    <Panel title="Guest reviews" icon={Star} error={error ?? loadError} loading={loading}
+      empty={result?.data.length === 0 ? (status === 'reported' ? 'No reported reviews.' : status === 'hidden' ? 'No hidden reviews.' : 'No reviews yet.') : null}
+      filter={<select aria-label="Filter reviews" value={status} onChange={(event) => setStatus(event.target.value as typeof status)} className={selectClass}>
+        <option value="reported">Reported by partners</option><option value="hidden">Hidden</option><option value="all">All reviews</option>
+      </select>}>
+      <div className="space-y-3 py-3">
+        {result?.data.map((review) => (
+          <ReviewCard key={review.id} review={review}
+            header={<div className="space-y-1 text-xs"><p className="font-semibold text-slate-600">{review.listingTitle}{review.status === 'hidden' && <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-slate-700">Hidden: {review.hiddenReason}</span>}</p>
+              {review.report && <p className="rounded-lg bg-amber-50 p-2 text-amber-900"><strong>Partner report:</strong> {review.report.reason}</p>}</div>}
+            actions={<div className="flex flex-wrap gap-2 pt-1">
+              {review.status === 'published'
+                ? <button type="button" className={primaryButton} disabled={busyId === review.id} onClick={() => moderate(review, 'hide')}>Hide review</button>
+                : <button type="button" className={primaryButton} disabled={busyId === review.id} onClick={() => moderate(review, 'restore')}>Restore</button>}
+              {review.report && review.status === 'published' && <button type="button" className={secondaryButton} disabled={busyId === review.id} onClick={() => moderate(review, 'dismiss')}>Dismiss report</button>}
+            </div>} />
+        ))}
+      </div>
       <div className="py-3"><Pager pagination={result?.pagination} onPage={setPage} /></div>
       {dialog}
     </Panel>
@@ -615,6 +662,7 @@ const sectionDetails: Record<Tab, { title: string; description: string }> = {
   inbox: { title: 'Review inbox', description: 'Partners, hotels and edits waiting for a decision.' },
   vendors: { title: 'Partner reviews', description: 'Review vendor applications, verify documents and manage partner access.' },
   listings: { title: 'Property moderation', description: 'Review submitted properties before they appear on the platform.' },
+  reviews: { title: 'Guest reviews', description: 'Reviews partners reported, and reviews you have hidden. Remove only abusive, fake or off-topic reviews and personal data; honest criticism stays.' },
   users: { title: 'People & access', description: 'Manage customer and partner accounts, invite administrators and control platform access.' },
   cancellations: { title: 'Cancel a booking', description: 'For disputes or fraud only. Hotels run their own reservations; find a booking by its reference to cancel it on the guest’s behalf.' },
   security: { title: 'Account security', description: 'Manage your password, active sessions and two-factor authentication.' },
@@ -659,6 +707,7 @@ export default function AdminDashboard({ roles, userName = 'Staff member', userE
           <div><h1 className="text-3xl font-extrabold tracking-tight">{section.title}</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-[#5A6B61]">{section.description}</p></div>
           {selected === 'vendors' && <VendorsPanel />}
           {selected === 'listings' && <ListingsPanel />}
+          {selected === 'reviews' && <ReviewsPanel />}
           {selected === 'users' && <UsersPanel />}
           {selected === 'cancellations' && <CancelBookingPanel />}
           {selected === 'security' && <section className="rounded-2xl border border-[#E1E5DE] bg-white p-4 sm:p-6"><SecurityPanel /></section>}

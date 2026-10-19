@@ -3,7 +3,7 @@ import type { Listing } from '../../../src/types.js';
 import { connectDatabase } from '../../database/connection.js';
 import { HotelRoomTypeModel } from '../../models/hotel-room-type.model.js';
 import { VendorModel } from '../../models/vendor.model.js';
-import { ListingModel } from '../../models/listing.model.js';
+import { ListingModel, latLng } from '../../models/listing.model.js';
 import { escapeRegex } from '../../shared/escape-regex.js';
 import { availableRoomCounts } from '../bookings/availability.service.js';
 import { stayNights } from '../bookings/stay-dates.js';
@@ -11,6 +11,9 @@ import { NotFoundError, ServiceUnavailableError } from '../../shared/app-error.j
 import type { ListListingsQuery } from './listing.schemas.js';
 
 type ListingRecord = Record<string, any>;
+
+// Hotels mark breakfast through their amenity chips ("Breakfast", "Breakfast included").
+export const BREAKFAST_AMENITY = /^(free )?breakfast( included)?$/i;
 
 function toPublicListing(record: ListingRecord): Listing {
   return {
@@ -21,11 +24,16 @@ function toPublicListing(record: ListingRecord): Listing {
     price: record.price,
     rating: record.rating,
     reviewsCount: record.reviewsCount,
+    ...(record.reviewsCount ? { reviewScores: record.reviewScores } : {}),
     image: record.image,
     images: record.images ?? [],
     ...(record.photos?.some((photo: any) => photo.caption) ? { photos: record.photos.map((photo: any) => ({ url: photo.url, ...(photo.caption ? { caption: photo.caption } : {}) })) } : {}),
     description: record.description,
     featured: record.featured,
+    ...(latLng(record.coordinates) ? { coordinates: latLng(record.coordinates) } : {}),
+    ...(record.stayInfo?.paymentMethods?.length ? { stayInfo: record.stayInfo } : {}),
+    breakfastIncluded: (record.homestaySpecs?.meals ?? []).some((meal: any) => meal.type === 'breakfast' && meal.included)
+      || (record.hotelSpecs?.amenities ?? []).some((item: string) => BREAKFAST_AMENITY.test(item)),
     ...(record.hotelSpecs ? { hotelSpecs: record.hotelSpecs } : {}),
     ...(record.homestaySpecs ? { homestaySpecs: record.homestaySpecs } : {}),
     ...(record.carSpecs ? { carSpecs: record.carSpecs } : {}),
@@ -53,17 +61,21 @@ const sortOptions: Record<ListListingsQuery['sort'], Record<string, 1 | -1>> = {
   newest: { createdAt: -1 },
 };
 
+/** Guests only see published listings of approved partners (or platform-owned ones). */
+async function visibleFilter(type?: string) {
+  const approvedVendors = await VendorModel.find({ status: 'approved', deletedAt: null }).distinct('_id');
+  return {
+    status: 'published', deletedAt: null,
+    $and: [{ $or: [{ ownerId: null }, { ownerId: { $in: approvedVendors } }] }] as unknown[],
+    ...(type && type !== 'all' ? { type } : {}),
+  } as Record<string, unknown>;
+}
+
+const CATEGORY_FIELD: Record<string, string> = { hotel: 'hotelSpecs.hotelType', car: 'carSpecs.category' };
+
 export async function listPublishedListings(query: ListListingsQuery) {
   await requireDatabase();
-
-  const filter: Record<string, unknown> = {
-    status: 'published',
-    deletedAt: null,
-  };
-  const approvedVendors = await VendorModel.find({ status: 'approved', deletedAt: null }).distinct('_id');
-  filter.$and = [{ $or: [{ ownerId: null }, { ownerId: { $in: approvedVendors } }] }];
-
-  if (query.type && query.type !== 'all') filter.type = query.type;
+  const filter = await visibleFilter(query.type);
   if (query.featured !== undefined) filter.featured = query.featured;
   if (query.search) {
     const pattern = new RegExp(escapeRegex(query.search), 'i');
@@ -77,6 +89,21 @@ export async function listPublishedListings(query: ListListingsQuery) {
     };
   }
   if (query.minRating !== undefined) filter.rating = { $gte: query.minRating };
+  if (query.experience) filter['homestaySpecs.experienceType'] = query.experience;
+  if (query.transmission) filter['carSpecs.transmission'] = query.transmission;
+  const categoryField = query.type && CATEGORY_FIELD[query.type];
+  if (query.category && categoryField) {
+    // Listings without a type/category still show, as on the landing pages before.
+    (filter.$and as unknown[]).push({ $or: [{ [categoryField]: new RegExp(escapeRegex(query.category), 'i') }, { [categoryField]: { $in: [null, ''] } }] });
+  }
+  if (query.breakfast) {
+    (filter.$and as unknown[]).push({ $or: [
+      { 'homestaySpecs.meals': { $elemMatch: { type: 'breakfast', included: true } } },
+      { 'hotelSpecs.amenities': BREAKFAST_AMENITY },
+    ] });
+  }
+  // Homestays created before stay types existed rent rooms.
+  if (query.stayType) filter['homestaySpecs.stayType'] = query.stayType === 'entire_home' ? 'entire_home' : { $ne: 'entire_home' };
   if (query.amenities?.length) {
     const wanted = query.amenities.map((amenity) => new RegExp(`^${escapeRegex(amenity)}$`, 'i'));
     (filter.$and as unknown[]).push(...wanted.map((pattern) => ({
@@ -107,6 +134,28 @@ export async function listPublishedListings(query: ListListingsQuery) {
       pages: Math.ceil(total / query.limit),
     },
   };
+}
+
+/** Most-listed towns (the part of the location before the first comma), with a cover image, for "Top destinations". */
+export async function topPlaces(type: string, limit: number) {
+  await requireDatabase();
+  const rows = await ListingModel.aggregate([
+    { $match: await visibleFilter(type) },
+    { $sort: { featured: -1, rating: -1 } },
+    { $group: { _id: { $trim: { input: { $arrayElemAt: [{ $split: ['$location', ','] }, 0] } } }, count: { $sum: 1 }, image: { $first: '$image' } } },
+    { $match: { _id: { $ne: '' } } },
+    { $sort: { count: -1, _id: 1 } },
+    { $limit: limit },
+  ]);
+  return rows.map((row) => ({ name: row._id as string, count: row.count as number, image: row.image as string }));
+}
+
+/** How many listings mention each place in their location (e.g. "Hunza" matches "Altit, Hunza"). */
+export async function placeCounts(type: string, places: string[]) {
+  await requireDatabase();
+  const base = await visibleFilter(type);
+  const counts = await Promise.all(places.map((place) => ListingModel.countDocuments({ ...base, location: new RegExp(escapeRegex(place), 'i') })));
+  return Object.fromEntries(places.map((place, index) => [place, counts[index]]));
 }
 
 /**

@@ -1,8 +1,8 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Calendar, Car, Home, MapPin, Search, TentTree, Users } from 'lucide-react';
 import type { Listing, ListingType } from '../../types';
 import { handleImageError } from '../../types';
-import { useListings } from '../../shared/hooks/useListings';
+import { api } from '../../shared/api/api';
 import FeaturedRow from './FeaturedRow';
 
 interface ExploreSectionProps {
@@ -26,27 +26,14 @@ const SEARCH_TYPES: Array<{ id: SearchType; label: string; icon: typeof Home }> 
 ];
 
 export default function ExploreSection({ setView, setSearchFilters, onSelectListing }: ExploreSectionProps) {
-  const { listings } = useListings('all');
+  const [destinations, setDestinations] = useState<Array<{ name: string; count: number; image: string }>>([]);
+  useEffect(() => { api.getTopPlaces('all', 5).then(setDestinations).catch(() => undefined); }, []);
   const [type, setType] = useState<SearchType>('hotel');
   const [destination, setDestination] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [guests, setGuests] = useState(2);
 
-  const destinations = useMemo(() => {
-    const groups = new Map<string, { name: string; count: number; image: string }>();
-    listings.forEach((listing) => {
-      const name = listing.location.split(',')[0].trim();
-      if (!name) return;
-      const existing = groups.get(name);
-      groups.set(name, {
-        name,
-        count: (existing?.count ?? 0) + 1,
-        image: existing?.image ?? listing.image,
-      });
-    });
-    return [...groups.values()].sort((a, b) => b.count - a.count).slice(0, 5);
-  }, [listings]);
 
   const submitSearch = (event: FormEvent) => {
     event.preventDefault();

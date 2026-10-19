@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { ArrowRight, MapPin, RefreshCw, Search } from 'lucide-react';
 import { handleImageError } from '../../types';
 import { useListings } from '../../shared/hooks/useListings';
+import { useDebouncedValue } from '../../shared/hooks/useDebouncedValue';
 
 interface DestinationsSectionProps {
   onTriggerSearch: (params: { type: 'hotel'; destination: string; dates: string; guests: number }) => void;
@@ -9,18 +10,10 @@ interface DestinationsSectionProps {
 }
 
 export default function DestinationsSection({ onTriggerSearch }: DestinationsSectionProps) {
-  const { listings, loading, error, reload } = useListings('destination');
   const [query, setQuery] = useState('');
+  // The server searches title, location and description across the whole catalog.
+  const { listings: destinations, loading, error, reload } = useListings('destination', useDebouncedValue(query.trim()));
 
-  const destinations = useMemo(() => {
-    const term = query.trim().toLowerCase();
-    if (!term) return listings;
-    return listings.filter((item) =>
-      item.title.toLowerCase().includes(term) ||
-      item.location.toLowerCase().includes(term) ||
-      item.description.toLowerCase().includes(term)
-    );
-  }, [listings, query]);
 
   const openDestination = (destination: string) => {
     onTriggerSearch({ type: 'hotel', destination, dates: '', guests: 2 });

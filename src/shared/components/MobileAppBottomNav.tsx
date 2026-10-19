@@ -6,7 +6,6 @@ import {
   Car, 
   Compass
 } from 'lucide-react';
-import { motion } from 'motion/react';
 import { useLanguage } from '../../app/LanguageContext';
 
 interface MobileAppBottomNavProps {
@@ -108,15 +107,7 @@ export default function MobileAppBottomNav({
                 }`}>
                   {item.label}
                 </span>
-                {isActive ? (
-                  <motion.div 
-                    layoutId="mobileNavIndicator"
-                    className="w-4 h-0.5 bg-[#006F3C] rounded-full mt-0.5"
-                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                  />
-                ) : (
-                  <div className="w-4 h-0.5 mt-0.5 opacity-0" />
-                )}
+                <div className={`w-4 h-0.5 mt-0.5 rounded-full bg-[#006F3C] transition-all duration-300 ${isActive ? "opacity-100 scale-x-100" : "opacity-0 scale-x-0"}`} />
               </button>
             );
           }
@@ -142,15 +133,7 @@ export default function MobileAppBottomNav({
               }`}>
                 {item.label}
               </span>
-              {isActive ? (
-                <motion.div 
-                  layoutId="mobileNavIndicator"
-                  className="w-4 h-0.5 bg-[#006F3C] rounded-full mt-0.5"
-                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                />
-              ) : (
-                <div className="w-4 h-0.5 mt-0.5 opacity-0" />
-              )}
+              <div className={`w-4 h-0.5 mt-0.5 rounded-full bg-[#006F3C] transition-all duration-300 ${isActive ? "opacity-100 scale-x-100" : "opacity-0 scale-x-0"}`} />
             </button>
           );
         })}

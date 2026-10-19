@@ -1,12 +1,17 @@
 import { useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { ArrowLeft, BedDouble, CalendarDays, Check, CheckCircle, Clock, Copy, LoaderCircle, MapPin, Printer, ShieldCheck, Users } from 'lucide-react';
 import { handleImageError, type Booking, type Listing } from '../../types';
-import { api } from '../../shared/api/api';
+import { api, mealLabel } from '../../shared/api/api';
+import { whatsappNumber } from '../../shared/utils/stayInfo';
+import type { MealType } from '../../types';
 import { formatDateForDisplay } from '../../shared/utils/date';
 
 export interface CheckoutParams {
   listingId: string; startDate: string; endDate: string; totalPrice: number; guests: number; duration: number;
   roomTypeId?: string; roomName?: string; rooms?: number; adults?: number; children?: number; withDriver?: boolean; payAtHotel?: boolean;
+  /** Extra homestay meals; `totalPrice` already includes `mealsTotal`. */
+  meals?: MealType[];
+  mealsTotal?: number;
 }
 interface CheckoutFlowProps {
   bookingParams: CheckoutParams; listing: Listing; userEmail?: string; userName?: string;
@@ -28,6 +33,7 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
   const [contact, setContact] = useState({ name: userName, email: userEmail, phone: '' });
   const [specialRequests, setSpecialRequests] = useState('');
   const [quote, setQuote] = useState(params.totalPrice);
+  const [mealCost, setMealCost] = useState(params.mealsTotal ?? 0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [booking, setBooking] = useState<Booking | null>(existingBooking ?? null);
@@ -40,11 +46,11 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
       if (!params.roomTypeId) throw new Error('Select a room from the property page before checking out.');
       const result = await api.getListingAvailability(params.listingId, {
         checkIn: params.startDate, checkOut: params.endDate, adults: params.adults ?? params.guests,
-        children: params.children ?? 0, rooms: params.rooms ?? 1,
+        children: params.children ?? 0, rooms: params.rooms ?? 1, meals: params.meals,
       });
       const room = result.rooms.find((item) => item.id === params.roomTypeId);
       if (!room?.bookable) throw new Error('This room is no longer available. Return to the property to choose another room or dates.');
-      setQuote(room.totalPrice); setStep('review');
+      setQuote(room.totalPrice); setMealCost(result.mealsTotal); setStep('review');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Unable to check availability.'); }
     finally { setBusy(false); }
@@ -57,7 +63,7 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
         listingId: params.listingId, roomTypeId: params.roomTypeId, checkIn: params.startDate, checkOut: params.endDate,
         rooms: params.rooms ?? 1, adults: params.adults ?? params.guests, children: params.children ?? 0,
         guest: { name: contact.name.trim(), email: contact.email.trim(), phone: contact.phone.trim() },
-        specialRequests: specialRequests.trim() || undefined, expectedTotalMinor: Math.round(quote * 100),
+        specialRequests: specialRequests.trim() || undefined, meals: params.meals?.length ? params.meals : undefined, expectedTotalMinor: Math.round(quote * 100),
       }, checkoutKey.current);
       setBooking(created); setStep('receipt');
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -70,6 +76,7 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
   const rooms = params.rooms ?? 1;
   const nights = params.duration;
   const quoteChanged = quote !== params.totalPrice;
+  const roomQuote = quote - mealCost;
 
   return (
     <div id="checkout-flow-component" className="mx-auto max-w-5xl space-y-6 px-4 pb-24">
@@ -100,6 +107,7 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
               <ReviewRow label="Guest">{contact.name}<span className="block text-slate-500">{contact.email} · {contact.phone}</span></ReviewRow>
               <ReviewRow label="Stay">{formatDateForDisplay(params.startDate)} → {formatDateForDisplay(params.endDate)}<span className="block text-slate-500">{plural(nights, 'night')}</span></ReviewRow>
               <ReviewRow label="Room">{rooms} × {params.roomName}<span className="block text-slate-500">{plural(params.adults ?? params.guests, 'adult')}{params.children ? `, ${plural(params.children, 'child')}` : ''}</span></ReviewRow>
+              {params.meals?.length ? <ReviewRow label="Meals">{params.meals.map(mealLabel).join(', ')}<span className="block text-slate-500">PKR {mealCost.toLocaleString()} for {plural(params.guests, 'guest')}, paid at check-in</span></ReviewRow> : null}
               {specialRequests.trim() && <ReviewRow label="Requests"><span className="italic">“{specialRequests.trim()}”</span></ReviewRow>}
             </dl>
             <ol className="space-y-3 text-sm text-slate-700">
@@ -124,7 +132,8 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
                 <li className="flex gap-2"><Users className="mt-0.5 size-4 shrink-0 text-slate-400" /><span>{plural(params.guests, 'guest')}</span></li>
               </ul>
               <div className="space-y-2 text-sm">
-                <div className="flex justify-between text-slate-600"><span>PKR {Math.round(quote / nights / rooms).toLocaleString()} × {plural(nights, 'night')}{rooms > 1 ? ` × ${rooms} rooms` : ''}</span><span>PKR {quote.toLocaleString()}</span></div>
+                <div className="flex justify-between text-slate-600"><span>PKR {Math.round(roomQuote / nights / rooms).toLocaleString()} × {plural(nights, 'night')}{rooms > 1 ? ` × ${rooms} rooms` : ''}</span><span>PKR {roomQuote.toLocaleString()}</span></div>
+                {mealCost > 0 && <div className="flex justify-between text-slate-600"><span>Meals ({params.meals!.map(mealLabel).join(', ')})</span><span>PKR {mealCost.toLocaleString()}</span></div>}
                 <div className="flex justify-between border-t border-slate-100 pt-3 text-base font-bold text-slate-950"><span>Total</span><span>PKR {quote.toLocaleString()}</span></div>
                 <p className="text-xs text-slate-500">Paid at the property on arrival.</p>
               </div>
@@ -193,8 +202,13 @@ function Receipt({ booking, onDone }: { booking: Booking; onDone: () => void }) 
           <dt className="text-slate-500">Guest</dt><dd className="break-words font-medium text-slate-900">{booking.customerName}<span className="block font-normal text-slate-500">{booking.customerEmail}{booking.customerPhone ? ` · ${booking.customerPhone}` : ''}</span></dd>
           <dt className="text-slate-500">Guests</dt><dd className="font-medium text-slate-900">{plural(booking.adults ?? booking.guests ?? 1, 'adult')}{booking.children ? `, ${plural(booking.children, 'child')}` : ''}</dd>
           {booking.nightlyRate !== undefined && <><dt className="text-slate-500">Rate</dt><dd className="font-medium text-slate-900">PKR {booking.nightlyRate.toLocaleString()} × {plural(nights, 'night')}{(booking.rooms ?? 1) > 1 ? ` × ${booking.rooms} rooms` : ''}</dd></>}
+          {booking.meals?.length ? <><dt className="text-slate-500">Meals</dt><dd className="font-medium text-slate-900">{booking.meals.map((meal) => mealLabel(meal.type)).join(', ')} · PKR {(booking.mealsTotal ?? 0).toLocaleString()}</dd></> : null}
           <dt className="text-slate-500">Total</dt><dd className="text-base font-bold text-slate-950">PKR {booking.totalPrice.toLocaleString()}</dd>
           <dt className="text-slate-500">Payment</dt><dd className="font-medium text-slate-900">{payment}</dd>
+          {booking.propertyPhone && <><dt className="text-slate-500">Property contact</dt><dd className="font-medium text-slate-900">
+            <a href={`tel:${booking.propertyPhone.replace(/\s/g, '')}`} className="text-[#006F3C] underline">{booking.propertyPhone}</a>
+            {whatsappNumber(booking.propertyPhone) && <a href={`https://wa.me/${whatsappNumber(booking.propertyPhone)}?text=${encodeURIComponent(`Hello, I have booking ${reference} at ${booking.listingTitle}.`)}`} target="_blank" rel="noopener noreferrer" className="ml-3 inline-flex min-h-9 items-center rounded-md bg-emerald-50 px-2 text-xs font-semibold text-emerald-800 print:hidden">WhatsApp</a>}
+          </dd></>}
           {booking.specialRequests && <><dt className="text-slate-500">Requests</dt><dd className="italic text-slate-700">“{booking.specialRequests}”</dd></>}
         </dl>
         {booking.status !== 'cancelled' && <p className="border-t border-slate-100 bg-slate-50 px-6 py-4 text-xs leading-5 text-slate-600">{CANCELLATION_NOTE} Cancel from My Bookings. Show this reference at the property on arrival.</p>}

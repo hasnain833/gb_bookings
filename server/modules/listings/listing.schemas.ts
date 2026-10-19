@@ -19,6 +19,12 @@ export const listListingsQuerySchema = z.object({
   checkOut: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   guests: z.coerce.number().int().min(1).max(40).optional(),
   rooms: z.coerce.number().int().min(1).max(20).optional(),
+  experience: z.string().trim().max(60).optional(),
+  stayType: z.enum(['rooms', 'entire_home']).optional(),
+  breakfast: z.literal('true').transform(() => true).optional(),
+  // Landing-page category chip: substring of the hotel type (hotels) or vehicle category (cars).
+  category: z.string().trim().max(80).optional(),
+  transmission: z.enum(['Automatic', 'Manual']).optional(),
 }).refine((query) => Boolean(query.checkIn) === Boolean(query.checkOut), {
   message: 'checkIn and checkOut must be provided together.', path: ['checkOut'],
 }).refine((query) => query.minPrice === undefined || query.maxPrice === undefined || query.minPrice <= query.maxPrice, {
@@ -85,3 +91,17 @@ const baseListingSchema = z.object({
 });
 
 export type ListListingsQuery = z.infer<typeof listListingsQuerySchema>;
+
+const typeFilter = z.union([listingTypeSchema, z.literal('all')]).default('all');
+
+export const placesQuerySchema = z.object({
+  type: typeFilter,
+  limit: z.coerce.number().int().min(1).max(20).default(5),
+}).strict();
+
+// Repeated ?place=Hunza&place=Skardu (a single value arrives as a string).
+export const placeCountsQuerySchema = z.object({
+  type: typeFilter,
+  place: z.union([z.string(), z.array(z.string())]).transform((value) => [value].flat().map((item) => item.trim()).filter(Boolean))
+    .pipe(z.array(z.string().max(80)).min(1).max(20)),
+}).strict();

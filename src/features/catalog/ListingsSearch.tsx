@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { MapPin, RefreshCw, Search, SlidersHorizontal } from 'lucide-react';
 import type { Listing, ListingType } from '../../types';
-import { tListing, useLanguage } from '../../app/LanguageContext';
 import { useListings } from '../../shared/hooks/useListings';
+import { EXPERIENCE_TYPES } from '../../shared/api/api';
 import { useDebouncedValue } from '../../shared/hooks/useDebouncedValue';
 import { CardSkeleton } from '../../shared/components/SkeletonLoader';
 import ListingCard from '../../shared/components/ListingCard';
@@ -34,7 +34,6 @@ const TYPE_LABELS: Record<ListingType, string> = {
 };
 
 export default function ListingsSearch({ type, initialFilters, onSelectListing }: ListingsSearchProps) {
-  const { isRtl } = useLanguage();
   const [query, setQuery] = useState(initialFilters.destination || '');
   const [maxPrice, setMaxPrice] = useState(PRICE_CEILING);
   const [minimumRating, setMinimumRating] = useState(0);
@@ -46,6 +45,10 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
   const [facilities, setFacilities] = useState('');
   const [page, setPage] = useState(1);
   const [guests, setGuests] = useState(initialFilters.extra.guestCount || 0);
+  const [experience, setExperience] = useState(initialFilters.extra.experience ?? '');
+  const [stayType, setStayType] = useState<'' | 'rooms' | 'entire_home'>('');
+  const [breakfast, setBreakfast] = useState(false);
+  const homestays = type === 'homestay';
   const searchTerm = useDebouncedValue(query.trim());
   const priceLimit = useDebouncedValue(maxPrice);
   const supportsDates = type === 'hotel' || type === 'homestay';
@@ -58,18 +61,19 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
     sort: SORT_PARAM[sortBy],
     ...(datesValid ? { checkIn, checkOut, guests: guests || undefined } : {}),
     amenities: facilities.trim() || undefined,
+    ...(homestays ? { experience: experience || undefined, stayType: stayType || undefined } : {}),
+    ...(supportsDates && breakfast ? { breakfast: 'true' as const } : {}),
+    ...(type === 'car' && transmission !== 'all' ? { transmission } : {}),
     limit: 24, page,
   });
-  useEffect(() => { setPage(1); }, [searchTerm, priceLimit, minimumRating, sortBy, checkIn, checkOut, guests, facilities, type]);
+  useEffect(() => { setPage(1); }, [searchTerm, priceLimit, minimumRating, sortBy, checkIn, checkOut, guests, facilities, experience, stayType, breakfast, transmission, type]);
+  useEffect(() => { setExperience(initialFilters.extra.experience ?? ''); }, [initialFilters.extra.experience]);
 
   useEffect(() => {
     setQuery(initialFilters.destination || '');
   }, [initialFilters.destination, type]);
 
-  const results = useMemo(() => listings.filter((listing) =>
-    type !== 'car' || transmission === 'all' || listing.carSpecs?.transmission === transmission,
-  ), [listings, transmission, type]);
-  // Keep the current results on screen while a filter change refreshes them; skeletons only on first load.
+  // Keep the current listings on screen while a filter change refreshes them; skeletons only on first load.
   const firstLoad = loading && listings.length === 0;
 
   const resetFilters = () => {
@@ -81,7 +85,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
     setMinimumRating(0);
     setSortBy('recommended');
     setTransmission('all');
-    setFacilities(''); setPage(1);
+    setFacilities(''); setExperience(''); setStayType(''); setBreakfast(false); setPage(1);
   };
 
   return (
@@ -89,7 +93,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
       <header className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-950 sm:text-3xl">{TYPE_LABELS[type]}{query.trim() && <span className="text-slate-500 font-normal"> in {query.trim()}</span>}</h1>
-          <p className="mt-1 text-sm text-slate-500">{firstLoad ? 'Loading…' : `${pagination?.total ?? results.length} ${(pagination?.total ?? results.length) === 1 ? 'result' : 'results'}`}{loading && !firstLoad && <span className="ml-2 text-slate-400">· updating…</span>}</p>
+          <p className="mt-1 text-sm text-slate-500">{firstLoad ? 'Loading…' : `${pagination?.total ?? listings.length} ${(pagination?.total ?? listings.length) === 1 ? 'result' : 'results'}`}{loading && !firstLoad && <span className="ml-2 text-slate-400">· updating…</span>}</p>
         </div>
         <label className="relative w-full sm:max-w-md">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -151,7 +155,27 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
             </select>
           </label>
 
+          {supportsDates && <label className="flex min-h-10 items-center gap-2 text-sm font-semibold text-slate-700"><input type="checkbox" checked={breakfast} onChange={(event) => setBreakfast(event.target.checked)} className="size-4 accent-[#006F3C]" />Breakfast included</label>}
+
           {supportsDates && <label className="block space-y-2"><span className="text-xs font-bold text-slate-600">Facilities and amenities</span><input value={facilities} onChange={(event) => setFacilities(event.target.value)} placeholder="WiFi, Parking" className="min-h-10 w-full rounded-lg border border-slate-300 px-3 text-sm" /><span className="block text-[11px] text-slate-500">Separate required facilities with commas.</span></label>}
+
+          {homestays && <>
+            <label className="block space-y-2">
+              <span className="text-xs font-bold text-slate-600">Experience</span>
+              <select value={experience} onChange={(event) => setExperience(event.target.value)} className="min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
+                <option value="">Any experience</option>
+                {EXPERIENCE_TYPES.map((value) => <option key={value}>{value}</option>)}
+              </select>
+            </label>
+            <label className="block space-y-2">
+              <span className="text-xs font-bold text-slate-600">Type of stay</span>
+              <select value={stayType} onChange={(event) => setStayType(event.target.value as typeof stayType)} className="min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
+                <option value="">Rooms or entire home</option>
+                <option value="rooms">Private rooms</option>
+                <option value="entire_home">Entire home</option>
+              </select>
+            </label>
+          </>}
 
           {type === 'car' && (
             <label className="block space-y-2">
@@ -185,7 +209,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
               <p className="mt-1 text-sm text-rose-700">{error}</p>
               <button onClick={() => void reload()} className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-rose-900 underline"><RefreshCw className="h-4 w-4" /> Try again</button>
             </div>
-          ) : results.length === 0 ? (
+          ) : listings.length === 0 ? (
             <div className="rounded-lg border border-slate-200 bg-white p-12 text-center">
               <MapPin className="mx-auto h-8 w-8 text-slate-400" />
               <h2 className="mt-3 font-bold text-slate-900">
@@ -204,12 +228,9 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
             </div>
           ) : (
             <div className={`grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3 transition-opacity ${loading ? 'opacity-60' : ''}`} aria-busy={loading}>
-              {results.map((rawListing) => {
-                const listing = tListing(rawListing, isRtl);
-                return (
-                  <ListingCard key={listing.id} listing={listing} tag={listing.featured ? 'Featured' : undefined} detailed onSelect={() => onSelectListing(rawListing)} />
-                );
-              })}
+              {listings.map((listing) => (
+                <ListingCard key={listing.id} listing={listing} tag={listing.featured ? 'Featured' : undefined} detailed onSelect={() => onSelectListing(listing)} />
+              ))}
             </div>
           )}
         </main>

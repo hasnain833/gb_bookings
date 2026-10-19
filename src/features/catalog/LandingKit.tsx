@@ -16,10 +16,21 @@ import {
   Star,
   type LucideIcon,
 } from "lucide-react";
-import { handleImageError, type Listing } from "../../types";
+import { handleImageError, type Listing, type ListingType } from "../../types";
+import { api } from "../../shared/api/api";
 import { CalendarPickerDropdown } from "../../shared/components/CalendarPickerDropdown";
 
 /** Shared building blocks for the Hotels, Homestays, Cars and Tours landing pages. */
+
+/** Towns that actually have listings of this type, most-listed first: search suggestions and location chips. */
+export function usePlaces(type: ListingType, noun: string) {
+  const [places, setPlaces] = useState<Array<{ name: string; count: number }>>([]);
+  useEffect(() => { api.getTopPlaces(type, 8).then(setPlaces).catch(() => undefined); }, [type]);
+  return {
+    options: places.map((place): PlaceOption => ({ name: place.name, region: `${place.count} ${noun}${place.count === 1 ? "" : "s"}`, desc: "Listed on GBBookings" })),
+    chips: ["All", ...places.slice(0, 5).map((place) => place.name)],
+  };
+}
 
 const today = () => new Date().toISOString().split("T")[0];
 
@@ -685,6 +696,7 @@ export function ListingGrid({
   location,
   onLocation,
   countText,
+  total,
   listings,
   details,
   emptyIcon: EmptyIcon,
@@ -699,6 +711,8 @@ export function ListingGrid({
   location: string;
   onLocation: (location: string) => void;
   countText: string;
+  /** Matches across all pages (the grid shows the first page). */
+  total?: number;
   listings: Listing[];
   details: (listing: Listing) => CardDetails;
   emptyIcon: LucideIcon;
@@ -730,7 +744,7 @@ export function ListingGrid({
         </div>
         <p className="text-xs font-semibold text-slate-500 shrink-0">
           Showing{" "}
-          <span className="font-bold text-slate-900">{listings.length}</span>{" "}
+          <span className="font-bold text-slate-900">{total ?? listings.length}</span>{" "}
           {countText}
         </p>
       </div>

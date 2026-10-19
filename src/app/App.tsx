@@ -92,7 +92,8 @@ export default function App() {
     destination: initialLocation.destination ?? 'Hunza Valley',
     dates: '',
     guests: 2,
-    type: (initialLocation.type ?? 'hotel') as SearchType
+    type: (initialLocation.type ?? 'hotel') as SearchType,
+    experience: undefined as string | undefined,
   });
 
   // Push a history entry whenever the visible page changes; the first sync only normalizes the URL.
@@ -487,7 +488,7 @@ export default function App() {
               destination: searchParams.destination,
               startDate: searchParams.dates,
               endDate: '',
-              extra: { guestCount: searchParams.guests }
+              extra: { guestCount: searchParams.guests, experience: searchParams.experience }
             }}
             onSelectListing={handleSelectListing}
           />

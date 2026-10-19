@@ -12,10 +12,13 @@ export const secondaryButton = 'inline-flex min-h-11 items-center justify-center
 export const ROOM_AMENITIES = ['Heating', 'WiFi', 'Mountain view', 'Attached bath', 'Hot water', 'Balcony', 'TV', 'Kettle'];
 
 export const emptyRoom: Omit<VendorRoomInput, 'photos'> = { name: '', description: '', bedType: 'Double', maxAdults: 2, maxChildren: 1, totalRooms: 1, basePrice: 0, amenities: [] };
+/** A homestay let as a whole is a single booking unit. */
+export const entireHome: Omit<VendorRoomInput, 'photos'> = { ...emptyRoom, name: 'Entire home', bedType: '2 bedrooms', maxAdults: 4, maxChildren: 2 };
+export const isEntireHome = (listing: Pick<VendorListing, 'homestaySpecs'>) => listing.homestaySpecs?.stayType === 'entire_home';
 
 /** Add/edit form. On a live hotel, price and room count apply at once; the rest is reviewed before guests see it. */
-export function RoomForm({ initial, live, busy, submitLabel, onSubmit, onCancel }: {
-  initial: Omit<VendorRoomInput, 'photos'> & { photos?: EditablePhoto[] }; live: boolean; busy: boolean; submitLabel: string;
+export function RoomForm({ initial, live, busy, submitLabel, onSubmit, onCancel, singleUnit = false }: {
+  initial: Omit<VendorRoomInput, 'photos'> & { photos?: EditablePhoto[] }; live: boolean; busy: boolean; submitLabel: string; singleUnit?: boolean;
   onSubmit: (input: VendorRoomInput, photos: EditablePhoto[]) => void; onCancel?: () => void;
 }) {
   const [room, setRoom] = useState(initial);
@@ -29,7 +32,7 @@ export function RoomForm({ initial, live, busy, submitLabel, onSubmit, onCancel 
   const submit = (event: FormEvent) => {
     event.preventDefault();
     onSubmit({
-      basePrice: room.basePrice, totalRooms: room.totalRooms, name: room.name.trim(), bedType: room.bedType.trim(),
+      basePrice: room.basePrice, totalRooms: singleUnit ? 1 : room.totalRooms, name: room.name.trim(), bedType: room.bedType.trim(),
       maxAdults: room.maxAdults, maxChildren: room.maxChildren, description: room.description?.trim() || undefined,
       amenities: room.amenities, photos: toPhotoInput(photos),
     }, photos);
@@ -39,9 +42,9 @@ export function RoomForm({ initial, live, busy, submitLabel, onSubmit, onCancel 
     <form onSubmit={submit} className="grid gap-4 rounded-xl border-2 border-[#006F3C] bg-white p-5 sm:grid-cols-3">
       {live && <p className="text-sm text-slate-600 sm:col-span-3">Price and room count change immediately. Name, capacity, description, amenities and photos are reviewed by GBBookings first; guests see the current version until then.</p>}
       <label className="text-sm font-semibold text-slate-700">Name<input className={`${inputClass} mt-1`} required minLength={2} placeholder="Deluxe Double" value={room.name} onChange={(e) => setRoom({ ...room, name: e.target.value })} /></label>
-      <label className="text-sm font-semibold text-slate-700">Bed type<input className={`${inputClass} mt-1`} required minLength={2} list="bed-types" value={room.bedType} onChange={(e) => setRoom({ ...room, bedType: e.target.value })} /></label>
+      <label className="text-sm font-semibold text-slate-700">{singleUnit ? 'Bedrooms and beds' : 'Bed type'}<input className={`${inputClass} mt-1`} required minLength={2} list={singleUnit ? undefined : 'bed-types'} placeholder={singleUnit ? '3 bedrooms, 4 beds' : undefined} value={room.bedType} onChange={(e) => setRoom({ ...room, bedType: e.target.value })} /></label>
       <datalist id="bed-types"><option value="Double" /><option value="Twin" /><option value="King" /><option value="King + sofa bed" /><option value="Single" /></datalist>
-      <label className="text-sm font-semibold text-slate-700">Rooms of this type<input {...number('totalRooms')} min={1} /></label>
+      {!singleUnit && <label className="text-sm font-semibold text-slate-700">Rooms of this type<input {...number('totalRooms')} min={1} /></label>}
       <label className="text-sm font-semibold text-slate-700">Price per night (PKR)<input {...number('basePrice')} min={0} step={1} /></label>
       <label className="text-sm font-semibold text-slate-700">Max adults<input {...number('maxAdults')} min={1} max={20} /></label>
       <label className="text-sm font-semibold text-slate-700">Max children<input {...number('maxChildren')} min={0} max={20} /></label>
@@ -105,7 +108,7 @@ function RoomCard({ listing, room, live, editable, busy, onRun, onReplace, onRem
   const toggle = () => onRun(async () => onReplace(await api.updateHotelRoom(listing.id, room.id, { status: room.status === 'paused' ? 'active' : 'paused' })));
 
   if (editing) {
-    return <RoomForm initial={{ ...shown, photos: shown.photos }} live={live} busy={busy} submitLabel="Save room" onCancel={() => setEditing(false)}
+    return <RoomForm initial={{ ...shown, photos: shown.photos }} singleUnit={isEntireHome(listing)} live={live} busy={busy} submitLabel="Save room" onCancel={() => setEditing(false)}
       onSubmit={(input) => onRun(async () => {
         const updated = await api.updateHotelRoom(listing.id, room.id, input);
         onReplace(updated); setPrice(updated.basePrice); setCount(updated.totalRooms); setEditing(false); onEdited();
@@ -139,13 +142,13 @@ function RoomCard({ listing, room, live, editable, busy, onRun, onReplace, onRem
               <input type="number" min={0} value={price} onChange={(event) => setPrice(Number(event.target.value))} className="w-full bg-transparent text-[15px] font-bold outline-none" />
             </span>
           </label>
-          <div className="text-xs font-bold text-slate-700">Rooms of this type
+          {!isEntireHome(listing) && <div className="text-xs font-bold text-slate-700">Rooms of this type
             <span className="mt-1.5 flex items-center gap-1.5">
               <button type="button" aria-label={`One ${shown.name} room fewer`} disabled={count <= 1} onClick={() => setCount(count - 1)} className="flex size-11 items-center justify-center rounded-lg border border-slate-300 bg-white disabled:opacity-40"><Minus className="size-4" /></button>
               <span className="min-w-8 text-center text-base font-extrabold" aria-live="polite">{count}</span>
               <button type="button" aria-label={`One ${shown.name} room more`} onClick={() => setCount(count + 1)} className="flex size-11 items-center justify-center rounded-lg border border-slate-300 bg-white"><Plus className="size-4" /></button>
             </span>
-          </div>
+          </div>}
           {dirty && <button type="button" className={primaryButton} disabled={busy || price < 0} onClick={saveStock}>Save</button>}
           {!isNew && <label className="flex min-h-11 cursor-pointer items-center gap-2.5 text-sm font-bold">
             <input type="checkbox" className="peer sr-only" checked={room.status !== 'paused'} disabled={busy} onChange={toggle} />
@@ -208,18 +211,21 @@ export default function RoomManager({ listing, onListingChange }: { listing: Ven
 
   if (loading) return <div className="flex justify-center py-8"><LoaderCircle className="size-6 animate-spin text-[#006F3C]" aria-label="Loading rooms" /></div>;
   const totalRooms = rooms.filter((room) => !room.pendingRevision?.isNew).reduce((sum, room) => sum + room.totalRooms, 0);
+  const singleUnit = isEntireHome(listing);
 
   return (
     <div className="space-y-4" aria-live="polite">
       {dialog}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-slate-500"><strong className="text-slate-900">{rooms.length} room categor{rooms.length === 1 ? 'y' : 'ies'} · {totalRooms} room{totalRooms === 1 ? '' : 's'}.</strong>{live ? ' Price, room count and on/off apply straight away.' : ''}</p>
-        {(editable || live) && !adding && <button type="button" onClick={() => setAdding(true)} className={primaryButton}><Plus className="size-4" />Add room category</button>}
+        <p className="text-sm text-slate-500">{singleUnit
+          ? <><strong className="text-slate-900">Entire home.</strong> Guests book the whole place.{live ? ' Price and on/off apply straight away.' : ''}</>
+          : <><strong className="text-slate-900">{rooms.length} room categor{rooms.length === 1 ? 'y' : 'ies'} · {totalRooms} room{totalRooms === 1 ? '' : 's'}.</strong>{live ? ' Price, room count and on/off apply straight away.' : ''}</>}</p>
+        {(editable || live) && !adding && !(singleUnit && rooms.length > 0) && <button type="button" onClick={() => setAdding(true)} className={primaryButton}><Plus className="size-4" />{singleUnit ? 'Set up the home' : 'Add room category'}</button>}
       </div>
       {listing.status === 'submitted' && <p className="rounded-lg bg-slate-100 p-3 text-sm text-slate-600">Under review. Rooms can be changed again once the hotel is published or returned to you.</p>}
       {error && <p role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
 
-      {adding && <RoomForm initial={emptyRoom} live={live} busy={busy} submitLabel="Add room" onCancel={() => setAdding(false)}
+      {adding && <RoomForm initial={singleUnit ? entireHome : emptyRoom} singleUnit={singleUnit} live={live} busy={busy} submitLabel={singleUnit ? 'Save' : 'Add room'} onCancel={() => setAdding(false)}
         onSubmit={(input) => run(async () => {
           const created = await api.addHotelRoom(listing.id, { ...emptyRoom, ...input });
           setRooms((items) => [...items, created.data]);

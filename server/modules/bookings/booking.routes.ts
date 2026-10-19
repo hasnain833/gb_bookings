@@ -4,6 +4,7 @@ import { validate } from '../../middleware/validate.js';
 import { AppError } from '../../shared/app-error.js';
 import { asyncHandler } from '../../shared/async-handler.js';
 import { sessionMetadata } from '../auth/auth.service.js';
+import { createReviewHandlers } from '../reviews/review.routes.js';
 import { listingIdParamsSchema } from '../listings/listing.schemas.js';
 import {
   adminCancelBookingSchema,
@@ -15,6 +16,7 @@ import {
   createBookingSchema,
   listBookingsQuerySchema,
   vendorBookingActionSchema,
+  vendorReportQuerySchema,
 } from './booking.schemas.js';
 import {
   actOnVendorBooking,
@@ -27,6 +29,8 @@ import {
   listCustomerBookings,
   listVendorBookings,
   changeVendorBooking,
+  vendorReport,
+  withVendorActions,
 } from './booking.service.js';
 
 const actor = (request: Parameters<RequestHandler>[0]) => ({ userId: request.auth!.userId, roles: request.auth!.roles });
@@ -59,13 +63,15 @@ bookingRouter.get('/:id', validate('params', bookingIdParamsSchema), asyncHandle
   response.json({ data: await getBooking(actor(request), request.params.id) });
 }));
 
+bookingRouter.post('/:id/review', validate('params', bookingIdParamsSchema), ...createReviewHandlers);
+
 bookingRouter.post('/:id/cancel', validate('params', bookingIdParamsSchema), validate('body', cancelBookingSchema), asyncHandler(async (request, response) => {
   response.json({ data: await cancelOwnBooking(actor(request), request.params.id, request.body.reason, sessionMetadata(request)) });
 }));
 
 const bookingActionHandler = asyncHandler(async (request, response) => {
   const booking = await actOnVendorBooking(actor(request), request.params.id, request.body.action, request.body.reason, sessionMetadata(request));
-  response.json({ data: booking });
+  response.json({ data: withVendorActions(booking) });
 });
 
 export const vendorBookingRouter = Router();
@@ -75,10 +81,14 @@ vendorBookingRouter.get('/', validate('query', listBookingsQuerySchema), asyncHa
   response.json(await listVendorBookings(request.auth!.userId, request.query as any));
 }));
 
+vendorBookingRouter.get('/report', validate('query', vendorReportQuerySchema), asyncHandler(async (request, response) => {
+  response.json({ data: await vendorReport(request.auth!.userId, request.query as any) });
+}));
+
 vendorBookingRouter.post('/:id/actions', authorizePermission('booking:manage:own'), validate('params', bookingIdParamsSchema), validate('body', vendorBookingActionSchema), bookingActionHandler);
 
 vendorBookingRouter.post('/:id/change', authorizePermission('booking:manage:own'), validate('params', bookingIdParamsSchema), validate('body', changeBookingSchema), asyncHandler(async (request, response) => {
-  response.json({ data: await changeVendorBooking(actor(request), request.params.id, request.body, sessionMetadata(request)) });
+  response.json({ data: withVendorActions(await changeVendorBooking(actor(request), request.params.id, request.body, sessionMetadata(request))) });
 }));
 
 export const adminBookingRouter = Router();

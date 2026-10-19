@@ -6,20 +6,13 @@ import { useWishlist } from '../../shared/hooks/useWishlist';
 import { useLanguage } from '../../app/LanguageContext';
 import {
   CategoryGrid, DateField, LandingHero, ListingGrid, Popover, PopoverDone, PopoverField, PlaceField, SearchConsole,
-  filterListings, type LandingCategory, type PlaceOption,
+  type LandingCategory, usePlaces,
 } from './LandingKit';
 
 interface CarsSectionProps {
   onSelectListing: (listing: Listing) => void;
   onTriggerSearch?: (params: any) => void;
 }
-
-const PLACES: PlaceOption[] = [
-  { name: 'Skardu Airport & City', region: 'Skardu', desc: 'Direct airport pickup & Deosai 4x4' },
-  { name: 'Gilgit Airport & City', region: 'Gilgit', desc: 'Hunza & Karakoram Highway rental' },
-  { name: 'Hunza Karimabad', region: 'Hunza', desc: 'Passu, Attabad & Khunjerab drives' },
-  { name: 'Islamabad Airport', region: 'Islamabad', desc: 'Long-haul luxury highway cruisers' },
-];
 
 const CATEGORIES: LandingCategory[] = [
   { id: 'suv-4x4', title: '4x4 Mountain SUVs', subtitle: 'Land Cruiser & Prado for rough terrain', icon: Car, bgImage: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80', iconBg: 'bg-emerald-500/20 text-emerald-400 border-emerald-400/40' },
@@ -32,8 +25,8 @@ const CATEGORIES: LandingCategory[] = [
 const VEHICLE_TYPES = ['4x4 SUV', 'Prado', 'Van', 'Sedan', 'Hatchback'];
 
 export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSectionProps) {
+  const places = usePlaces('car', 'car');
   const { isRtl } = useLanguage();
-  const { listings } = useListings('car');
   const wishlist = useWishlist();
 
   const [pickupLocation, setPickupLocation] = useState('Skardu');
@@ -44,7 +37,7 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
   const [category, setCategory] = useState('All');
   const [location, setLocation] = useState('All');
 
-  const cars = filterListings(listings, location, category, (item) => item.carSpecs?.category);
+  const { listings: cars, pagination } = useListings('car', '', { location: location === 'All' ? undefined : location, category: category === 'All' ? undefined : category });
 
   return (
     <div className="space-y-12 pb-20 text-left" id="cars-page-container">
@@ -71,7 +64,7 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
           heading="Popular Pick-up Locations"
           value={pickupLocation}
           defaultValue="Skardu"
-          options={PLACES}
+          options={places.options}
           onChange={setPickupLocation}
         />
         <DateField label="Pick-up Date" value={pickupDate} onChange={(date) => { setPickupDate(date); if (date > returnDate) setReturnDate(date); }} />
@@ -127,11 +120,12 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
 
       <ListingGrid
         filterLabel="Region"
-        locations={['All', 'Skardu', 'Gilgit', 'Hunza', 'Islamabad']}
+        locations={places.chips}
         location={location}
         onLocation={setLocation}
         countText="verified vehicles"
         listings={cars}
+        total={pagination?.total}
         details={(car) => {
           const specs = car.carSpecs;
           return {

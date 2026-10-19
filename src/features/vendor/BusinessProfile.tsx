@@ -19,12 +19,14 @@ export default function BusinessProfile({ vendor, onChange }: { vendor: VendorPr
   const pending = vendor.pendingChanges;
   const current = detailsOf(vendor);
   const shown = pending ?? current;
+  // Homestay hosts are verified by CNIC and proof of property, not a business registration.
+  const homestay = vendor.businessType === 'homestay';
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setBusy(true); setError('');
     try {
-      onChange(await api.requestVendorChanges({ ...form, taxNumber: form.taxNumber?.trim() || undefined }));
+      onChange(await api.requestVendorChanges({ ...form, registrationNumber: form.registrationNumber?.trim() || undefined, taxNumber: form.taxNumber?.trim() || undefined }));
       setEditing(false);
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Unable to send the change request.'); }
     finally { setBusy(false); }
@@ -43,14 +45,14 @@ export default function BusinessProfile({ vendor, onChange }: { vendor: VendorPr
 
       {editing ? <form onSubmit={submit} className="space-y-5">
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="Business name"><input required minLength={2} maxLength={160} className={inputClass} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
-          <Field label="Registration number"><input required minLength={2} maxLength={100} className={inputClass} value={form.registrationNumber} onChange={(e) => setForm({ ...form, registrationNumber: e.target.value })} /></Field>
+          <Field label={homestay ? 'Host or family name' : 'Business name'}><input required minLength={2} maxLength={160} className={inputClass} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
+          {!homestay && <Field label="Registration number"><input required minLength={2} maxLength={100} className={inputClass} value={form.registrationNumber} onChange={(e) => setForm({ ...form, registrationNumber: e.target.value })} /></Field>}
           <Field label="Business email"><input required type="email" className={inputClass} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Field>
           <Field label="Business phone"><input required type="tel" minLength={7} maxLength={30} className={inputClass} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></Field>
           <Field label="Street address" wide><input required minLength={2} className={inputClass} value={form.address.line1} onChange={(e) => setForm({ ...form, address: { ...form.address, line1: e.target.value } })} /></Field>
           <Field label="City"><input required minLength={2} className={inputClass} value={form.address.city} onChange={(e) => setForm({ ...form, address: { ...form.address, city: e.target.value } })} /></Field>
           <Field label="Region"><input required minLength={2} className={inputClass} value={form.address.region} onChange={(e) => setForm({ ...form, address: { ...form.address, region: e.target.value } })} /></Field>
-          <Field label="NTN / tax number (optional)"><input maxLength={100} className={inputClass} value={form.taxNumber ?? ''} onChange={(e) => setForm({ ...form, taxNumber: e.target.value })} /></Field>
+          {!homestay && <Field label="NTN / tax number (optional)"><input maxLength={100} className={inputClass} value={form.taxNumber ?? ''} onChange={(e) => setForm({ ...form, taxNumber: e.target.value })} /></Field>}
         </div>
         <div className="flex flex-wrap gap-3">
           <button disabled={busy} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#006F3C] px-5 text-sm font-semibold text-white hover:bg-[#005c32] disabled:opacity-50">{busy && <LoaderCircle className="size-4 animate-spin" />}Send for approval</button>
@@ -58,10 +60,10 @@ export default function BusinessProfile({ vendor, onChange }: { vendor: VendorPr
         </div>
       </form>
         : <dl className="grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
-          {([['Business name', shown.name, current.name], ['Registration number', shown.registrationNumber, current.registrationNumber], ['Email', shown.email, current.email], ['Phone', shown.phone, current.phone],
+          {([[homestay ? 'Host' : 'Business name', shown.name, current.name], ...(homestay ? [] : [['Registration number', shown.registrationNumber, current.registrationNumber]]), ['Email', shown.email, current.email], ['Phone', shown.phone, current.phone],
             ['Address', [shown.address.line1, shown.address.city, shown.address.region].filter(Boolean).join(', '), [current.address.line1, current.address.city, current.address.region].filter(Boolean).join(', ')],
-            ['NTN', shown.taxNumber || '—', current.taxNumber || '—'],
-          ] as const).map(([term, value, before]) => <div key={term}><dt className="text-slate-500">{term}</dt><dd className="font-medium text-slate-900">{value}{pending && value !== before && <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-semibold text-amber-900">changed</span>}</dd></div>)}
+            ...(homestay ? [] : [['NTN', shown.taxNumber || '—', current.taxNumber || '—']]),
+          ] as Array<[string, string | undefined, string | undefined]>).map(([term, value, before]) => <div key={term}><dt className="text-slate-500">{term}</dt><dd className="font-medium text-slate-900">{value}{pending && value !== before && <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-semibold text-amber-900">changed</span>}</dd></div>)}
         </dl>}
     </section>
   );

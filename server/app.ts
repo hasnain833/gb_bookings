@@ -19,7 +19,9 @@ import { adminListingRouter, vendorListingRouter } from './modules/vendor-listin
 import { adminBookingRouter, availabilityHandlers, bookingRouter, vendorBookingRouter } from './modules/bookings/booking.routes.js';
 import { adminUserRouter } from './modules/users/user-admin.routes.js';
 import { wishlistRouter } from './modules/wishlist/wishlist.routes.js';
+import { newsletterRouter } from './modules/newsletter/newsletter.routes.js';
 import { compatibilityRouter } from './routes/compatibility.routes.js';
+import { adminReviewRouter, listingReviewHandlers, partnerReviewRouter } from './modules/reviews/review.routes.js';
 import { AppError } from './shared/app-error.js';
 
 const allowedCorsOrigins = new Set([
@@ -56,6 +58,8 @@ export function createApp(): Express {
         'img-src': ["'self'", 'data:', 'blob:', 'https:'],
         'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
         'font-src': ["'self'", 'data:', 'https://fonts.gstatic.com'],
+        // Keyless Google Maps embed on property pages.
+        'frame-src': ["'self'", 'https://www.google.com', 'https://maps.google.com'],
       },
     },
   }));
@@ -96,6 +100,7 @@ export function createApp(): Express {
   app.use('/api/v1/auth', authRouter);
   app.use('/api/auth', authRouter);
   app.get(['/api/v1/listings/:id/availability', '/api/listings/:id/availability'], ...availabilityHandlers);
+  app.get('/api/v1/listings/:id/reviews', ...listingReviewHandlers);
   app.use('/api/v1/listings', createListingRouter());
   app.use('/api/v1/vendors', vendorRouter);
   app.use('/api/vendors', vendorRouter);
@@ -107,10 +112,13 @@ export function createApp(): Express {
   app.use('/api/bookings', bookingRouter);
   app.use('/api/v1/vendor/bookings', vendorBookingRouter);
   app.use('/api/v1/admin/bookings', adminBookingRouter);
+  app.use('/api/v1/vendor/reviews', partnerReviewRouter);
+  app.use('/api/v1/admin/reviews', adminReviewRouter);
   app.use('/api/v1/media', mediaRouter);
   app.use('/api/media', mediaRouter);
   app.use('/api/v1/wishlist', wishlistRouter);
   app.use('/api/wishlist', wishlistRouter);
+  app.use('/api/v1/newsletter', newsletterRouter);
   app.use('/api/v1/ai', aiRouter);
   app.use('/api', compatibilityRouter);
 

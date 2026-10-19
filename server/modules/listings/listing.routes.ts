@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { validate } from '../../middleware/validate.js';
 import { asyncHandler } from '../../shared/async-handler.js';
-import { getPublishedListing, listPublishedListings } from './listing.service.js';
-import { listingIdParamsSchema, listListingsQuerySchema } from './listing.schemas.js';
+import { getPublishedListing, listPublishedListings, placeCounts, topPlaces } from './listing.service.js';
+import { listingIdParamsSchema, listListingsQuerySchema, placeCountsQuerySchema, placesQuerySchema } from './listing.schemas.js';
 
 export function createListingRouter() {
   const router = Router();
@@ -15,6 +15,16 @@ export function createListingRouter() {
       response.json(result);
     }),
   );
+
+  router.get('/places', validate('query', placesQuerySchema), asyncHandler(async (request, response) => {
+    const query = request.query as any;
+    response.json({ data: await topPlaces(query.type, query.limit) });
+  }));
+
+  router.get('/place-counts', validate('query', placeCountsQuerySchema), asyncHandler(async (request, response) => {
+    const query = request.query as any;
+    response.json({ data: await placeCounts(query.type, query.place) });
+  }));
 
   router.get(
     '/:id',

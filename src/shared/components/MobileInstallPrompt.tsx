@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Download, X, Smartphone, Share } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
 
 
 export default function MobileInstallPrompt() {
@@ -71,13 +70,8 @@ export default function MobileInstallPrompt() {
   if (!showPrompt) return null;
 
   return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ y: 100, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 100, opacity: 0 }}
-        transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-        className="md:hidden fixed bottom-[68px] left-3 right-3 z-40 bg-[#0A182E]/95 backdrop-blur-md text-white p-3.5 rounded-2xl shadow-2xl border border-white/15"
+      <div
+        className="animate-slide-up md:hidden fixed bottom-[68px] left-3 right-3 z-40 bg-[#0A182E]/95 backdrop-blur-md text-white p-3.5 rounded-2xl shadow-2xl border border-white/15"
       >
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -120,7 +114,6 @@ export default function MobileInstallPrompt() {
             </button>
           </div>
         </div>
-      </motion.div>
-    </AnimatePresence>
+      </div>
   );
 }

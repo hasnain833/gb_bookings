@@ -1,8 +1,9 @@
-import { useMemo, useState, type FormEvent, type MouseEvent } from 'react';
-import { ArrowRight, Check, Copy, MapPin, Search, Star, Tag } from 'lucide-react';
+import { useState, type FormEvent } from 'react';
+import { ArrowRight, MapPin, Search, Star, Tag } from 'lucide-react';
 import type { Listing } from '../../types';
 import { handleImageError } from '../../types';
 import { useListings } from '../../shared/hooks/useListings';
+import { useDebouncedValue } from '../../shared/hooks/useDebouncedValue';
 
 interface OffersSectionProps {
   onSelectListing: (listing: Listing) => void;
@@ -10,31 +11,14 @@ interface OffersSectionProps {
 }
 
 export default function OffersSection({ onSelectListing, onTriggerSearch }: OffersSectionProps) {
-  const { listings, loading, error, reload } = useListings('offer');
   const [query, setQuery] = useState('');
-  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  // The server searches title, location and description across the whole catalog.
+  const { listings: offers, loading, error, reload } = useListings('offer', useDebouncedValue(query.trim()));
 
-  const offers = useMemo(() => {
-    const term = query.trim().toLowerCase();
-    if (!term) return listings;
-    return listings.filter((offer) =>
-      offer.title.toLowerCase().includes(term) ||
-      offer.location.toLowerCase().includes(term) ||
-      offer.description.toLowerCase().includes(term) ||
-      offer.offerSpecs?.promoCode?.toLowerCase().includes(term)
-    );
-  }, [listings, query]);
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
     onTriggerSearch?.({ type: 'offer', destination: query, dates: '', guests: 1 });
-  };
-
-  const handleCopy = async (code: string, event: MouseEvent) => {
-    event.stopPropagation();
-    await navigator.clipboard.writeText(code);
-    setCopiedCode(code);
-    window.setTimeout(() => setCopiedCode(null), 2000);
   };
 
   return (
@@ -58,7 +42,7 @@ export default function OffersSection({ onSelectListing, onTriggerSearch }: Offe
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search offers by destination or code"
+                placeholder="Search offers by destination"
                 className="min-h-11 w-full rounded-lg border border-white/20 bg-white pl-10 pr-3 text-sm text-slate-900 outline-none focus:border-emerald-400"
               />
             </label>
@@ -106,10 +90,10 @@ export default function OffersSection({ onSelectListing, onTriggerSearch }: Offe
                     <h3 className="line-clamp-2 font-bold text-slate-900">{offer.title}</h3>
                     <p className="line-clamp-2 text-xs leading-relaxed text-slate-600">{offer.description}</p>
                     {details?.promoCode && (
-                      <button onClick={(event) => void handleCopy(details.promoCode!, event)} className="flex min-h-10 w-full items-center justify-center gap-2 rounded border border-dashed border-emerald-300 bg-emerald-50 text-xs font-bold text-emerald-800">
-                        {copiedCode === details.promoCode ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                        {copiedCode === details.promoCode ? 'Copied' : details.promoCode}
-                      </button>
+                      // ponytail: checkout has no promo field until coupons ship (Phase 2); show the code without inviting a copy.
+                      <p className="flex min-h-10 w-full items-center justify-center gap-2 rounded border border-dashed border-slate-300 bg-slate-50 text-xs font-bold text-slate-500">
+                        <Tag className="h-4 w-4" />{details.promoCode} · promo codes coming soon
+                      </p>
                     )}
                     <div className="flex items-center justify-between border-t border-slate-100 pt-3">
                       <span className="font-black text-slate-900">PKR {offer.price.toLocaleString()}</span>

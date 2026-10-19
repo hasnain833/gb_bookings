@@ -2,6 +2,10 @@ import type {
   Booking,
   Listing,
   ListingType,
+  MealType,
+  Review,
+  ReviewCategory,
+  StayInfo,
 } from '../../types';
 
 export const AUTH_EXPIRED_EVENT = 'gb:auth-expired';
@@ -158,7 +162,7 @@ export interface VendorProfile {
 }
 
 export interface VendorChangeRequest {
-  name: string; email: string; phone: string; registrationNumber: string; taxNumber?: string;
+  name: string; email: string; phone: string; registrationNumber?: string; taxNumber?: string;
   address: { line1: string; city: string; region: string };
 }
 
@@ -172,12 +176,30 @@ export interface MediaAsset {
 }
 
 export const EXPERIENCE_TYPES = ['Mountain View', 'Family Friendly', 'Lakeside Stays', 'Local Culture', 'Budget Friendly'] as const;
+export const MEAL_TYPES: MealType[] = ['breakfast', 'lunch', 'dinner'];
+export const mealLabel = (type: MealType) => type.charAt(0).toUpperCase() + type.slice(1);
+
+/** Price is per guest per night in PKR; included meals cost nothing. */
+export interface MealOption { type: MealType; included: boolean; price: number }
+export interface LatLng { lat: number; lng: number }
+export interface HomestaySpecs {
+  hostName: string;
+  experienceType: typeof EXPERIENCE_TYPES[number];
+  stayType: 'rooms' | 'entire_home';
+  hostBio?: string;
+  hostImage?: string;
+  languages: string[];
+  familyOnSite: boolean;
+  meals: MealOption[];
+}
+/** What the host saves: the host photo travels as an upload or the existing url. */
+export type HomestaySpecsInput = Omit<HomestaySpecs, 'hostImage'> & { hostPhoto?: PhotoInput };
 
 export interface ListingPhoto { url: string; caption?: string }
 /** Photo sent when saving: an existing photo by url, or a fresh upload by mediaId. First is the cover. */
 export interface PhotoInput { url?: string; mediaId?: string; caption?: string }
 
-type ListingContent = Pick<VendorListing, 'title' | 'location' | 'description' | 'hotelSpecs' | 'homestaySpecs'> & { photos: ListingPhoto[] };
+type ListingContent = Pick<VendorListing, 'title' | 'location' | 'description' | 'hotelSpecs' | 'homestaySpecs'> & { photos: ListingPhoto[]; coordinates?: { type: 'Point'; coordinates: [number, number] } };
 type RoomContent = Pick<VendorRoom, 'name' | 'description' | 'bedType' | 'maxAdults' | 'maxChildren' | 'amenities' | 'photos'>;
 
 export interface VendorListing {
@@ -199,7 +221,9 @@ export interface VendorListing {
   vendorName?: string;
   updatedAt?: string;
   hotelSpecs?: { hotelType: string; amenities: string[]; facilities: string[]; policies: string[]; checkInTime: string; checkOutTime: string };
-  homestaySpecs?: { hostName: string; experienceType: typeof EXPERIENCE_TYPES[number] };
+  homestaySpecs?: HomestaySpecs;
+  coordinates?: LatLng;
+  stayInfo?: StayInfo;
 }
 
 export interface VendorRoom {
@@ -236,6 +260,11 @@ export interface ListingFilters {
   checkIn?: string;
   checkOut?: string;
   guests?: number;
+  experience?: string;
+  stayType?: 'rooms' | 'entire_home';
+  breakfast?: 'true';
+  category?: string;
+  transmission?: 'Automatic' | 'Manual';
   sort?: 'recommended' | 'price-asc' | 'price-desc' | 'rating' | 'newest';
   limit?: number;
   page?: number;
@@ -253,6 +282,8 @@ export interface RoomAvailability {
   available: number;
   bookable: boolean;
   nightlyRate: number;
+  roomTotal: number;
+  /** Room total plus the chosen meals. */
   totalPrice: number;
 }
 
@@ -262,6 +293,9 @@ export interface ListingAvailability {
   checkOut: string;
   nights: number;
   currency: 'PKR';
+  /** Last day the guest can cancel for free; absent when the stay starts today. */
+  freeCancellationUntil?: string;
+  mealsTotal: number;
   rooms: RoomAvailability[];
 }
 
@@ -275,13 +309,27 @@ export interface CreateBookingInput {
   children: number;
   guest: { name: string; email: string; phone: string };
   specialRequests?: string;
+  /** Paid homestay meals; included ones are not sent. */
+  meals?: MealType[];
   expectedTotalMinor?: number;
 }
 
 export type VendorBookingAction = 'confirm' | 'cancel' | 'complete' | 'no_show' | 'mark_paid' | 'check_in';
 
 /** Reservation list filters; `from`/`to` bound the check-in date, `q` matches reference, guest name, email or phone. */
-export type BookingListParams = { status?: Booking['status']; from?: string; to?: string; q?: string; listingId?: string; page?: number };
+export type BookingListParams = { status?: Booking['status']; stay?: 'arriving' | 'in_house'; from?: string; to?: string; q?: string; listingId?: string; page?: number };
+
+export interface VendorReport {
+  from: string;
+  to: string;
+  currency: 'PKR';
+  hotels: Array<{
+    listingId: string; title: string; roomNightsAvailable: number; roomNightsSold: number; occupancy: number;
+    bookedRevenue: number; collected: number; arrivals: number; cancelled: number; noShows: number;
+  }>;
+}
+
+export interface TeamMember { id: string; role: 'owner' | 'manager' | 'listings' | 'reservations' | 'finance'; status: string; name?: string; email?: string; createdAt: string }
 
 export interface Paginated<T> {
   data: T[];
@@ -319,12 +367,22 @@ function queryString(params: Record<string, string | number | undefined>) {
 }
 
 export const api = {
+  /** Most-listed towns with a cover image (published listings only). */
+  getTopPlaces(type: ListingType | 'all', limit = 5) {
+    return request<{ data: Array<{ name: string; count: number; image: string }> }>(`/api/v1/listings/places${queryString({ type, limit })}`).then((result) => result.data);
+  },
+  /** Listings whose location mentions each place, counted over the whole catalog. */
+  getPlaceCounts(type: ListingType | 'all', places: string[]) {
+    const query = new URLSearchParams([['type', type], ...places.map((place) => ['place', place])]);
+    return request<{ data: Record<string, number> }>(`/api/v1/listings/place-counts?${query}`).then((result) => result.data);
+  },
+
   getListingsPage(params: { type?: ListingType | 'all'; search?: string } & ListingFilters = {}) {
     return request<{ data: Listing[]; meta: Paginated<Listing>['pagination'] }>(`/api/v1/listings${queryString({ ...params })}`);
   },
 
   getListing(id: string) {
-    return request<{ data: Listing & { reviews?: unknown[] } }>(`/api/v1/listings/${encodeURIComponent(id)}`).then((result) => result.data);
+    return request<{ data: Listing }>(`/api/v1/listings/${encodeURIComponent(id)}`).then((result) => result.data);
   },
 
   getCurrentUser() {
@@ -384,7 +442,7 @@ export const api = {
   },
 
   getMyVendor() {
-    return request<{ data: VendorProfile; membership: { role: string } }>('/api/vendors/me');
+    return request<{ data: VendorProfile; membership: { role: string; access: Array<'listings' | 'reservations' | 'reports' | 'team' | 'business'> } }>('/api/vendors/me');
   },
 
   updateMyVendor(input: Partial<Omit<VendorProfile, 'id' | 'slug' | 'status'>>) {
@@ -426,7 +484,9 @@ export const api = {
 
   createHotelListing(input: {
     type: VendorListing['type'];
-    homestaySpecs?: { hostName: string; experienceType: typeof EXPERIENCE_TYPES[number] };
+    homestaySpecs?: HomestaySpecsInput;
+    coordinates?: LatLng;
+    stayInfo?: StayInfo;
     title: string;
     location: string;
     description: string;
@@ -439,7 +499,7 @@ export const api = {
     return request<{ data: VendorListing }>('/api/v1/vendor/listings', { method: 'POST', body: JSON.stringify(input) });
   },
 
-  updateHotelListing(listingId: string, input: Partial<Pick<VendorListing, 'title' | 'location' | 'description' | 'hotelSpecs' | 'homestaySpecs'>> & { imageIds?: string[]; photos?: PhotoInput[] }) {
+  updateHotelListing(listingId: string, input: Partial<Pick<VendorListing, 'title' | 'location' | 'description' | 'hotelSpecs'>> & { homestaySpecs?: Omit<HomestaySpecsInput, 'stayType'>; coordinates?: LatLng; stayInfo?: StayInfo; imageIds?: string[]; photos?: PhotoInput[] }) {
     return request<{ data: VendorListing }>(`/api/v1/vendor/listings/${encodeURIComponent(listingId)}`, {
       method: 'PATCH', body: JSON.stringify(input),
     }).then((result) => result.data);
@@ -537,20 +597,18 @@ export const api = {
     });
   },
 
-  getBookings() {
-    return request<Booking[] | { data: Booking[] }>('/api/v1/bookings').then(unwrapCollection);
-  },
   getBookingsPage(page = 1, status?: Booking['status']) {
     return request<Paginated<Booking>>(`/api/v1/bookings${queryString({ page, status })}`);
   },
 
-  getListingAvailability(listingId: string, params: { checkIn: string; checkOut: string; adults: number; children?: number; rooms?: number }) {
+  getListingAvailability(listingId: string, params: { checkIn: string; checkOut: string; adults: number; children?: number; rooms?: number; meals?: MealType[] }) {
     const query = new URLSearchParams({
       checkIn: params.checkIn,
       checkOut: params.checkOut,
       adults: String(params.adults),
       children: String(params.children ?? 0),
       rooms: String(params.rooms ?? 1),
+      ...(params.meals?.length ? { meals: params.meals.join(',') } : {}),
     });
     return request<ListingAvailability>(`/api/v1/listings/${encodeURIComponent(listingId)}/availability?${query}`);
   },
@@ -580,6 +638,40 @@ export const api = {
     }).then((result) => result.data);
   },
 
+  getVendorReport(from: string, to: string) {
+    return request<{ data: VendorReport }>(`/api/v1/vendor/bookings/report${queryString({ from, to })}`).then((result) => result.data);
+  },
+
+  subscribeNewsletter(email: string, source: 'footer' | 'homestays') {
+    return request<void>('/api/v1/newsletter', { method: 'POST', body: JSON.stringify({ email, source }) });
+  },
+
+  getListingReviews(listingId: string, page = 1) {
+    return request<Paginated<Review>>(`/api/v1/listings/${encodeURIComponent(listingId)}/reviews${queryString({ page })}`);
+  },
+  createReview(bookingId: string, input: { overall: number; scores: Partial<Record<ReviewCategory, number>>; liked?: string; disliked?: string }) {
+    return request<{ data: Review }>(`/api/v1/bookings/${encodeURIComponent(bookingId)}/review`, { method: 'POST', body: JSON.stringify(input) }).then((result) => result.data);
+  },
+  getPartnerReviews(params: { listingId?: string; page?: number } = {}) {
+    return request<Paginated<Review>>(`/api/v1/vendor/reviews${queryString(params)}`);
+  },
+  replyToReview(reviewId: string, text: string) {
+    return request<{ data: Review }>(`/api/v1/vendor/reviews/${encodeURIComponent(reviewId)}/reply`, { method: 'POST', body: JSON.stringify({ text }) }).then((result) => result.data);
+  },
+  reportReview(reviewId: string, reason: string) {
+    return request<{ data: Review }>(`/api/v1/vendor/reviews/${encodeURIComponent(reviewId)}/report`, { method: 'POST', body: JSON.stringify({ reason }) }).then((result) => result.data);
+  },
+
+  getTeam() {
+    return request<{ data: TeamMember[] }>('/api/v1/vendors/me/team').then((result) => result.data);
+  },
+  addTeamMember(input: { name: string; email: string; role: 'manager' | 'reservations' }) {
+    return request<{ data: TeamMember; newAccount: boolean; passwordSetupSent?: boolean }>('/api/v1/vendors/me/team', { method: 'POST', body: JSON.stringify(input) });
+  },
+  removeTeamMember(memberId: string) {
+    return request<void>(`/api/v1/vendors/me/team/${encodeURIComponent(memberId)}`, { method: 'DELETE' });
+  },
+
   actOnVendorBooking(bookingId: string, action: VendorBookingAction, reason?: string) {
     return request<{ data: Booking }>(`/api/v1/vendor/bookings/${encodeURIComponent(bookingId)}/actions`, {
       method: 'POST', body: JSON.stringify({ action, ...(reason ? { reason } : {}) }),
@@ -587,6 +679,12 @@ export const api = {
   },
 
   admin: {
+    listReviews(params: { status?: 'reported' | 'hidden' | 'all'; page?: number } = {}) {
+      return request<Paginated<Review>>(`/api/v1/admin/reviews${queryString(params)}`);
+    },
+    moderateReview(reviewId: string, action: 'hide' | 'restore' | 'dismiss', reason: string) {
+      return request<{ data: Review }>(`/api/v1/admin/reviews/${encodeURIComponent(reviewId)}/moderate`, { method: 'POST', body: JSON.stringify({ action, reason }) }).then((result) => result.data);
+    },
     createStaff(input: { name: string; email: string; role: 'admin' }) {
       return request<{ data: AdminUser; invitationSent: boolean }>('/api/v1/admin/users', {
         method: 'POST', body: JSON.stringify(input),

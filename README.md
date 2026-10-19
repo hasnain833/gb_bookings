@@ -128,6 +128,10 @@ Set `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` t
 - `POST /api/v1/bookings/:id/cancel` - cancel an own booking before the check-in date
 - `GET /api/v1/vendor/bookings` - reservations for the vendor's properties
 - `POST /api/v1/vendor/bookings/:id/actions` - confirm, cancel, complete, or mark no-show
+- `GET /api/v1/vendor/bookings/report?from&to` - occupancy and money per hotel (owner, manager)
+- `GET/POST /api/v1/vendors/me/team`, `DELETE /api/v1/vendors/me/team/:id` - hotel staff (owner adds managers and reception)
+- `POST /api/v1/newsletter` - newsletter signup
+- `GET /api/v1/listings` also takes `experience` and `stayType` (`rooms`, `entire_home`) for homestays
 - `GET /api/v1/admin/bookings` and `POST /api/v1/admin/bookings/:id/actions` - booking oversight with `booking:manage`
 - `GET /api/v1/admin/users` - search users with `user:manage`
 - `POST /api/v1/admin/users/:id/status` - activate, suspend, archive, or verify a user

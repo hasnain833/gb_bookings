@@ -6,9 +6,12 @@ import { inTransaction } from '../../database/transaction.js';
 import { BookingModel, type BookingStatus } from '../../models/booking.model.js';
 import { HotelRoomTypeModel } from '../../models/hotel-room-type.model.js';
 import { ListingModel } from '../../models/listing.model.js';
+import { RoomNightModel } from '../../models/room-night.model.js';
 import type { UserRole } from '../../models/user.model.js';
 import { VendorMemberModel } from '../../models/vendor-member.model.js';
 import { VendorModel } from '../../models/vendor.model.js';
+import { MEMBER_ACCESS } from '../vendors/member-access.js';
+import { reviewableUntil, reviewsForBookings } from '../reviews/review.service.js';
 import { AppError, ServiceUnavailableError } from '../../shared/app-error.js';
 import { recordAuditEvent } from '../audit/audit.service.js';
 import type { SessionMetadata } from '../auth/auth.service.js';
@@ -19,7 +22,7 @@ import type { CreateBookingInput, ListBookingsQuery } from './booking.schemas.js
 import { stayNights, todayInPakistan } from './stay-dates.js';
 
 export const BOOKABLE_LISTING_TYPES = ['hotel', 'homestay'];
-const RESERVATION_ROLES = ['owner', 'manager', 'reservations'];
+
 
 type Actor = { userId: string; roles: UserRole[] };
 
@@ -85,6 +88,7 @@ export function serializeBooking(booking: any) {
     guests: booking.adults + booking.children,
     currency: booking.pricing.currency,
     nightlyRate: booking.pricing.nightlyRateMinor / 100,
+    ...(booking.meals?.length ? { meals: booking.meals.map((meal: any) => ({ type: meal.type, price: meal.priceMinor / 100 })), mealsTotal: (booking.pricing.mealsMinor ?? 0) / 100 } : {}),
     totalPrice: booking.pricing.totalMinor / 100,
     status: booking.status,
     paymentStatus: booking.paymentStatus,
@@ -94,6 +98,8 @@ export function serializeBooking(booking: any) {
     respondBy: booking.status === 'pending' && booking.createdAt ? new Date(new Date(booking.createdAt).getTime() + PENDING_TTL_MS) : undefined,
     specialRequests: booking.specialRequests,
     checkInTime: booking.listingSnapshot.checkInTime,
+    // The guest gets the property's number once it has accepted the stay.
+    ...(booking.listingSnapshot.phone && ['confirmed', 'completed'].includes(booking.status) ? { propertyPhone: booking.listingSnapshot.phone } : {}),
     checkOutTime: booking.listingSnapshot.checkOutTime,
     history: (booking.statusHistory ?? []).map(({ status, at, reason }: any) => ({ status, at, reason })),
     createdAt: booking.createdAt,
@@ -112,17 +118,52 @@ async function findBookableListing(listingId: string, session?: ClientSession) {
   return listing;
 }
 
+/** The paid meals a guest chose, priced from the listing; included meals are free and need no choosing. */
+function chosenMeals(listing: any, types: string[] = []) {
+  const offered = listing.homestaySpecs?.meals ?? [];
+  return types.map((type) => {
+    const meal = offered.find((item: any) => item.type === type && !item.included);
+    if (!meal) throw new AppError(422, 'MEAL_NOT_OFFERED', `This property does not offer ${type} as an extra.`);
+    return { type, priceMinor: meal.price * 100 };
+  });
+}
+
+export const mealsCostMinor = (meals: Array<{ priceMinor: number }> = [], guests: number, nights: number) =>
+  meals.reduce((total, meal) => total + meal.priceMinor, 0) * guests * nights;
+
+const dayBefore = (date: string) => new Date(Date.parse(`${date}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
+
+export type VendorAction = 'confirm' | 'cancel' | 'complete' | 'no_show' | 'mark_paid' | 'check_in' | 'change';
+
+/** What the hotel team can do with a booking right now; the reservations screen shows exactly these. Same rules as the actions below. */
+export function vendorActions(booking: { status: string; startDate: string; checkedInAt?: Date; paymentMethod: string; paymentStatus: string }): VendorAction[] {
+  const started = todayInPakistan() >= booking.startDate;
+  const payable: VendorAction[] = booking.paymentMethod === 'pay_at_hotel' && booking.paymentStatus === 'pending' ? ['mark_paid'] : [];
+  const changeable: VendorAction[] = ['pending', 'confirmed'].includes(booking.status) && !booking.checkedInAt && booking.paymentStatus !== 'paid' ? ['change'] : [];
+  if (booking.status === 'pending') return ['confirm', 'cancel', ...changeable];
+  if (booking.status === 'confirmed') {
+    if (!started) return [...payable, 'cancel', ...changeable];
+    return booking.checkedInAt ? ['complete', ...payable] : ['check_in', ...payable, 'no_show', ...changeable];
+  }
+  return booking.status === 'completed' ? payable : [];
+}
+
+/** Booking as the property's team sees it. */
+export const withVendorActions = <T extends Parameters<typeof vendorActions>[0]>(booking: T) => ({ ...booking, vendorActions: vendorActions(booking) });
+
 export function partyFits(room: { maxAdults: number; maxChildren: number }, adults: number, children: number, rooms: number) {
   return adults <= room.maxAdults * rooms && children <= room.maxChildren * rooms;
 }
 
 export async function getListingAvailability(
   listingId: string,
-  query: { checkIn: string; checkOut: string; adults: number; children: number; rooms: number },
+  query: { checkIn: string; checkOut: string; adults: number; children: number; rooms: number; meals?: string[] },
 ) {
   await requireDatabase();
   const nights = stayNights(query.checkIn, query.checkOut);
   const listing = await findBookableListing(listingId);
+  // Quoted exactly as createBooking will charge: meals per guest per night on top of the room price.
+  const mealsMinor = mealsCostMinor(chosenMeals(listing, query.meals), query.adults + query.children, nights.length);
   const roomTypes = await HotelRoomTypeModel.find({ listingId: listing._id, status: 'active', deletedAt: null })
     .sort({ basePriceMinor: 1 })
     .lean() as any[];
@@ -134,6 +175,9 @@ export async function getListingAvailability(
     checkOut: query.checkOut,
     nights: nights.length,
     currency: 'PKR',
+    // Guests may cancel until the day before check-in (see cancelOwnBooking); none when the stay starts today.
+    freeCancellationUntil: query.checkIn > todayInPakistan() ? dayBefore(query.checkIn) : undefined,
+    mealsTotal: mealsMinor / 100,
     rooms: roomTypes.map((room) => {
       const free = available.get(String(room._id)) ?? 0;
       return {
@@ -148,7 +192,8 @@ export async function getListingAvailability(
         available: free,
         bookable: free >= query.rooms && partyFits(room, query.adults, query.children, query.rooms),
         nightlyRate: room.basePriceMinor / 100,
-        totalPrice: (room.basePriceMinor * nights.length * query.rooms) / 100,
+        roomTotal: (room.basePriceMinor * nights.length * query.rooms) / 100,
+        totalPrice: (room.basePriceMinor * nights.length * query.rooms + mealsMinor) / 100,
       };
     }),
   };
@@ -165,7 +210,7 @@ export async function createBooking(
     listingId: input.listingId, roomTypeId: input.roomTypeId, checkIn: input.checkIn, checkOut: input.checkOut,
     rooms: input.rooms, adults: input.adults, children: input.children,
     guest: { name: input.guest.name, email: input.guest.email.toLowerCase(), phone: input.guest.phone },
-    specialRequests: input.specialRequests ?? '', paymentMethod: input.paymentMethod,
+    specialRequests: input.specialRequests ?? '', paymentMethod: input.paymentMethod, meals: [...input.meals].sort(),
     expectedTotalMinor: input.expectedTotalMinor,
   })).digest('hex');
   const replay = (booking: any) => {
@@ -181,6 +226,8 @@ export async function createBooking(
 
   const nights = stayNights(input.checkIn, input.checkOut);
   const listing = await findBookableListing(input.listingId);
+  // ponytail: snapshotted, so a later phone change does not reach existing bookings; look it up live if partners change numbers often.
+  const propertyPhone = listing.ownerId ? (await VendorModel.findById(listing.ownerId).select('phone').lean() as any)?.phone : undefined;
   const roomRef = await HotelRoomTypeModel.findOne({
     publicId: input.roomTypeId, listingId: listing._id, status: 'active', deletedAt: null,
   });
@@ -204,7 +251,10 @@ export async function createBooking(
         throw new AppError(422, 'OCCUPANCY_EXCEEDED', 'The selected rooms cannot accommodate this many guests.');
       }
       const subtotalMinor = room.basePriceMinor * nights.length * input.rooms;
-      if (input.expectedTotalMinor !== undefined && input.expectedTotalMinor !== subtotalMinor) {
+      const meals = chosenMeals(listing, input.meals);
+      const mealsMinor = mealsCostMinor(meals, input.adults + input.children, nights.length);
+      const totalMinor = subtotalMinor + mealsMinor;
+      if (input.expectedTotalMinor !== undefined && input.expectedTotalMinor !== totalMinor) {
         throw new AppError(409, 'PRICE_CHANGED', 'The room price changed. Edit traveler details and review the latest price before reserving.');
       }
       await reserveRooms(room, nights, input.rooms, session);
@@ -221,6 +271,7 @@ export async function createBooking(
         location: listing.location,
         checkInTime: listing.hotelSpecs?.checkInTime,
         checkOutTime: listing.hotelSpecs?.checkOutTime,
+        phone: propertyPhone,
       },
       roomSnapshot: { publicId: room.publicId, name: room.name, bedType: room.bedType },
       checkIn: input.checkIn,
@@ -231,7 +282,8 @@ export async function createBooking(
       children: input.children,
       guest: input.guest,
       specialRequests: input.specialRequests,
-      pricing: { currency: 'PKR', nightlyRateMinor: room.basePriceMinor, subtotalMinor, totalMinor: subtotalMinor },
+      meals: meals.length ? meals : undefined,
+      pricing: { currency: 'PKR', nightlyRateMinor: room.basePriceMinor, subtotalMinor, mealsMinor, totalMinor },
       paymentMethod: input.paymentMethod,
       statusHistory: [{ status: 'pending', by: customerId }],
       idempotencyKey,
@@ -269,6 +321,8 @@ function bookingFilter(query: ListBookingsQuery) {
     ...(query.status ? { status: query.status } : {}),
     ...(Object.keys(checkIn).length ? { checkIn } : {}),
     ...(query.listingId ? { 'listingSnapshot.publicId': query.listingId } : {}),
+    ...(query.stay === 'arriving' ? { status: { $in: ['pending', 'confirmed'] }, checkIn: todayInPakistan(), checkedInAt: null } : {}),
+    ...(query.stay === 'in_house' ? { status: 'confirmed', checkedInAt: { $ne: null } } : {}),
     ...(term ? { $or: [{ reference: term }, { 'guest.name': term }, { 'guest.email': term }, { 'guest.phone': term }] } : {}),
   };
 }
@@ -286,12 +340,19 @@ async function listWithFilter(filter: Record<string, unknown>, query: ListBookin
 
 export async function listCustomerBookings(customerId: string, query: ListBookingsQuery) {
   await requireDatabase();
-  return listWithFilter({ customerId, ...bookingFilter(query) }, query, { createdAt: -1 });
+  const result = await listWithFilter({ customerId, ...bookingFilter(query) }, query, { createdAt: -1 });
+  // The guest's own review, or until when they can still write one.
+  const reviews = await reviewsForBookings(customerId, result.data.map((booking) => booking.id));
+  return { ...result, data: result.data.map((booking) => {
+    const review = reviews.get(booking.id);
+    const until = review ? null : reviewableUntil(booking);
+    return { ...booking, ...(review ? { review } : {}), ...(until ? { reviewableUntil: until } : {}) };
+  }) };
 }
 
 async function reservationVendorIds(userId: string) {
   const memberships = await VendorMemberModel.find({
-    userId, status: 'active', deletedAt: null, role: { $in: RESERVATION_ROLES },
+    userId, status: 'active', deletedAt: null, role: { $in: MEMBER_ACCESS.reservations },
   }).select('vendorId').lean() as any[];
   return memberships.map((membership) => membership.vendorId);
 }
@@ -300,7 +361,8 @@ export async function listVendorBookings(userId: string, query: ListBookingsQuer
   await requireDatabase();
   const vendorIds = await reservationVendorIds(userId);
   if (!vendorIds.length) throw new AppError(403, 'VENDOR_ACCESS_REQUIRED', 'An active vendor reservations role is required.');
-  return listWithFilter({ vendorId: { $in: vendorIds }, ...bookingFilter(query) }, query, { checkIn: 1 });
+  const result = await listWithFilter({ vendorId: { $in: vendorIds }, ...bookingFilter(query) }, query, { checkIn: 1 });
+  return { ...result, data: result.data.map(withVendorActions) };
 }
 
 /** Loads a booking only if the actor is its customer, a reservations member of its vendor, or a booking manager. */
@@ -432,7 +494,10 @@ export async function changeVendorBooking(actor: Actor, bookingId: string, input
       { _id: roomRef._id, status: 'active', deletedAt: null }, { $inc: { inventoryVersion: 1 } }, { session, returnDocument: 'after' },
     );
     if (!room) throw new AppError(409, 'ROOM_UNAVAILABLE', 'The selected room is no longer available.');
-    const totalMinor = room.basePriceMinor * nights.length * input.rooms;
+    const subtotalMinor = room.basePriceMinor * nights.length * input.rooms;
+    // Meals keep their booked price; their cost follows the new number of nights.
+    const mealsMinor = mealsCostMinor(booking.meals, booking.adults + booking.children, nights.length);
+    const totalMinor = subtotalMinor + mealsMinor;
     // Matching the loaded stay makes a concurrent change or cancellation fail instead of double-moving inventory.
     const changed = await BookingModel.findOneAndUpdate(
       { _id: booking._id, status: booking.status, checkedInAt: null, paymentStatus: { $ne: 'paid' }, checkIn: booking.checkIn, checkOut: booking.checkOut, roomTypeId: booking.roomTypeId, rooms: booking.rooms },
@@ -440,7 +505,7 @@ export async function changeVendorBooking(actor: Actor, bookingId: string, input
         $set: {
           checkIn: input.checkIn, checkOut: input.checkOut, nights: nights.length, rooms: input.rooms, roomTypeId: room._id,
           roomSnapshot: { publicId: room.publicId, name: room.name, bedType: room.bedType },
-          pricing: { currency: 'PKR', nightlyRateMinor: room.basePriceMinor, subtotalMinor: totalMinor, totalMinor },
+          pricing: { currency: 'PKR', nightlyRateMinor: room.basePriceMinor, subtotalMinor, mealsMinor, totalMinor },
         },
         $push: { statusHistory: { status: booking.status, by: actor.userId, at: new Date(), reason: `Changed from ${before} to ${input.checkIn} → ${input.checkOut}, ${input.rooms} × ${room.name}, ${pkr(totalMinor)}.` } },
       },
@@ -493,4 +558,72 @@ async function markPaidAtProperty(actor: Actor, booking: any, metadata: SessionM
     metadata: { amountMinor: booking.pricing.totalMinor },
   });
   return serializeBooking(updated);
+}
+
+const dayMs = 86_400_000;
+const nightsInRange = (from: string, to: string) => Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / dayMs) + 1;
+const later = (a: string, b: string) => (a > b ? a : b);
+const earlier = (a: string, b: string) => (a < b ? a : b);
+const nextDay = (date: string) => new Date(Date.parse(`${date}T00:00:00Z`) + dayMs).toISOString().slice(0, 10);
+
+/**
+ * Occupancy and money per hotel for the nights `from`..`to` (inclusive).
+ * Sold nights and booked revenue count confirmed/completed stays pro-rated to the range; collected is money recorded as paid in the range.
+ * ponytail: loads the range's bookings into memory, fine at per-hotel volumes; switch to an aggregation if a vendor has tens of thousands a year.
+ */
+export async function vendorReport(userId: string, range: { from: string; to: string }) {
+  await requireDatabase();
+  const memberships = await VendorMemberModel.find({ userId, status: 'active', deletedAt: null, role: { $in: MEMBER_ACCESS.reports } }).select('vendorId').lean() as any[];
+  if (!memberships.length) throw new AppError(403, 'VENDOR_ACCESS_REQUIRED', 'Reports are available to the hotel owner, managers and finance.');
+  const vendorIds = memberships.map((membership) => membership.vendorId);
+  const end = nextDay(range.to); // exclusive
+  const days = nightsInRange(range.from, range.to);
+
+  const listings = await ListingModel.find({ ownerId: { $in: vendorIds }, deletedAt: null, status: { $in: ['published', 'paused'] } })
+    .select('publicId title').lean() as any[];
+  const rooms = await HotelRoomTypeModel.find({ listingId: { $in: listings.map((listing) => listing._id) }, deletedAt: null, status: { $ne: 'archived' } })
+    .select('listingId totalRooms').lean() as any[];
+  const [closures, stays, payments] = await Promise.all([
+    RoomNightModel.find({ roomTypeId: { $in: rooms.map((room) => room._id) }, date: { $gte: range.from, $lte: range.to }, closed: { $gt: 0 } }).select('roomTypeId closed').lean(),
+    BookingModel.find({ vendorId: { $in: vendorIds }, checkIn: { $lt: end }, checkOut: { $gt: range.from } })
+      .select('listingId status checkIn checkOut rooms pricing.nightlyRateMinor').lean(),
+    BookingModel.find({ vendorId: { $in: vendorIds }, paymentStatus: 'paid', paidAt: { $gte: new Date(`${range.from}T00:00:00+05:00`), $lt: new Date(`${end}T00:00:00+05:00`) } })
+      .select('listingId pricing.totalMinor').lean(),
+  ]) as any[][];
+
+  const roomListing = new Map(rooms.map((room) => [String(room._id), String(room.listingId)]));
+  const rows = new Map(listings.map((listing) => [String(listing._id), {
+    listingId: listing.publicId, title: listing.title, roomNightsAvailable: 0, roomNightsSold: 0,
+    bookedRevenueMinor: 0, collectedMinor: 0, arrivals: 0, cancelled: 0, noShows: 0,
+  }]));
+  for (const room of rooms) rows.get(String(room.listingId))!.roomNightsAvailable += room.totalRooms * days;
+  for (const night of closures) {
+    const row = rows.get(roomListing.get(String(night.roomTypeId)) ?? '');
+    if (row) row.roomNightsAvailable -= night.closed;
+  }
+  for (const booking of stays) {
+    const row = rows.get(String(booking.listingId));
+    if (!row) continue;
+    if (booking.checkIn >= range.from && booking.checkIn <= range.to) {
+      if (booking.status === 'cancelled') row.cancelled += 1;
+      else if (booking.status === 'no_show') row.noShows += 1;
+      else if (booking.status !== 'pending') row.arrivals += 1;
+    }
+    if (booking.status !== 'confirmed' && booking.status !== 'completed') continue;
+    const nights = Math.round((Date.parse(`${earlier(booking.checkOut, end)}T00:00:00Z`) - Date.parse(`${later(booking.checkIn, range.from)}T00:00:00Z`)) / dayMs);
+    row.roomNightsSold += nights * booking.rooms;
+    row.bookedRevenueMinor += nights * booking.rooms * booking.pricing.nightlyRateMinor;
+  }
+  for (const booking of payments) {
+    const row = rows.get(String(booking.listingId));
+    if (row) row.collectedMinor += booking.pricing.totalMinor;
+  }
+
+  const hotels = [...rows.values()].map(({ bookedRevenueMinor, collectedMinor, ...row }) => ({
+    ...row,
+    occupancy: row.roomNightsAvailable > 0 ? Math.round((row.roomNightsSold / row.roomNightsAvailable) * 1000) / 10 : 0,
+    bookedRevenue: bookedRevenueMinor / 100,
+    collected: collectedMinor / 100,
+  }));
+  return { from: range.from, to: range.to, currency: 'PKR', hotels };
 }

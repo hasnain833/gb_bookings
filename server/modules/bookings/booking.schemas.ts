@@ -9,6 +9,9 @@ export const availabilityQuerySchema = z.object({
   adults: z.coerce.number().int().min(1).max(40).default(2),
   children: z.coerce.number().int().min(0).max(40).default(0),
   rooms: z.coerce.number().int().min(1).max(20).default(1),
+  // Comma-separated extra meals to include in the quote, e.g. "dinner" or "lunch,dinner".
+  meals: z.string().trim().max(40).transform((value) => value.split(',').map((item) => item.trim()).filter(Boolean))
+    .pipe(z.array(z.enum(['breakfast', 'lunch', 'dinner'])).max(3)).optional(),
 }).strict();
 
 export const createBookingSchema = z.object({
@@ -29,6 +32,8 @@ export const createBookingSchema = z.object({
     .refine((method) => method === 'pay_at_hotel', 'Only pay-at-hotel is available right now.')
     .default('pay_at_hotel'),
   specialRequests: z.string().trim().max(1_000).optional(),
+  meals: z.array(z.enum(['breakfast', 'lunch', 'dinner'])).max(3).default([])
+    .refine((meals) => new Set(meals).size === meals.length, 'Choose each meal once.'),
   expectedTotalMinor: z.number().int().nonnegative().optional(),
 }).strict();
 
@@ -54,9 +59,15 @@ export const listBookingsQuerySchema = z.object({
   to: isoDate.optional(),
   q: z.string().trim().min(2).max(100).optional(),
   listingId: z.string().regex(/^lst_[0-9a-f-]{36}$/i).optional(),
+  // Reception views: guests due today (not yet checked in) and guests currently checked in.
+  stay: z.enum(['arriving', 'in_house']).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(25),
 }).strict();
+
+export const vendorReportQuerySchema = z.object({ from: isoDate, to: isoDate }).strict()
+  .refine((input) => input.from <= input.to, { message: 'The start date must be on or before the end date.', path: ['to'] })
+  .refine((input) => Date.parse(input.to) - Date.parse(input.from) <= 366 * 86_400_000, { message: 'Reports cover at most one year.', path: ['to'] });
 
 // Dates, room category and room count of an upcoming booking; the price is re-quoted at today's rate.
 export const changeBookingSchema = z.object({
