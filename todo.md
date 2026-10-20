@@ -20,8 +20,8 @@ All 12 Phase 1 (Hotels) items are built. These are the open tasks.
 - [ ] **Guests cannot change their own booking** — only the hotel can change dates or rooms. Guests must cancel (before check-in) and rebook, or contact the hotel. Decide whether guests should get "Request a change".
 - [ ] **Changing a paid booking is blocked** — a booking marked paid cannot be changed (no refund/top-up rules yet). The hotel must cancel and rebook. Revisit with the Phase 2 payment rules.
 - [x] **No arrivals/in-house view** — Check in exists per booking, but there is no "Arriving today / In house" list for reception. Filter by check-in date works as a stopgap. Done: "Arriving today" and "In house" tabs in Reservations (`stay=arriving|in_house`).
-- [ ] **API docs are stale** — `server/docs/openapi.ts` (served at `/api/docs`) describes almost none of the `/api/v1` routes. Generate it from the zod schemas, or delete it and the `swagger-ui-express` dependency.
-- [ ] **Two API prefixes** — most routes are mounted at both `/api/...` and `/api/v1/...`, and the frontend mixes them. Move the frontend to `/api/v1` and drop the duplicates (check the auth cookie path, which is `/api`, before doing so).
+- [x] **API docs are stale** — Done 2026-10-20: deleted `server/docs/openapi.ts`, the `/api/docs` explorer and `swagger-ui-express`.
+- [x] **Two API prefixes** — Done 2026-10-20: the frontend calls `/api/v1` only and the duplicate `/api/...` mounts are gone (the auth cookie path `/api` still covers `/api/v1`). Health is now `/api/v1/health`; update any uptime monitor that pinged `/api/health`. The Support page stub still answers at `/api/support/tickets`.
 - [ ] **No automated tests** — there is no test script. The end-to-end API checks used during development live outside the repo; add them under `server/scripts` (or a `test` script) so they can be rerun before each release.
 - [ ] **AI planner model name** — `server/modules/ai/ai.routes.ts` calls `gemini-3.5-flash`; confirm that model exists for the configured key before enabling the planner.
 
@@ -58,7 +58,7 @@ Payments are deferred: guests pay at check-in, as for hotels.
 - [x] **Mountain essentials** — power backup, heating, hot water, mobile signal (SCOM/Zong/Jazz/Telenor/Ufone), road access (car / jeep / on foot) with a note, and the months the property is open. Shown as "Good to know before you go"; guests are warned when their dates fall outside the open months.
 - [x] **Room tags and breakfast filter** — each bookable room shows "Free cancellation until …", "Pay at the property (…)" and "Breakfast included"; search has a "Breakfast included" filter (homestay meals, or a hotel amenity named Breakfast).
 - [x] **Property contact** — the business phone is shown with tel: and WhatsApp links on the voucher and in the confirmation email once the property confirms (hidden while pending). It is a snapshot taken at booking time.
-- [ ] Existing published hotels have no policies/essentials yet; their owners should fill them in (edit property → saved as a change for review).
+- [x] Existing published hotels have no policies/essentials yet — the partner Home page now shows a "Fill them in" banner for each such property.
 
 ## Still to do in Phase 2
 - [ ] Click through the homestay screens in a browser (registration, wizard, listing page, booking with meals, admin review).

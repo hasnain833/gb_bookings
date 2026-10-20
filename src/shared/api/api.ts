@@ -75,7 +75,7 @@ async function request<T>(path: string, init: RequestInit = {}, allowRefresh = t
       if (canRefresh) {
         try {
           if (!refreshInFlight) {
-            const pending = request('/api/auth/refresh', { method: 'POST' }, false)
+            const pending = request('/api/v1/auth/refresh', { method: 'POST' }, false)
               .finally(() => { if (refreshInFlight === pending) refreshInFlight = null; });
             refreshInFlight = pending;
           }
@@ -414,45 +414,45 @@ export const api = {
   },
 
   getCurrentUser() {
-    return request<AuthResponse>('/api/auth/me');
+    return request<AuthResponse>('/api/v1/auth/me');
   },
 
   login(input: { email: string; password: string; rememberMe: boolean }) {
-    return request<AuthResponse | TwoFactorChallengeResponse>('/api/auth/login', {
+    return request<AuthResponse | TwoFactorChallengeResponse>('/api/v1/auth/login', {
       method: 'POST',
       body: JSON.stringify(input),
     });
   },
 
   verifyLoginOtp(challengeId: string, code: string) {
-    return request<AuthResponse>('/api/auth/login/verify-otp', {
+    return request<AuthResponse>('/api/v1/auth/login/verify-otp', {
       method: 'POST',
       body: JSON.stringify({ challengeId, code }),
     });
   },
 
   getSessions() {
-    return request<{ data: AuthSession[] }>('/api/auth/sessions').then((result) => result.data);
+    return request<{ data: AuthSession[] }>('/api/v1/auth/sessions').then((result) => result.data);
   },
 
   revokeSession(sessionId: string) {
-    return request<void>(`/api/auth/sessions/${encodeURIComponent(sessionId)}`, { method: 'DELETE' });
+    return request<void>(`/api/v1/auth/sessions/${encodeURIComponent(sessionId)}`, { method: 'DELETE' });
   },
 
   beginTwoFactorSetup(channel: 'email' | 'sms' = 'email') {
-    return request<{ challengeId: string; expiresInSeconds: number }>('/api/auth/two-factor/setup', {
+    return request<{ challengeId: string; expiresInSeconds: number }>('/api/v1/auth/two-factor/setup', {
       method: 'POST', body: JSON.stringify({ channel }),
     });
   },
 
   enableTwoFactor(challengeId: string, code: string) {
-    return request<AuthResponse>('/api/auth/two-factor/enable', {
+    return request<AuthResponse>('/api/v1/auth/two-factor/enable', {
       method: 'POST', body: JSON.stringify({ challengeId, code }),
     });
   },
 
   disableTwoFactor(password: string) {
-    return request<void>('/api/auth/two-factor/disable', {
+    return request<void>('/api/v1/auth/two-factor/disable', {
       method: 'POST', body: JSON.stringify({ password }),
     });
   },
@@ -466,35 +466,35 @@ export const api = {
     taxNumber?: string;
     address?: { line1: string; line2?: string; city: string; region: string; postalCode?: string; country?: string };
   }) {
-    return request<{ data: VendorProfile }>('/api/vendors', { method: 'POST', body: JSON.stringify(input) });
+    return request<{ data: VendorProfile }>('/api/v1/vendors', { method: 'POST', body: JSON.stringify(input) });
   },
 
   getMyVendor() {
-    return request<{ data: VendorProfile; membership: { role: string; access: Array<'listings' | 'reservations' | 'reports' | 'team' | 'business'> } }>('/api/vendors/me');
+    return request<{ data: VendorProfile; membership: { role: string; access: Array<'listings' | 'reservations' | 'reports' | 'team' | 'business'> } }>('/api/v1/vendors/me');
   },
 
   updateMyVendor(input: Partial<Omit<VendorProfile, 'id' | 'slug' | 'status'>>) {
-    return request<{ data: VendorProfile }>('/api/vendors/me', { method: 'PATCH', body: JSON.stringify(input) });
+    return request<{ data: VendorProfile }>('/api/v1/vendors/me', { method: 'PATCH', body: JSON.stringify(input) });
   },
 
   attachVendorDocument(type: string, mediaId: string) {
-    return request<{ data: VendorProfile }>('/api/vendors/me/documents', {
+    return request<{ data: VendorProfile }>('/api/v1/vendors/me/documents', {
       method: 'POST', body: JSON.stringify({ type, mediaId }),
     });
   },
 
   requestVendorChanges(input: VendorChangeRequest) {
-    return request<{ data: VendorProfile }>('/api/vendors/me/change-request', { method: 'POST', body: JSON.stringify(input) }).then((result) => result.data);
+    return request<{ data: VendorProfile }>('/api/v1/vendors/me/change-request', { method: 'POST', body: JSON.stringify(input) }).then((result) => result.data);
   },
 
   submitVendorApplication() {
-    return request<{ data: VendorProfile }>('/api/vendors/me/submit', { method: 'POST' });
+    return request<{ data: VendorProfile }>('/api/v1/vendors/me/submit', { method: 'POST' });
   },
 
   uploadMedia(kind: 'images' | 'documents', file: File) {
     const body = new FormData();
     body.append('file', file);
-    return request<{ data: MediaAsset }>(`/api/media/${kind}`, { method: 'POST', body });
+    return request<{ data: MediaAsset }>(`/api/v1/media/${kind}`, { method: 'POST', body });
   },
 
   getVendorListings() {
@@ -583,44 +583,44 @@ export const api = {
   },
 
   register(input: { name: string; email: string; phone?: string; password: string; confirmPassword: string; acceptTerms: true }) {
-    return request<SignupChallengeResponse>('/api/auth/register', {
+    return request<SignupChallengeResponse>('/api/v1/auth/register', {
       method: 'POST',
       body: JSON.stringify(input),
     });
   },
 
   verifySignupOtp(challengeId: string, code: string) {
-    return request<AuthResponse>('/api/auth/register/verify-otp', { method: 'POST', body: JSON.stringify({ challengeId, code }) });
+    return request<AuthResponse>('/api/v1/auth/register/verify-otp', { method: 'POST', body: JSON.stringify({ challengeId, code }) });
   },
 
   logout() {
-    return request<void>('/api/auth/logout', { method: 'POST' });
+    return request<void>('/api/v1/auth/logout', { method: 'POST' });
   },
 
   changePassword(currentPassword: string, newPassword: string) {
-    return request<void>('/api/auth/change-password', { method: 'POST', body: JSON.stringify({ currentPassword, newPassword }) });
+    return request<void>('/api/v1/auth/change-password', { method: 'POST', body: JSON.stringify({ currentPassword, newPassword }) });
   },
 
   forgotPassword(email: string) {
-    return request<void>('/api/auth/forgot-password', {
+    return request<void>('/api/v1/auth/forgot-password', {
       method: 'POST',
       body: JSON.stringify({ email }),
     });
   },
 
   requestEmailVerification() {
-    return request<{ alreadyVerified: boolean }>('/api/auth/email-verification/request', { method: 'POST' });
+    return request<{ alreadyVerified: boolean }>('/api/v1/auth/email-verification/request', { method: 'POST' });
   },
 
   verifyEmail(token: string) {
-    return request<void>('/api/auth/email-verification/confirm', {
+    return request<void>('/api/v1/auth/email-verification/confirm', {
       method: 'POST',
       body: JSON.stringify({ token }),
     });
   },
 
   resetPassword(token: string, newPassword: string) {
-    return request<void>('/api/auth/reset-password', {
+    return request<void>('/api/v1/auth/reset-password', {
       method: 'POST',
       body: JSON.stringify({ token, newPassword }),
     });
@@ -780,15 +780,15 @@ export const api = {
   },
 
   getWishlist() {
-    return request<Listing[] | { data: Listing[] }>('/api/wishlist').then(unwrapCollection);
+    return request<Listing[] | { data: Listing[] }>('/api/v1/wishlist').then(unwrapCollection);
   },
 
   removeWishlistItem(listingId: string) {
-    return request<void>(`/api/wishlist/${encodeURIComponent(listingId)}`, { method: 'DELETE' });
+    return request<void>(`/api/v1/wishlist/${encodeURIComponent(listingId)}`, { method: 'DELETE' });
   },
 
   addWishlistItem(listingId: string) {
-    return request<void>('/api/wishlist', {
+    return request<void>('/api/v1/wishlist', {
       method: 'POST',
       body: JSON.stringify({ listingId }),
     });

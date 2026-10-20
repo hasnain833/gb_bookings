@@ -25,7 +25,7 @@ public/         Static assets
 2. Run `npm install`.
 3. In two terminals: `npm run dev` in the project root (frontend, port 3000), and `npm start` inside `server/` (API on `PORT` from `.env`, auto-restarts on change).
 
-Open `http://localhost:3000`. Vite proxies `/api` to the backend. The API explorer is at `http://localhost:8000/api/docs`.
+Open `http://localhost:3000`. Vite proxies `/api` to the backend.
 
 Use MongoDB Atlas or a local MongoDB replica set (`replicaSet=rs0`). Booking creation, cancellation, room inventory changes, and vendor application creation use transactions; standalone MongoDB cannot run these operations safely.
 
@@ -86,8 +86,8 @@ Set `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` t
 
 ## API routes
 
-- `GET /api/health` - liveness check
-- `GET /api/health/ready` - database readiness check
+- `GET /api/v1/health` - liveness check
+- `GET /api/v1/health/ready` - database readiness check
 - `POST /api/v1/auth/register` - create a customer and session
 - `POST /api/v1/auth/login` - sign in
 - `POST /api/v1/auth/login/verify-otp` - complete a two-factor login
@@ -137,6 +137,5 @@ Set `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` t
 - `POST /api/v1/admin/users/:id/status` - activate, suspend, archive, or verify a user
 - `GET /api/v1/listings/:id` - listing details
 - `POST /api/v1/ai/planner` - AI planner contract
-- `GET /api/docs/openapi.json` - OpenAPI document
 
 Legacy `/api/*` routes remain available while the frontend migrates to `/api/v1/*`.

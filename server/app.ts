@@ -5,9 +5,7 @@ import cors from 'cors';
 import express, { type Express } from 'express';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
-import swaggerUi from 'swagger-ui-express';
 import { env } from './config/env.js';
-import { openApiDocument } from './docs/openapi.js';
 import { errorHandler, notFoundHandler } from './middleware/errors.js';
 import { aiRouter } from './modules/ai/ai.routes.js';
 import { authRouter } from './modules/auth/auth.routes.js';
@@ -88,38 +86,24 @@ export function createApp(): Express {
     skip: (request) => request.path.startsWith('/health'),
   }));
 
-  app.get('/api/docs/openapi.json', (_request, response) => response.json(openApiDocument));
-  if (env.NODE_ENV !== 'production') {
-    app.use('/api/docs', (_request, response, next) => {
-      response.setHeader('Content-Security-Policy', "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'");
-      next();
-    }, swaggerUi.serve, swaggerUi.setup(openApiDocument));
-  }
-
   app.use('/api/v1/health', healthRouter);
-  app.use('/api/health', healthRouter);
   app.use('/api/v1/auth', authRouter);
-  app.use('/api/auth', authRouter);
   app.get(['/api/v1/listings/:id/availability', '/api/listings/:id/availability'], ...availabilityHandlers);
   app.get('/api/v1/listings/:id/reviews', ...listingReviewHandlers);
   app.use('/api/v1/listings', createListingRouter());
   app.use('/api/v1/vendors', vendorRouter);
-  app.use('/api/vendors', vendorRouter);
   app.use('/api/v1/admin/vendors', adminVendorRouter);
   app.use('/api/v1/vendor/listings', vendorListingRouter);
   app.use('/api/v1/admin/listings', adminListingRouter);
   app.use('/api/v1/admin/users', adminUserRouter);
   app.use('/api/v1/bookings', bookingRouter);
-  app.use('/api/bookings', bookingRouter);
   app.use('/api/v1/vendor/bookings', vendorBookingRouter);
   app.use('/api/v1/admin/bookings', adminBookingRouter);
   app.use('/api/v1/vendor/reviews', partnerReviewRouter);
   app.use('/api/v1/admin/reviews', adminReviewRouter);
   app.use('/api/v1/vendor/coupons', partnerCouponRouter);
   app.use('/api/v1/media', mediaRouter);
-  app.use('/api/media', mediaRouter);
   app.use('/api/v1/wishlist', wishlistRouter);
-  app.use('/api/wishlist', wishlistRouter);
   app.use('/api/v1/newsletter', newsletterRouter);
   app.use('/api/v1/ai', aiRouter);
   app.use('/api', compatibilityRouter);
