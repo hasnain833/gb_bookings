@@ -1,8 +1,8 @@
 import { useState, type ReactNode } from 'react';
-import { ArrowLeft, BarChart3, Briefcase, Building2, CalendarCheck, Car, House, LayoutDashboard, LogOut, PanelLeftClose, PanelLeftOpen, Plus, ShieldCheck, Star, TicketPercent, Users } from 'lucide-react';
+import { ArrowLeft, BarChart3, Briefcase, Building2, CalendarCheck, Car, House, LayoutDashboard, LogOut, Mountain, PanelLeftClose, PanelLeftOpen, Plus, ShieldCheck, Star, TicketPercent, Users } from 'lucide-react';
 
 export type VendorTab = 'overview' | 'properties' | 'new-property' | 'reservations' | 'reviews' | 'promo-codes' | 'reports' | 'team' | 'business' | 'security';
-export type PartnerKind = 'hotel' | 'homestay' | 'car';
+export type PartnerKind = 'hotel' | 'homestay' | 'car' | 'tour';
 
 /** Areas the server grants this team member (GET /vendors/me → membership.access). */
 export type MemberArea = 'listings' | 'reservations' | 'reports' | 'team' | 'business';
@@ -17,6 +17,7 @@ export const partnerWords = (kind: PartnerKind) => ({
   hotel: { one: 'hotel', many: 'Hotels & rooms', bookings: 'Reservations', partner: 'Hotel partner' },
   homestay: { one: 'homestay', many: 'My homestays', bookings: 'Reservations', partner: 'Homestay host' },
   car: { one: 'car', many: 'Cars & fleet', bookings: 'Rentals', partner: 'Car partner' },
+  tour: { one: 'tour', many: 'My tours', bookings: 'Bookings', partner: 'Tour partner' },
 }[kind]);
 
 const navGroups = (kind: PartnerKind): Array<{ title?: string; items: Array<{ id: VendorTab; label: string; icon: typeof Star }> }> => {
@@ -25,7 +26,7 @@ const navGroups = (kind: PartnerKind): Array<{ title?: string; items: Array<{ id
     { items: [
       { id: 'overview', label: 'Home', icon: LayoutDashboard },
       { id: 'reservations', label: words.bookings, icon: CalendarCheck },
-      { id: 'properties', label: words.many, icon: kind === 'car' ? Car : kind === 'homestay' ? House : Building2 },
+      { id: 'properties', label: words.many, icon: kind === 'car' ? Car : kind === 'tour' ? Mountain : kind === 'homestay' ? House : Building2 },
     ] },
     { title: 'Grow', items: [
       { id: 'reviews', label: 'Guest reviews', icon: Star },
@@ -44,11 +45,11 @@ const titles = (kind: PartnerKind): Record<VendorTab, [string, string]> => {
   const { one, many, bookings } = partnerWords(kind);
   return {
     overview: ['', ''],
-    properties: [many, kind === 'car' ? 'Your cars, daily prices, fleet counts and reviews by GBBookings.' : 'Your properties, room categories and reviews by GBBookings.'],
-    'new-property': [`Add a ${one}`, kind === 'car' ? 'Create a car draft with its price and photos, then submit it for review.' : 'Create a property draft, add its rooms, then submit it for review.'],
-    reservations: [bookings, kind === 'car' ? 'Answer rental requests and manage pickups and returns.' : 'Answer booking requests and manage arrivals and stays.'],
+    properties: [many, kind === 'car' ? 'Your cars, daily prices, fleet counts and reviews by GBBookings.' : kind === 'tour' ? 'Your tours, prices, seats and departure dates.' : 'Your properties, room categories and reviews by GBBookings.'],
+    'new-property': [`Add a ${one}`, kind === 'car' ? 'Create a car draft with its price and photos, then submit it for review.' : kind === 'tour' ? 'Create a tour draft with its itinerary, price and dates, then submit it for review.' : 'Create a property draft, add its rooms, then submit it for review.'],
+    reservations: [bookings, kind === 'car' ? 'Answer rental requests and manage pickups and returns.' : kind === 'tour' ? 'Answer booking requests and manage who starts a tour today.' : 'Answer booking requests and manage arrivals and stays.'],
     reviews: ['Guest reviews', 'Read what guests say, reply publicly, or report a review that breaks the rules.'],
-    'promo-codes': ['Promo codes', `Give guests a discount code. Guests enter it at checkout and pay the reduced total at ${kind === 'car' ? 'pickup' : 'your property'}.`],
+    'promo-codes': ['Promo codes', `Give guests a discount code. Guests enter it at checkout and pay the reduced total at ${kind === 'car' ? 'pickup' : kind === 'tour' ? 'the start of the tour' : 'your property'}.`],
     reports: ['Reports', `Occupancy and money per ${one} for any dates.`],
     team: ['Team', 'Give managers and reception staff their own sign-in.'],
     business: ['Business profile', 'Your verified business details. Changes are approved by GBBookings before they apply.'],

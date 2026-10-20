@@ -21,10 +21,12 @@ const REQUIRED_DOCUMENTS: Record<string, string[]> = {
   homestay: ['identity', 'property_authorization'],
   // Car partners: rental companies add a business registration number; owner-drivers add their driving licence instead.
   vehicle: ['identity', 'vehicle_registration'],
+  // Tour companies add a business registration number; independent guides add a guide licence instead.
+  tour_operator: ['identity'],
 };
 
 /** Business types verified without a registration number (owner-drivers are individuals). */
-const NO_REGISTRATION = ['homestay', 'vehicle'];
+const NO_REGISTRATION = ['homestay', 'vehicle', 'tour_operator'];
 
 async function requireDatabase() {
   if (!await connectDatabase()) throw new ServiceUnavailableError('Vendor services are unavailable while the database is disconnected.');
@@ -132,6 +134,7 @@ export async function submitOwnVendor(userId: string, metadata: SessionMetadata)
   const missing = [
     !vendor.registrationNumber && !NO_REGISTRATION.includes(vendor.businessType) && 'registrationNumber',
     vendor.businessType === 'vehicle' && !vendor.registrationNumber && !attached.has('driving_licence') && 'driving_licence',
+    vendor.businessType === 'tour_operator' && !vendor.registrationNumber && !attached.has('guide_licence') && 'guide_licence',
     !vendor.address?.line1 && 'address',
     vendor.verificationDocuments.length === 0 && 'verificationDocuments',
     ...(REQUIRED_DOCUMENTS[vendor.businessType] ?? []).filter((type) => !attached.has(type)),

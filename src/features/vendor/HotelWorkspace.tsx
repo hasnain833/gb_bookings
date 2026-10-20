@@ -3,6 +3,8 @@ import { ChevronRight, Pause, Play } from 'lucide-react';
 import { api, type VendorListing, type VendorRoom } from '../../shared/api/api';
 import PropertyEditor from './PropertyEditor';
 import CarEditor from './CarEditor';
+import TourEditor from './TourEditor';
+import { DeparturesField } from './TourFields';
 import RoomCalendar from './RoomCalendar';
 import RoomManager, { secondaryButton } from './RoomManager';
 import VendorReservations from './VendorReservations';
@@ -17,6 +19,28 @@ export const LISTING_STATUS: Record<VendorListing['status'], [string, string]> =
   rejected: ['Changes requested', 'bg-rose-50 text-rose-700'],
   archived: ['Archived', 'bg-slate-100 text-slate-500'],
 };
+
+/** Fixed-departure tours: the dates guests can book. Applies at once, even on a live tour. */
+function DeparturesTab({ listing, onChange }: { listing: VendorListing; onChange: (listing: VendorListing, message?: string) => void }) {
+  const [dates, setDates] = useState(listing.departures ?? []);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const dirty = dates.join() !== (listing.departures ?? []).join();
+  const save = async () => {
+    setBusy(true); setError('');
+    try { onChange(await api.updateHotelListing(listing.id, { departures: dates }), 'Departure dates saved.'); }
+    catch (reason) { setError(reason instanceof Error ? reason.message : 'The dates could not be saved.'); }
+    finally { setBusy(false); }
+  };
+  return (
+    <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
+      <div><h3 className="font-bold">Departure dates</h3><p className="mt-1 text-sm text-slate-600">Guests can only book these start dates. Changes apply straight away.</p></div>
+      {error && <p role="alert" className="text-sm text-rose-700">{error}</p>}
+      <DeparturesField value={dates} onChange={setDates} />
+      <button type="button" disabled={busy || !dirty} onClick={save} className="min-h-11 rounded-lg bg-[#006F3C] px-4 text-sm font-bold text-white disabled:opacity-50">Save dates</button>
+    </div>
+  );
+}
 
 /** Availability tab: one room category's month calendar at a time. */
 function AvailabilityTab({ listing }: { listing: VendorListing }) {
@@ -52,21 +76,23 @@ export default function HotelWorkspace({ listing, onBack, onChange, onAvailabili
   const [tab, setTab] = useState<HotelTab>('rooms');
   const [status, tone] = LISTING_STATUS[listing.status];
   const car = listing.type === 'car';
-  const noun = car ? 'car' : listing.type === 'homestay' ? 'homestay' : 'hotel';
-  const tabs: Array<[HotelTab, string]> = [['rooms', car ? 'Price & fleet' : 'Rooms'], ['details', 'Details & photos'], ['availability', 'Availability'], ['reservations', car ? 'Rentals' : 'Reservations']];
-  const Editor = car ? CarEditor : PropertyEditor;
+  const tour = listing.type === 'tour';
+  const fixedTour = tour && listing.tourSpecs?.schedule === 'fixed';
+  const noun = car ? 'car' : tour ? 'tour' : listing.type === 'homestay' ? 'homestay' : 'hotel';
+  const tabs: Array<[HotelTab, string]> = [['rooms', car ? 'Price & fleet' : tour ? 'Price & seats' : 'Rooms'], ['details', 'Details & photos'], ['availability', fixedTour ? 'Dates & seats' : tour ? 'Closed days' : 'Availability'], ['reservations', car ? 'Rentals' : tour ? 'Bookings' : 'Reservations']];
+  const Editor = car ? CarEditor : tour ? TourEditor : PropertyEditor;
   const editable = ['draft', 'rejected', 'published', 'paused'].includes(listing.status);
 
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-slate-200 bg-white px-5 pt-5 sm:px-7">
-        <p className="flex items-center gap-1 text-sm text-slate-500"><button type="button" onClick={onBack} className="min-h-11 font-semibold text-[#006F3C] hover:underline">{car ? 'Cars & fleet' : noun === 'homestay' ? 'Homestays & rooms' : 'Hotels & rooms'}</button><ChevronRight className="size-4" /><span className="truncate">{listing.title}</span></p>
+        <p className="flex items-center gap-1 text-sm text-slate-500"><button type="button" onClick={onBack} className="min-h-11 font-semibold text-[#006F3C] hover:underline">{car ? 'Cars & fleet' : tour ? 'My tours' : noun === 'homestay' ? 'Homestays & rooms' : 'Hotels & rooms'}</button><ChevronRight className="size-4" /><span className="truncate">{listing.title}</span></p>
         <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-4">
             <img src={listing.image} alt="" className="size-16 shrink-0 rounded-xl object-cover" />
             <div className="min-w-0">
               <h2 className="truncate text-2xl font-extrabold tracking-tight">{listing.title}</h2>
-              <p className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-slate-500"><span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${tone}`}>{status}</span>{listing.location} · {car ? listing.carSpecs?.category ?? 'Car' : listing.hotelSpecs?.hotelType ?? (listing.type === 'homestay' ? 'Homestay' : 'Hotel')}</p>
+              <p className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-slate-500"><span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${tone}`}>{status}</span>{listing.location} · {car ? listing.carSpecs?.category ?? 'Car' : tour ? `${listing.tourSpecs?.category ?? 'Tour'} · ${listing.tourSpecs?.durationDays ?? 1} day(s)` : listing.hotelSpecs?.hotelType ?? (listing.type === 'homestay' ? 'Homestay' : 'Hotel')}</p>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -93,8 +119,9 @@ export default function HotelWorkspace({ listing, onBack, onChange, onAvailabili
             setTab('rooms');
           }} />
         : <p className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600">Details can be edited again once the review is finished.</p>)}
+      {tab === 'availability' && fixedTour && <DeparturesTab key={(listing.departures ?? []).join()} listing={listing} onChange={onChange} />}
       {tab === 'availability' && <AvailabilityTab listing={listing} />}
-      {tab === 'reservations' && <VendorReservations listingId={listing.id} car={car} />}
+      {tab === 'reservations' && <VendorReservations listingId={listing.id} car={car} tour={tour} />}
     </div>
   );
 }

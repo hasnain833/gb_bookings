@@ -143,13 +143,26 @@ const listingSchema = new Schema({
     minDriverAge: { type: Number, min: 18 },
     pickupNote: { type: String, trim: true, maxlength: 500 },
   },
+  // Tours: what the tour is. The adult price per person and seats per departure live on its single booking unit.
   tourSpecs: {
     durationDays: { type: Number, min: 1 },
     maxGroupSize: { type: Number, min: 1 },
     difficulty: { type: String, enum: ['Easy', 'Moderate', 'Challenging'] },
+    category: String,
+    // 'fixed': only the dates in `departures` can be booked; 'daily': any day the partner has not closed.
+    schedule: { type: String, enum: ['fixed', 'daily'] },
+    // PKR per child; absent means children pay the adult price.
+    childPrice: { type: Number, min: 0 },
+    minAge: { type: Number, min: 0 },
+    meetingPoint: { type: String, trim: true, maxlength: 300 },
+    startTime: String,
+    languages: { type: [String], default: undefined },
     included: { type: [String], default: undefined },
+    excluded: { type: [String], default: undefined },
     itinerary: { type: [itineraryItemSchema], default: undefined },
   },
+  // Fixed-departure tours: bookable start dates (YYYY-MM-DD). Day-to-day operations, so edits apply at once without review.
+  departures: { type: [String], default: undefined },
   offerSpecs: {
     category: String,
     discountLabel: String,

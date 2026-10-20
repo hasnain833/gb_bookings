@@ -67,13 +67,9 @@ export interface Listing {
     meals?: Array<{ type: MealType; included: boolean; price: number }>;
   };
   carSpecs?: CarSpecs;
-  tourSpecs?: {
-    durationDays: number;
-    maxGroupSize: number;
-    difficulty: 'Easy' | 'Moderate' | 'Challenging';
-    included: string[];
-    itinerary: { day: number; title: string; desc: string }[];
-  };
+  tourSpecs?: TourSpecs;
+  /** Fixed-departure tours: upcoming start dates (YYYY-MM-DD). */
+  departures?: string[];
   offerSpecs?: {
     category: string;
     discountLabel: string;
@@ -82,6 +78,35 @@ export interface Listing {
     perks?: string[];
     expiresAt?: string;
   };
+}
+
+export type TourCategory = 'Trekking' | 'Sightseeing' | 'Jeep safari' | 'Cultural' | 'Adventure' | 'Day trip';
+
+/** What a tour is (PKR). Tours listed before tour partners only have durationDays, maxGroupSize, difficulty, included and itinerary. */
+export interface TourSpecs {
+  durationDays: number;
+  difficulty: 'Easy' | 'Moderate' | 'Challenging';
+  included: string[];
+  itinerary: { day: number; title: string; desc: string }[];
+  maxGroupSize?: number;
+  category?: TourCategory;
+  /** 'fixed': only the listing's departure dates; 'daily': any open day. */
+  schedule?: 'fixed' | 'daily';
+  /** Per child; absent means children pay the adult price. */
+  childPrice?: number;
+  minAge?: number;
+  meetingPoint?: string;
+  startTime?: string;
+  languages?: string[];
+  excluded?: string[];
+}
+
+/** What a tour booking resolved to at booking time (PKR). */
+export interface BookingTour {
+  days: number;
+  meetingPoint?: string;
+  startTime?: string;
+  childPrice?: number;
 }
 
 export type CarCategory = 'Sedan' | 'Hatchback' | 'SUV' | '4x4 Jeep' | 'Van' | 'Coaster';
@@ -163,6 +188,8 @@ export interface Booking {
   mealsTotal?: number;
   /** Car rentals only; `endDate` is then the return date. */
   rental?: BookingRental;
+  /** Tours only; `endDate` is then the last tour day. */
+  tour?: BookingTour;
   /** Car rentals: driver, out-of-city and one-way charges. */
   extrasTotal?: number;
   /** Partner promo code used, e.g. "SUMMER10", its terms ("10% off") and the PKR taken off the total. */

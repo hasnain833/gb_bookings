@@ -72,6 +72,8 @@ function listingView(listing: any) {
     hotelSpecs: listing.hotelSpecs,
     homestaySpecs: listing.homestaySpecs,
     carSpecs: listing.carSpecs,
+    tourSpecs: listing.tourSpecs,
+    departures: listing.departures,
     coordinates: latLng(listing.coordinates),
     stayInfo: listing.stayInfo,
     status: listing.status,
@@ -140,8 +142,19 @@ async function resolveHomestayInput(userId: string, listing: any, input: any) {
 /** Car specs as stored: `withDriver` mirrors the driver mode for older readers. */
 const carSpecsFor = (specs: any) => specs && { ...specs, withDriver: specs.driverMode !== "self_drive" };
 
-/** A car's fleet entry mirrors its name, type and seats; bookings check the party size against its seats. */
+/**
+ * A car's fleet entry mirrors its name, type and seats; bookings check the party size against its seats.
+ * A tour's unit is one seat per traveller (adult or child), so its count is the seats per departure.
+ */
 async function syncCarUnit(listing: any, session?: any) {
+  if (listing.type === "tour") {
+    await HotelRoomTypeModel.updateMany(
+      { listingId: listing._id, deletedAt: null },
+      { $set: { name: listing.title, bedType: listing.tourSpecs?.category ?? "Tour", maxAdults: 1, maxChildren: 1 } },
+      { session: session ?? null },
+    );
+    return;
+  }
   if (listing.type !== "car" || !listing.carSpecs?.seats) return;
   await HotelRoomTypeModel.updateMany(
     { listingId: listing._id, deletedAt: null },
@@ -159,11 +172,13 @@ function assertEntireHome(
   input: { totalRooms?: number },
   otherRooms = 0,
 ) {
-  if (listing.type === "car" && otherRooms > 0)
+  if ((listing.type === "car" || listing.type === "tour") && otherRooms > 0)
     throw new AppError(
       409,
-      "CAR_SINGLE_UNIT",
-      "A car listing has one fleet entry. Change its count instead, or list a different car separately.",
+      "SINGLE_UNIT",
+      listing.type === "tour"
+        ? "A tour has one seat entry. Change its seats or price instead, or list a different tour separately."
+        : "A car listing has one fleet entry. Change its count instead, or list a different car separately.",
     );
   if (listing.homestaySpecs?.stayType !== "entire_home") return;
   if (otherRooms > 0)
@@ -326,6 +341,7 @@ const listingContent = (listing: any) => ({
   homestaySpecs:
     listing.type === "homestay" ? homestayContent(listing) : undefined,
   carSpecs: listing.type === "car" ? (listing.carSpecs?.toObject?.() ?? listing.carSpecs) : undefined,
+  tourSpecs: listing.type === "tour" ? (listing.tourSpecs?.toObject?.() ?? listing.tourSpecs) : undefined,
   coordinates: listing.coordinates?.toObject?.() ?? listing.coordinates,
   stayInfo: listing.stayInfo?.toObject?.() ?? listing.stayInfo,
   photos: photosOf(listing),
@@ -400,8 +416,12 @@ export async function listOwnListings(userId: string) {
 }
 
 // Partner account type → what it may list. Multi-service partners may list everything.
-const LISTING_TYPE_FOR: Record<string, string> = { hotel: "hotel", homestay: "homestay", vehicle: "car" };
-const ACCOUNT_NAME: Record<string, string> = { hotel: "a hotel business", homestay: "a homestay host", vehicle: "a car rental partner" };
+const LISTING_TYPE_FOR: Record<string, string> = { hotel: "hotel", homestay: "homestay", vehicle: "car", tour_operator: "tour" };
+const ACCOUNT_NAME: Record<string, string> = { hotel: "a hotel business", homestay: "a homestay host", vehicle: "a car rental partner", tour_operator: "a tour partner" };
+const ACCOUNT_NEEDED: Record<string, string> = { car: "Cars need a car rental", homestay: "Homestays need a homestay host", tour: "Tours need a tour partner", hotel: "Hotels need a hotel business" };
+
+/** Fixed-departure dates, sorted; only tours keep them. */
+const departuresFor = (type: string, dates?: string[]) => (type === "tour" && dates ? [...new Set(dates)].sort() : undefined);
 
 /** One account is one partner type: hotels, homestays or cars. */
 function assertListingTypeAllowed(vendor: any, type: string) {
@@ -410,7 +430,7 @@ function assertListingTypeAllowed(vendor: any, type: string) {
   throw new AppError(
     403,
     "LISTING_TYPE_NOT_ALLOWED",
-    `Your partner account is registered as ${ACCOUNT_NAME[vendor.businessType] ?? "another partner type"}. ${type === "car" ? "Cars need a car rental" : type === "homestay" ? "Homestays need a homestay host" : "Hotels need a hotel business"} registration.`,
+    `Your partner account is registered as ${ACCOUNT_NAME[vendor.businessType] ?? "another partner type"}. ${ACCOUNT_NEEDED[type] ?? ACCOUNT_NEEDED.hotel} registration.`,
   );
 }
 
@@ -434,8 +454,10 @@ export async function createHotelListing(
     description: input.description,
     price: input.price,
     priceMinor: input.price * 100,
-    hotelSpecs: input.type === "car" ? undefined : input.hotelSpecs,
+    hotelSpecs: input.type === "car" || input.type === "tour" ? undefined : input.hotelSpecs,
     carSpecs: input.type === "car" ? carSpecsFor(input.carSpecs) : undefined,
+    tourSpecs: input.type === "tour" ? input.tourSpecs : undefined,
+    departures: departuresFor(input.type, input.departures),
     coordinates: toGeoPoint(input.coordinates),
     stayInfo: input.stayInfo,
     status: "draft",
@@ -473,9 +495,12 @@ export async function updateHotelListing(
       "LISTING_LOCKED",
       "Listings cannot be edited while under review.",
     );
-  const { price, imageIds, photos, ...edits } = input;
+  const { price, imageIds, photos, departures, ...edits } = input;
   // Each listing type keeps its own spec block.
-  if (listing.type === "car") delete edits.hotelSpecs;
+  if (listing.type === "car" || listing.type === "tour") delete edits.hotelSpecs;
+  if (listing.type !== "tour") delete edits.tourSpecs;
+  // Departure dates are day-to-day operations, like price: they apply at once.
+  if (departures && listing.type === "tour") listing.departures = departuresFor("tour", departures);
   if (edits.carSpecs) {
     if (listing.type === "car") edits.carSpecs = carSpecsFor(edits.carSpecs);
     else delete edits.carSpecs;
@@ -566,6 +591,8 @@ export async function addRoomType(
     touchRevision(listing);
     await listing.save();
   }
+  // Tours: one seat per traveller, whatever the client sent.
+  if (listing.type === "tour") await syncCarUnit(listing);
   await syncListingPrice(listing);
   await recordAuditEvent({
     actorId: userId,
@@ -923,14 +950,16 @@ export async function submitListing(
       "LISTING_INCOMPLETE",
       listing.type === "car"
         ? "Add at least one photo and the car's daily price and count before submission."
-        : "Add at least one owned image and one active room type before submission.",
+        : listing.type === "tour"
+          ? "Add at least one photo and the tour's price and seats before submission."
+          : "Add at least one owned image and one active room type before submission.",
     );
   if (!listing.stayInfo?.paymentMethods?.length)
     throw new AppError(
       400,
       "LISTING_INCOMPLETE",
-      listing.type === "car"
-        ? "Choose how guests can pay at pickup before submission."
+      listing.type === "car" || listing.type === "tour"
+        ? `Choose how guests can pay ${listing.type === "car" ? "at pickup" : "at the start of the tour"} before submission.`
         : 'Fill in "Policies & essentials" (payment, children, heating, road access…) before submission.',
     );
   if (
@@ -948,6 +977,15 @@ export async function submitListing(
       "A home let as a whole needs exactly one booking unit with a count of 1.",
     );
   }
+  if (
+    listing.tourSpecs?.schedule === "fixed" &&
+    !(listing.departures ?? []).some((date: string) => date >= todayInPakistan())
+  )
+    throw new AppError(
+      400,
+      "LISTING_INCOMPLETE",
+      "Add at least one upcoming departure date before submission.",
+    );
   listing.status = "submitted";
   listing.rejectionReason = null;
   await listing.save();
@@ -1082,7 +1120,7 @@ export async function listListingsForModeration(query: {
   const term =
     query.q && new RegExp(query.q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
   const filter: Record<string, unknown> = {
-    type: query.type ?? { $in: ["hotel", "homestay", "car"] },
+    type: query.type ?? { $in: ["hotel", "homestay", "car", "tour"] },
     ownerId: { $ne: null },
     // Archiving also sets deletedAt, so archived listings are only shown when asked for.
     ...(query.status === "archived"

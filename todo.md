@@ -87,3 +87,22 @@ Same engine as hotels: one car listing is one car model with one fleet entry (a 
 - [ ] Route fare tables (e.g. Gilgit → Skardu) — the one-way fee and outside-city charge cover it for now.
 - [ ] Old platform-owned car listings (no partner, no price unit) still show "coming soon" on their page.
 - [ ] Reviews use hotel categories (staff, cleanliness, comfort, value, location); cars may want driver/vehicle-condition categories.
+
+# Tours (Phase 3) — status
+
+Same engine as hotels and cars: one tour listing has one booking unit (count = seats per departure, price = adult price per person). A booking takes one seat per traveller on the start date only (stored `checkOut` is the day after it), so the same tour can depart again the next day; guests see the last tour day as the end date (`server/modules/bookings/tour.ts`). Payments: at the start of the tour.
+
+## Built (2026-10-20)
+- [x] **Tour partners** — "Become a partner" → Tours: tour company (registration number, optional business registration document) or independent guide (CNIC + guide licence or proof of guiding). Stored as business type `tour_operator`. One account is one partner type.
+- [x] **Add tour wizard** — type, duration, difficulty, minimum age, meeting point, start time, guide languages → name, area, map, description → included / not included, day-by-day itinerary → price per adult, seats per departure, any-day or fixed departures (+ dates), optional child price, payment at the start → photos → review.
+- [x] **Partner workspace** — "My tours": Price & seats tab, Details editor (live edits wait for review), Dates & seats (fixed departures, apply at once) or Closed days (calendar closures), Bookings tab. Reservations say "Starting today" / "On tour", "Tour started" / "Tour finished"; a change moves only the start date.
+- [x] **Guests** — tour page shows type, length, difficulty, languages, meeting point, included / not included, itinerary, map and a booking panel (departure picker or date, adults, children, server-priced total, seats left). Checkout, voucher, My Bookings and emails use tour words. Search has a start date, travellers and tour type. Promo codes work on tours.
+- [x] **Admin** — Tours page in the sidebar; tour partners and tours go through the review inbox with tour details shown.
+- [x] Self-check for the pricing and date rules: `npx tsx server/scripts/check-tours.ts`.
+
+## Still to do for Tours
+- [ ] Click through the tour screens in a browser and run a booking end to end on a database (only type-checked, built and the pure rules checked so far).
+- [ ] Seats per departure are one number per tour; a smaller group on one date is set by closing seats on the calendar.
+- [ ] Reports count every day as available for fixed-departure tours, so their occupancy reads low.
+- [ ] Old platform-owned tours (no partner, no schedule) still show "coming soon" on their page.
+- [ ] Private-group pricing — not built (owner chose per person + child price).

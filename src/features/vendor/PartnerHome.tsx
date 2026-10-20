@@ -31,6 +31,12 @@ export default function PartnerHome({ kind, listings, access, userName, onTab, o
 }) {
   const words = partnerWords(kind);
   const car = kind === 'car';
+  // Day words per partner type: arrivals, guests staying, departures.
+  const day = kind === 'car'
+    ? { arriving: 'Pickups today', started: 'handed over', staying: 'On the road', leaving: 'Returns today', leavingVerb: 'returning', none: ['No pickups today.', 'No cars out.', 'No returns today.'] }
+    : kind === 'tour'
+      ? { arriving: 'Starting today', started: 'started', staying: 'On tour', leaving: 'Ending today', leavingVerb: 'ending', none: ['No tours start today.', 'No groups on tour.', 'No tours end today.'] }
+      : { arriving: 'Arriving today', started: 'checked in', staying: 'In house', leaving: 'Leaving today', leavingVerb: 'leaving', none: ['No arrivals today.', 'No guests staying.', 'No one leaving today.'] };
   const [data, setData] = useState<HomeData | null>(null);
   const [error, setError] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -78,25 +84,25 @@ export default function PartnerHome({ kind, listings, access, userName, onTab, o
 
   const sum = (report: VendorReport | undefined, key: 'roomNightsSold' | 'roomNightsAvailable' | 'bookedRevenue' | 'collected') => report?.hotels.reduce((total, hotel) => total + hotel[key], 0) ?? 0;
   const percent = (report?: VendorReport) => { const available = sum(report, 'roomNightsAvailable'); return available ? Math.round((sum(report, 'roomNightsSold') / available) * 100) : 0; };
-  const unit = car ? 'cars' : 'rooms';
+  const unit = car ? 'cars' : kind === 'tour' ? 'seats' : 'rooms';
   const leaving = data?.inHouse.filter((booking) => booking.endDate === today) ?? [];
   const checkedIn = data?.arriving.filter((booking) => booking.checkedInAt).length ?? 0;
-  const missingPolicies = listings.filter((listing) => !car && (listing.status === 'published' || listing.status === 'paused') && !listing.stayInfo?.paymentMethods?.length);
+  const missingPolicies = listings.filter((listing) => !car && kind !== 'tour' && (listing.status === 'published' || listing.status === 'paused') && !listing.stayInfo?.paymentMethods?.length);
   const hour = Number(new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hour12: false, timeZone: 'Asia/Karachi' }).format(new Date()));
 
   const tiles: Array<[string, string, string, boolean]> = data ? [
     ['Requests waiting', String(data.pendingTotal), data.pending[0] ? `First one: ${timeLeft(data.pending[0].respondBy).text || 'answer soon'}` : 'All answered', data.pendingTotal > 0],
-    [car ? 'Pickups today' : 'Arriving today', String(data.arriving.length), data.arriving.length ? `${checkedIn} ${car ? 'handed over' : 'checked in'} so far` : 'No one due today', false],
+    [day.arriving, String(data.arriving.length), data.arriving.length ? `${checkedIn} ${day.started} so far` : 'No one due today', false],
     ...(reports ? [
-      [car ? 'Cars out today' : 'Tonight', `${percent(data.tonight)}%`, `${sum(data.tonight, 'roomNightsSold')} of ${sum(data.tonight, 'roomNightsAvailable')} ${unit} ${car ? 'booked' : 'sold'}`, false],
+      [car ? 'Cars out today' : kind === 'tour' ? 'Seats today' : 'Tonight', `${percent(data.tonight)}%`, `${sum(data.tonight, 'roomNightsSold')} of ${sum(data.tonight, 'roomNightsAvailable')} ${unit} ${car || kind === 'tour' ? 'booked' : 'sold'}`, false],
       [new Date().toLocaleDateString('en-GB', { month: 'long' }), pkr(sum(data.month, 'bookedRevenue')), `${pkr(sum(data.month, 'collected'))} collected`, false],
-    ] as Array<[string, string, string, boolean]> : [[car ? 'Out on the road' : 'In house', String(data.inHouse.length), `${leaving.length} ${car ? 'returning' : 'leaving'} today`, false] as [string, string, string, boolean]]),
+    ] as Array<[string, string, string, boolean]> : [[day.staying, String(data.inHouse.length), `${leaving.length} ${day.leavingVerb} today`, false] as [string, string, string, boolean]]),
   ] : [];
 
   const lanes: Array<[string, Booking[], string]> = data ? [
-    [car ? 'Pickups today' : 'Arriving today', data.arriving, car ? 'No pickups today.' : 'No arrivals today.'],
-    [car ? 'On the road' : 'In house', data.inHouse.filter((booking) => booking.endDate !== today), car ? 'No cars out.' : 'No guests staying.'],
-    [car ? 'Returns today' : 'Leaving today', leaving, car ? 'No returns today.' : 'No one leaving today.'],
+    [day.arriving, data.arriving, day.none[0]],
+    [day.staying, data.inHouse.filter((booking) => booking.endDate !== today), day.none[1]],
+    [day.leaving, leaving, day.none[2]],
   ] : [];
 
   return (
@@ -121,7 +127,7 @@ export default function PartnerHome({ kind, listings, access, userName, onTab, o
 
       {data && listings.length === 0 && canOpen(access, 'new-property') && <section className={`${card} p-6`}>
         <h2 className="text-lg font-extrabold">Add your first {words.one}</h2>
-        <ol className="mt-4 grid gap-4 md:grid-cols-4">{[`Add the ${words.one}, photos and ${kind === 'homestay' ? 'house rules' : car ? 'driver and fuel terms' : 'policies'}`, car ? 'Set the daily price and how many you have' : 'Add room categories and prices', 'Submit it for review', 'Once approved, guests can book it'].map((step, index) =>
+        <ol className="mt-4 grid gap-4 md:grid-cols-4">{[`Add the ${words.one}, photos and ${kind === 'homestay' ? 'house rules' : car ? 'driver and fuel terms' : kind === 'tour' ? 'itinerary' : 'policies'}`, car ? 'Set the daily price and how many you have' : kind === 'tour' ? 'Set the price per person, seats and dates' : 'Add room categories and prices', 'Submit it for review', 'Once approved, guests can book it'].map((step, index) =>
           <li key={step} className="flex items-start gap-3"><span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#EAF4EE] text-xs font-bold text-[#0B5A33]">{index + 1}</span><p className="pt-1 text-sm text-[#3D4A42]">{step}</p></li>)}</ol>
       </section>}
 

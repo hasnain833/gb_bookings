@@ -22,13 +22,22 @@ const carWords = (message: string) => message
   .replace('at the property on arrival', 'at pickup').replace('at your property', 'for your car')
   .replace('the rooms have been released', 'the car is free again on those days').replace(/the property/g, 'the car partner');
 
+/** The same emails for tours, in tour words. */
+const tourWords = (message: string) => message
+  .replace('at the property on arrival', 'at the start of the tour').replace('at your property', 'on your tour')
+  .replace('the rooms have been released', 'the seats are free again').replace(/the property/g, 'the tour partner');
+
 function bookingEmail(title: string, name: string, message: string, booking: any, reason?: string) {
   if (booking.rental) message = carWords(message);
+  if (booking.tour) message = tourWords(message);
   const rows: [string, string][] = [
     ['Reference', booking.reference],
-    ['Property', booking.listingSnapshot.title],
-    ['Room', `${booking.roomSnapshot.name} × ${booking.rooms}`],
-    ...(booking.rental ? [
+    [booking.tour ? 'Tour' : 'Property', booking.listingSnapshot.title],
+    ...(booking.tour ? [] : [['Room', `${booking.roomSnapshot.name} × ${booking.rooms}`] as [string, string]]),
+    ...(booking.tour ? [
+      ['Dates', `${booking.checkIn} to ${shownEnd(booking)} (${booking.tour.days} day${booking.tour.days === 1 ? '' : 's'})`],
+      ...(booking.tour.meetingPoint ? [['Meeting point', `${booking.tour.meetingPoint}${booking.tour.startTime ? ` at ${booking.tour.startTime}` : ''}`]] : []),
+    ] as [string, string][] : booking.rental ? [
       ['Pickup', `${booking.checkIn} at ${booking.rental.pickupTime}, ${booking.rental.pickupPlace}`],
       ['Return', `${shownEnd(booking)}, ${booking.rental.dropoffPlace} (${booking.nights} day${booking.nights === 1 ? '' : 's'})`],
       ['Driver', booking.rental.driver ? 'With driver' : `Self-drive${booking.rental.depositMinor ? ` · deposit PKR ${(booking.rental.depositMinor / 100).toLocaleString('en-PK')} at pickup` : ''}`],
@@ -39,7 +48,7 @@ function bookingEmail(title: string, name: string, message: string, booking: any
     ] as [string, string][]),
     ['Guests', `${booking.adults} adult(s), ${booking.children} child(ren)`],
     ...(booking.meals?.length ? [['Meals', booking.meals.map((meal: any) => meal.type).join(', ')] as [string, string]] : []),
-    ...(booking.status === 'confirmed' && booking.listingSnapshot.phone ? [['Property phone / WhatsApp', booking.listingSnapshot.phone] as [string, string]] : []),
+    ...(booking.status === 'confirmed' && booking.listingSnapshot.phone ? [[booking.tour ? 'Tour partner phone / WhatsApp' : 'Property phone / WhatsApp', booking.listingSnapshot.phone] as [string, string]] : []),
     ...(booking.coupon ? [['Promo code', `${booking.coupon.code} (−${booking.pricing.currency} ${((booking.pricing.discountMinor ?? 0) / 100).toLocaleString('en-PK')})`] as [string, string]] : []),
     ['Total', `${booking.pricing.currency} ${(booking.pricing.totalMinor / 100).toLocaleString('en-PK')}`],
     ...(reason ? [['Reason', reason] as [string, string]] : []),

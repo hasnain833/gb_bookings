@@ -31,6 +31,7 @@ const tabLabels: Partial<Record<Tab, string>> = {
   in_house: "In house",
 };
 const CAR_TAB_LABELS: Partial<Record<Tab, string>> = { arriving: "Pickups today", in_house: "On the road" };
+const TOUR_TAB_LABELS: Partial<Record<Tab, string>> = { arriving: "Starting today", in_house: "On tour" };
 const todayPk = () =>
   new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Karachi" }).format(
     new Date(),
@@ -51,12 +52,14 @@ const ACTION_LABELS: Record<VendorBookingAction, string> = {
 };
 // Car rentals use the same steps: the car is handed over (check in) and returned (complete).
 const CAR_ACTION_LABELS: Partial<Record<VendorBookingAction, string>> = { complete: "Car returned", check_in: "Car handed over" };
+// Tours: the group sets off (check in) and the tour ends (complete).
+const TOUR_ACTION_LABELS: Partial<Record<VendorBookingAction, string>> = { complete: "Tour finished", check_in: "Tour started" };
 
 // The server decides which actions a booking allows (vendorActions); this only labels them.
 const actionsFor = (booking: Booking) =>
   (booking.vendorActions ?? [])
     .filter((action): action is VendorBookingAction => action !== "change")
-    .map((action) => ({ action, label: action === "cancel" && booking.status === "pending" ? "Decline" : (booking.rental && CAR_ACTION_LABELS[action]) || ACTION_LABELS[action] }));
+    .map((action) => ({ action, label: action === "cancel" && booking.status === "pending" ? "Decline" : (booking.rental && CAR_ACTION_LABELS[action]) || (booking.tour && TOUR_ACTION_LABELS[action]) || ACTION_LABELS[action] }));
 const changeable = (booking: Booking) => Boolean(booking.vendorActions?.includes("change"));
 const nightsBetween = (from: string, to: string) =>
   Math.round(
@@ -104,16 +107,19 @@ function ChangeBookingForm({
   }, [booking.listingId]);
   const room = rooms?.find((item) => item.id === form.roomTypeId);
   const car = Boolean(booking.rental);
+  const tour = booking.tour;
   // Car rentals count the return day too.
   const nights = nightsBetween(form.checkIn, form.checkOut) + (car ? 1 : 0);
-  const total =
-    room && nights > 0 ? room.basePrice * nights * form.rooms : null;
+  const total = tour
+    ? (room ? room.basePrice * (booking.adults ?? 1) + (tour.childPrice ?? room.basePrice) * (booking.children ?? 0) : null)
+    : room && nights > 0 ? room.basePrice * nights * form.rooms : null;
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
     setBusy(true);
     setError("");
     try {
-      onChanged(await api.changeVendorBooking(booking.id, form));
+      // Tours keep their party and seats; only the start date moves.
+      onChanged(await api.changeVendorBooking(booking.id, tour ? { ...form, checkOut: form.checkIn } : form));
     } catch (reason) {
       setError(
         reason instanceof Error
@@ -129,11 +135,16 @@ function ChangeBookingForm({
       onSubmit={save}
       className="space-y-3 border-t border-slate-100 bg-slate-50/60 p-4">
       <p className="text-sm text-slate-600">
-        {car
+        {tour
+          ? "The seats on the old start date are released and the new ones reserved together. The adult price is re-quoted at today's rate; the child price keeps the booked terms. The guest is emailed."
+          : car
           ? "The car's old days are released and the new ones reserved together. The daily price is re-quoted at today's rate; driver and trip charges keep the booked terms. The guest is emailed."
           : "Rooms on the old dates are released and the new ones reserved together. The price is re-quoted at today's rate and the guest is emailed."}
       </p>
-      <div className="grid gap-3 sm:grid-cols-4">
+      {tour ? <label className="block text-xs font-semibold text-slate-600">
+          New start date
+          <input type="date" required min={todayPk()} value={form.checkIn} onChange={(event) => setForm({ ...form, checkIn: event.target.value })} className={`${fieldClass} mt-1 w-full sm:w-60`} />
+        </label> : <div className="grid gap-3 sm:grid-cols-4">
         <label className="text-xs font-semibold text-slate-600">
           {car ? "Pickup" : "Check-in"}
           <input
@@ -191,13 +202,12 @@ function ChangeBookingForm({
             className={`${fieldClass} mt-1 w-full`}
           />
         </label>
-      </div>
+      </div>}
       {total !== null && (
         <p className="text-sm">
           {car ? "New car price" : "New total"} <strong>PKR {total.toLocaleString()}</strong>{" "}
           <span className="text-slate-500">
-            {car ? "plus driver and trip charges " : ""}(was PKR {booking.totalPrice.toLocaleString()} in total · {nights} {car ? "day" : "night"}
-            {nights === 1 ? "" : "s"})
+            {car ? "plus driver and trip charges " : ""}(was PKR {booking.totalPrice.toLocaleString()} in total{tour ? "" : ` · ${nights} ${car ? "day" : "night"}${nights === 1 ? "" : "s"}`})
           </span>
         </p>
       )}
@@ -210,7 +220,7 @@ function ChangeBookingForm({
       )}
       <div className="flex flex-wrap gap-2">
         <button
-          disabled={busy || !room || nights < 1}
+          disabled={busy || !room || (!tour && nights < 1)}
           className="min-h-11 rounded-lg bg-[#006F3C] px-4 text-sm font-semibold text-white disabled:opacity-50">
           {busy ? "Saving…" : "Save change"}
         </button>
@@ -240,12 +250,15 @@ export default function VendorReservations({
   listingId: initialListingId = "",
   defaultTab = "pending",
   car = false,
+  tour = false,
 }: {
   properties?: Array<{ id: string; title: string }>;
   listingId?: string;
   defaultTab?: Tab;
   /** Car partners: pickups and returns instead of arrivals and stays. */
   car?: boolean;
+  /** Tour partners: tours starting and running instead of arrivals and stays. */
+  tour?: boolean;
 }) {
   const [status, setStatus] = useState<Tab>(defaultTab);
   const [search, setSearch] = useState("");
@@ -364,7 +377,7 @@ export default function VendorReservations({
   };
 
   const selected = bookings.find((booking) => booking.id === openId) ?? bookings[0];
-  const labels = car ? CAR_TAB_LABELS : tabLabels;
+  const labels = car ? CAR_TAB_LABELS : tour ? TOUR_TAB_LABELS : tabLabels;
   const whatsapp = (phone?: string) => phone && `https://wa.me/${phone.replace(/\D/g, "").replace(/^0/, "92")}`;
 
   return (
@@ -390,13 +403,13 @@ export default function VendorReservations({
           <label>
             <span className="sr-only">Property</span>
             <select value={listingId} onChange={(event) => setListingId(event.target.value)} className={fieldClass}>
-              <option value="">All {car ? "cars" : "properties"}</option>
+              <option value="">All {car ? "cars" : tour ? "tours" : "properties"}</option>
               {properties.map((property) => <option key={property.id} value={property.id}>{property.title}</option>)}
             </select>
           </label>
         )}
         <label className="flex items-center gap-2 text-xs font-semibold text-slate-600">
-          {car ? "Pickup from" : "Check-in from"}
+          {car ? "Pickup from" : tour ? "Starts from" : "Check-in from"}
           <input type="date" value={from} max={to || undefined} onChange={(event) => setFrom(event.target.value)} className={fieldClass} />
         </label>
         <label className="flex items-center gap-2 text-xs font-semibold text-slate-600">
@@ -415,9 +428,9 @@ export default function VendorReservations({
           {loading && <div className="flex justify-center py-8"><LoaderCircle className="size-6 animate-spin text-[#006F3C]" aria-label="Loading reservations" /></div>}
           {!loading && bookings.length === 0 && (
             <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
-              {status === "arriving" ? (car ? "No pickups left today" : "No guests left to arrive today")
-                : status === "in_house" ? (car ? "No cars are out right now" : "No guests are checked in right now")
-                  : `No ${status === "all" ? "" : `${statusLabel(status)} `}${car ? "rentals" : "reservations"}`}
+              {status === "arriving" ? (car ? "No pickups left today" : tour ? "No tours left to start today" : "No guests left to arrive today")
+                : status === "in_house" ? (car ? "No cars are out right now" : tour ? "No groups are on tour right now" : "No guests are checked in right now")
+                  : `No ${status === "all" ? "" : `${statusLabel(status)} `}${car ? "rentals" : tour ? "bookings" : "reservations"}`}
               {filtered ? " match your search" : ""}.
             </div>
           )}
@@ -437,14 +450,14 @@ export default function VendorReservations({
                       <span className="min-w-0 flex-1">
                         <span className="block truncate font-bold">{booking.customerName}</span>
                         <span className="block truncate text-[13px] text-[#5B6B61]">
-                          {booking.rooms ?? 1} × {booking.roomName ?? "Room"} · {booking.duration} {booking.rental ? "day" : "night"}{booking.duration === 1 ? "" : "s"}
+                          {booking.tour ? `${booking.guests} traveller${booking.guests === 1 ? "" : "s"} · ${booking.tour.days} day${booking.tour.days === 1 ? "" : "s"}` : <>{booking.rooms ?? 1} × {booking.roomName ?? "Room"} · {booking.duration} {booking.rental ? "day" : "night"}{booking.duration === 1 ? "" : "s"}</>}
                           {properties.length > 1 ? ` · ${booking.listingTitle}` : ""}
                           {booking.rental ? ` · ${booking.rental.driver ? "with driver" : "self-drive"}` : ""}
                         </span>
                       </span>
                       <span className="flex shrink-0 flex-wrap items-center gap-1.5">
                         <StatusBadge status={booking.status} />
-                        {booking.checkedInAt && booking.status === "confirmed" && <span className="rounded-full bg-sky-100 px-2.5 py-1 text-xs font-semibold text-sky-900">{booking.rental ? "Car out" : "In house"}</span>}
+                        {booking.checkedInAt && booking.status === "confirmed" && <span className="rounded-full bg-sky-100 px-2.5 py-1 text-xs font-semibold text-sky-900">{booking.rental ? "Car out" : booking.tour ? "On tour" : "In house"}</span>}
                         {booking.paymentStatus === "paid" && <span className="rounded-full bg-emerald-600 px-2.5 py-1 text-xs font-semibold text-white">Paid</span>}
                       </span>
                       <span className="w-[110px] shrink-0 text-right font-extrabold">PKR {booking.totalPrice.toLocaleString()}</span>
@@ -476,7 +489,7 @@ export default function VendorReservations({
               </div>
               {selected.status === "pending" && selected.respondBy && (
                 <p className="rounded-lg bg-[#FFF8EB] p-3 text-[13px] font-semibold text-[#7A4A00]">
-                  Answer by {new Date(selected.respondBy).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}, or the request expires and the {selected.rental ? "car is" : "rooms are"} released.
+                  Answer by {new Date(selected.respondBy).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}, or the request expires and the {selected.rental ? "car is" : selected.tour ? "seats are" : "rooms are"} released.
                 </p>
               )}
               <div className="flex flex-wrap gap-2">
@@ -507,7 +520,20 @@ export default function VendorReservations({
 
 function ReservationDetails({ booking }: { booking: Booking }) {
   const rental = booking.rental;
-  const rows: Array<[string, string | undefined]> = rental ? [
+  const tour = booking.tour;
+  const rows: Array<[string, string | undefined]> = tour ? [
+    ["Guest email", booking.customerEmail],
+    ["Guest phone", booking.customerPhone],
+    ["Travellers", `${booking.adults ?? booking.guests} adult(s)${booking.children ? `, ${booking.children} child(ren)` : ""}`],
+    ["Dates", `${formatDateForDisplay(booking.startDate)} → ${formatDateForDisplay(booking.endDate)} · ${tour.days} day(s)`],
+    ["Meeting point", tour.meetingPoint ? `${tour.meetingPoint}${tour.startTime ? ` at ${tour.startTime}` : ""}` : undefined],
+    ["Price", booking.nightlyRate ? `PKR ${booking.nightlyRate.toLocaleString()} per adult${booking.children ? ` · PKR ${(tour.childPrice ?? booking.nightlyRate).toLocaleString()} per child` : ""}` : undefined],
+    ["Promo code", booking.couponCode ? `${booking.couponCode} · ${booking.couponLabel} (−PKR ${(booking.discount ?? 0).toLocaleString()})` : undefined],
+    ["Total", `PKR ${booking.totalPrice.toLocaleString()}`],
+    ["Started", booking.checkedInAt ? new Date(booking.checkedInAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" }) : undefined],
+    ["Payment", booking.paymentStatus === "paid" ? `Paid${booking.paidAt ? ` · recorded ${new Date(booking.paidAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}` : ""}` : "Collect at the start of the tour"],
+    ["Booked on", formatDateForDisplay(booking.createdAt)],
+  ] : rental ? [
     ["Guest email", booking.customerEmail],
     ["Guest phone", booking.customerPhone],
     ["Passengers", String(booking.guests ?? booking.adults ?? 1)],

@@ -15,6 +15,8 @@ export interface CheckoutParams {
   /** Car rentals: endDate is the return date, rooms are cars, guests are passengers; `totalPrice` includes `extrasTotal`. */
   rental?: { driver: boolean; pickupPlace: string; pickupTime: string; dropoffPlace?: string; outsideBaseCity: boolean; oneWay: boolean };
   extrasTotal?: number;
+  /** Tours: startDate is the first day, endDate the last; rooms are seats (one per traveller). */
+  tour?: { days: number; meetingPoint?: string; startTime?: string };
 }
 interface CheckoutFlowProps {
   bookingParams: CheckoutParams; listing: Listing; userEmail?: string; userName?: string;
@@ -26,6 +28,7 @@ const inputClass = 'mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 bg
 const buttonClass = 'min-h-11 rounded-lg bg-[#006F3C] px-5 text-sm font-semibold text-white hover:bg-[#005C32] disabled:opacity-50';
 const CANCELLATION_NOTE = 'Free cancellation until the day before check-in.';
 const CAR_CANCELLATION_NOTE = 'Free cancellation until the day before pickup.';
+const TOUR_CANCELLATION_NOTE = 'Free cancellation until the day before the tour starts.';
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`;
 const statusTone: Record<Booking['status'], string> = {
   pending: 'bg-amber-50 text-amber-800', confirmed: 'bg-emerald-50 text-emerald-800',
@@ -47,7 +50,10 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
   const [extras, setExtras] = useState(params.extrasTotal ?? 0);
   const [licenceNumber, setLicenceNumber] = useState('');
   const car = Boolean(params.rental);
+  const tour = params.tour;
   const selfDrive = car && !params.rental!.driver;
+  // Tours hold seats on the start date; the server works out the end from the tour's length.
+  const apiCheckOut = tour ? params.startDate : params.endDate;
   const checkoutKey = useRef(crypto.randomUUID());
   const submitting = useRef(false);
 
@@ -55,7 +61,7 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
   const requote = async (code?: string) => {
     if (!params.roomTypeId) throw new Error('Select a room from the property page before checking out.');
     const result = await api.getListingAvailability(params.listingId, {
-      checkIn: params.startDate, checkOut: params.endDate, adults: params.adults ?? params.guests,
+      checkIn: params.startDate, checkOut: apiCheckOut, adults: params.adults ?? params.guests,
       children: params.children ?? 0, rooms: params.rooms ?? 1, meals: params.meals, coupon: code,
       ...(params.rental ? { driver: params.rental.driver, outsideBaseCity: params.rental.outsideBaseCity, oneWay: params.rental.oneWay } : {}),
     });
@@ -84,7 +90,7 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
     submitting.current = true; setBusy(true); setError('');
     try {
       const created = await api.createBooking({
-        listingId: params.listingId, roomTypeId: params.roomTypeId, checkIn: params.startDate, checkOut: params.endDate,
+        listingId: params.listingId, roomTypeId: params.roomTypeId, checkIn: params.startDate, checkOut: apiCheckOut,
         rooms: params.rooms ?? 1, adults: params.adults ?? params.guests, children: params.children ?? 0,
         guest: { name: contact.name.trim(), email: contact.email.trim(), phone: contact.phone.trim() },
         specialRequests: specialRequests.trim() || undefined, meals: params.meals?.length ? params.meals : undefined, couponCode: coupon?.code,
@@ -103,9 +109,10 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
   const nights = params.duration;
   const quoteChanged = quote + (coupon?.discount ?? 0) !== params.totalPrice;
   const roomQuote = quote + (coupon?.discount ?? 0) - mealCost - extras;
-  const dayWord = car ? 'day' : 'night';
+  const dayWord = car || tour ? 'day' : 'night';
   const unitWord = car ? 'car' : 'room';
-  const cancellationNote = car ? CAR_CANCELLATION_NOTE : CANCELLATION_NOTE;
+  const cancellationNote = tour ? TOUR_CANCELLATION_NOTE : car ? CAR_CANCELLATION_NOTE : CANCELLATION_NOTE;
+  const payWhere = tour ? 'at the start of the tour' : car ? 'at pickup' : 'at the property';
 
   return (
     <div id="checkout-flow-component" className="mx-auto max-w-5xl space-y-6 px-4 pb-24">
@@ -119,14 +126,14 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
           {error && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error}</p>}
 
           {step === 'details' && <form onSubmit={review} className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
-            <div><h1 className="text-xl font-bold text-slate-950">{car ? 'Who’s renting?' : 'Who’s checking in?'}</h1><p className="mt-1 text-sm text-slate-500">{car ? 'The partner uses these details to confirm the rental and arrange pickup.' : 'The property uses these details to confirm your stay.'}</p></div>
+            <div><h1 className="text-xl font-bold text-slate-950">{tour ? 'Who’s travelling?' : car ? 'Who’s renting?' : 'Who’s checking in?'}</h1><p className="mt-1 text-sm text-slate-500">{tour ? 'The tour partner uses these details to confirm your place and meet you.' : car ? 'The partner uses these details to confirm the rental and arrange pickup.' : 'The property uses these details to confirm your stay.'}</p></div>
             <label className="block text-sm font-semibold text-slate-800">Full name<input id="checkout-name" required minLength={2} maxLength={120} autoComplete="name" className={inputClass} value={contact.name} onChange={(event) => setContact({ ...contact, name: event.target.value })} /></label>
             <div className="grid gap-5 sm:grid-cols-2">
               <label className="block text-sm font-semibold text-slate-800">Email address<input id="checkout-email" required type="email" autoComplete="email" className={inputClass} value={contact.email} onChange={(event) => setContact({ ...contact, email: event.target.value })} /><span className="mt-1 block text-xs font-normal text-slate-500">Your confirmation is sent here.</span></label>
               <label className="block text-sm font-semibold text-slate-800">Phone number<input id="checkout-phone" required type="tel" minLength={7} maxLength={30} autoComplete="tel" placeholder="03XX XXXXXXX" className={inputClass} value={contact.phone} onChange={(event) => setContact({ ...contact, phone: event.target.value })} /><span className="mt-1 block text-xs font-normal text-slate-500">For the property to reach you about arrival.</span></label>
             </div>
             {selfDrive && <label className="block text-sm font-semibold text-slate-800">Driving licence number<input id="checkout-licence" required minLength={5} maxLength={30} autoComplete="off" className={inputClass} value={licenceNumber} onChange={(event) => setLicenceNumber(event.target.value)} /><span className="mt-1 block text-xs font-normal text-slate-500">Self-drive only. Bring the licence at pickup; the partner checks it.</span></label>}
-            <label className="block text-sm font-semibold text-slate-800">Special requests <span className="font-normal text-slate-500">(optional)</span><textarea maxLength={1000} placeholder={car ? 'Flight number, child seat, route plans…' : 'Arrival time, bed preference, accessibility needs…'} className={inputClass + ' min-h-24 py-3'} value={specialRequests} onChange={(event) => setSpecialRequests(event.target.value)} /><span className="mt-1 block text-xs font-normal text-slate-500">Requests depend on availability and aren’t guaranteed.</span></label>
+            <label className="block text-sm font-semibold text-slate-800">Special requests <span className="font-normal text-slate-500">(optional)</span><textarea maxLength={1000} placeholder={tour ? 'Hotel for pickup, dietary needs, fitness or health notes…' : car ? 'Flight number, child seat, route plans…' : 'Arrival time, bed preference, accessibility needs…'} className={inputClass + ' min-h-24 py-3'} value={specialRequests} onChange={(event) => setSpecialRequests(event.target.value)} /><span className="mt-1 block text-xs font-normal text-slate-500">Requests depend on availability and aren’t guaranteed.</span></label>
             <button id="btn-checkout-review" disabled={busy} className={buttonClass + ' flex w-full items-center justify-center gap-2'}>{busy && <LoaderCircle className="size-4 animate-spin" />}{busy ? 'Checking availability…' : 'Continue to review'}</button>
           </form>}
 
@@ -135,8 +142,10 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
             {quoteChanged && <p role="status" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">The price was updated by the property since you selected the room. The total below is the current price.</p>}
             <dl className="divide-y divide-slate-100 rounded-xl border border-slate-200 text-sm">
               <ReviewRow label="Guest">{contact.name}<span className="block text-slate-500">{contact.email} · {contact.phone}</span></ReviewRow>
-              <ReviewRow label={car ? 'Rental' : 'Stay'}>{formatDateForDisplay(params.startDate)} → {formatDateForDisplay(params.endDate)}<span className="block text-slate-500">{plural(nights, dayWord)}{car ? `, pickup at ${params.rental!.pickupTime}` : ''}</span></ReviewRow>
-              <ReviewRow label={car ? 'Car' : 'Room'}>{rooms} × {params.roomName}<span className="block text-slate-500">{car ? `${plural(params.guests, 'passenger')} · ${params.rental!.driver ? 'with driver' : 'self-drive'}` : <>{plural(params.adults ?? params.guests, 'adult')}{params.children ? `, ${plural(params.children, 'child')}` : ''}</>}</span></ReviewRow>
+              <ReviewRow label={tour ? 'Tour' : car ? 'Rental' : 'Stay'}>{formatDateForDisplay(params.startDate)} → {formatDateForDisplay(params.endDate)}<span className="block text-slate-500">{plural(nights, dayWord)}{car ? `, pickup at ${params.rental!.pickupTime}` : ''}</span></ReviewRow>
+              {tour ? <ReviewRow label="Travellers">{plural(params.adults ?? params.guests, 'adult')}{params.children ? `, ${plural(params.children, 'child')}` : ''}<span className="block text-slate-500">{plural(rooms, 'seat')}</span></ReviewRow>
+                : <ReviewRow label={car ? 'Car' : 'Room'}>{rooms} × {params.roomName}<span className="block text-slate-500">{car ? `${plural(params.guests, 'passenger')} · ${params.rental!.driver ? 'with driver' : 'self-drive'}` : <>{plural(params.adults ?? params.guests, 'adult')}{params.children ? `, ${plural(params.children, 'child')}` : ''}</>}</span></ReviewRow>}
+              {tour?.meetingPoint && <ReviewRow label="Meet at">{tour.meetingPoint}{tour.startTime ? <span className="block text-slate-500">at {tour.startTime}</span> : null}</ReviewRow>}
               {car && <ReviewRow label="Pickup">{params.rental!.pickupPlace}<span className="block text-slate-500">{params.rental!.oneWay ? `Drop-off: ${params.rental!.dropoffPlace}` : 'Return to the same place'}{params.rental!.outsideBaseCity ? ' · trip leaves the base city' : ''}</span></ReviewRow>}
               {selfDrive && <ReviewRow label="Licence">{licenceNumber}</ReviewRow>}
               {params.meals?.length ? <ReviewRow label="Meals">{params.meals.map(mealLabel).join(', ')}<span className="block text-slate-500">PKR {mealCost.toLocaleString()} for {plural(params.guests, 'guest')}, paid at check-in</span></ReviewRow> : null}
@@ -150,7 +159,7 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
                   {promoError && <p id="checkout-promo-error" role="alert" className="text-sm text-rose-700">{promoError}</p>}
                 </form>}
             <ol className="space-y-3 text-sm text-slate-700">
-              {['You send a reservation request — no payment is taken today.', 'The property confirms it, and we email you.', `You pay PKR ${quote.toLocaleString()} ${car ? 'at pickup' : 'at the property'}. ${cancellationNote}`].map((text, index) => (
+              {['You send a reservation request — no payment is taken today.', 'The property confirms it, and we email you.', `You pay PKR ${quote.toLocaleString()} ${payWhere}. ${cancellationNote}`].map((text, index) => (
                 <li key={text} className="flex gap-3"><span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-xs font-bold text-[#006F3C]">{index + 1}</span><span className="pt-0.5">{text}</span></li>
               ))}
             </ol>
@@ -159,7 +168,7 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
           </section>}
         </div>
 
-        <aside className="lg:sticky lg:top-28" aria-label={car ? 'Your rental' : 'Your stay'}>
+        <aside className="lg:sticky lg:top-28" aria-label={tour ? 'Your tour' : car ? 'Your rental' : 'Your stay'}>
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
             <img src={listing.image} alt="" onError={handleImageError} referrerPolicy="no-referrer" className="aspect-[16/9] w-full object-cover" />
             <div className="space-y-4 p-5">
@@ -167,16 +176,18 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
               <ul className="space-y-2 border-y border-slate-100 py-4 text-sm text-slate-700">
                 <li className="flex gap-2"><CalendarDays className="mt-0.5 size-4 shrink-0 text-slate-400" /><span>{formatDateForDisplay(params.startDate)} → {formatDateForDisplay(params.endDate)} <span className="text-slate-500">· {plural(nights, dayWord)}</span></span></li>
                 {(listing.hotelSpecs?.checkInTime || listing.hotelSpecs?.checkOutTime) && <li className="flex gap-2"><Clock className="mt-0.5 size-4 shrink-0 text-slate-400" /><span>Check-in from {listing.hotelSpecs?.checkInTime ?? '—'} · out by {listing.hotelSpecs?.checkOutTime ?? '—'}</span></li>}
-                <li className="flex gap-2"><BedDouble className="mt-0.5 size-4 shrink-0 text-slate-400" /><span>{rooms} × {params.roomName}</span></li>
-                <li className="flex gap-2"><Users className="mt-0.5 size-4 shrink-0 text-slate-400" /><span>{plural(params.guests, car ? 'passenger' : 'guest')}</span></li>
+                {!tour && <li className="flex gap-2"><BedDouble className="mt-0.5 size-4 shrink-0 text-slate-400" /><span>{rooms} × {params.roomName}</span></li>}
+                <li className="flex gap-2"><Users className="mt-0.5 size-4 shrink-0 text-slate-400" /><span>{plural(params.guests, tour ? 'traveller' : car ? 'passenger' : 'guest')}</span></li>
               </ul>
               <div className="space-y-2 text-sm">
-                <div className="flex justify-between text-slate-600"><span>PKR {Math.round(roomQuote / nights / rooms).toLocaleString()} × {plural(nights, dayWord)}{rooms > 1 ? ` × ${rooms} ${unitWord}s` : ''}</span><span>PKR {roomQuote.toLocaleString()}</span></div>
+                <div className="flex justify-between text-slate-600">{tour
+                  ? <span>Tour for {plural(params.guests, 'traveller')}</span>
+                  : <span>PKR {Math.round(roomQuote / nights / rooms).toLocaleString()} × {plural(nights, dayWord)}{rooms > 1 ? ` × ${rooms} ${unitWord}s` : ''}</span>}<span>PKR {roomQuote.toLocaleString()}</span></div>
                 {extras > 0 && <div className="flex justify-between text-slate-600"><span>Driver &amp; trip charges</span><span>PKR {extras.toLocaleString()}</span></div>}
                 {mealCost > 0 && <div className="flex justify-between text-slate-600"><span>Meals ({params.meals!.map(mealLabel).join(', ')})</span><span>PKR {mealCost.toLocaleString()}</span></div>}
                 {coupon && <div className="flex justify-between text-emerald-700"><span>Promo {coupon.code}</span><span>−PKR {coupon.discount.toLocaleString()}</span></div>}
                 <div className="flex justify-between border-t border-slate-100 pt-3 text-base font-bold text-slate-950"><span>Total</span><span>PKR {quote.toLocaleString()}</span></div>
-                <p className="text-xs text-slate-500">{car ? 'Paid at pickup.' : 'Paid at the property on arrival.'}</p>
+                <p className="text-xs text-slate-500">{tour ? 'Paid at the start of the tour.' : car ? 'Paid at pickup.' : 'Paid at the property on arrival.'}</p>
               </div>
               <p className="flex items-start gap-2 rounded-lg bg-emerald-50 p-3 text-xs leading-5 text-emerald-900"><ShieldCheck className="size-4 shrink-0" />No payment today. {cancellationNote}</p>
             </div>
@@ -217,13 +228,14 @@ function Receipt({ booking, onDone }: { booking: Booking; onDone: () => void }) 
   // The browser's "Save as PDF" names the file after document.title.
   const print = () => { const title = document.title; document.title = `GBBookings ${paid ? 'receipt' : 'voucher'} ${reference}`; window.print(); document.title = title; };
   const rental = booking.rental;
-  const payment = booking.paymentStatus === 'paid' ? 'Paid' : booking.status === 'cancelled' ? 'Nothing to pay — reservation cancelled' : `Pay PKR ${booking.totalPrice.toLocaleString()} ${rental ? 'at pickup' : 'at the property'}`;
+  const tour = booking.tour;
+  const payment = booking.paymentStatus === 'paid' ? 'Paid' : booking.status === 'cancelled' ? 'Nothing to pay — reservation cancelled' : `Pay PKR ${booking.totalPrice.toLocaleString()} ${tour ? 'at the start of the tour' : rental ? 'at pickup' : 'at the property'}`;
 
   return (
     <div id="checkout-flow-component" className="mx-auto max-w-2xl space-y-6 px-4 pb-24">
       <div className="text-center print:hidden">
         <CheckCircle className="mx-auto size-12 text-[#006F3C]" />
-        <h1 className="mt-3 text-2xl font-bold text-slate-950">{pending ? `Request sent — your ${rental ? 'car' : 'room'} is held` : `Reservation ${booking.status.replace('_', '-')}`}</h1>
+        <h1 className="mt-3 text-2xl font-bold text-slate-950">{pending ? `Request sent — your ${tour ? 'seats are' : rental ? 'car is' : 'room is'} held` : `Reservation ${booking.status.replace('_', '-')}`}</h1>
         <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-600">{pending ? `The property will review your request. We’ll email ${booking.customerEmail} as soon as it’s confirmed.${booking.respondBy ? ` If the property hasn’t replied by ${new Date(booking.respondBy).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}, the request expires automatically.` : ''}` : 'Your reservation details are below.'}</p>
       </div>
 
@@ -240,12 +252,13 @@ function Receipt({ booking, onDone }: { booking: Booking; onDone: () => void }) 
           <div className="min-w-0"><h2 className="font-bold text-slate-950">{booking.listingTitle}</h2>{booking.listingLocation && <p className="mt-1 flex items-center gap-1 text-sm text-slate-500"><MapPin className="size-3.5 shrink-0" />{booking.listingLocation}</p>}<p className="mt-1 text-sm text-slate-700">{booking.rooms ?? 1} × {booking.roomName}</p></div>
         </div>
         <div className="grid grid-cols-2 border-b border-slate-100">
-          <div className="border-r border-slate-100 p-6"><p className="text-xs text-slate-500">{rental ? 'Pickup' : 'Check-in'}</p><p className="mt-1 font-bold text-slate-950">{formatDateForDisplay(booking.startDate)}</p>{rental?.pickupTime ? <p className="text-sm text-slate-600">at {rental.pickupTime}</p> : booking.checkInTime && <p className="text-sm text-slate-600">from {booking.checkInTime}</p>}</div>
-          <div className="p-6"><p className="text-xs text-slate-500">{rental ? 'Return' : 'Check-out'}</p><p className="mt-1 font-bold text-slate-950">{formatDateForDisplay(booking.endDate)}</p>{booking.checkOutTime && <p className="text-sm text-slate-600">by {booking.checkOutTime}</p>}</div>
+          <div className="border-r border-slate-100 p-6"><p className="text-xs text-slate-500">{tour ? 'Tour starts' : rental ? 'Pickup' : 'Check-in'}</p><p className="mt-1 font-bold text-slate-950">{formatDateForDisplay(booking.startDate)}</p>{tour?.startTime ? <p className="text-sm text-slate-600">at {tour.startTime}</p> : rental?.pickupTime ? <p className="text-sm text-slate-600">at {rental.pickupTime}</p> : booking.checkInTime && <p className="text-sm text-slate-600">from {booking.checkInTime}</p>}</div>
+          <div className="p-6"><p className="text-xs text-slate-500">{tour ? 'Tour ends' : rental ? 'Return' : 'Check-out'}</p><p className="mt-1 font-bold text-slate-950">{formatDateForDisplay(booking.endDate)}</p>{booking.checkOutTime && <p className="text-sm text-slate-600">by {booking.checkOutTime}</p>}</div>
         </div>
         <dl className="grid grid-cols-[120px_minmax(0,1fr)] gap-x-4 gap-y-3 p-6 text-sm">
           <dt className="text-slate-500">Guest</dt><dd className="break-words font-medium text-slate-900">{booking.customerName}<span className="block font-normal text-slate-500">{booking.customerEmail}{booking.customerPhone ? ` · ${booking.customerPhone}` : ''}</span></dd>
-          <dt className="text-slate-500">{rental ? 'Passengers' : 'Guests'}</dt><dd className="font-medium text-slate-900">{rental ? booking.guests ?? 1 : <>{plural(booking.adults ?? booking.guests ?? 1, 'adult')}{booking.children ? `, ${plural(booking.children, 'child')}` : ''}</>}</dd>
+          {tour?.meetingPoint && <><dt className="text-slate-500">Meeting point</dt><dd className="font-medium text-slate-900">{tour.meetingPoint}</dd></>}
+          <dt className="text-slate-500">{tour ? 'Travellers' : rental ? 'Passengers' : 'Guests'}</dt><dd className="font-medium text-slate-900">{rental ? booking.guests ?? 1 : <>{plural(booking.adults ?? booking.guests ?? 1, 'adult')}{booking.children ? `, ${plural(booking.children, 'child')}` : ''}</>}</dd>
           {rental && <>
             <dt className="text-slate-500">Pickup place</dt><dd className="font-medium text-slate-900">{rental.pickupPlace}</dd>
             <dt className="text-slate-500">Drop-off</dt><dd className="font-medium text-slate-900">{rental.dropoffPlace}{rental.oneWay ? ' (one-way)' : ''}</dd>
@@ -253,7 +266,7 @@ function Receipt({ booking, onDone }: { booking: Booking; onDone: () => void }) 
             <dt className="text-slate-500">Fuel</dt><dd className="font-medium text-slate-900">{rental.fuelIncluded ? 'Included' : 'Paid by you'}</dd>
             {rental.deposit > 0 && <><dt className="text-slate-500">Deposit</dt><dd className="font-medium text-slate-900">PKR {rental.deposit.toLocaleString()} at pickup, refunded on return</dd></>}
           </>}
-          {booking.nightlyRate !== undefined && <><dt className="text-slate-500">Rate</dt><dd className="font-medium text-slate-900">PKR {booking.nightlyRate.toLocaleString()} × {plural(nights, rental ? 'day' : 'night')}{(booking.rooms ?? 1) > 1 ? ` × ${booking.rooms} ${rental ? 'cars' : 'rooms'}` : ''}</dd></>}
+          {booking.nightlyRate !== undefined && !tour && <><dt className="text-slate-500">Rate</dt><dd className="font-medium text-slate-900">PKR {booking.nightlyRate.toLocaleString()} × {plural(nights, rental ? 'day' : 'night')}{(booking.rooms ?? 1) > 1 ? ` × ${booking.rooms} ${rental ? 'cars' : 'rooms'}` : ''}</dd></>}
           {booking.extrasTotal ? <><dt className="text-slate-500">Trip charges</dt><dd className="font-medium text-slate-900">PKR {booking.extrasTotal.toLocaleString()}{rental ? ` (${[rental.driver && rental.driverPerDay ? 'driver' : '', rental.outsideBaseCity && rental.outsidePerDay ? 'outside base city' : '', rental.oneWayFee ? 'one-way' : ''].filter(Boolean).join(', ')})` : ''}</dd></> : null}
           {rental?.oneWayOnRequest && <><dt className="text-slate-500">One-way fee</dt><dd className="font-medium text-slate-900">Agreed with the partner, not included above</dd></>}
           {booking.meals?.length ? <><dt className="text-slate-500">Meals</dt><dd className="font-medium text-slate-900">{booking.meals.map((meal) => mealLabel(meal.type)).join(', ')} · PKR {(booking.mealsTotal ?? 0).toLocaleString()}</dd></> : null}
@@ -266,7 +279,7 @@ function Receipt({ booking, onDone }: { booking: Booking; onDone: () => void }) 
           </dd></>}
           {booking.specialRequests && <><dt className="text-slate-500">Requests</dt><dd className="italic text-slate-700">“{booking.specialRequests}”</dd></>}
         </dl>
-        {booking.status !== 'cancelled' && <p className="border-t border-slate-100 bg-slate-50 px-6 py-4 text-xs leading-5 text-slate-600">{rental ? CAR_CANCELLATION_NOTE : CANCELLATION_NOTE} Cancel from My Bookings. Show this reference {rental ? 'at pickup' : 'at the property on arrival'}.</p>}
+        {booking.status !== 'cancelled' && <p className="border-t border-slate-100 bg-slate-50 px-6 py-4 text-xs leading-5 text-slate-600">{tour ? TOUR_CANCELLATION_NOTE : rental ? CAR_CANCELLATION_NOTE : CANCELLATION_NOTE} Cancel from My Bookings. Show this reference {tour ? 'when you meet your guide' : rental ? 'at pickup' : 'at the property on arrival'}.</p>}
       </section>
 
       <div className="flex flex-wrap justify-center gap-3 print:hidden">

@@ -3,6 +3,7 @@ import type {
   Listing,
   BookingRental,
   CarSpecs,
+  TourSpecs,
   ListingType,
   MealType,
   Review,
@@ -206,7 +207,7 @@ type RoomContent = Pick<VendorRoom, 'name' | 'description' | 'bedType' | 'maxAdu
 
 export interface VendorListing {
   id: string;
-  type: 'hotel' | 'homestay' | 'car';
+  type: 'hotel' | 'homestay' | 'car' | 'tour';
   title: string;
   location: string;
   description: string;
@@ -225,13 +226,17 @@ export interface VendorListing {
   hotelSpecs?: { hotelType: string; amenities: string[]; facilities: string[]; policies: string[]; checkInTime: string; checkOutTime: string };
   homestaySpecs?: HomestaySpecs;
   carSpecs?: CarSpecs;
+  tourSpecs?: TourSpecs;
+  /** Fixed-departure tours: bookable start dates. */
+  departures?: string[];
   coordinates?: LatLng;
-  /** Cars only set paymentMethods. */
+  /** Cars and tours only set paymentMethods. */
   stayInfo?: StayInfo;
 }
 
 /** Cars only say how guests can pay at pickup. */
 export type ListingStayInfoInput = StayInfo | Pick<StayInfo, 'paymentMethods'>;
+export type TourSpecsInput = Required<Pick<TourSpecs, 'durationDays' | 'category' | 'difficulty' | 'schedule' | 'meetingPoint' | 'languages' | 'included' | 'excluded' | 'itinerary'>> & Pick<TourSpecs, 'childPrice' | 'minAge' | 'startTime'>;
 export type CarSpecsInput = Omit<CarSpecs, 'withDriver' | 'make' | 'model' | 'year' | 'driverMode' | 'fuelIncluded' | 'oneWay' | 'features'>
   & Required<Pick<CarSpecs, 'make' | 'model' | 'year' | 'driverMode' | 'fuelIncluded' | 'oneWay' | 'features'>>;
 
@@ -516,6 +521,8 @@ export const api = {
     coordinates?: LatLng;
     stayInfo?: ListingStayInfoInput;
     carSpecs?: CarSpecsInput;
+    tourSpecs?: TourSpecsInput;
+    departures?: string[];
     title: string;
     location: string;
     description: string;
@@ -528,7 +535,7 @@ export const api = {
     return request<{ data: VendorListing }>('/api/v1/vendor/listings', { method: 'POST', body: JSON.stringify(input) });
   },
 
-  updateHotelListing(listingId: string, input: Partial<Pick<VendorListing, 'title' | 'location' | 'description' | 'hotelSpecs'>> & { homestaySpecs?: Omit<HomestaySpecsInput, 'stayType'>; carSpecs?: CarSpecsInput; coordinates?: LatLng; stayInfo?: ListingStayInfoInput; imageIds?: string[]; photos?: PhotoInput[] }) {
+  updateHotelListing(listingId: string, input: Partial<Pick<VendorListing, 'title' | 'location' | 'description' | 'hotelSpecs'>> & { homestaySpecs?: Omit<HomestaySpecsInput, 'stayType'>; carSpecs?: CarSpecsInput; tourSpecs?: TourSpecsInput; departures?: string[]; coordinates?: LatLng; stayInfo?: ListingStayInfoInput; imageIds?: string[]; photos?: PhotoInput[] }) {
     return request<{ data: VendorListing }>(`/api/v1/vendor/listings/${encodeURIComponent(listingId)}`, {
       method: 'PATCH', body: JSON.stringify(input),
     }).then((result) => result.data);
@@ -745,7 +752,7 @@ export const api = {
         method: 'POST', body: JSON.stringify({ decision, notes }),
       });
     },
-    listListings(params: { status?: VendorListing['status'] | 'all' | 'revisions'; type?: 'hotel' | 'homestay' | 'car'; q?: string; page?: number; limit?: number } = {}) {
+    listListings(params: { status?: VendorListing['status'] | 'all' | 'revisions'; type?: VendorListing['type']; q?: string; page?: number; limit?: number } = {}) {
       return request<Paginated<VendorListing>>(`/api/v1/admin/listings${queryString(params)}`);
     },
     listListingRooms(listingId: string) {

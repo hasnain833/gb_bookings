@@ -114,10 +114,10 @@ export default function ToursSection({ onSelectListing, onTriggerSearch }: Tours
           const specs = tour.tourSpecs;
           return {
             badgeIcon: Clock,
-            badge: specs?.durationDays ? `${specs.durationDays} Days / ${specs.durationDays - 1} Nights` : 'All Inclusive',
-            note: { icon: Users, text: `Max Group: ${specs?.maxGroupSize || 12} People` },
+            badge: !specs?.durationDays ? 'Tour' : specs.durationDays === 1 ? 'Day trip' : `${specs.durationDays} days / ${specs.durationDays - 1} nights`,
+            note: { icon: Users, text: specs?.maxGroupSize ? `Up to ${specs.maxGroupSize} people` : [specs?.category, specs?.difficulty].filter(Boolean).join(' · ') || 'Guided tour' },
             chips: (specs?.included ?? []).slice(0, 3).map((text) => ({ icon: Check, text })),
-            priceLabel: 'Total package price',
+            priceLabel: 'Per adult, whole tour',
             unit: 'traveler',
             cta: 'Book Expedition',
           };

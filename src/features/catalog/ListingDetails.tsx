@@ -6,6 +6,7 @@ import { api, ApiError, AUTH_CHANGED_EVENT, hasApiSession, mealLabel } from '../
 import { OPEN_SIGN_IN_EVENT } from '../../shared/hooks/useWishlist';
 import RoomBookingPanel from '../booking/RoomBookingPanel';
 import CarBookingPanel from '../booking/CarBookingPanel';
+import TourBookingPanel from '../booking/TourBookingPanel';
 import { DRIVER_LABELS } from '../vendor/CarFields';
 import { MapEmbed } from '../../shared/components/MapPin';
 import { HEATING_LABELS, HOT_WATER_LABELS, NETWORK_LABELS, openSeason, PAYMENT_LABELS, POWER_LABELS, ROAD_LABELS } from '../../shared/utils/stayInfo';
@@ -103,6 +104,8 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
   const bookable = listing.type === 'hotel' || listing.type === 'homestay';
   const unit = bookable ? 'night' : listing.type === 'car' ? 'day' : 'person';
   const carSpecs = listing.type === 'car' ? listing.carSpecs : undefined;
+  // Partner tours (with a schedule) are bookable; older platform tours are not.
+  const tourSpecs = listing.type === 'tour' && listing.tourSpecs?.schedule ? listing.tourSpecs : undefined;
   const specs = listing.hotelSpecs;
   // Only rules the vendor actually entered are shown.
   const rules = [
@@ -117,7 +120,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
   const meals = homestay?.meals ?? [];
   const info = listing.stayInfo;
   // Cars only carry payment methods in stayInfo; the stay policies and essentials are for hotels and homestays.
-  const stayPolicies = info && listing.type !== 'car' ? info : undefined;
+  const stayPolicies = info && listing.type !== 'car' && listing.type !== 'tour' ? info : undefined;
   const policyRules = stayPolicies ? [
     stayPolicies.childrenAllowed ? 'Children welcome' : 'Children not allowed',
     ...(stayPolicies.minCheckInAge ? [`Minimum check-in age: ${stayPolicies.minCheckInAge}`] : []),
@@ -262,11 +265,25 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
           {listing.type === 'tour' && listing.tourSpecs && (
             <section className={sectionClass} id="tour-itinerary-component">
               <h2 className={headingClass}>Trip details</h2>
-              <div className="grid grid-cols-3 gap-3">
-                <div className={statClass}><span className={statLabel}>Duration</span><span className={statValue}>{listing.tourSpecs.durationDays} days</span></div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {listing.tourSpecs.category && <div className={statClass}><span className={statLabel}>Type</span><span className={statValue}>{listing.tourSpecs.category}</span></div>}
+                <div className={statClass}><span className={statLabel}>Duration</span><span className={statValue}>{listing.tourSpecs.durationDays} day{listing.tourSpecs.durationDays === 1 ? '' : 's'}</span></div>
                 <div className={statClass}><span className={statLabel}>Difficulty</span><span className={`${statValue} capitalize`}>{listing.tourSpecs.difficulty}</span></div>
-                <div className={statClass}><span className={statLabel}>Group size</span><span className={statValue}>Up to {listing.tourSpecs.maxGroupSize}</span></div>
+                {listing.tourSpecs.maxGroupSize ? <div className={statClass}><span className={statLabel}>Group size</span><span className={statValue}>Up to {listing.tourSpecs.maxGroupSize}</span></div> : null}
+                {listing.tourSpecs.schedule && <div className={statClass}><span className={statLabel}>Runs</span><span className={statValue}>{listing.tourSpecs.schedule === 'fixed' ? 'On set dates' : 'Any day'}</span></div>}
+                {listing.tourSpecs.languages?.length ? <div className={statClass}><span className={statLabel}>Guide speaks</span><span className={statValue}>{listing.tourSpecs.languages.join(', ')}</span></div> : null}
               </div>
+              {listing.tourSpecs.meetingPoint && <p className="flex items-start gap-2 text-sm text-slate-700"><MapPin className="mt-0.5 w-4 h-4 shrink-0 text-slate-400" />Meeting point: {listing.tourSpecs.meetingPoint}{listing.tourSpecs.startTime ? ` at ${listing.tourSpecs.startTime}` : ''}</p>}
+              {(listing.tourSpecs.included?.length || listing.tourSpecs.excluded?.length) ? <div className="grid gap-4 sm:grid-cols-2">
+                {listing.tourSpecs.included?.length ? <div><h3 className="text-sm font-semibold text-slate-900">Included</h3><ul className="mt-2 space-y-1.5 text-sm text-slate-700">{listing.tourSpecs.included.map((item) => <li key={item} className="flex items-center gap-2"><Check className="w-4 h-4 text-[#006F3C] shrink-0" />{item}</li>)}</ul></div> : null}
+                {listing.tourSpecs.excluded?.length ? <div><h3 className="text-sm font-semibold text-slate-900">Not included</h3><ul className="mt-2 space-y-1.5 text-sm text-slate-600">{listing.tourSpecs.excluded.map((item) => <li key={item}>– {item}</li>)}</ul></div> : null}
+              </div> : null}
+              <ul className="space-y-1.5 text-sm text-slate-600">
+                {listing.tourSpecs.childPrice !== undefined && <li>Children: PKR {listing.tourSpecs.childPrice.toLocaleString()} each{listing.tourSpecs.minAge ? ` (minimum age ${listing.tourSpecs.minAge})` : ''}</li>}
+                {listing.tourSpecs.childPrice === undefined && listing.tourSpecs.minAge ? <li>Minimum age {listing.tourSpecs.minAge}</li> : null}
+                {tourSpecs && info?.paymentMethods?.length ? <li>Pay at the start: {info.paymentMethods.map((method) => PAYMENT_LABELS[method]).join(', ')}</li> : null}
+                {tourSpecs && <li>Free cancellation until the day before the tour starts.</li>}
+              </ul>
               <h3 className="pt-2 text-sm font-semibold text-slate-900">Itinerary</h3>
               <ol className="relative ml-2 space-y-5 border-l border-slate-200 pl-5">
                 {listing.tourSpecs.itinerary.map((day) => (
@@ -348,9 +365,9 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
             </section>
           )}
 
-          {(bookable || carSpecs?.driverMode) && (
+          {(bookable || carSpecs?.driverMode || tourSpecs) && (
             <section className={sectionClass} id="location-map-section">
-              <h2 className={headingClass}>{carSpecs ? 'Where the car is based' : 'Where you’ll be'}</h2>
+              <h2 className={headingClass}>{carSpecs ? 'Where the car is based' : tourSpecs ? 'Where the tour goes' : 'Where you’ll be'}</h2>
               <p className="flex items-center gap-1 text-sm text-slate-600"><MapPin className="w-4 h-4 text-slate-400 shrink-0" />{listing.location}</p>
               <MapEmbed coordinates={listing.coordinates} location={listing.location} title={listing.title} />
             </section>
@@ -373,6 +390,8 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
               <RoomBookingPanel listingId={listingId} meals={meals} entireHome={entireHome} breakfastIncluded={listing.breakfastIncluded} paymentMethods={info?.paymentMethods} openMonths={info?.openMonths} onProceed={onProceedToCheckout} />
             ) : carSpecs?.driverMode ? (
               <CarBookingPanel listingId={listingId} baseCity={listing.location} specs={carSpecs} paymentMethods={info?.paymentMethods} onProceed={onProceedToCheckout} />
+            ) : tourSpecs ? (
+              <TourBookingPanel listingId={listingId} specs={tourSpecs} departures={listing.departures} paymentMethods={info?.paymentMethods} onProceed={onProceedToCheckout} />
             ) : (
               <p className="flex items-start gap-2 rounded-lg bg-slate-50 p-4 text-sm text-slate-600" id="booking-coming-soon">
                 <Info className="w-4 h-4 text-[#006F3C] shrink-0 mt-0.5" />
@@ -399,7 +418,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
           onClick={() => document.getElementById('details-booking-column')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
           className="inline-flex min-h-11 items-center gap-1.5 rounded-lg bg-[#006F3C] px-5 text-sm font-semibold text-white hover:bg-[#005C32]"
         >
-          {bookable || carSpecs?.driverMode ? 'Check availability' : 'Details'} <ArrowRight className="w-4 h-4" />
+          {bookable || carSpecs?.driverMode || tourSpecs ? 'Check availability' : 'Details'} <ArrowRight className="w-4 h-4" />
         </button>
       </div>
 

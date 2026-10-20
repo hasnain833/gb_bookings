@@ -6,11 +6,11 @@ const inputClass = 'mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 bg
 const primaryButton = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#006F3C] px-5 text-sm font-semibold text-white hover:bg-[#005c32] disabled:opacity-50';
 const secondaryButton = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50';
 
-export type PartnerKind = 'hotel' | 'homestay' | 'car';
-/** Car partners are stored with the business type "vehicle". */
-export const businessTypeOf = (kind: PartnerKind): VendorProfile['businessType'] => (kind === 'car' ? 'vehicle' : kind);
+export type PartnerKind = 'hotel' | 'homestay' | 'car' | 'tour';
+/** Car partners are stored with the business type "vehicle", tour partners with "tour_operator". */
+export const businessTypeOf = (kind: PartnerKind): VendorProfile['businessType'] => (kind === 'car' ? 'vehicle' : kind === 'tour' ? 'tour_operator' : kind);
 
-const DOCUMENTS: Record<'hotel' | 'homestay' | 'car_company' | 'car_owner', Array<{ type: string; label: string; hint: string; required: boolean }>> = {
+const DOCUMENTS: Record<'hotel' | 'homestay' | 'car_company' | 'car_owner' | 'tour_company' | 'tour_guide', Array<{ type: string; label: string; hint: string; required: boolean }>> = {
   hotel: [
     { type: 'business_registration', label: 'Business registration certificate', hint: 'Shows the hotel business is registered.', required: true },
     { type: 'identity', label: 'Owner CNIC / passport', hint: 'Identity of the business owner.', required: true },
@@ -32,6 +32,15 @@ const DOCUMENTS: Record<'hotel' | 'homestay' | 'car_company' | 'car_owner', Arra
     { type: 'identity', label: 'Your CNIC', hint: 'Front and back in one PDF.', required: true },
     { type: 'driving_licence', label: 'Driving licence', hint: 'Front and back in one PDF.', required: true },
     { type: 'vehicle_registration', label: 'Vehicle registration', hint: 'Registration book or card of the car, in your name or with the owner’s permission letter.', required: true },
+  ],
+  tour_company: [
+    { type: 'identity', label: 'Owner CNIC / passport', hint: 'Identity of the business owner.', required: true },
+    { type: 'business_registration', label: 'Business registration certificate', hint: 'e.g. DTS / tourism department licence or company registration.', required: false },
+  ],
+  // Independent guides lead their own tours without a registered company.
+  tour_guide: [
+    { type: 'identity', label: 'Your CNIC', hint: 'Front and back in one PDF.', required: true },
+    { type: 'guide_licence', label: 'Guide licence or proof of guiding', hint: 'Tourism department guide licence, or a letter from a tour company or association you guide for.', required: true },
   ],
 };
 
@@ -57,10 +66,11 @@ export default function HotelRegistration({ kind = 'hotel', vendor, emailVerifie
   const attached = new Set((vendor?.verificationDocuments ?? []).map((document) => document.type));
   const homestay = kind === 'homestay';
   const car = kind === 'car';
-  // A car partner is a rental company (registration number) or an owner-driver (driving licence instead).
-  const [ownerDriver, setOwnerDriver] = useState(car && Boolean(vendor) && !vendor?.registrationNumber);
+  const tour = kind === 'tour';
+  // Car and tour partners are a registered company (registration number) or one person: an owner-driver or a guide.
+  const [ownerDriver, setOwnerDriver] = useState((car || tour) && Boolean(vendor) && !vendor?.registrationNumber);
   const individual = homestay || ownerDriver;
-  const documents = DOCUMENTS[car ? (ownerDriver ? 'car_owner' : 'car_company') : kind];
+  const documents = DOCUMENTS[car ? (ownerDriver ? 'car_owner' : 'car_company') : tour ? (ownerDriver ? 'tour_guide' : 'tour_company') : kind];
   const requiredMissing = documents.filter((document) => document.required && !attached.has(document.type));
 
   const go = (next: Step) => { setStep(next); setError(''); setNotice(''); window.scrollTo({ top: 0, behavior: 'smooth' }); };
@@ -100,9 +110,9 @@ export default function HotelRegistration({ kind = 'hotel', vendor, emailVerifie
     <div className="mx-auto max-w-3xl space-y-6">
       <button type="button" onClick={onExit} className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-950"><ArrowLeft className="size-4" />All partner types</button>
       <div>
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#006F3C]">{homestay ? 'Homestay host registration' : car ? 'Car rental partner registration' : 'Hotel partner registration'}</p>
-        <h1 className="mt-2 text-2xl font-bold text-slate-950 sm:text-3xl">{homestay ? 'Register as a homestay host' : car ? 'Rent out your cars' : 'Register your hotel business'}</h1>
-        <p className="mt-2 text-sm leading-6 text-slate-600">Your progress is saved after each step. {homestay ? 'Once our team verifies you, you can add your home and its rooms.' : car ? 'Once our team verifies you, you can add your cars.' : 'Once our team approves the business, you can add your hotels and rooms.'}</p>
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#006F3C]">{homestay ? 'Homestay host registration' : car ? 'Car rental partner registration' : tour ? 'Tour partner registration' : 'Hotel partner registration'}</p>
+        <h1 className="mt-2 text-2xl font-bold text-slate-950 sm:text-3xl">{homestay ? 'Register as a homestay host' : car ? 'Rent out your cars' : tour ? 'Sell your tours' : 'Register your hotel business'}</h1>
+        <p className="mt-2 text-sm leading-6 text-slate-600">Your progress is saved after each step. {homestay ? 'Once our team verifies you, you can add your home and its rooms.' : car ? 'Once our team verifies you, you can add your cars.' : tour ? 'Once our team verifies you, you can add your tours.' : 'Once our team approves the business, you can add your hotels and rooms.'}</p>
       </div>
 
       {step !== 'email' && <ol className="grid grid-cols-3 gap-2" aria-label="Registration progress">
@@ -132,8 +142,10 @@ export default function HotelRegistration({ kind = 'hotel', vendor, emailVerifie
       {step === 'business' && <Card>
         <form onSubmit={saveBusiness} className="space-y-5">
           <h2 className="text-lg font-bold">{homestay ? 'Host details' : ownerDriver ? 'Your details' : 'Business details'}</h2>
-          {car && <fieldset className="grid gap-3 sm:grid-cols-2"><legend className="mb-2 text-sm font-semibold text-slate-800">I am a…</legend>
-            {([[false, 'Rental company', 'A registered business with one or more cars.'], [true, 'Owner-driver', 'You rent out your own car, usually driving it yourself.']] as const).map(([value, title, text]) => (
+          {(car || tour) && <fieldset className="grid gap-3 sm:grid-cols-2"><legend className="mb-2 text-sm font-semibold text-slate-800">I am a…</legend>
+            {(car
+              ? [[false, 'Rental company', 'A registered business with one or more cars.'], [true, 'Owner-driver', 'You rent out your own car, usually driving it yourself.']] as const
+              : [[false, 'Tour company', 'A registered tour operator or travel agency.'], [true, 'Independent guide', 'You lead your own tours or treks without a registered company.']] as const).map(([value, title, text]) => (
               <label key={title} className={`flex cursor-pointer gap-3 rounded-xl border p-4 text-sm ${ownerDriver === value ? 'border-[#006F3C] bg-emerald-50' : 'border-slate-200'}`}>
                 <input type="radio" name="car-partner" checked={ownerDriver === value} onChange={() => setOwnerDriver(value)} className="mt-0.5 size-4 accent-[#006F3C]" />
                 <span><span className="block font-semibold text-slate-900">{title}</span><span className="text-slate-600">{text}</span></span>
@@ -141,7 +153,7 @@ export default function HotelRegistration({ kind = 'hotel', vendor, emailVerifie
             ))}
           </fieldset>}
           <div className="grid gap-5 sm:grid-cols-2">
-            <Field label={homestay ? 'Host or family name' : ownerDriver ? 'Your name, as guests should see it' : 'Registered business name'} hint={homestay ? 'As guests should see it, e.g. "Karim Family Homestay".' : ownerDriver ? 'e.g. "Ali’s Prado – Skardu".' : undefined}><input required minLength={2} maxLength={160} className={inputClass} value={business.name} onChange={(e) => setBusiness({ ...business, name: e.target.value })} /></Field>
+            <Field label={homestay ? 'Host or family name' : ownerDriver ? 'Your name, as guests should see it' : 'Registered business name'} hint={homestay ? 'As guests should see it, e.g. "Karim Family Homestay".' : ownerDriver ? (tour ? 'e.g. "Hunza Treks with Ali".' : 'e.g. "Ali’s Prado – Skardu".') : undefined}><input required minLength={2} maxLength={160} className={inputClass} value={business.name} onChange={(e) => setBusiness({ ...business, name: e.target.value })} /></Field>
             {!individual && <Field label="Registration number"><input required minLength={2} maxLength={100} className={inputClass} value={business.registrationNumber} onChange={(e) => setBusiness({ ...business, registrationNumber: e.target.value })} /></Field>}
             <Field label={individual ? 'Email' : 'Business email'} hint="Booking requests are sent here."><input required type="email" className={inputClass} value={business.email} onChange={(e) => setBusiness({ ...business, email: e.target.value })} /></Field>
             <Field label={individual ? 'Phone' : 'Business phone'}><input required type="tel" minLength={7} maxLength={30} placeholder="03XX XXXXXXX" className={inputClass} value={business.phone} onChange={(e) => setBusiness({ ...business, phone: e.target.value })} /></Field>
@@ -179,13 +191,13 @@ export default function HotelRegistration({ kind = 'hotel', vendor, emailVerifie
       {step === 'review' && vendor && <Card>
         <h2 className="text-lg font-bold">Review and submit</h2>
         <dl className="mt-4 grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
-          {[[homestay ? 'Host' : ownerDriver ? 'Owner-driver' : 'Business', vendor.name], ...(individual ? [] : [['Registration no.', vendor.registrationNumber]]), ['Email', vendor.email], ['Phone', vendor.phone],
+          {[[homestay ? 'Host' : ownerDriver ? (tour ? 'Guide' : 'Owner-driver') : 'Business', vendor.name], ...(individual ? [] : [['Registration no.', vendor.registrationNumber]]), ['Email', vendor.email], ['Phone', vendor.phone],
             ['Address', [vendor.address?.line1, vendor.address?.city, vendor.address?.region].filter(Boolean).join(', ')], ...(individual ? [] : [['NTN', vendor.taxNumber || '—']]),
           ].map(([term, value]) => <div key={term}><dt className="text-slate-500">{term}</dt><dd className="font-medium text-slate-900">{value}</dd></div>)}
           <div className="sm:col-span-2"><dt className="text-slate-500">Documents</dt><dd className="font-medium text-slate-900">{documents.filter((document) => attached.has(document.type)).map((document) => document.label).join(', ')}</dd></div>
         </dl>
         <div className="mt-4 flex gap-4 text-sm"><button type="button" onClick={() => go('business')} className="font-semibold text-[#006F3C] underline">Edit details</button><button type="button" onClick={() => go('documents')} className="font-semibold text-[#006F3C] underline">Edit documents</button></div>
-        <label className="mt-6 flex items-start gap-3 rounded-lg bg-slate-50 p-4 text-sm text-slate-700"><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} className="mt-0.5 size-4 accent-[#006F3C]" />I confirm these details are accurate and I am authorised to list this {homestay ? 'home' : car ? 'car' : 'business'} on GBBookings.</label>
+        <label className="mt-6 flex items-start gap-3 rounded-lg bg-slate-50 p-4 text-sm text-slate-700"><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} className="mt-0.5 size-4 accent-[#006F3C]" />I confirm these details are accurate and I am authorised to list this {homestay ? 'home' : car ? 'car' : tour ? 'tour business' : 'business'} on GBBookings.</label>
         <div className="mt-6 flex flex-wrap justify-between gap-3">
           <button type="button" onClick={() => go('documents')} className={secondaryButton}>Back</button>
           <button type="button" disabled={busy || !confirmed || requiredMissing.length > 0} onClick={submit} className={primaryButton}>{busy && <LoaderCircle className="size-4 animate-spin" />}Submit for review</button>

@@ -55,9 +55,13 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
   const searchTerm = useDebouncedValue(query.trim());
   const priceLimit = useDebouncedValue(maxPrice);
   const cars = type === 'car';
+  const tours = type === 'tour';
+  const [tourType, setTourType] = useState('');
   const supportsDates = type === 'hotel' || type === 'homestay' || cars;
   // Car rentals may start and end on the same day (the return date is a rented day).
   const datesValid = supportsDates && Boolean(checkIn && checkOut && (cars ? checkOut >= checkIn : checkOut > checkIn));
+  // Tours: one start date; the server checks free seats (and a departure on fixed-date tours) that day.
+  const tourDate = tours && checkIn ? { checkIn, checkOut: checkIn, guests: guests || undefined } : {};
 
   // The server applies filters before pagination so matching properties cannot disappear beyond the first page.
   const { listings, loading, error, reload, pagination } = useListings(type, searchTerm, {
@@ -65,6 +69,8 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
     minRating: minimumRating || undefined,
     sort: SORT_PARAM[sortBy],
     ...(datesValid ? { checkIn, checkOut, guests: guests || undefined } : {}),
+    ...tourDate,
+    ...(tours && tourType ? { category: tourType } : {}),
     amenities: facilities.trim() || undefined,
     ...(homestays ? { experience: experience || undefined, stayType: stayType || undefined } : {}),
     ...(supportsDates && !cars && breakfast ? { breakfast: 'true' as const } : {}),
@@ -72,7 +78,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
     ...(cars && driver ? { driver } : {}),
     limit: 24, page,
   });
-  useEffect(() => { setPage(1); }, [searchTerm, priceLimit, minimumRating, sortBy, checkIn, checkOut, guests, facilities, experience, stayType, breakfast, transmission, driver, type]);
+  useEffect(() => { setPage(1); }, [searchTerm, priceLimit, minimumRating, sortBy, checkIn, checkOut, guests, facilities, experience, stayType, breakfast, transmission, driver, tourType, type]);
   useEffect(() => { setExperience(initialFilters.extra.experience ?? ''); }, [initialFilters.extra.experience]);
 
   useEffect(() => {
@@ -91,7 +97,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
     setMinimumRating(0);
     setSortBy('recommended');
     setTransmission('all'); setDriver('');
-    setFacilities(''); setExperience(''); setStayType(''); setBreakfast(false); setPage(1);
+    setFacilities(''); setExperience(''); setStayType(''); setBreakfast(false); setTourType(''); setPage(1);
   };
 
   return (
@@ -144,6 +150,32 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
               {datesValid ? <p className="text-[11px] text-slate-500">{cars ? `Showing only cars free on every day${guests ? ` with ${guests} seat${guests > 1 ? 's' : ''}` : ''}.` : `Showing only properties with a free room${guests ? ` for ${guests} guest${guests > 1 ? 's' : ''}` : ''}.`}</p>
                 : <p className="text-[11px] text-slate-500">{cars ? 'Add both dates to see only cars that are free.' : 'Add both dates to see only properties with free rooms.'}</p>}
             </fieldset>
+          )}
+
+          {tours && (
+            <fieldset className="space-y-2">
+              <legend className="text-xs font-bold text-slate-600">When</legend>
+              <label className="block text-[11px] text-slate-500">Start date
+                <input type="date" min={todayPk()} value={checkIn} onChange={(event) => setCheckIn(event.target.value)}
+                  className="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm" />
+              </label>
+              <label className="block text-[11px] text-slate-500">Travellers
+                <select value={guests} onChange={(event) => setGuests(Number(event.target.value))} className="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
+                  <option value={0}>Any</option>
+                  {Array.from({ length: 20 }, (_, index) => index + 1).map((count) => <option key={count} value={count}>{count} traveller{count > 1 ? 's' : ''}</option>)}
+                </select>
+              </label>
+              <p className="text-[11px] text-slate-500">{checkIn ? `Showing only tours starting that day with ${guests || 1} free seat${(guests || 1) > 1 ? 's' : ''}.` : 'Add a start date to see only tours with free seats.'}</p>
+            </fieldset>
+          )}
+          {tours && (
+            <label className="block space-y-2">
+              <span className="text-xs font-bold text-slate-600">Type of tour</span>
+              <select value={tourType} onChange={(event) => setTourType(event.target.value)} className="min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
+                <option value="">Any type</option>
+                {['Trekking', 'Sightseeing', 'Jeep safari', 'Cultural', 'Adventure', 'Day trip'].map((item) => <option key={item}>{item}</option>)}
+              </select>
+            </label>
           )}
 
           <label className="block space-y-2">

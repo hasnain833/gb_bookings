@@ -80,6 +80,17 @@ const bookingSchema = new Schema({
     }, { _id: false }),
     default: undefined,
   },
+  // Tours: the tour's terms at booking time. Seats are reserved on the start date only (`checkOut` is the day after it);
+  // `days` gives the end date guests see (see bookings/tour.ts).
+  tour: {
+    type: new Schema({
+      days: Number,
+      childPriceMinor: Number,
+      meetingPoint: { type: String, trim: true, maxlength: 300 },
+      startTime: String,
+    }, { _id: false }),
+    default: undefined,
+  },
   // Promo code terms at booking time, so a re-quote applies the same deal.
   coupon: { type: new Schema({ code: String, kind: { type: String, enum: ['percent', 'amount'] }, value: Number }, { _id: false }), default: undefined },
   paymentMethod: { type: String, enum: paymentMethods, required: true },

@@ -3,6 +3,7 @@ import { Archive, ArrowRight, Copy, LoaderCircle, Pause, Play } from 'lucide-rea
 import { api, type VendorListing, type VendorProfile } from '../../shared/api/api';
 import AddHotelWizard from './AddHotelWizard';
 import AddCarWizard from './AddCarWizard';
+import AddTourWizard from './AddTourWizard';
 import HotelWorkspace, { LISTING_STATUS } from './HotelWorkspace';
 import VendorReservations from './VendorReservations';
 import SecurityPanel from '../account/SecurityPanel';
@@ -33,9 +34,9 @@ export default function VendorDashboard({ setView, userName, userEmail, onSignOu
   const [pendingCount, setPendingCount] = useState<number>();
   const { askReason, dialog } = useReasonDialog();
   const workspace = listings.find((item) => item.id === workspaceId) ?? null;
-  const word = vendor?.businessType === 'homestay' ? 'homestay' : vendor?.businessType === 'vehicle' ? 'car' : 'hotel';
+  const word = vendor?.businessType === 'homestay' ? 'homestay' : vendor?.businessType === 'vehicle' ? 'car' : vendor?.businessType === 'tour_operator' ? 'tour' : 'hotel';
   const words = partnerWords(word);
-  const typeLabel = (type: VendorListing['type']) => (type === 'homestay' ? 'Homestay' : type === 'car' ? 'Car' : 'Hotel');
+  const typeLabel = (type: VendorListing['type']) => (type === 'homestay' ? 'Homestay' : type === 'car' ? 'Car' : type === 'tour' ? 'Tour' : 'Hotel');
 
   useEffect(() => {
     let active = true;
@@ -106,7 +107,7 @@ export default function VendorDashboard({ setView, userName, userEmail, onSignOu
       {tab === 'security' && <section className="rounded-xl border border-slate-200 bg-white p-6"><SecurityPanel /></section>}
 
       {vendor?.status === 'approved' && <>
-        {tab === 'reservations' && <VendorReservations properties={listings} car={word === 'car'} defaultTab={canOpen(access, 'overview') ? 'pending' : 'arriving'} />}
+        {tab === 'reservations' && <VendorReservations properties={listings} car={word === 'car'} tour={word === 'tour'} defaultTab={canOpen(access, 'overview') ? 'pending' : 'arriving'} />}
         {tab === 'reviews' && canOpen(access, 'reviews') && <PartnerReviews properties={listings} />}
         {tab === 'promo-codes' && canOpen(access, 'promo-codes') && <PartnerCoupons />}
         {tab === 'reports' && canOpen(access, 'reports') && <VendorReports />}
@@ -116,7 +117,9 @@ export default function VendorDashboard({ setView, userName, userEmail, onSignOu
             setListings((items) => [created, ...items.filter((item) => item.id !== created.id)]);
             setTab('properties'); setWorkspaceId(created.id); setMessage(note); window.scrollTo({ top: 0, behavior: 'smooth' });
           };
-          return word === 'car' ? <AddCarWizard onExit={() => navigate('properties')} onDone={done} /> : <AddHotelWizard kind={word} onExit={() => navigate('properties')} onDone={done} />;
+          if (word === 'car') return <AddCarWizard onExit={() => navigate('properties')} onDone={done} />;
+          if (word === 'tour') return <AddTourWizard onExit={() => navigate('properties')} onDone={done} />;
+          return <AddHotelWizard kind={word} onExit={() => navigate('properties')} onDone={done} />;
         })()}
         {tab === 'properties' && workspace && <HotelWorkspace listing={workspace} busy={listingBusyId === workspace.id} onBack={() => { setWorkspaceId(null); setMessage(''); }}
           onAvailability={(listing, action) => listingAction(listing, action)}
@@ -133,8 +136,8 @@ export default function VendorDashboard({ setView, userName, userEmail, onSignOu
                       <h2 className="truncate text-lg font-extrabold">{listing.title}</h2>
                       <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-bold ${LISTING_STATUS[listing.status][1]}`}>{LISTING_STATUS[listing.status][0]}</span>
                     </div>
-                    <p className="text-[13px] text-[#5B6B61]">{typeLabel(listing.type)} · {listing.location}{listing.carSpecs ? ` · ${[listing.carSpecs.transmission, listing.carSpecs.seats ? `${listing.carSpecs.seats} seats` : ''].filter(Boolean).join(' · ')}` : ''}</p>
-                    <p className="text-sm font-bold">From PKR {listing.price.toLocaleString()}/{listing.type === 'car' ? 'day' : 'night'}</p>
+                    <p className="text-[13px] text-[#5B6B61]">{typeLabel(listing.type)} · {listing.location}{listing.tourSpecs ? ` · ${listing.tourSpecs.durationDays} day${listing.tourSpecs.durationDays === 1 ? '' : 's'} · ${listing.tourSpecs.schedule === 'fixed' ? `${(listing.departures ?? []).length} departure date(s)` : 'any day'}` : ''}{listing.carSpecs ? ` · ${[listing.carSpecs.transmission, listing.carSpecs.seats ? `${listing.carSpecs.seats} seats` : ''].filter(Boolean).join(' · ')}` : ''}</p>
+                    <p className="text-sm font-bold">From PKR {listing.price.toLocaleString()}/{listing.type === 'car' ? 'day' : listing.type === 'tour' ? 'person' : 'night'}</p>
                     <p className="flex flex-wrap gap-1.5">
                       {listing.pendingRevision && <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-800">Changes in review</span>}
                       {!listing.pendingRevision && listing.revisionRejectionReason && <span className="rounded-full bg-rose-50 px-2.5 py-0.5 text-xs font-semibold text-rose-700">Changes not approved</span>}

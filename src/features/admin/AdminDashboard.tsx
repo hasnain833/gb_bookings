@@ -10,18 +10,19 @@ import { useDebouncedValue } from '../../shared/hooks/useDebouncedValue';
 
 type Product = VendorListing['type'];
 type Tab = 'overview' | 'inbox' | Product | 'vendors' | 'reviews' | 'users' | 'cancellations' | 'security';
-type NavItem = { id: Tab | 'tour'; label: string; icon: typeof Users; soon?: boolean };
+type NavItem = { id: Tab; label: string; icon: typeof Users };
 
 const navGroups: Array<{ title?: string; items: NavItem[] }> = [
   { items: [{ id: 'overview', label: 'Overview', icon: LayoutDashboard }, { id: 'inbox', label: 'Review inbox', icon: Inbox }] },
   { title: 'Products', items: [
     { id: 'hotel', label: 'Hotels', icon: Hotel }, { id: 'homestay', label: 'Homestays', icon: House },
-    { id: 'car', label: 'Cars', icon: Car }, { id: 'tour', label: 'Tours', icon: Mountain, soon: true },
+    { id: 'car', label: 'Cars', icon: Car }, { id: 'tour', label: 'Tours', icon: Mountain },
   ] },
   { title: 'People', items: [{ id: 'vendors', label: 'Partners', icon: Building2 }, { id: 'users', label: 'Users', icon: Users }, { id: 'reviews', label: 'Guest reviews', icon: Star }] },
   { title: 'Tools', items: [{ id: 'cancellations', label: 'Cancel a booking', icon: CalendarX }, { id: 'security', label: 'Account security', icon: ShieldCheck }] },
 ];
-const productNames: Record<Product, [string, string]> = { hotel: ['Hotels', 'hotel'], homestay: ['Homestays', 'homestay'], car: ['Cars', 'car'] };
+const productNames: Record<Product, [string, string]> = { hotel: ['Hotels', 'hotel'], homestay: ['Homestays', 'homestay'], car: ['Cars', 'car'], tour: ['Tours', 'tour'] };
+const PRODUCTS: Product[] = ['hotel', 'homestay', 'car', 'tour'];
 
 
 const primaryButton = 'min-h-11 rounded-lg bg-[#006F3C] px-4 text-sm font-semibold text-white transition hover:bg-[#005c32] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 disabled:opacity-50';
@@ -263,7 +264,7 @@ function ListingsPanel({ type }: { type: Product }) {
               <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${listingTone[listing.status]}`}>{listingStatusLabel(listing.status)}</span>
               {listing.pendingRevision && <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-800">Changes to review</span>}
             </div>
-            <p className="text-xs text-slate-500">{label(listing.type)} · {listing.location} · from PKR {listing.price.toLocaleString()}/{listing.type === 'car' ? 'day' : 'night'} · {listing.images.length} photo(s){listing.vendorName ? ` · ${listing.vendorName}` : ''}</p>
+            <p className="text-xs text-slate-500">{label(listing.type)} · {listing.location} · from PKR {listing.price.toLocaleString()}/{listing.type === 'car' ? 'day' : listing.type === 'tour' ? 'person' : 'night'} · {listing.images.length} photo(s){listing.vendorName ? ` · ${listing.vendorName}` : ''}</p>
             {listing.rejectionReason && <p className="text-xs italic text-rose-700">Note to vendor: {listing.rejectionReason}</p>}
             <button type="button" aria-expanded={reviewingId === listing.id} onClick={() => setReviewingId(reviewingId === listing.id ? null : listing.id)} className="min-h-11 text-xs font-semibold text-emerald-700 underline">{reviewingId === listing.id ? 'Close details' : 'Photos, policies & rooms'}</button>
             {reviewingId === listing.id && <ListingReviewDetails listing={listing} />}
@@ -512,7 +513,7 @@ async function loadQueue(): Promise<InboxItem[]> {
 }
 
 /** Business type of a partner, or the product of a listing, for the queue's product column. */
-const itemProduct = (item: InboxItem): Product => item.listing?.type ?? (item.vendor?.businessType === 'vehicle' ? 'car' : item.vendor?.businessType === 'homestay' ? 'homestay' : 'hotel');
+const itemProduct = (item: InboxItem): Product => item.listing?.type ?? (item.vendor?.businessType === 'vehicle' ? 'car' : item.vendor?.businessType === 'tour_operator' ? 'tour' : item.vendor?.businessType === 'homestay' ? 'homestay' : 'hotel');
 
 /** The review queue with the selected item reviewed alongside. */
 function InboxPanel({ onOpen, initialKey, onChanged }: { onOpen: (tab: Tab) => void; initialKey?: string; onChanged: () => void }) {
@@ -675,15 +676,15 @@ type Summary = { queue: InboxItem[]; live: Record<Product, number>; waiting: Rec
 
 async function loadSummary(): Promise<Summary> {
   const total = (result: Promise<Paginated<unknown>>) => result.then((page) => page.pagination.total);
-  const [queue, hotel, homestay, car, paused, partners, reported] = await Promise.all([
+  const [queue, hotel, homestay, car, tour, paused, partners, reported] = await Promise.all([
     loadQueue(),
-    ...(['hotel', 'homestay', 'car'] as const).map((type) => total(api.admin.listListings({ status: 'published', type, limit: 1 }))),
+    ...PRODUCTS.map((type) => total(api.admin.listListings({ status: 'published', type, limit: 1 }))),
     total(api.admin.listListings({ status: 'paused', limit: 1 })), total(api.admin.listVendors({ status: 'approved', limit: 1 })),
     total(api.admin.listReviews({ status: 'reported', limit: 1 })),
   ]);
-  const waiting = { hotel: 0, homestay: 0, car: 0 };
+  const waiting = { hotel: 0, homestay: 0, car: 0, tour: 0 };
   queue.forEach((item) => { waiting[itemProduct(item)] += 1; });
-  return { queue, live: { hotel, homestay, car }, waiting, paused, partners, reported };
+  return { queue, live: { hotel, homestay, car, tour }, waiting, paused, partners, reported };
 }
 
 const kindText: Record<InboxKind, string> = { partner: 'New partner', business: 'Business details change', hotel: 'New listing', changes: 'Changes to a live listing' };
@@ -693,7 +694,7 @@ function OverviewPanel({ summary, error, onOpen, onReview }: { summary: Summary 
   if (error) return <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</p>;
   if (!summary) return <div className="flex justify-center py-16"><LoaderCircle className="size-6 animate-spin text-[#006F3C]" aria-label="Loading" /></div>;
   const { queue, live, waiting } = summary;
-  const liveTotal = live.hotel + live.homestay + live.car;
+  const liveTotal = live.hotel + live.homestay + live.car + live.tour;
   const oldest = queue[0]?.at;
   const shown = queue.filter((item) => filter === 'all' || itemProduct(item) === filter);
   const changeRequests = queue.filter((item) => item.kind === 'business').length;
@@ -704,7 +705,7 @@ function OverviewPanel({ summary, error, onOpen, onReview }: { summary: Summary 
   ].filter(Boolean) as Array<[string, Tab]>;
   const tiles: Array<[string, number | string, string]> = [
     ['Waiting for you', queue.length, oldest ? `Oldest ${ago(oldest)}` : 'All caught up'],
-    ['Live listings', liveTotal, `${live.hotel} hotels · ${live.homestay} homestays · ${live.car} cars`],
+    ['Live listings', liveTotal, `${live.hotel} hotels · ${live.homestay} homestays · ${live.car} cars · ${live.tour} tours`],
     ['Approved partners', summary.partners, 'Can list and take bookings'],
     ['Reported reviews', summary.reported, summary.reported ? 'Waiting for moderation' : 'Nothing reported'],
   ];
@@ -724,7 +725,7 @@ function OverviewPanel({ summary, error, onOpen, onReview }: { summary: Summary 
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#EEF1ED] px-5 py-4">
             <h2 className="text-lg font-extrabold">Decision queue</h2>
             <div className="flex flex-wrap gap-1.5">
-              {(['all', 'hotel', 'homestay', 'car'] as const).map((id) => <button key={id} type="button" aria-pressed={filter === id} onClick={() => setFilter(id)}
+              {(['all', ...PRODUCTS] as const).map((id) => <button key={id} type="button" aria-pressed={filter === id} onClick={() => setFilter(id)}
                 className={`min-h-9 rounded-full border px-3.5 text-[13px] font-semibold ${filter === id ? 'border-[#17211B] bg-[#17211B] text-white' : 'border-[#D9DED8] bg-white text-[#3D4A42]'}`}>
                 {id === 'all' ? `All ${queue.length}` : `${productNames[id][0]} ${waiting[id]}`}</button>)}
             </div>
@@ -750,14 +751,10 @@ function OverviewPanel({ summary, error, onOpen, onReview }: { summary: Summary 
         <aside className="flex flex-[1_1_300px] flex-col gap-4">
           <section className="rounded-2xl border border-[#E3E7E2] bg-white p-5">
             <h2 className="mb-2 font-extrabold">Products at a glance</h2>
-            {(['hotel', 'homestay', 'car'] as const).map((id) => <button key={id} type="button" onClick={() => onOpen(id)} className="flex w-full items-center justify-between border-t border-[#EEF1ED] py-2.5 text-left">
+            {PRODUCTS.map((id) => <button key={id} type="button" onClick={() => onOpen(id)} className="flex w-full items-center justify-between border-t border-[#EEF1ED] py-2.5 text-left">
               <span><span className="block text-sm font-bold">{productNames[id][0]}</span><span className="text-xs text-[#5B6B61]">{waiting[id] ? `${waiting[id]} waiting` : 'Nothing waiting'}</span></span>
               <span className="text-xl font-extrabold">{live[id]}</span>
             </button>)}
-            <div className="flex items-center justify-between border-t border-[#EEF1ED] py-2.5">
-              <span><span className="block text-sm font-bold">Tours</span><span className="text-xs text-[#5B6B61]">Coming in the next phase</span></span>
-              <span className="text-xl font-extrabold text-[#5B6B61]">—</span>
-            </div>
           </section>
           {watch.length > 0 && <section className="rounded-2xl border border-[#F5D9A8] bg-[#FFF8EB] p-5">
             <h2 className="mb-2 font-extrabold text-[#7A4A00]">Keep an eye on</h2>
@@ -774,6 +771,7 @@ const sectionDetails: Record<Tab, { title: string; description: string }> = {
   hotel: { title: 'Hotels', description: 'Every hotel on the platform. Review new ones, approve edits to live ones, and take down listings that break the rules.' },
   homestay: { title: 'Homestays', description: 'Every homestay on the platform, from family rooms to entire homes.' },
   car: { title: 'Cars', description: 'Every car listing, from rental companies and owner-drivers.' },
+  tour: { title: 'Tours', description: 'Every tour, from tour companies and independent guides.' },
   inbox: { title: 'Review inbox', description: 'Partners, hotels and edits waiting for a decision.' },
   vendors: { title: 'Partner reviews', description: 'Review vendor applications, verify documents and manage partner access.' },
   reviews: { title: 'Guest reviews', description: 'Reviews partners reported, and reviews you have hidden. Remove only abusive, fake or off-topic reviews and personal data; honest criticism stays.' },
@@ -832,16 +830,15 @@ export default function AdminDashboard({ roles, userName = 'Staff member', userE
         {navGroups.map((group, index) => <div key={index} className="flex flex-col gap-0.5">
           {group.title && <p className={`${labelClass} px-3 pb-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-[#7FA88F]`}>{group.title}</p>}
           {group.title && <div className={`${navOpen ? 'md:hidden' : ''} mx-2 mb-2 h-px bg-[#1F4A33]`} />}
-          {group.items.map(({ id, label: text, icon: Icon, soon }) => {
+          {group.items.map(({ id, label: text, icon: Icon }) => {
             const current = tab === id;
-            const badge = soon ? undefined : badges[id as Tab];
-            const tone = current ? 'bg-[#0B4A2C] text-white' : soon ? 'text-[#6F9680]' : 'text-[#CFE3D6] hover:bg-white/5 hover:text-white';
-            return <button key={id} type="button" disabled={soon} title={soon ? `${text} (coming soon)` : text} aria-label={soon ? `${text}, coming soon` : text} aria-current={current ? 'page' : undefined}
-              onClick={() => navigate(id as Tab)}
+            const badge = badges[id];
+            const tone = current ? 'bg-[#0B4A2C] text-white' : 'text-[#CFE3D6] hover:bg-white/5 hover:text-white';
+            return <button key={id} type="button" title={text} aria-label={text} aria-current={current ? 'page' : undefined}
+              onClick={() => navigate(id)}
               className={`relative flex min-h-[42px] items-center gap-3 rounded-lg px-3 text-sm font-semibold disabled:cursor-not-allowed ${tone} ${iconsOnly}`}>
               <Icon className="size-[19px] shrink-0" />
               <span className={`${labelClass} flex-1 text-left`}>{text}</span>
-              {soon && <span className={`${labelClass} rounded-full border border-[#3E6B50] px-2 text-[11px] text-[#9CC5AC]`}>Soon</span>}
               {!!badge && <span className={`${labelClass} rounded-full px-2 text-xs font-extrabold ${id === 'reviews' ? 'bg-[#7F1D1D] text-[#FECACA]' : 'bg-[#F59E0B] text-[#2A1A00]'}`}>{badge}</span>}
               {!!badge && <span aria-hidden="true" className={`${navOpen ? 'md:hidden' : ''} absolute right-2 top-2 size-2 rounded-full bg-[#F59E0B]`} />}
             </button>;
@@ -870,7 +867,7 @@ export default function AdminDashboard({ roles, userName = 'Staff member', userE
         {tab === 'inbox' && <InboxPanel key={inboxKey ?? 'inbox'} initialKey={inboxKey} onOpen={navigate} onChanged={() => setSummaryRevision((value) => value + 1)} />}
         {tab !== 'overview' && tab !== 'inbox' && <>
           <div><h1 className="text-3xl font-extrabold tracking-tight">{section.title}</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-[#5B6B61]">{section.description}</p></div>
-          {(tab === 'hotel' || tab === 'homestay' || tab === 'car') && <ListingsPanel key={tab} type={tab} />}
+          {PRODUCTS.includes(tab as Product) && <ListingsPanel key={tab} type={tab as Product} />}
           {tab === 'vendors' && <VendorsPanel />}
           {tab === 'reviews' && <ReviewsPanel />}
           {tab === 'users' && <UsersPanel />}

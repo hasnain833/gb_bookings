@@ -59,6 +59,30 @@ export const carSpecsSchema = z.object({
   .refine((specs) => specs.oneWay !== 'flat' || specs.oneWayFee !== undefined, { message: 'Set the one-way drop-off fee.', path: ['oneWayFee'] })
   .refine((specs) => specs.driverMode === 'with_driver' || specs.minDriverAge !== undefined, { message: 'Set the minimum age for self-drive renters.', path: ['minDriverAge'] });
 
+export const tourCategories = ['Trekking', 'Sightseeing', 'Jeep safari', 'Cultural', 'Adventure', 'Day trip'] as const;
+const isoDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD dates.');
+
+// What a tour is (PKR). The adult price per person and the seats per departure live on the tour's single booking unit.
+export const tourSpecsSchema = z.object({
+  durationDays: z.number().int().min(1).max(60),
+  category: z.enum(tourCategories),
+  difficulty: z.enum(['Easy', 'Moderate', 'Challenging']),
+  schedule: z.enum(['fixed', 'daily']),
+  // Absent: children pay the adult price.
+  childPrice: pkr.optional(),
+  minAge: z.number().int().min(0).max(30).optional(),
+  meetingPoint: z.string().trim().min(2).max(300),
+  startTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).optional(),
+  languages: cleanList,
+  included: cleanList,
+  excluded: cleanList,
+  itinerary: z.array(z.object({
+    day: z.number().int().min(1).max(60),
+    title: z.string().trim().min(2).max(120),
+    desc: z.string().trim().min(2).max(1_000),
+  }).strict()).max(60).default([]),
+}).strict();
+
 export const stayInfoSchema = z.object({
   childrenAllowed: z.boolean(),
   minCheckInAge: z.number().int().min(0).max(30).optional(),
@@ -77,7 +101,7 @@ export const stayInfoSchema = z.object({
 }).strict();
 
 const listingFields = z.object({
-  type: z.enum(['hotel', 'homestay', 'car']).default('hotel'),
+  type: z.enum(['hotel', 'homestay', 'car', 'tour']).default('hotel'),
   title: z.string().trim().min(2).max(160),
   location: z.string().trim().min(2).max(240),
   description: z.string().trim().min(20).max(10_000),
@@ -93,8 +117,11 @@ const listingFields = z.object({
     checkOutTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
   }).strict().optional(),
   carSpecs: carSpecsSchema.optional(),
+  tourSpecs: tourSpecsSchema.optional(),
+  // Fixed-departure tours: the start dates guests can book. Applies at once, even on a live tour.
+  departures: z.array(isoDay).max(200).refine((dates) => new Set(dates).size === dates.length, 'List each date once.').optional(),
   homestaySpecs: homestaySpecs.optional(),
-  // Cars only say how guests can pay at pickup; hotels and homestays fill in the full policies.
+  // Cars and tours only say how guests can pay at pickup or the start; hotels and homestays fill in the full policies.
   stayInfo: z.union([stayInfoSchema, stayInfoSchema.pick({ paymentMethods: true }).strict()]).optional(),
   // Map pin, e.g. from a pasted Google Maps link. Pakistan sits well inside these bounds.
   coordinates: z.object({ lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180) }).strict().optional(),
@@ -103,8 +130,9 @@ const listingFields = z.object({
 export const createHotelListingSchema = listingFields.refine(
   (input) => input.type !== 'homestay' || input.homestaySpecs,
   { message: 'Homestays need a host name and experience type.', path: ['homestaySpecs'] },
-).refine((input) => input.type === 'car' || input.hotelSpecs, { message: 'Add the property details.', path: ['hotelSpecs'] })
-  .refine((input) => input.type !== 'car' || input.carSpecs, { message: 'Add the car details.', path: ['carSpecs'] });
+).refine((input) => input.type === 'car' || input.type === 'tour' || input.hotelSpecs, { message: 'Add the property details.', path: ['hotelSpecs'] })
+  .refine((input) => input.type !== 'car' || input.carSpecs, { message: 'Add the car details.', path: ['carSpecs'] })
+  .refine((input) => input.type !== 'tour' || input.tourSpecs, { message: 'Add the tour details.', path: ['tourSpecs'] });
 
 // The listing type and a homestay's stay type are fixed at creation; omitting type also stops its default from applying to partial updates.
 export const updateHotelListingSchema = listingFields.omit({ type: true }).extend({ homestaySpecs: homestaySpecs.omit({ stayType: true }).optional() }).partial().strict().refine(
@@ -144,7 +172,7 @@ export const listingStatusSchema = z.object({ status: z.enum(['paused', 'publish
 
 export const adminListingsQuerySchema = z.object({
   status: z.enum(['all', 'draft', 'submitted', 'published', 'paused', 'rejected', 'archived', 'revisions']).default('submitted'),
-  type: z.enum(['hotel', 'homestay', 'car']).optional(),
+  type: z.enum(['hotel', 'homestay', 'car', 'tour']).optional(),
   q: z.string().trim().min(2).max(100).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),

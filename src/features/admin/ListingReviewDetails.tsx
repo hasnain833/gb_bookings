@@ -21,7 +21,7 @@ function Changes({ before, after }: { before: Record<string, unknown>; after: Re
   const rows = flat(after).filter(([key, value]) => key !== 'photos' && text(old.get(key)) !== text(value));
   return <>
     {rows.length > 0 && <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">{rows.map(([key, value]) => <div key={key} className="contents">
-      <dt className="capitalize text-slate-500">{key.replace(/^(hotelSpecs|homestaySpecs|carSpecs)\./, '').replace(/([A-Z])/g, ' $1').toLowerCase()}</dt>
+      <dt className="capitalize text-slate-500">{key.replace(/^(hotelSpecs|homestaySpecs|carSpecs|tourSpecs)\./, '').replace(/([A-Z])/g, ' $1').toLowerCase()}</dt>
       <dd className="whitespace-pre-wrap"><span className="text-slate-500 line-through">{text(old.get(key))}</span> → <strong className="text-slate-900">{text(value)}</strong></dd>
     </div>)}</dl>}
     {Array.isArray(after.photos) && <div className="space-y-1"><p className="text-xs font-semibold text-slate-600">New photo set (first is the cover)</p><Photos photos={after.photos as ListingPhoto[]} label="Proposed photo" /></div>}
@@ -75,7 +75,17 @@ export default function ListingReviewDetails({ listing }: { listing: VendorListi
       ] as const).map(([term, value]) => <div key={term}><dt className="inline font-semibold">{term}: </dt><dd className="inline">{value || '—'}</dd></div>)}
       {listing.carSpecs.pickupNote && <p className="sm:col-span-2">{listing.carSpecs.pickupNote}</p>}
     </dl>}
-    {listing.stayInfo && listing.type !== 'car' && <p className="text-xs text-slate-600"><span className="font-semibold">Policies & essentials: </span>{[
+    {listing.tourSpecs && <dl className="grid gap-1 rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-600 sm:grid-cols-2">
+      {([['Tour', `${listing.tourSpecs.category ?? '—'} · ${listing.tourSpecs.durationDays} day(s) · ${listing.tourSpecs.difficulty}`],
+        ['Runs', listing.tourSpecs.schedule === 'fixed' ? `Fixed dates: ${text(listing.departures)}` : 'Any day'],
+        ['Meeting point', `${listing.tourSpecs.meetingPoint ?? '—'}${listing.tourSpecs.startTime ? ` at ${listing.tourSpecs.startTime}` : ''}`],
+        ['Children', `${listing.tourSpecs.childPrice !== undefined ? `PKR ${listing.tourSpecs.childPrice}` : 'adult price'}${listing.tourSpecs.minAge ? ` · min age ${listing.tourSpecs.minAge}` : ''}`],
+        ['Languages', text(listing.tourSpecs.languages)], ['Included', text(listing.tourSpecs.included)], ['Not included', text(listing.tourSpecs.excluded)],
+        ['Pay at the start', text(listing.stayInfo?.paymentMethods)],
+      ] as const).map(([term, value]) => <div key={term}><dt className="inline font-semibold">{term}: </dt><dd className="inline">{value}</dd></div>)}
+      {listing.tourSpecs.itinerary?.length ? <ol className="space-y-1 sm:col-span-2">{listing.tourSpecs.itinerary.map((day) => <li key={day.day}><strong>Day {day.day}: {day.title}</strong> — {day.desc}</li>)}</ol> : null}
+    </dl>}
+    {listing.stayInfo && listing.type !== 'car' && listing.type !== 'tour' && <p className="text-xs text-slate-600"><span className="font-semibold">Policies & essentials: </span>{[
       `children ${listing.stayInfo.childrenAllowed ? 'yes' : 'no'}`, `pets ${listing.stayInfo.petsAllowed ? 'yes' : 'no'}`, `pay by ${text(listing.stayInfo.paymentMethods)}`,
       `power backup ${text(listing.stayInfo.powerBackup)}`, `heating ${text(listing.stayInfo.heating)}`, `hot water ${listing.stayInfo.hotWater}`,
       `signal ${text(listing.stayInfo.mobileNetworks)}`, `road ${listing.stayInfo.roadAccess}${listing.stayInfo.roadNote ? ` (${listing.stayInfo.roadNote})` : ''}`, `open months ${text(listing.stayInfo.openMonths)}`,
@@ -84,10 +94,10 @@ export default function ListingReviewDetails({ listing }: { listing: VendorListi
       ? <a href={mapLink(listing.coordinates.lat, listing.coordinates.lng)} target="_blank" rel="noreferrer" className="font-semibold text-[#006F3C] underline">{listing.coordinates.lat}, {listing.coordinates.lng}</a>
       : 'not set'}</p>
     {listing.hotelSpecs && <dl className="grid gap-2 text-xs text-slate-600"><div><dt className="font-semibold">Check-in / check-out</dt><dd>{listing.hotelSpecs.checkInTime} / {listing.hotelSpecs.checkOutTime}</dd></div>{(['amenities', 'facilities', 'policies'] as const).map((key) => <div key={key}><dt className="font-semibold capitalize">{key}</dt><dd>{listing.hotelSpecs?.[key].join(', ') || 'None provided'}</dd></div>)}</dl>}
-    <h3 className="text-sm font-semibold">{listing.type === 'car' ? 'Daily price and fleet count' : 'Room categories for approval'}</h3>
+    <h3 className="text-sm font-semibold">{listing.type === 'car' ? 'Daily price and fleet count' : listing.type === 'tour' ? 'Adult price and seats per departure' : 'Room categories for approval'}</h3>
     {loading && <p role="status" className="text-xs text-slate-500">Loading rooms…</p>}
     {error && <div role="alert" className="text-xs text-rose-700">{error}<button type="button" onClick={() => setAttempt((value) => value + 1)} className="ml-2 min-h-11 underline">Try again</button></div>}
     {!loading && !error && rooms.length === 0 && <p className="text-xs text-slate-500">No room categories.</p>}
-    {!loading && !error && rooms.map((room) => <div key={room.id} className="rounded-lg border border-slate-200 bg-white p-3"><p className="text-sm font-semibold">{room.name}<span className="ml-2 text-xs font-normal capitalize text-slate-500">{room.status}</span></p><p className="mt-1 text-xs leading-5 text-slate-600">{room.totalRooms} rooms · {room.bedType} · {room.maxAdults} adults / {room.maxChildren} children · PKR {room.basePrice.toLocaleString()} per night</p>{room.description && <p className="mt-1 text-xs text-slate-600">{room.description}</p>}{room.amenities.length > 0 && <p className="mt-1 text-xs text-slate-500">{room.amenities.join(', ')}</p>}{room.photos.length > 0 && <div className="mt-2"><Photos photos={room.photos} label="Room photo" /></div>}</div>)}
+    {!loading && !error && rooms.map((room) => <div key={room.id} className="rounded-lg border border-slate-200 bg-white p-3"><p className="text-sm font-semibold">{room.name}<span className="ml-2 text-xs font-normal capitalize text-slate-500">{room.status}</span></p><p className="mt-1 text-xs leading-5 text-slate-600">{listing.type === 'tour' ? `${room.totalRooms} seats per departure · PKR ${room.basePrice.toLocaleString()} per adult` : `${room.totalRooms} rooms · ${room.bedType} · ${room.maxAdults} adults / ${room.maxChildren} children · PKR ${room.basePrice.toLocaleString()} per night`}</p>{room.description && <p className="mt-1 text-xs text-slate-600">{room.description}</p>}{room.amenities.length > 0 && <p className="mt-1 text-xs text-slate-500">{room.amenities.join(', ')}</p>}{room.photos.length > 0 && <div className="mt-2"><Photos photos={room.photos} label="Room photo" /></div>}</div>)}
   </div>;
 }

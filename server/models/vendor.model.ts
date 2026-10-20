@@ -38,7 +38,7 @@ const vendorSchema = new Schema({
   },
   verificationDocuments: [{
     _id: false,
-    type: { type: String, enum: ['identity', 'business_registration', 'tax', 'bank', 'property_authorization', 'vehicle_registration', 'driving_licence'], required: true },
+    type: { type: String, enum: ['identity', 'business_registration', 'tax', 'bank', 'property_authorization', 'vehicle_registration', 'driving_licence', 'guide_licence'], required: true },
     mediaId: { type: Schema.Types.ObjectId, ref: 'Media', required: true },
     status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
     notes: { type: String, trim: true, maxlength: 500 },

@@ -10,11 +10,12 @@ const shift = (date: string, days: number) => new Date(Date.parse(`${date}T00:00
 export const dayAfter = (date: string) => shift(date, 1);
 export const dayBefore = (date: string) => shift(date, -1);
 
-/** The stored exclusive end for a stay: cars convert their return date, hotels pass check-out through. */
-export const storedEnd = (listingType: string, end: string) => (listingType === 'car' ? dayAfter(end) : end);
-/** The date guests and partners see: the return date for cars, check-out for stays. */
-export const shownEnd = (booking: { listingSnapshot?: { type?: string }; checkOut: string }) =>
-  booking.listingSnapshot?.type === 'car' ? dayBefore(booking.checkOut) : booking.checkOut;
+/** The stored exclusive end for a stay: cars convert their return date and tours their start date (seats are held on that day only); hotels pass check-out through. */
+export const storedEnd = (listingType: string, end: string) => (listingType === 'car' || listingType === 'tour' ? dayAfter(end) : end);
+/** The date guests and partners see: the return date for cars, the last tour day for tours, check-out for stays. */
+export const shownEnd = (booking: { listingSnapshot?: { type?: string }; checkIn: string; checkOut: string; tour?: { days?: number } }) =>
+  booking.listingSnapshot?.type === 'tour' ? shift(booking.checkIn, (booking.tour?.days ?? 1) - 1)
+    : booking.listingSnapshot?.type === 'car' ? dayBefore(booking.checkOut) : booking.checkOut;
 
 export type RentalChoice = { driver?: boolean; outsideBaseCity?: boolean; oneWay?: boolean };
 

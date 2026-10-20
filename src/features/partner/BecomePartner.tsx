@@ -18,7 +18,7 @@ const TYPES = [
   { id: 'hotel', title: 'Hotels', icon: Building2, text: 'Hotels, guest houses and resorts renting rooms by the night.', available: true },
   { id: 'homestay', title: 'Homestays', icon: Home, text: 'Local families and hosts welcoming guests into their homes.', available: true },
   { id: 'car', title: 'Cars', icon: Car, text: 'Rental companies and owner-drivers, with or without a driver.', available: true },
-  { id: 'tour', title: 'Tours', icon: Mountain, text: 'Tour operators and guides running trips and packages.', available: false },
+  { id: 'tour', title: 'Tours', icon: Mountain, text: 'Tour companies and independent guides running trips and treks.', available: true },
 ] as const;
 
 const STEPS = [
@@ -63,7 +63,7 @@ export default function BecomePartner({ isLoggedIn, isPartner, onSignIn, onOpenD
 
   if (registering && isLoggedIn && editable) {
     // An existing application keeps its own type, whichever card was clicked.
-    const kind = vendor?.businessType === 'homestay' || vendor?.businessType === 'hotel' ? vendor.businessType : vendor?.businessType === 'vehicle' ? 'car' : registering;
+    const kind = vendor?.businessType === 'homestay' || vendor?.businessType === 'hotel' ? vendor.businessType : vendor?.businessType === 'vehicle' ? 'car' : vendor?.businessType === 'tour_operator' ? 'tour' : registering;
     return <div className="px-4 pb-20 pt-2"><HotelRegistration kind={kind} vendor={vendor} emailVerified={emailVerified}
       onVendorChange={(next) => { setVendor(next); if (next.status === 'submitted') { setRegistering(null); window.scrollTo({ top: 0, behavior: 'smooth' }); } }}
       onEmailVerified={async () => { const verified = (await api.getCurrentUser()).user.emailVerified !== false; setEmailVerified(verified); return verified; }}

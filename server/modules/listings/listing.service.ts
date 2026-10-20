@@ -6,7 +6,7 @@ import { VendorModel } from '../../models/vendor.model.js';
 import { ListingModel, latLng } from '../../models/listing.model.js';
 import { escapeRegex } from '../../shared/escape-regex.js';
 import { availableRoomCounts } from '../bookings/availability.service.js';
-import { stayNights } from '../bookings/stay-dates.js';
+import { stayNights, todayInPakistan } from '../bookings/stay-dates.js';
 import { storedEnd } from '../bookings/rental.js';
 import { NotFoundError, ServiceUnavailableError } from '../../shared/app-error.js';
 import type { ListListingsQuery } from './listing.schemas.js';
@@ -39,6 +39,8 @@ function toPublicListing(record: ListingRecord): Listing {
     ...(record.homestaySpecs ? { homestaySpecs: record.homestaySpecs } : {}),
     ...(record.carSpecs ? { carSpecs: record.carSpecs } : {}),
     ...(record.tourSpecs ? { tourSpecs: record.tourSpecs } : {}),
+    // Fixed-departure tours: upcoming start dates only.
+    ...(record.tourSpecs?.schedule === 'fixed' ? { departures: (record.departures ?? []).filter((date: string) => date >= todayInPakistan()) } : {}),
     ...(record.offerSpecs ? {
       offerSpecs: {
         ...record.offerSpecs,
@@ -72,7 +74,7 @@ async function visibleFilter(type?: string) {
   } as Record<string, unknown>;
 }
 
-const CATEGORY_FIELD: Record<string, string> = { hotel: 'hotelSpecs.hotelType', car: 'carSpecs.category' };
+const CATEGORY_FIELD: Record<string, string> = { hotel: 'hotelSpecs.hotelType', car: 'carSpecs.category', tour: 'tourSpecs.category' };
 
 export async function listPublishedListings(query: ListListingsQuery) {
   await requireDatabase();
@@ -116,7 +118,11 @@ export async function listPublishedListings(query: ListListingsQuery) {
         .map((field) => ({ [field]: pattern })),
     })));
   }
-  if (query.checkIn && query.checkOut) {
+  if (query.type === 'tour' && query.checkIn) {
+    // Tours: free seats for the whole party on the start date, and a departure that day for fixed-date tours.
+    filter._id = { $in: await listingsWithAvailability(query.checkIn, storedEnd('tour', query.checkIn), 1, query.guests ?? 1) };
+    (filter.$and as unknown[]).push({ $or: [{ 'tourSpecs.schedule': { $ne: 'fixed' } }, { departures: query.checkIn }] });
+  } else if (query.checkIn && query.checkOut) {
     filter._id = { $in: await listingsWithAvailability(query.checkIn, storedEnd(query.type ?? '', query.checkOut), query.guests ?? 1, query.rooms ?? 1) };
   }
 
