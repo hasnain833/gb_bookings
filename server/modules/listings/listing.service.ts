@@ -7,6 +7,7 @@ import { ListingModel, latLng } from '../../models/listing.model.js';
 import { escapeRegex } from '../../shared/escape-regex.js';
 import { availableRoomCounts } from '../bookings/availability.service.js';
 import { stayNights } from '../bookings/stay-dates.js';
+import { storedEnd } from '../bookings/rental.js';
 import { NotFoundError, ServiceUnavailableError } from '../../shared/app-error.js';
 import type { ListListingsQuery } from './listing.schemas.js';
 
@@ -91,6 +92,10 @@ export async function listPublishedListings(query: ListListingsQuery) {
   if (query.minRating !== undefined) filter.rating = { $gte: query.minRating };
   if (query.experience) filter['homestaySpecs.experienceType'] = query.experience;
   if (query.transmission) filter['carSpecs.transmission'] = query.transmission;
+  // Cars listed before driver modes existed only say withDriver.
+  if (query.driver === 'with_driver') (filter.$and as unknown[]).push({ $or: [{ 'carSpecs.driverMode': { $in: ['with_driver', 'both'] } }, { 'carSpecs.driverMode': null, 'carSpecs.withDriver': true }] });
+  if (query.driver === 'self_drive') (filter.$and as unknown[]).push({ $or: [{ 'carSpecs.driverMode': { $in: ['self_drive', 'both'] } }, { 'carSpecs.driverMode': null, 'carSpecs.withDriver': false }] });
+  if (query.fuelIncluded) filter['carSpecs.fuelIncluded'] = true;
   const categoryField = query.type && CATEGORY_FIELD[query.type];
   if (query.category && categoryField) {
     // Listings without a type/category still show, as on the landing pages before.
@@ -112,7 +117,7 @@ export async function listPublishedListings(query: ListListingsQuery) {
     })));
   }
   if (query.checkIn && query.checkOut) {
-    filter._id = { $in: await listingsWithAvailability(query.checkIn, query.checkOut, query.guests ?? 1, query.rooms ?? 1) };
+    filter._id = { $in: await listingsWithAvailability(query.checkIn, storedEnd(query.type ?? '', query.checkOut), query.guests ?? 1, query.rooms ?? 1) };
   }
 
   const skip = (query.page - 1) * query.limit;

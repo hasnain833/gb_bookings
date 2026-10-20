@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowRight, BadgeCheck, Building2, CalendarCheck, Car, Clock, FileCheck2, Home, LoaderCircle, Mountain, ShieldCheck, UserPlus, Wallet } from 'lucide-react';
 import { api, ApiError, type VendorProfile } from '../../shared/api/api';
 import { formatDateForDisplay } from '../../shared/utils/date';
-import HotelRegistration, { type PartnerKind } from './HotelRegistration';
+import HotelRegistration, { businessTypeOf, type PartnerKind } from './HotelRegistration';
 
 interface BecomePartnerProps {
   isLoggedIn: boolean;
@@ -17,7 +17,7 @@ interface BecomePartnerProps {
 const TYPES = [
   { id: 'hotel', title: 'Hotels', icon: Building2, text: 'Hotels, guest houses and resorts renting rooms by the night.', available: true },
   { id: 'homestay', title: 'Homestays', icon: Home, text: 'Local families and hosts welcoming guests into their homes.', available: true },
-  { id: 'car', title: 'Cars', icon: Car, text: 'Car rental companies, with or without drivers.', available: false },
+  { id: 'car', title: 'Cars', icon: Car, text: 'Rental companies and owner-drivers, with or without a driver.', available: true },
   { id: 'tour', title: 'Tours', icon: Mountain, text: 'Tour operators and guides running trips and packages.', available: false },
 ] as const;
 
@@ -63,7 +63,7 @@ export default function BecomePartner({ isLoggedIn, isPartner, onSignIn, onOpenD
 
   if (registering && isLoggedIn && editable) {
     // An existing application keeps its own type, whichever card was clicked.
-    const kind = vendor?.businessType === 'homestay' || vendor?.businessType === 'hotel' ? vendor.businessType : registering;
+    const kind = vendor?.businessType === 'homestay' || vendor?.businessType === 'hotel' ? vendor.businessType : vendor?.businessType === 'vehicle' ? 'car' : registering;
     return <div className="px-4 pb-20 pt-2"><HotelRegistration kind={kind} vendor={vendor} emailVerified={emailVerified}
       onVendorChange={(next) => { setVendor(next); if (next.status === 'submitted') { setRegistering(null); window.scrollTo({ top: 0, behavior: 'smooth' }); } }}
       onEmailVerified={async () => { const verified = (await api.getCurrentUser()).user.emailVerified !== false; setEmailVerified(verified); return verified; }}
@@ -123,6 +123,7 @@ export default function BecomePartner({ isLoggedIn, isPartner, onSignIn, onOpenD
       {([
         ['hotels', ['Business registration certificate and number', 'Owner CNIC or passport', 'Business address, email and phone', 'Property ownership or lease document (optional)', 'NTN / tax certificate (optional)']],
         ['homestays', ['Host CNIC (front and back)', 'Proof of property: ownership papers, a lease, or a recent utility bill in your name', 'Home address, email and phone', 'No business registration needed']],
+        ['cars', ['Owner CNIC (front and back)', 'Vehicle registration book or card', 'Owner-drivers: your driving licence', 'Rental companies: business registration number (certificate optional)', 'Address, email and phone']],
       ] as const).map(([label, items]) => (
         <section key={label} className="grid gap-6 rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 lg:grid-cols-2">
           <div><h2 className="text-xl font-bold text-slate-950">What you’ll need for {label}</h2><p className="mt-2 text-sm leading-6 text-slate-600">Have these ready as PDF files before you start. You can save and come back at any step.</p></div>
@@ -135,6 +136,8 @@ export default function BecomePartner({ isLoggedIn, isPartner, onSignIn, onOpenD
   );
 }
 
+const PARTNER_NAME: Record<string, string> = { hotel: 'a hotel business', homestay: 'a homestay host', vehicle: 'a car rental partner' };
+
 function PartnerAction({ kind, loading, isLoggedIn, isPartner, vendor, onStart, onOpenDashboard, onSupport }: {
   kind: PartnerKind; loading: boolean; isLoggedIn: boolean; isPartner: boolean; vendor: VendorProfile | null;
   onStart: () => void; onOpenDashboard: () => void; onSupport: () => void;
@@ -142,11 +145,11 @@ function PartnerAction({ kind, loading, isLoggedIn, isPartner, vendor, onStart, 
   if (loading) return <LoaderCircle className="size-5 animate-spin text-[#006F3C]" aria-label="Loading your partner status" />;
   if (!isLoggedIn) return <button type="button" onClick={onStart} className={`${primaryButton} w-full`}>Sign in to register<ArrowRight className="size-4" /></button>;
   // One partner account is one business type; the other cards explain rather than offer a second registration.
-  if (vendor && vendor.businessType !== kind && vendor.businessType !== 'multi_service') return (
-    <p className="rounded-lg bg-slate-50 p-3 text-xs leading-5 text-slate-600">This account is registered as a {vendor.businessType === 'homestay' ? 'homestay host' : 'hotel business'}. To list {kind === 'homestay' ? 'a homestay' : 'a hotel'} too, register with a different account.</p>
+  if (vendor && vendor.businessType !== businessTypeOf(kind) && vendor.businessType !== 'multi_service') return (
+    <p className="rounded-lg bg-slate-50 p-3 text-xs leading-5 text-slate-600">This account is registered as {PARTNER_NAME[vendor.businessType] ?? 'another partner type'}. To list {kind === 'homestay' ? 'a homestay' : kind === 'car' ? 'cars' : 'a hotel'} too, register with a different account.</p>
   );
   if (isPartner || vendor?.status === 'approved') return <button type="button" onClick={onOpenDashboard} className={`${primaryButton} w-full`}>Open partner dashboard<ArrowRight className="size-4" /></button>;
-  if (!vendor) return <button type="button" onClick={onStart} className={`${primaryButton} w-full`}>{kind === 'homestay' ? 'Register as a host' : 'Register your hotel'}<ArrowRight className="size-4" /></button>;
+  if (!vendor) return <button type="button" onClick={onStart} className={`${primaryButton} w-full`}>{kind === 'homestay' ? 'Register as a host' : kind === 'car' ? 'Register your cars' : 'Register your hotel'}<ArrowRight className="size-4" /></button>;
   if (vendor.status === 'draft') return <button type="button" onClick={onStart} className={`${primaryButton} w-full`}>Continue registration<ArrowRight className="size-4" /></button>;
   if (vendor.status === 'rejected') return (
     <div className="space-y-3">

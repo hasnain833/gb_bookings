@@ -15,11 +15,11 @@ interface CarsSectionProps {
 }
 
 const CATEGORIES: LandingCategory[] = [
-  { id: 'suv-4x4', title: '4x4 Mountain SUVs', subtitle: 'Land Cruiser & Prado for rough terrain', icon: Car, bgImage: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80', iconBg: 'bg-emerald-500/20 text-emerald-400 border-emerald-400/40' },
-  { id: 'fortuner', title: 'Fortuner Cruisers', subtitle: 'Comfortable power drives for families', icon: Gauge, bgImage: 'https://images.unsplash.com/photo-1606016159991-dfe4f974be5c?auto=format&fit=crop&w=800&q=80', iconBg: 'bg-blue-500/20 text-blue-400 border-blue-400/40' },
-  { id: 'grand-cabin', title: 'Executive Vans', subtitle: 'Hiace Grand Cabin for group tours', icon: Users, bgImage: 'https://images.unsplash.com/photo-1520050206274-a1ae446cb3cc?auto=format&fit=crop&w=800&q=80', iconBg: 'bg-purple-500/20 text-purple-400 border-purple-400/40' },
-  { id: 'hatchback', title: 'Budget Hatchbacks', subtitle: 'Economical city & local road drives', icon: Fuel, bgImage: 'https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&w=800&q=80', iconBg: 'bg-amber-500/20 text-amber-400 border-amber-400/40' },
-  { id: 'sedans', title: 'Highway Sedans', subtitle: 'Smooth, stylish Honda Civic & Corollas', icon: Car, bgImage: 'https://images.unsplash.com/photo-1606220588913-b3aacb4d2f46?auto=format&fit=crop&w=800&q=80', iconBg: 'bg-cyan-500/20 text-cyan-400 border-cyan-400/40' },
+  { id: 'SUV', title: '4x4 Mountain SUVs', subtitle: 'Land Cruiser & Prado for rough terrain', icon: Car, bgImage: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80', iconBg: 'bg-emerald-500/20 text-emerald-400 border-emerald-400/40' },
+  { id: 'Jeep', title: 'Mountain Jeeps', subtitle: 'Deosai, Shandur & Fairy Meadows tracks', icon: Gauge, bgImage: 'https://images.unsplash.com/photo-1606016159991-dfe4f974be5c?auto=format&fit=crop&w=800&q=80', iconBg: 'bg-blue-500/20 text-blue-400 border-blue-400/40' },
+  { id: 'Van', title: 'Executive Vans', subtitle: 'Hiace Grand Cabin for group tours', icon: Users, bgImage: 'https://images.unsplash.com/photo-1520050206274-a1ae446cb3cc?auto=format&fit=crop&w=800&q=80', iconBg: 'bg-purple-500/20 text-purple-400 border-purple-400/40' },
+  { id: 'Hatchback', title: 'Budget Hatchbacks', subtitle: 'Economical city & local road drives', icon: Fuel, bgImage: 'https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&w=800&q=80', iconBg: 'bg-amber-500/20 text-amber-400 border-amber-400/40' },
+  { id: 'Sedan', title: 'Highway Sedans', subtitle: 'Smooth, stylish Honda Civic & Corollas', icon: Car, bgImage: 'https://images.unsplash.com/photo-1606220588913-b3aacb4d2f46?auto=format&fit=crop&w=800&q=80', iconBg: 'bg-cyan-500/20 text-cyan-400 border-cyan-400/40' },
 ];
 
 const VEHICLE_TYPES = ['4x4 SUV', 'Prado', 'Van', 'Sedan', 'Hatchback'];
@@ -131,7 +131,7 @@ export default function CarsSection({ onSelectListing, onTriggerSearch }: CarsSe
           return {
             badgeIcon: Car,
             badge: specs?.category || '4x4 Vehicle',
-            note: { icon: User, text: specs?.withDriver ? 'Driver Included' : 'Self-Drive Option' },
+            note: { icon: User, text: specs?.driverMode === 'both' ? 'With driver or self-drive' : specs?.withDriver ? 'With driver' : 'Self-drive' },
             chips: specs ? [
               { icon: Users, text: `${specs.seats} Seats` },
               { icon: Gauge, text: specs.transmission },

@@ -8,6 +8,7 @@ import { AppError, ServiceUnavailableError } from '../../shared/app-error.js';
 import { recordAuditEvent } from '../audit/audit.service.js';
 import type { SessionMetadata } from '../auth/auth.service.js';
 import { todayInPakistan } from '../bookings/stay-dates.js';
+import { shownEnd } from '../bookings/rental.js';
 import { MEMBER_ACCESS } from '../vendors/member-access.js';
 
 export const REVIEW_WINDOW_DAYS = 30;
@@ -78,7 +79,7 @@ export async function createReview(
   await requireDatabase();
   const booking = await BookingModel.findOne({ publicId: bookingId, customerId });
   if (!booking) throw new AppError(404, 'BOOKING_NOT_FOUND', 'Booking not found.');
-  if (!reviewableUntil({ status: booking.status, endDate: booking.checkOut })) {
+  if (!reviewableUntil({ status: booking.status, endDate: shownEnd(booking) })) {
     throw new AppError(409, 'REVIEW_NOT_ALLOWED', `You can review a stay after check-out, for ${REVIEW_WINDOW_DAYS} days. Cancelled and no-show bookings cannot be reviewed.`);
   }
   let review;

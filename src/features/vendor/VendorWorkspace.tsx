@@ -1,13 +1,13 @@
-import { ArrowLeft, BarChart3, Briefcase, Building2, CalendarCheck, ChevronRight, LayoutDashboard, LogOut, Plus, ShieldCheck, Star, Users } from 'lucide-react';
+import { ArrowLeft, BarChart3, Briefcase, Building2, CalendarCheck, ChevronRight, LayoutDashboard, LogOut, Plus, ShieldCheck, Star, TicketPercent, Users } from 'lucide-react';
 import type { ReactNode } from 'react';
 import GBLogo from '../../shared/components/GBLogo';
 
-export type VendorTab = 'overview' | 'properties' | 'new-property' | 'reservations' | 'reviews' | 'reports' | 'team' | 'business' | 'security';
+export type VendorTab = 'overview' | 'properties' | 'new-property' | 'reservations' | 'reviews' | 'promo-codes' | 'reports' | 'team' | 'business' | 'security';
 
 /** Areas the server grants this team member (GET /vendors/me → membership.access). */
 export type MemberArea = 'listings' | 'reservations' | 'reports' | 'team' | 'business';
 const TAB_AREA: Partial<Record<VendorTab, MemberArea>> = {
-  overview: 'listings', properties: 'listings', 'new-property': 'listings', reservations: 'reservations', reviews: 'listings', reports: 'reports', team: 'team', business: 'business',
+  overview: 'listings', properties: 'listings', 'new-property': 'listings', reservations: 'reservations', reviews: 'listings', 'promo-codes': 'listings', reports: 'reports', team: 'team', business: 'business',
 };
 // Before the account loads, show the owner's layout; security is open to everyone.
 export const canOpen = (access: MemberArea[] | undefined, tab: VendorTab) => !TAB_AREA[tab] || !access || access.includes(TAB_AREA[tab]!);
@@ -17,6 +17,7 @@ const navigation = [
   { id: 'properties', label: 'Properties & rooms', icon: Building2 },
   { id: 'reservations', label: 'Reservations', icon: CalendarCheck },
   { id: 'reviews', label: 'Reviews', icon: Star },
+  { id: 'promo-codes', label: 'Promo codes', icon: TicketPercent },
   { id: 'reports', label: 'Reports', icon: BarChart3 },
   { id: 'team', label: 'Team', icon: Users },
   { id: 'business', label: 'Business profile', icon: Briefcase },
@@ -25,10 +26,11 @@ const navigation = [
 
 const titles = (word: string): Record<VendorTab, [string, string]> => ({
   overview: ['Partner dashboard', `Your ${word}s, rooms and reservations in one place.`],
-  properties: [`${word.charAt(0).toUpperCase()}${word.slice(1)}s & rooms`, 'Manage your properties, room categories and publication reviews.'],
-  'new-property': [`Add a ${word}`, 'Create a property draft, add its rooms, then submit it for admin approval.'],
+  properties: word === 'car' ? ['Cars & fleet', 'Manage your cars, daily prices, fleet counts and publication reviews.'] : [`${word.charAt(0).toUpperCase()}${word.slice(1)}s & rooms`, 'Manage your properties, room categories and publication reviews.'],
+  'new-property': word === 'car' ? ['Add a car', 'Create a car draft with its price and photos, then submit it for admin approval.'] : [`Add a ${word}`, 'Create a property draft, add its rooms, then submit it for admin approval.'],
   reservations: ['Reservations', 'Review guest requests and manage upcoming stays.'],
   reviews: ['Guest reviews', 'Read what guests say, reply publicly, or report a review that breaks the rules.'],
+  'promo-codes': ['Promo codes', 'Give guests a discount code. Guests enter it at checkout and pay the reduced total at your property.'],
   reports: ['Reports', 'Occupancy and money per hotel for any dates.'],
   team: ['Team', 'Give managers and reception staff their own sign-in.'],
   business: ['Business profile', 'Your verified business details. Changes are approved by GBBookings before they apply.'],
@@ -36,11 +38,11 @@ const titles = (word: string): Record<VendorTab, [string, string]> => ({
 });
 
 export default function VendorWorkspace({ tab, onTab, businessName, status, access, kind = 'hotel', userName, userEmail, onBrowse, onSignOut, hideHeading = false, children }: {
-  tab: VendorTab; access?: MemberArea[]; kind?: 'hotel' | 'homestay'; hideHeading?: boolean; onTab: (tab: VendorTab) => void; businessName?: string;
+  tab: VendorTab; access?: MemberArea[]; kind?: 'hotel' | 'homestay' | 'car'; hideHeading?: boolean; onTab: (tab: VendorTab) => void; businessName?: string;
   status?: string; userName: string; userEmail: string; onBrowse: () => void;
   onSignOut: () => Promise<void>; children: ReactNode;
 }) {
-  const word = kind === 'homestay' ? 'homestay' : 'hotel';
+  const word = kind;
   const heading = titles(word)[tab];
   return (
     <div className="min-h-dvh bg-[#F5F6F2] font-jakarta text-slate-900 lg:flex">

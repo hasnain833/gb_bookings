@@ -50,12 +50,14 @@ const fieldClass =
 const ACTION_LABELS: Record<VendorBookingAction, string> = {
   confirm: "Confirm", cancel: "Cancel", complete: "Check out", no_show: "No-show", mark_paid: "Mark paid", check_in: "Check in",
 };
+// Car rentals use the same steps: the car is handed over (check in) and returned (complete).
+const CAR_ACTION_LABELS: Partial<Record<VendorBookingAction, string>> = { complete: "Car returned", check_in: "Car handed over" };
 
 // The server decides which actions a booking allows (vendorActions); this only labels them.
 const actionsFor = (booking: Booking) =>
   (booking.vendorActions ?? [])
     .filter((action): action is VendorBookingAction => action !== "change")
-    .map((action) => ({ action, label: action === "cancel" && booking.status === "pending" ? "Decline" : ACTION_LABELS[action] }));
+    .map((action) => ({ action, label: action === "cancel" && booking.status === "pending" ? "Decline" : (booking.rental && CAR_ACTION_LABELS[action]) || ACTION_LABELS[action] }));
 const changeable = (booking: Booking) => Boolean(booking.vendorActions?.includes("change"));
 const nightsBetween = (from: string, to: string) =>
   Math.round(
@@ -102,7 +104,9 @@ function ChangeBookingForm({
     };
   }, [booking.listingId]);
   const room = rooms?.find((item) => item.id === form.roomTypeId);
-  const nights = nightsBetween(form.checkIn, form.checkOut);
+  const car = Boolean(booking.rental);
+  // Car rentals count the return day too.
+  const nights = nightsBetween(form.checkIn, form.checkOut) + (car ? 1 : 0);
   const total =
     room && nights > 0 ? room.basePrice * nights * form.rooms : null;
   const save = async (event: React.FormEvent) => {
@@ -126,12 +130,13 @@ function ChangeBookingForm({
       onSubmit={save}
       className="space-y-3 border-t border-slate-100 bg-slate-50/60 p-4">
       <p className="text-sm text-slate-600">
-        Rooms on the old dates are released and the new ones reserved together.
-        The price is re-quoted at today's rate and the guest is emailed.
+        {car
+          ? "The car's old days are released and the new ones reserved together. The daily price is re-quoted at today's rate; driver and trip charges keep the booked terms. The guest is emailed."
+          : "Rooms on the old dates are released and the new ones reserved together. The price is re-quoted at today's rate and the guest is emailed."}
       </p>
       <div className="grid gap-3 sm:grid-cols-4">
         <label className="text-xs font-semibold text-slate-600">
-          Check-in
+          {car ? "Pickup" : "Check-in"}
           <input
             type="date"
             required
@@ -144,7 +149,7 @@ function ChangeBookingForm({
           />
         </label>
         <label className="text-xs font-semibold text-slate-600">
-          Check-out
+          {car ? "Return" : "Check-out"}
           <input
             type="date"
             required
@@ -157,7 +162,7 @@ function ChangeBookingForm({
           />
         </label>
         <label className="text-xs font-semibold text-slate-600">
-          Room
+          {car ? "Car" : "Room"}
           <select
             required
             value={form.roomTypeId}
@@ -174,7 +179,7 @@ function ChangeBookingForm({
           </select>
         </label>
         <label className="text-xs font-semibold text-slate-600">
-          Rooms
+          {car ? "Cars" : "Rooms"}
           <input
             type="number"
             required
@@ -190,9 +195,9 @@ function ChangeBookingForm({
       </div>
       {total !== null && (
         <p className="text-sm">
-          New total <strong>PKR {total.toLocaleString()}</strong>{" "}
+          {car ? "New car price" : "New total"} <strong>PKR {total.toLocaleString()}</strong>{" "}
           <span className="text-slate-500">
-            (was PKR {booking.totalPrice.toLocaleString()} · {nights} night
+            {car ? "plus driver and trip charges " : ""}(was PKR {booking.totalPrice.toLocaleString()} in total · {nights} {car ? "day" : "night"}
             {nights === 1 ? "" : "s"})
           </span>
         </p>
@@ -503,7 +508,7 @@ export default function VendorReservations({
                       {booking.checkedInAt &&
                         booking.status === "confirmed" && (
                           <span className="rounded-full bg-sky-100 px-2.5 py-1 text-xs font-semibold text-sky-900">
-                            Checked in
+                            {booking.rental ? "Car out" : "Checked in"}
                           </span>
                         )}
                     </div>
@@ -520,9 +525,10 @@ export default function VendorReservations({
                     <p className="text-sm text-slate-600">
                       {formatDateForDisplay(booking.startDate)} →{" "}
                       {formatDateForDisplay(booking.endDate)} ·{" "}
-                      {booking.duration} night
+                      {booking.duration} {booking.rental ? "day" : "night"}
                       {booking.duration === 1 ? "" : "s"} · {booking.rooms ?? 1}{" "}
                       × {booking.roomName ?? "Room"}
+                      {booking.rental ? ` · ${booking.rental.driver ? "with driver" : "self-drive"}` : ""}
                     </p>
                     <p className="text-xs text-slate-500">
                       <span className="font-mono">{booking.reference}</span> ·{" "}
@@ -630,7 +636,24 @@ export default function VendorReservations({
 }
 
 function ReservationDetails({ booking }: { booking: Booking }) {
-  const rows: Array<[string, string | undefined]> = [
+  const rental = booking.rental;
+  const rows: Array<[string, string | undefined]> = rental ? [
+    ["Guest email", booking.customerEmail],
+    ["Guest phone", booking.customerPhone],
+    ["Passengers", String(booking.guests ?? booking.adults ?? 1)],
+    ["Pickup", `${formatDateForDisplay(booking.startDate)} at ${rental.pickupTime} · ${rental.pickupPlace}`],
+    ["Return", `${formatDateForDisplay(booking.endDate)} · ${rental.dropoffPlace}${rental.oneWay ? ` (one-way${rental.oneWayOnRequest ? ", fee to agree with the guest" : ""})` : ""}`],
+    ["Driver", rental.driver ? `With driver${rental.driverPerDay ? ` · PKR ${rental.driverPerDay.toLocaleString()}/day` : ""}` : `Self-drive · licence ${rental.licenceNumber ?? "—"}${rental.deposit ? ` · collect deposit PKR ${rental.deposit.toLocaleString()}` : ""}`],
+    ["Trip", rental.outsideBaseCity ? `Leaves the base city${rental.outsidePerDay ? ` · +PKR ${rental.outsidePerDay.toLocaleString()}/day` : ""}` : "Within the base city"],
+    ["Fuel", rental.fuelIncluded ? "Included" : "Paid by the guest"],
+    ["Rate", booking.nightlyRate ? `PKR ${booking.nightlyRate.toLocaleString()} × ${booking.duration} day(s) × ${booking.rooms ?? 1} car(s)` : undefined],
+    ["Driver & trip charges", booking.extrasTotal ? `PKR ${booking.extrasTotal.toLocaleString()}` : undefined],
+    ["Promo code", booking.couponCode ? `${booking.couponCode} · ${booking.couponLabel} (−PKR ${(booking.discount ?? 0).toLocaleString()})` : undefined],
+    ["Total", `PKR ${booking.totalPrice.toLocaleString()}`],
+    ["Handed over", booking.checkedInAt ? new Date(booking.checkedInAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" }) : undefined],
+    ["Payment", booking.paymentStatus === "paid" ? `Paid${booking.paidAt ? ` · recorded ${new Date(booking.paidAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}` : ""}` : "Collect at pickup"],
+    ["Booked on", formatDateForDisplay(booking.createdAt)],
+  ] : [
     ["Guest email", booking.customerEmail],
     ["Guest phone", booking.customerPhone],
     [
@@ -657,6 +680,7 @@ function ReservationDetails({ booking }: { booking: Booking }) {
         ? `${booking.meals.map((meal) => meal.type).join(", ")} · PKR ${(booking.mealsTotal ?? 0).toLocaleString()} (per guest per night: ${booking.meals.map((meal) => `${meal.type} ${meal.price.toLocaleString()}`).join(", ")})`
         : undefined,
     ],
+    ["Promo code", booking.couponCode ? `${booking.couponCode} · ${booking.couponLabel} (−PKR ${(booking.discount ?? 0).toLocaleString()})` : undefined],
     ["Total", `PKR ${booking.totalPrice.toLocaleString()}`],
     [
       "Arrival",

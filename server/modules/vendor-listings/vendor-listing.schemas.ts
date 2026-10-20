@@ -29,6 +29,36 @@ const homestaySpecs = z.object({
     .refine((meals) => new Set(meals.map((meal) => meal.type)).size === meals.length, 'List each meal once.'),
 }).strict();
 
+export const carCategories = ['Sedan', 'Hatchback', 'SUV', '4x4 Jeep', 'Van', 'Coaster'] as const;
+const pkr = z.number().int().min(0).max(1_000_000);
+
+// What a car is and its rental terms (PKR). The daily rate and fleet count live on the car's single booking unit.
+export const carSpecsSchema = z.object({
+  make: z.string().trim().min(2).max(60),
+  model: z.string().trim().min(1).max(60),
+  year: z.number().int().min(1980).max(2100),
+  category: z.enum(carCategories),
+  transmission: z.enum(['Automatic', 'Manual']),
+  fuelType: z.enum(['Petrol', 'Diesel', 'Hybrid', 'Electric']),
+  seats: z.number().int().min(1).max(40),
+  luggage: z.number().int().min(0).max(40).optional(),
+  features: cleanList,
+  driverMode: z.enum(['with_driver', 'self_drive', 'both']),
+  // Added per day when the guest rents with a driver; 0 when the daily rate already includes one.
+  driverPerDay: pkr.default(0),
+  fuelIncluded: z.boolean(),
+  // Added per day when the trip leaves the base city (the listing location); absent = same price everywhere.
+  outsideCityPerDay: pkr.optional(),
+  oneWay: z.enum(['not_offered', 'flat', 'on_request']),
+  oneWayFee: pkr.optional(),
+  // Self-drive only: refundable deposit paid at pickup, and the youngest driver accepted.
+  deposit: pkr.optional(),
+  minDriverAge: z.number().int().min(18).max(30).optional(),
+  pickupNote: z.string().trim().max(500).optional(),
+}).strict()
+  .refine((specs) => specs.oneWay !== 'flat' || specs.oneWayFee !== undefined, { message: 'Set the one-way drop-off fee.', path: ['oneWayFee'] })
+  .refine((specs) => specs.driverMode === 'with_driver' || specs.minDriverAge !== undefined, { message: 'Set the minimum age for self-drive renters.', path: ['minDriverAge'] });
+
 export const stayInfoSchema = z.object({
   childrenAllowed: z.boolean(),
   minCheckInAge: z.number().int().min(0).max(30).optional(),
@@ -47,7 +77,7 @@ export const stayInfoSchema = z.object({
 }).strict();
 
 const listingFields = z.object({
-  type: z.enum(['hotel', 'homestay']).default('hotel'),
+  type: z.enum(['hotel', 'homestay', 'car']).default('hotel'),
   title: z.string().trim().min(2).max(160),
   location: z.string().trim().min(2).max(240),
   description: z.string().trim().min(20).max(10_000),
@@ -61,9 +91,11 @@ const listingFields = z.object({
     policies: cleanList,
     checkInTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
     checkOutTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
-  }).strict(),
+  }).strict().optional(),
+  carSpecs: carSpecsSchema.optional(),
   homestaySpecs: homestaySpecs.optional(),
-  stayInfo: stayInfoSchema.optional(),
+  // Cars only say how guests can pay at pickup; hotels and homestays fill in the full policies.
+  stayInfo: z.union([stayInfoSchema, stayInfoSchema.pick({ paymentMethods: true }).strict()]).optional(),
   // Map pin, e.g. from a pasted Google Maps link. Pakistan sits well inside these bounds.
   coordinates: z.object({ lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180) }).strict().optional(),
 }).strict();
@@ -71,7 +103,8 @@ const listingFields = z.object({
 export const createHotelListingSchema = listingFields.refine(
   (input) => input.type !== 'homestay' || input.homestaySpecs,
   { message: 'Homestays need a host name and experience type.', path: ['homestaySpecs'] },
-);
+).refine((input) => input.type === 'car' || input.hotelSpecs, { message: 'Add the property details.', path: ['hotelSpecs'] })
+  .refine((input) => input.type !== 'car' || input.carSpecs, { message: 'Add the car details.', path: ['carSpecs'] });
 
 // The listing type and a homestay's stay type are fixed at creation; omitting type also stops its default from applying to partial updates.
 export const updateHotelListingSchema = listingFields.omit({ type: true }).extend({ homestaySpecs: homestaySpecs.omit({ stayType: true }).optional() }).partial().strict().refine(
@@ -86,7 +119,7 @@ export const roomTypeSchema = z.object({
   name: z.string().trim().min(2).max(120),
   description: z.string().trim().max(2_000).optional(),
   bedType: z.string().trim().min(2).max(80),
-  maxAdults: z.number().int().min(1).max(20),
+  maxAdults: z.number().int().min(1).max(40),
   maxChildren: z.number().int().min(0).max(20),
   totalRooms: z.number().int().min(1).max(10_000),
   basePrice: z.number().int().nonnegative(),

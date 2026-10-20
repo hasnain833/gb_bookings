@@ -10,7 +10,7 @@ const hotelRoomTypeSchema = new Schema({
   name: { type: String, required: true, trim: true, maxlength: 120 },
   description: { type: String, trim: true, maxlength: 2_000 },
   bedType: { type: String, required: true, trim: true, maxlength: 80 },
-  maxAdults: { type: Number, required: true, min: 1, max: 20 },
+  maxAdults: { type: Number, required: true, min: 1, max: 40 },
   maxChildren: { type: Number, required: true, min: 0, max: 20 },
   totalRooms: { type: Number, required: true, min: 1, max: 10_000 },
   inventoryVersion: { type: Number, default: 0 },

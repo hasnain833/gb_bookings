@@ -1,6 +1,8 @@
 import type {
   Booking,
   Listing,
+  BookingRental,
+  CarSpecs,
   ListingType,
   MealType,
   Review,
@@ -199,12 +201,12 @@ export interface ListingPhoto { url: string; caption?: string }
 /** Photo sent when saving: an existing photo by url, or a fresh upload by mediaId. First is the cover. */
 export interface PhotoInput { url?: string; mediaId?: string; caption?: string }
 
-type ListingContent = Pick<VendorListing, 'title' | 'location' | 'description' | 'hotelSpecs' | 'homestaySpecs'> & { photos: ListingPhoto[]; coordinates?: { type: 'Point'; coordinates: [number, number] } };
+type ListingContent = Pick<VendorListing, 'title' | 'location' | 'description' | 'hotelSpecs' | 'homestaySpecs' | 'carSpecs'> & { photos: ListingPhoto[]; coordinates?: { type: 'Point'; coordinates: [number, number] } };
 type RoomContent = Pick<VendorRoom, 'name' | 'description' | 'bedType' | 'maxAdults' | 'maxChildren' | 'amenities' | 'photos'>;
 
 export interface VendorListing {
   id: string;
-  type: 'hotel' | 'homestay';
+  type: 'hotel' | 'homestay' | 'car';
   title: string;
   location: string;
   description: string;
@@ -222,9 +224,16 @@ export interface VendorListing {
   updatedAt?: string;
   hotelSpecs?: { hotelType: string; amenities: string[]; facilities: string[]; policies: string[]; checkInTime: string; checkOutTime: string };
   homestaySpecs?: HomestaySpecs;
+  carSpecs?: CarSpecs;
   coordinates?: LatLng;
+  /** Cars only set paymentMethods. */
   stayInfo?: StayInfo;
 }
+
+/** Cars only say how guests can pay at pickup. */
+export type ListingStayInfoInput = StayInfo | Pick<StayInfo, 'paymentMethods'>;
+export type CarSpecsInput = Omit<CarSpecs, 'withDriver' | 'make' | 'model' | 'year' | 'driverMode' | 'fuelIncluded' | 'oneWay' | 'features'>
+  & Required<Pick<CarSpecs, 'make' | 'model' | 'year' | 'driverMode' | 'fuelIncluded' | 'oneWay' | 'features'>>;
 
 export interface VendorRoom {
   id: string;
@@ -265,6 +274,8 @@ export interface ListingFilters {
   breakfast?: 'true';
   category?: string;
   transmission?: 'Automatic' | 'Manual';
+  /** Cars: cars offering a driver, or self-drive. */
+  driver?: 'with_driver' | 'self_drive';
   sort?: 'recommended' | 'price-asc' | 'price-desc' | 'rating' | 'newest';
   limit?: number;
   page?: number;
@@ -283,8 +294,18 @@ export interface RoomAvailability {
   bookable: boolean;
   nightlyRate: number;
   roomTotal: number;
-  /** Room total plus the chosen meals. */
+  /** Car rentals: driver, out-of-city and one-way charges. */
+  extrasTotal?: number;
+  /** PKR taken off by the promo code, when one was quoted. */
+  discount?: number;
+  /** Room total plus the chosen meals, less any promo code discount. */
   totalPrice: number;
+}
+
+/** A partner's promo code; `value` is a percent or PKR depending on `kind`. */
+export interface PartnerCoupon {
+  id: string; code: string; kind: 'percent' | 'amount'; value: number;
+  validUntil?: string; maxUses?: number; uses: number; active: boolean; createdAt: string;
 }
 
 export interface ListingAvailability {
@@ -296,6 +317,10 @@ export interface ListingAvailability {
   /** Last day the guest can cancel for free; absent when the stay starts today. */
   freeCancellationUntil?: string;
   mealsTotal: number;
+  /** The promo code applied to the quote. */
+  coupon?: { code: string; label: string };
+  /** Car rentals: what the driver, out-of-city and one-way choices resolved to. */
+  rental?: BookingRental;
   rooms: RoomAvailability[];
 }
 
@@ -311,6 +336,9 @@ export interface CreateBookingInput {
   specialRequests?: string;
   /** Paid homestay meals; included ones are not sent. */
   meals?: MealType[];
+  couponCode?: string;
+  /** Car rentals; then checkOut is the return date, adults are passengers and rooms are cars. */
+  rental?: { driver: boolean; pickupPlace: string; pickupTime: string; dropoffPlace?: string; outsideBaseCity: boolean; oneWay: boolean; licenceNumber?: string };
   expectedTotalMinor?: number;
 }
 
@@ -486,7 +514,8 @@ export const api = {
     type: VendorListing['type'];
     homestaySpecs?: HomestaySpecsInput;
     coordinates?: LatLng;
-    stayInfo?: StayInfo;
+    stayInfo?: ListingStayInfoInput;
+    carSpecs?: CarSpecsInput;
     title: string;
     location: string;
     description: string;
@@ -494,12 +523,12 @@ export const api = {
     imageIds: string[];
     /** Same photos as imageIds, with order and captions. */
     photos?: PhotoInput[];
-    hotelSpecs: { hotelType: string; amenities: string[]; facilities: string[]; policies: string[]; checkInTime: string; checkOutTime: string };
+    hotelSpecs?: { hotelType: string; amenities: string[]; facilities: string[]; policies: string[]; checkInTime: string; checkOutTime: string };
   }) {
     return request<{ data: VendorListing }>('/api/v1/vendor/listings', { method: 'POST', body: JSON.stringify(input) });
   },
 
-  updateHotelListing(listingId: string, input: Partial<Pick<VendorListing, 'title' | 'location' | 'description' | 'hotelSpecs'>> & { homestaySpecs?: Omit<HomestaySpecsInput, 'stayType'>; coordinates?: LatLng; stayInfo?: StayInfo; imageIds?: string[]; photos?: PhotoInput[] }) {
+  updateHotelListing(listingId: string, input: Partial<Pick<VendorListing, 'title' | 'location' | 'description' | 'hotelSpecs'>> & { homestaySpecs?: Omit<HomestaySpecsInput, 'stayType'>; carSpecs?: CarSpecsInput; coordinates?: LatLng; stayInfo?: ListingStayInfoInput; imageIds?: string[]; photos?: PhotoInput[] }) {
     return request<{ data: VendorListing }>(`/api/v1/vendor/listings/${encodeURIComponent(listingId)}`, {
       method: 'PATCH', body: JSON.stringify(input),
     }).then((result) => result.data);
@@ -601,7 +630,7 @@ export const api = {
     return request<Paginated<Booking>>(`/api/v1/bookings${queryString({ page, status })}`);
   },
 
-  getListingAvailability(listingId: string, params: { checkIn: string; checkOut: string; adults: number; children?: number; rooms?: number; meals?: MealType[] }) {
+  getListingAvailability(listingId: string, params: { checkIn: string; checkOut: string; adults: number; children?: number; rooms?: number; meals?: MealType[]; coupon?: string; driver?: boolean; outsideBaseCity?: boolean; oneWay?: boolean }) {
     const query = new URLSearchParams({
       checkIn: params.checkIn,
       checkOut: params.checkOut,
@@ -609,6 +638,10 @@ export const api = {
       children: String(params.children ?? 0),
       rooms: String(params.rooms ?? 1),
       ...(params.meals?.length ? { meals: params.meals.join(',') } : {}),
+      ...(params.coupon ? { coupon: params.coupon } : {}),
+      ...(params.driver !== undefined ? { driver: String(params.driver) } : {}),
+      ...(params.outsideBaseCity ? { outsideBaseCity: 'true' } : {}),
+      ...(params.oneWay ? { oneWay: 'true' } : {}),
     });
     return request<ListingAvailability>(`/api/v1/listings/${encodeURIComponent(listingId)}/availability?${query}`);
   },
@@ -651,6 +684,15 @@ export const api = {
   },
   createReview(bookingId: string, input: { overall: number; scores: Partial<Record<ReviewCategory, number>>; liked?: string; disliked?: string }) {
     return request<{ data: Review }>(`/api/v1/bookings/${encodeURIComponent(bookingId)}/review`, { method: 'POST', body: JSON.stringify(input) }).then((result) => result.data);
+  },
+  getPartnerCoupons() {
+    return request<{ data: PartnerCoupon[] }>('/api/v1/vendor/coupons').then((result) => result.data);
+  },
+  createPartnerCoupon(input: { code: string; kind: 'percent' | 'amount'; value: number; validUntil?: string; maxUses?: number }) {
+    return request<{ data: PartnerCoupon }>('/api/v1/vendor/coupons', { method: 'POST', body: JSON.stringify(input) }).then((result) => result.data);
+  },
+  setPartnerCouponActive(couponId: string, active: boolean) {
+    return request<{ data: PartnerCoupon }>(`/api/v1/vendor/coupons/${encodeURIComponent(couponId)}/active`, { method: 'POST', body: JSON.stringify({ active }) }).then((result) => result.data);
   },
   getPartnerReviews(params: { listingId?: string; page?: number } = {}) {
     return request<Paginated<Review>>(`/api/v1/vendor/reviews${queryString(params)}`);

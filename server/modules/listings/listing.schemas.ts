@@ -25,6 +25,9 @@ export const listListingsQuerySchema = z.object({
   // Landing-page category chip: substring of the hotel type (hotels) or vehicle category (cars).
   category: z.string().trim().max(80).optional(),
   transmission: z.enum(['Automatic', 'Manual']).optional(),
+  // Cars: 'with_driver' also matches cars offering both; so does 'self_drive'. With dates, checkOut is the return date.
+  driver: z.enum(['with_driver', 'self_drive']).optional(),
+  fuelIncluded: z.literal('true').transform(() => true).optional(),
 }).refine((query) => Boolean(query.checkIn) === Boolean(query.checkOut), {
   message: 'checkIn and checkOut must be provided together.', path: ['checkOut'],
 }).refine((query) => query.minPrice === undefined || query.maxPrice === undefined || query.minPrice <= query.maxPrice, {

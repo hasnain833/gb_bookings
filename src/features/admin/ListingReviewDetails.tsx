@@ -21,7 +21,7 @@ function Changes({ before, after }: { before: Record<string, unknown>; after: Re
   const rows = flat(after).filter(([key, value]) => key !== 'photos' && text(old.get(key)) !== text(value));
   return <>
     {rows.length > 0 && <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">{rows.map(([key, value]) => <div key={key} className="contents">
-      <dt className="capitalize text-slate-500">{key.replace(/^(hotelSpecs|homestaySpecs)\./, '').replace(/([A-Z])/g, ' $1').toLowerCase()}</dt>
+      <dt className="capitalize text-slate-500">{key.replace(/^(hotelSpecs|homestaySpecs|carSpecs)\./, '').replace(/([A-Z])/g, ' $1').toLowerCase()}</dt>
       <dd className="whitespace-pre-wrap"><span className="text-slate-500 line-through">{text(old.get(key))}</span> → <strong className="text-slate-900">{text(value)}</strong></dd>
     </div>)}</dl>}
     {Array.isArray(after.photos) && <div className="space-y-1"><p className="text-xs font-semibold text-slate-600">New photo set (first is the cover)</p><Photos photos={after.photos as ListingPhoto[]} label="Proposed photo" /></div>}
@@ -66,7 +66,16 @@ export default function ListingReviewDetails({ listing }: { listing: VendorListi
         {listing.homestaySpecs.hostBio && <p className="sm:col-span-2">{listing.homestaySpecs.hostBio}</p>}
       </dl>
     </div>}
-    {listing.stayInfo && <p className="text-xs text-slate-600"><span className="font-semibold">Policies & essentials: </span>{[
+    {listing.carSpecs && <dl className="grid gap-1 rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-600 sm:grid-cols-2">
+      {([['Car', `${listing.carSpecs.make ?? ''} ${listing.carSpecs.model ?? ''} ${listing.carSpecs.year ?? ''}`.trim()], ['Type', `${listing.carSpecs.category} · ${listing.carSpecs.transmission} · ${listing.carSpecs.fuelType}`],
+        ['Seats / bags', `${listing.carSpecs.seats} / ${listing.carSpecs.luggage ?? '—'}`], ['Driver', `${listing.carSpecs.driverMode ?? '—'}${listing.carSpecs.driverPerDay ? ` · PKR ${listing.carSpecs.driverPerDay}/day` : ''}`],
+        ['Fuel', listing.carSpecs.fuelIncluded ? 'Included' : 'Paid by guest'], ['Outside base city', listing.carSpecs.outsideCityPerDay !== undefined ? `+PKR ${listing.carSpecs.outsideCityPerDay}/day` : 'Same price'],
+        ['One-way', listing.carSpecs.oneWay === 'flat' ? `PKR ${listing.carSpecs.oneWayFee}` : listing.carSpecs.oneWay ?? '—'], ['Self-drive', listing.carSpecs.driverMode === 'with_driver' ? 'No' : `age ${listing.carSpecs.minDriverAge} · deposit PKR ${listing.carSpecs.deposit ?? 0}`],
+        ['Features', text(listing.carSpecs.features)], ['Pay at pickup', text(listing.stayInfo?.paymentMethods)],
+      ] as const).map(([term, value]) => <div key={term}><dt className="inline font-semibold">{term}: </dt><dd className="inline">{value || '—'}</dd></div>)}
+      {listing.carSpecs.pickupNote && <p className="sm:col-span-2">{listing.carSpecs.pickupNote}</p>}
+    </dl>}
+    {listing.stayInfo && listing.type !== 'car' && <p className="text-xs text-slate-600"><span className="font-semibold">Policies & essentials: </span>{[
       `children ${listing.stayInfo.childrenAllowed ? 'yes' : 'no'}`, `pets ${listing.stayInfo.petsAllowed ? 'yes' : 'no'}`, `pay by ${text(listing.stayInfo.paymentMethods)}`,
       `power backup ${text(listing.stayInfo.powerBackup)}`, `heating ${text(listing.stayInfo.heating)}`, `hot water ${listing.stayInfo.hotWater}`,
       `signal ${text(listing.stayInfo.mobileNetworks)}`, `road ${listing.stayInfo.roadAccess}${listing.stayInfo.roadNote ? ` (${listing.stayInfo.roadNote})` : ''}`, `open months ${text(listing.stayInfo.openMonths)}`,
@@ -75,7 +84,7 @@ export default function ListingReviewDetails({ listing }: { listing: VendorListi
       ? <a href={mapLink(listing.coordinates.lat, listing.coordinates.lng)} target="_blank" rel="noreferrer" className="font-semibold text-[#006F3C] underline">{listing.coordinates.lat}, {listing.coordinates.lng}</a>
       : 'not set'}</p>
     {listing.hotelSpecs && <dl className="grid gap-2 text-xs text-slate-600"><div><dt className="font-semibold">Check-in / check-out</dt><dd>{listing.hotelSpecs.checkInTime} / {listing.hotelSpecs.checkOutTime}</dd></div>{(['amenities', 'facilities', 'policies'] as const).map((key) => <div key={key}><dt className="font-semibold capitalize">{key}</dt><dd>{listing.hotelSpecs?.[key].join(', ') || 'None provided'}</dd></div>)}</dl>}
-    <h3 className="text-sm font-semibold">Room categories for approval</h3>
+    <h3 className="text-sm font-semibold">{listing.type === 'car' ? 'Daily price and fleet count' : 'Room categories for approval'}</h3>
     {loading && <p role="status" className="text-xs text-slate-500">Loading rooms…</p>}
     {error && <div role="alert" className="text-xs text-rose-700">{error}<button type="button" onClick={() => setAttempt((value) => value + 1)} className="ml-2 min-h-11 underline">Try again</button></div>}
     {!loading && !error && rooms.length === 0 && <p className="text-xs text-slate-500">No room categories.</p>}

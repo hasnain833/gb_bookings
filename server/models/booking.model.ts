@@ -54,8 +54,34 @@ const bookingSchema = new Schema({
     nightlyRateMinor: { type: Number, required: true, min: 0 },
     subtotalMinor: { type: Number, required: true, min: 0 },
     mealsMinor: { type: Number, min: 0, default: 0 },
+    // Partner promo code discount, taken off room + meals.
+    discountMinor: { type: Number, min: 0, default: 0 },
+    // Car rentals: driver, out-of-city and one-way charges.
+    extrasMinor: { type: Number, min: 0, default: 0 },
     totalMinor: { type: Number, required: true, min: 0 },
   },
+  // Car rentals: where and when the guest takes the car, and the car's terms at booking time (minor units).
+  // `checkOut` is the day after the return date, so rented days count like hotel nights (see bookings/rental.ts).
+  rental: {
+    type: new Schema({
+      pickupPlace: { type: String, trim: true, maxlength: 200 },
+      pickupTime: { type: String, match: /^([01]\d|2[0-3]):[0-5]\d$/ },
+      dropoffPlace: { type: String, trim: true, maxlength: 200 },
+      licenceNumber: { type: String, trim: true, maxlength: 30 },
+      driver: Boolean,
+      driverPerDayMinor: Number,
+      outsideBaseCity: Boolean,
+      outsidePerDayMinor: Number,
+      oneWay: Boolean,
+      oneWayOnRequest: Boolean,
+      oneWayFeeMinor: Number,
+      fuelIncluded: Boolean,
+      depositMinor: Number,
+    }, { _id: false }),
+    default: undefined,
+  },
+  // Promo code terms at booking time, so a re-quote applies the same deal.
+  coupon: { type: new Schema({ code: String, kind: { type: String, enum: ['percent', 'amount'] }, value: Number }, { _id: false }), default: undefined },
   paymentMethod: { type: String, enum: paymentMethods, required: true },
   paymentStatus: { type: String, enum: ['pending', 'paid', 'refunded'], default: 'pending' },
   paidAt: { type: Date },

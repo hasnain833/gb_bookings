@@ -488,7 +488,7 @@ export default function App() {
               destination: searchParams.destination,
               startDate: searchParams.dates,
               endDate: '',
-              extra: { guestCount: searchParams.guests, experience: searchParams.experience }
+              extra: { guestCount: searchParams.guests, experience: searchParams.experience, withDriver: (searchParams as { extra?: { withDriver?: boolean } }).extra?.withDriver }
             }}
             onSelectListing={handleSelectListing}
           />

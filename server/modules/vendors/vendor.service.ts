@@ -19,7 +19,12 @@ import { canAccess } from './member-access.js';
 const REQUIRED_DOCUMENTS: Record<string, string[]> = {
   hotel: ['business_registration', 'identity'],
   homestay: ['identity', 'property_authorization'],
+  // Car partners: rental companies add a business registration number; owner-drivers add their driving licence instead.
+  vehicle: ['identity', 'vehicle_registration'],
 };
+
+/** Business types verified without a registration number (owner-drivers are individuals). */
+const NO_REGISTRATION = ['homestay', 'vehicle'];
 
 async function requireDatabase() {
   if (!await connectDatabase()) throw new ServiceUnavailableError('Vendor services are unavailable while the database is disconnected.');
@@ -125,7 +130,8 @@ export async function submitOwnVendor(userId: string, metadata: SessionMetadata)
   if (!['draft', 'rejected'].includes(vendor.status)) throw new AppError(409, 'INVALID_VENDOR_STATUS', 'This vendor application cannot be submitted.');
   const attached = new Set(vendor.verificationDocuments.map((document: any) => document.type));
   const missing = [
-    !vendor.registrationNumber && vendor.businessType !== 'homestay' && 'registrationNumber',
+    !vendor.registrationNumber && !NO_REGISTRATION.includes(vendor.businessType) && 'registrationNumber',
+    vendor.businessType === 'vehicle' && !vendor.registrationNumber && !attached.has('driving_licence') && 'driving_licence',
     !vendor.address?.line1 && 'address',
     vendor.verificationDocuments.length === 0 && 'verificationDocuments',
     ...(REQUIRED_DOCUMENTS[vendor.businessType] ?? []).filter((type) => !attached.has(type)),
@@ -147,7 +153,7 @@ export async function requestVendorChanges(userId: string, input: any, metadata:
   const { vendor, membership } = await getOwnVendor(userId);
   if (!canAccess(membership.role, 'business')) throw new AppError(403, 'PERMISSION_DENIED', 'Only the business owner can request changes.');
   if (vendor.status !== 'approved') throw new AppError(409, 'INVALID_VENDOR_STATUS', 'Only approved businesses can request changes.');
-  if (!input.registrationNumber && vendor.businessType !== 'homestay') throw new AppError(400, 'VALIDATION_ERROR', 'Hotel businesses must keep a registration number.');
+  if (!input.registrationNumber && !NO_REGISTRATION.includes(vendor.businessType)) throw new AppError(400, 'VALIDATION_ERROR', 'Hotel businesses must keep a registration number.');
   vendor.pendingChanges = { ...input, requestedAt: new Date() };
   vendor.changeRejectionReason = null;
   await vendor.save();

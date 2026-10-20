@@ -37,7 +37,7 @@ All 12 Phase 1 (Hotels) items are built. These are the open tasks.
 
 - [x] Reviews and ratings (Phase 2) — see Homestays section.
 - [ ] Online payments and refunds — JazzCash, Easypaisa, card (Phase 2)
-- [ ] Coupons and promotional offers (Phase 2)
+- [x] Coupons (Phase 2) — partner promo codes, see Homestays section
 - [ ] Downloadable PDF vouchers and invoices (Phase 2)
 - [ ] Per-hotel cancellation policies, seasonal/weekend pricing, taxes and fees — depend on the Phase 2 payment rules
 
@@ -63,7 +63,27 @@ Payments are deferred: guests pay at check-in, as for hotels.
 ## Still to do in Phase 2
 - [ ] Click through the homestay screens in a browser (registration, wizard, listing page, booking with meals, admin review).
 - [x] **Reviews and ratings (hotels and homestays)** — guests review a finished stay once, up to 30 days after check-out (completed, or confirmed and past check-out): overall 1–5 stars plus staff, cleanliness, comfort, value, location and optional WiFi, with "liked / could be better" text. Listing rating, review count and category averages update automatically. Partners reply publicly (Reviews tab, owner/manager) and can report a review; the admin hides or restores reviews and dismisses reports (Guest reviews tab). Reviews cannot be edited after posting.
-- [ ] PDF vouchers and invoices
-- [ ] Coupons and promotional offers
+- [x] **PDF vouchers and receipts** — My Bookings → View reservation → "Print or save as PDF" (browser print; the file is named after the booking reference). Once marked paid it reads as a payment receipt. No server-generated PDF or tax invoice; the property issues its own invoice since guests pay there.
+- [x] **Promo codes (partner-made)** — Partner dashboard → Promo codes (owner/manager/listings): % off (max 90) or PKR off, optional "book by" date and max uses; codes cover all the partner's properties and can be switched off, not edited. Guests enter the code on the checkout review step; the server prices it (room + meals), takes a use inside the booking transaction, gives it back on cancellation, and keeps the same terms when the property changes the booking. Shown on the voucher, the emails and the partner's reservation details. Not run against a real database yet.
+- [ ] Offers page promo codes are old listing data, not real coupons, and still say "coming soon". Link offers to partner codes, or remove them.
+- [ ] Platform-wide (admin) coupons — not built; the owner chose partner codes because guests pay the property.
 - [ ] Online payments, wallet and refunds — deferred by the owner; pay at check-in for now
 - [ ] Distance (e.g. "12 km from Karimabad") — not built; the map and directions link cover finding the place
+
+# Cars (Phase 4, started before Tours at the owner's request) — status
+
+Same engine as hotels: one car listing is one car model with one fleet entry (a room type: count = number of identical cars, price = per day, seats = capacity). Rented days include pickup and return; bookings store the day after return as `checkOut`, so inventory, changes, cancellations and reports work unchanged (see `server/modules/bookings/rental.ts`). Payments: at pickup.
+
+## Built (2026-10-19)
+- [x] **Car partners** — "Become a partner" → Cars: rental company (registration number) or owner-driver (CNIC + driving licence). Both upload vehicle registration. One account is one partner type.
+- [x] **Add car wizard** — car (make, model, year, type, gearbox, fuel, seats, bags, features) → base city, map, description → price per day, number of cars, driver (with / self-drive / guest chooses), driver charge per day, fuel included or not, extra per day outside the base city, one-way drop-off (flat fee or on request), self-drive deposit and minimum age, pickup notes, payment at pickup → photos → review.
+- [x] **Partner workspace** — "Cars & fleet": Price & fleet tab (price/count/on-off, 14-day strip, calendar closures for maintenance), car Details editor (live edits wait for review; seats and type follow onto the fleet entry), Rentals tab. Reservations say "Car handed over" / "Car returned" and show pickup, drop-off, driver, licence and deposit.
+- [x] **Guests** — Cars landing categories filter by car type; search has pickup/return dates (only free cars), passengers, driver and transmission filters; car page shows specs and terms and a booking panel (pickup/return/time, passengers, cars, driver choice, pickup place, outside-city, one-way + drop-off place) with a server-priced breakdown; checkout asks self-drive renters for a licence number; voucher, emails and My Bookings use car wording. Promo codes work on cars.
+- [x] **Admin** — car partners and cars go through the existing review screens with car details shown.
+
+## Still to do for Cars
+- [ ] Click through the car screens in a browser (registration, wizard, workspace, search, booking, admin review). The server flow was checked end to end on a throwaway database (quote, booking, promo code, sold out, self-drive licence, search, change, cancel, hotel regression).
+- [ ] Handover photos, fuel and odometer records at pickup/return — add if damage disputes come up.
+- [ ] Route fare tables (e.g. Gilgit → Skardu) — the one-way fee and outside-city charge cover it for now.
+- [ ] Old platform-owned car listings (no partner, no price unit) still show "coming soon" on their page.
+- [ ] Reviews use hotel categories (staff, cleanliness, comfort, value, location); cars may want driver/vehicle-condition categories.

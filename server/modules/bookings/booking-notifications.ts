@@ -1,6 +1,7 @@
 import { VendorModel } from '../../models/vendor.model.js';
 import { escapeHtml } from '../email/auth-email.templates.js';
 import { isEmailConfigured, sendTransactionalEmail } from '../email/resend.service.js';
+import { shownEnd } from './rental.js';
 
 export type BookingEvent = 'created' | 'confirmed' | 'cancelled' | 'changed';
 
@@ -16,16 +17,30 @@ const vendorCopy: Partial<Record<BookingEvent, { subject: string; message: strin
   cancelled: { subject: 'Booking cancelled', message: 'A booking at your property has been cancelled and the rooms have been released.' },
 };
 
+/** The same emails for car rentals, in car words. */
+const carWords = (message: string) => message
+  .replace('at the property on arrival', 'at pickup').replace('at your property', 'for your car')
+  .replace('the rooms have been released', 'the car is free again on those days').replace(/the property/g, 'the car partner');
+
 function bookingEmail(title: string, name: string, message: string, booking: any, reason?: string) {
+  if (booking.rental) message = carWords(message);
   const rows: [string, string][] = [
     ['Reference', booking.reference],
     ['Property', booking.listingSnapshot.title],
     ['Room', `${booking.roomSnapshot.name} × ${booking.rooms}`],
-    ['Check-in', booking.checkIn],
-    ['Check-out', `${booking.checkOut} (${booking.nights} night${booking.nights === 1 ? '' : 's'})`],
+    ...(booking.rental ? [
+      ['Pickup', `${booking.checkIn} at ${booking.rental.pickupTime}, ${booking.rental.pickupPlace}`],
+      ['Return', `${shownEnd(booking)}, ${booking.rental.dropoffPlace} (${booking.nights} day${booking.nights === 1 ? '' : 's'})`],
+      ['Driver', booking.rental.driver ? 'With driver' : `Self-drive${booking.rental.depositMinor ? ` · deposit PKR ${(booking.rental.depositMinor / 100).toLocaleString('en-PK')} at pickup` : ''}`],
+      ['Fuel', booking.rental.fuelIncluded ? 'Included' : 'Paid by the guest'],
+    ] as [string, string][] : [
+      ['Check-in', booking.checkIn],
+      ['Check-out', `${booking.checkOut} (${booking.nights} night${booking.nights === 1 ? '' : 's'})`],
+    ] as [string, string][]),
     ['Guests', `${booking.adults} adult(s), ${booking.children} child(ren)`],
     ...(booking.meals?.length ? [['Meals', booking.meals.map((meal: any) => meal.type).join(', ')] as [string, string]] : []),
     ...(booking.status === 'confirmed' && booking.listingSnapshot.phone ? [['Property phone / WhatsApp', booking.listingSnapshot.phone] as [string, string]] : []),
+    ...(booking.coupon ? [['Promo code', `${booking.coupon.code} (−${booking.pricing.currency} ${((booking.pricing.discountMinor ?? 0) / 100).toLocaleString('en-PK')})`] as [string, string]] : []),
     ['Total', `${booking.pricing.currency} ${(booking.pricing.totalMinor / 100).toLocaleString('en-PK')}`],
     ...(reason ? [['Reason', reason] as [string, string]] : []),
   ];

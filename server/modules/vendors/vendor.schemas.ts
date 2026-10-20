@@ -26,7 +26,7 @@ export const updateVendorSchema = createVendorSchema.partial().strict().refine(
 );
 
 export const attachVendorDocumentSchema = z.object({
-  type: z.enum(['identity', 'business_registration', 'tax', 'bank', 'property_authorization']),
+  type: z.enum(['identity', 'business_registration', 'tax', 'bank', 'property_authorization', 'vehicle_registration', 'driving_licence']),
   mediaId: z.string().regex(/^med_[0-9a-f-]{36}$/i, 'Invalid media identifier.'),
 }).strict();
 
@@ -34,7 +34,7 @@ export const vendorChangeRequestSchema = z.object({
   name: z.string().trim().min(2).max(160),
   email: z.string().trim().toLowerCase().email().max(254),
   phone: z.string().trim().min(7).max(30),
-  // Required for hotel businesses; homestay hosts are verified by CNIC and proof of property instead.
+  // Required for hotel businesses; homestay hosts and car owner-drivers are verified by documents instead.
   registrationNumber: z.string().trim().min(2).max(100).optional(),
   taxNumber: z.string().trim().max(100).optional(),
   address: z.object({ line1: z.string().trim().min(2).max(200), city: z.string().trim().min(2).max(100), region: z.string().trim().min(2).max(100) }).strict(),

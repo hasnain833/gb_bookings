@@ -15,6 +15,10 @@ export const emptyRoom: Omit<VendorRoomInput, 'photos'> = { name: '', descriptio
 /** A homestay let as a whole is a single booking unit. */
 export const entireHome: Omit<VendorRoomInput, 'photos'> = { ...emptyRoom, name: 'Entire home', bedType: '2 bedrooms', maxAdults: 4, maxChildren: 2 };
 export const isEntireHome = (listing: Pick<VendorListing, 'homestaySpecs'>) => listing.homestaySpecs?.stayType === 'entire_home';
+/** A car listing's single fleet entry: its name, type and seats follow the car details. */
+const carUnit = (listing: VendorListing): Omit<VendorRoomInput, 'photos'> => ({
+  ...emptyRoom, name: listing.title, bedType: listing.carSpecs?.category ?? 'Car', maxAdults: listing.carSpecs?.seats ?? 4, maxChildren: 0,
+});
 
 /** Add/edit form. On a live hotel, price and room count apply at once; the rest is reviewed before guests see it. */
 export function RoomForm({ initial, live, busy, submitLabel, onSubmit, onCancel, singleUnit = false }: {
@@ -90,6 +94,7 @@ function RoomCard({ listing, room, live, editable, busy, onRun, onReplace, onRem
   listing: VendorListing; room: VendorRoom; live: boolean; editable: boolean; busy: boolean;
   onRun: (work: () => Promise<void>) => void; onReplace: (room: VendorRoom) => void; onRemove: () => void; onEdited: () => void;
 }) {
+  const car = listing.type === 'car';
   const [editing, setEditing] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [price, setPrice] = useState(room.basePrice);
@@ -127,26 +132,27 @@ function RoomCard({ listing, room, live, editable, busy, onRun, onReplace, onRem
           <h3 className="flex flex-wrap items-center gap-2 text-lg font-extrabold text-slate-900">{shown.name}
             {room.pendingRevision && <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-900">{isNew ? 'New · awaiting review' : 'Changes in review'}</span>}
           </h3>
-          <p className="mt-1 text-sm text-slate-500">{shown.bedType} · up to {shown.maxAdults} adult{shown.maxAdults === 1 ? '' : 's'}{shown.maxChildren ? `, ${shown.maxChildren} child${shown.maxChildren === 1 ? '' : 'ren'}` : ''}</p>
+          <p className="mt-1 text-sm text-slate-500">{car ? `${shown.bedType} · ${shown.maxAdults} passenger seats` : <>{shown.bedType} · up to {shown.maxAdults} adult{shown.maxAdults === 1 ? '' : 's'}{shown.maxChildren ? `, ${shown.maxChildren} child${shown.maxChildren === 1 ? '' : 'ren'}` : ''}</>}</p>
+          {car && <p className="mt-1 text-xs text-slate-500">Name, type, seats and photos follow the car’s Details &amp; photos tab.</p>}
           {shown.amenities.length > 0 && <p className="mt-2.5 flex flex-wrap gap-1.5">{shown.amenities.map((amenity) => <span key={amenity} className="rounded-md bg-slate-100 px-2 py-0.5 text-xs text-slate-700">{amenity}</span>)}</p>}
           {isNew && <p className="mt-2 text-sm text-amber-900">Hidden from guests until approved.</p>}
           {canEdit && <div className="mt-3 flex flex-wrap gap-2">
-            <button type="button" className={secondaryButton} disabled={busy} onClick={() => setEditing(true)}>Edit details &amp; photos</button>
+            {!car && <button type="button" className={secondaryButton} disabled={busy} onClick={() => setEditing(true)}>Edit details &amp; photos</button>}
             {(editable || isNew) && <button type="button" className={`${secondaryButton} text-rose-700`} disabled={busy} onClick={onRemove}>{editable ? 'Remove' : 'Withdraw'}</button>}
           </div>}
         </div>
         {canEdit && <div className="flex flex-wrap items-end gap-4">
-          <label className="text-xs font-bold text-slate-700">Price per night
+          <label className="text-xs font-bold text-slate-700">{car ? 'Price per day' : 'Price per night'}
             <span className="mt-1.5 flex min-h-11 w-40 items-center rounded-lg border border-slate-300 bg-white px-3 focus-within:border-[#006F3C]">
               <span className="mr-1.5 font-semibold text-slate-500">PKR</span>
               <input type="number" min={0} value={price} onChange={(event) => setPrice(Number(event.target.value))} className="w-full bg-transparent text-[15px] font-bold outline-none" />
             </span>
           </label>
-          {!isEntireHome(listing) && <div className="text-xs font-bold text-slate-700">Rooms of this type
+          {!isEntireHome(listing) && <div className="text-xs font-bold text-slate-700">{car ? 'Number of cars' : 'Rooms of this type'}
             <span className="mt-1.5 flex items-center gap-1.5">
-              <button type="button" aria-label={`One ${shown.name} room fewer`} disabled={count <= 1} onClick={() => setCount(count - 1)} className="flex size-11 items-center justify-center rounded-lg border border-slate-300 bg-white disabled:opacity-40"><Minus className="size-4" /></button>
+              <button type="button" aria-label={car ? 'One car fewer' : `One ${shown.name} room fewer`} disabled={count <= 1} onClick={() => setCount(count - 1)} className="flex size-11 items-center justify-center rounded-lg border border-slate-300 bg-white disabled:opacity-40"><Minus className="size-4" /></button>
               <span className="min-w-8 text-center text-base font-extrabold" aria-live="polite">{count}</span>
-              <button type="button" aria-label={`One ${shown.name} room more`} onClick={() => setCount(count + 1)} className="flex size-11 items-center justify-center rounded-lg border border-slate-300 bg-white"><Plus className="size-4" /></button>
+              <button type="button" aria-label={car ? 'One car more' : `One ${shown.name} room more`} onClick={() => setCount(count + 1)} className="flex size-11 items-center justify-center rounded-lg border border-slate-300 bg-white"><Plus className="size-4" /></button>
             </span>
           </div>}
           {dirty && <button type="button" className={primaryButton} disabled={busy || price < 0} onClick={saveStock}>Save</button>}
@@ -159,7 +165,7 @@ function RoomCard({ listing, room, live, editable, busy, onRun, onReplace, onRem
       </div>
       {!isNew && <div>
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-sm font-bold">Rooms free · next 14 nights</p>
+          <p className="text-sm font-bold">{car ? 'Cars free · next 14 days' : 'Rooms free · next 14 nights'}</p>
           <p className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
             <span className="flex items-center gap-1.5"><span className="size-3 rounded-sm bg-emerald-50 ring-1 ring-emerald-200" />Free</span>
             <span className="flex items-center gap-1.5"><span className="size-3 rounded-sm bg-amber-100" />Almost full</span>
@@ -171,6 +177,18 @@ function RoomCard({ listing, room, live, editable, busy, onRun, onReplace, onRem
         {calendarOpen && <div className="mt-4"><RoomCalendar listingId={listing.id} room={room} /></div>}
       </div>}
     </article>
+  );
+}
+
+function CarUnitForm({ busy, onSubmit, onCancel }: { busy: boolean; onSubmit: (basePrice: number, count: number) => void; onCancel: () => void }) {
+  const [price, setPrice] = useState(0);
+  const [count, setCount] = useState(1);
+  return (
+    <form onSubmit={(event) => { event.preventDefault(); onSubmit(price, count); }} className="grid gap-4 rounded-xl border-2 border-[#006F3C] bg-white p-5 sm:grid-cols-3">
+      <label className="text-sm font-semibold text-slate-700">Price per day (PKR)<input type="number" required min={1} className={`${inputClass} mt-1`} value={price} onChange={(event) => setPrice(Number(event.target.value))} /></label>
+      <label className="text-sm font-semibold text-slate-700">Number of identical cars<input type="number" required min={1} max={500} className={`${inputClass} mt-1`} value={count} onChange={(event) => setCount(Number(event.target.value))} /></label>
+      <div className="flex items-end gap-2"><button disabled={busy} className={primaryButton}>Save</button><button type="button" onClick={onCancel} className={secondaryButton}>Cancel</button></div>
+    </form>
   );
 }
 
@@ -212,20 +230,29 @@ export default function RoomManager({ listing, onListingChange }: { listing: Ven
   if (loading) return <div className="flex justify-center py-8"><LoaderCircle className="size-6 animate-spin text-[#006F3C]" aria-label="Loading rooms" /></div>;
   const totalRooms = rooms.filter((room) => !room.pendingRevision?.isNew).reduce((sum, room) => sum + room.totalRooms, 0);
   const singleUnit = isEntireHome(listing);
+  const car = listing.type === 'car';
 
   return (
     <div className="space-y-4" aria-live="polite">
       {dialog}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-slate-500">{singleUnit
+        <p className="text-sm text-slate-500">{car
+          ? <><strong className="text-slate-900">{totalRooms} car{totalRooms === 1 ? '' : 's'}.</strong> Guests book by the day, pickup and return days included.{live ? ' Price, count and on/off apply straight away.' : ''}</>
+          : singleUnit
           ? <><strong className="text-slate-900">Entire home.</strong> Guests book the whole place.{live ? ' Price and on/off apply straight away.' : ''}</>
           : <><strong className="text-slate-900">{rooms.length} room categor{rooms.length === 1 ? 'y' : 'ies'} · {totalRooms} room{totalRooms === 1 ? '' : 's'}.</strong>{live ? ' Price, room count and on/off apply straight away.' : ''}</>}</p>
-        {(editable || live) && !adding && !(singleUnit && rooms.length > 0) && <button type="button" onClick={() => setAdding(true)} className={primaryButton}><Plus className="size-4" />{singleUnit ? 'Set up the home' : 'Add room category'}</button>}
+        {(editable || live) && !adding && !((singleUnit || car) && rooms.length > 0) && <button type="button" onClick={() => setAdding(true)} className={primaryButton}><Plus className="size-4" />{car ? 'Set the price and count' : singleUnit ? 'Set up the home' : 'Add room category'}</button>}
       </div>
       {listing.status === 'submitted' && <p className="rounded-lg bg-slate-100 p-3 text-sm text-slate-600">Under review. Rooms can be changed again once the hotel is published or returned to you.</p>}
       {error && <p role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
 
-      {adding && <RoomForm initial={singleUnit ? entireHome : emptyRoom} singleUnit={singleUnit} live={live} busy={busy} submitLabel={singleUnit ? 'Save' : 'Add room'} onCancel={() => setAdding(false)}
+      {adding && car && <CarUnitForm busy={busy} onCancel={() => setAdding(false)} onSubmit={(basePrice, totalRooms) => run(async () => {
+          const created = await api.addHotelRoom(listing.id, { ...carUnit(listing), basePrice, totalRooms });
+          setRooms((items) => [...items, created.data]);
+          setAdding(false);
+          await refreshListing();
+        })} />}
+      {adding && !car && <RoomForm initial={singleUnit ? entireHome : emptyRoom} singleUnit={singleUnit} live={live} busy={busy} submitLabel={singleUnit ? 'Save' : 'Add room'} onCancel={() => setAdding(false)}
         onSubmit={(input) => run(async () => {
           const created = await api.addHotelRoom(listing.id, { ...emptyRoom, ...input });
           setRooms((items) => [...items, created.data]);
@@ -233,13 +260,13 @@ export default function RoomManager({ listing, onListingChange }: { listing: Ven
           await refreshListing();
         })} />}
 
-      {rooms.length === 0 && !adding && <p className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">No room categories yet. Add one so guests can book.</p>}
+      {rooms.length === 0 && !adding && <p className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">{car ? 'Set the daily price and how many of this car you have so guests can book.' : 'No room categories yet. Add one so guests can book.'}</p>}
       {rooms.map((room) => <RoomCard key={room.id} listing={listing} room={room} live={live} editable={editable} busy={busy}
         onRun={run} onReplace={replace} onRemove={() => remove(room)} onEdited={() => void refreshListing()} />)}
 
       {editable && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-          <p className="text-sm text-emerald-900">{rooms.some((room) => room.status === 'active') ? 'Ready when you are: GBBookings checks the hotel before guests can book it.' : 'Add at least one bookable room category before submitting.'}</p>
+          <p className="text-sm text-emerald-900">{rooms.some((room) => room.status === 'active') ? `Ready when you are: GBBookings checks the ${car ? 'car' : 'property'} before guests can book it.` : car ? 'Set the price and count before submitting.' : 'Add at least one bookable room category before submitting.'}</p>
           <button type="button" className={primaryButton} disabled={busy || !rooms.some((room) => room.status === 'active')}
             onClick={() => run(async () => onListingChange((await api.submitHotelListing(listing.id)).data))}>
             {listing.status === 'rejected' ? 'Resubmit for review' : 'Submit for review'}

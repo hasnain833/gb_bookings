@@ -1,7 +1,21 @@
 import { z } from 'zod';
 import { bookingStatuses, paymentMethods } from '../../models/booking.model.js';
+import { couponCodeSchema } from '../coupons/coupon.routes.js';
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use the YYYY-MM-DD date format.');
+const boolFlag = z.enum(['true', 'false']).transform((value) => value === 'true').optional();
+const clockTime = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Use a HH:MM time.');
+
+/** Car rental details at checkout. Self-drive renters give their driving licence number. */
+export const rentalInputSchema = z.object({
+  driver: z.boolean(),
+  pickupPlace: z.string().trim().min(2).max(200),
+  pickupTime: clockTime,
+  dropoffPlace: z.string().trim().min(2).max(200).optional(),
+  outsideBaseCity: z.boolean().default(false),
+  oneWay: z.boolean().default(false),
+  licenceNumber: z.string().trim().min(5).max(30).optional(),
+}).strict();
 
 export const availabilityQuerySchema = z.object({
   checkIn: isoDate,
@@ -12,6 +26,11 @@ export const availabilityQuerySchema = z.object({
   // Comma-separated extra meals to include in the quote, e.g. "dinner" or "lunch,dinner".
   meals: z.string().trim().max(40).transform((value) => value.split(',').map((item) => item.trim()).filter(Boolean))
     .pipe(z.array(z.enum(['breakfast', 'lunch', 'dinner'])).max(3)).optional(),
+  coupon: couponCodeSchema.optional(),
+  // Car rentals: checkOut is the return date (included), adults are passengers, rooms are cars.
+  driver: boolFlag,
+  outsideBaseCity: boolFlag,
+  oneWay: boolFlag,
 }).strict();
 
 export const createBookingSchema = z.object({
@@ -34,6 +53,8 @@ export const createBookingSchema = z.object({
   specialRequests: z.string().trim().max(1_000).optional(),
   meals: z.array(z.enum(['breakfast', 'lunch', 'dinner'])).max(3).default([])
     .refine((meals) => new Set(meals).size === meals.length, 'Choose each meal once.'),
+  couponCode: couponCodeSchema.optional(),
+  rental: rentalInputSchema.optional(),
   expectedTotalMinor: z.number().int().nonnegative().optional(),
 }).strict();
 

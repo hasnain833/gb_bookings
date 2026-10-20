@@ -120,12 +120,28 @@ const listingSchema = new Schema({
       default: undefined,
     },
   },
+  // Cars: what the car is and its rental terms (PKR). See carSpecsSchema in vendor-listing.schemas.
   carSpecs: {
+    make: String,
+    model: String,
+    year: Number,
     category: String,
     transmission: { type: String, enum: ['Automatic', 'Manual'] },
     seats: { type: Number, min: 1 },
+    luggage: { type: Number, min: 0 },
     fuelType: String,
+    features: { type: [String], default: undefined },
+    // Kept for older readers: true unless the car is self-drive only.
     withDriver: Boolean,
+    driverMode: { type: String, enum: ['with_driver', 'self_drive', 'both'] },
+    driverPerDay: { type: Number, min: 0 },
+    fuelIncluded: Boolean,
+    outsideCityPerDay: { type: Number, min: 0 },
+    oneWay: { type: String, enum: ['not_offered', 'flat', 'on_request'] },
+    oneWayFee: { type: Number, min: 0 },
+    deposit: { type: Number, min: 0 },
+    minDriverAge: { type: Number, min: 18 },
+    pickupNote: { type: String, trim: true, maxlength: 500 },
   },
   tourSpecs: {
     durationDays: { type: Number, min: 1 },

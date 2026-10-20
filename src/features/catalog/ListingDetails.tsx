@@ -5,6 +5,8 @@ import { DetailsSkeleton } from '../../shared/components/SkeletonLoader';
 import { api, ApiError, AUTH_CHANGED_EVENT, hasApiSession, mealLabel } from '../../shared/api/api';
 import { OPEN_SIGN_IN_EVENT } from '../../shared/hooks/useWishlist';
 import RoomBookingPanel from '../booking/RoomBookingPanel';
+import CarBookingPanel from '../booking/CarBookingPanel';
+import { DRIVER_LABELS } from '../vendor/CarFields';
 import { MapEmbed } from '../../shared/components/MapPin';
 import { HEATING_LABELS, HOT_WATER_LABELS, NETWORK_LABELS, openSeason, PAYMENT_LABELS, POWER_LABELS, ROAD_LABELS } from '../../shared/utils/stayInfo';
 import type { CheckoutParams } from '../booking/CheckoutFlow';
@@ -100,6 +102,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
 
   const bookable = listing.type === 'hotel' || listing.type === 'homestay';
   const unit = bookable ? 'night' : listing.type === 'car' ? 'day' : 'person';
+  const carSpecs = listing.type === 'car' ? listing.carSpecs : undefined;
   const specs = listing.hotelSpecs;
   // Only rules the vendor actually entered are shown.
   const rules = [
@@ -113,21 +116,23 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
   const entireHome = homestay?.stayType === 'entire_home';
   const meals = homestay?.meals ?? [];
   const info = listing.stayInfo;
-  const policyRules = info ? [
-    info.childrenAllowed ? 'Children welcome' : 'Children not allowed',
-    ...(info.minCheckInAge ? [`Minimum check-in age: ${info.minCheckInAge}`] : []),
-    info.extraBedPrice !== undefined ? `Extra bed: PKR ${info.extraBedPrice.toLocaleString()} per night` : 'No extra beds',
-    info.petsAllowed ? 'Pets allowed' : 'No pets',
-    info.smokingAllowed ? 'Smoking allowed' : 'No smoking indoors',
-    `Pay at the property: ${info.paymentMethods.map((method) => PAYMENT_LABELS[method]).join(', ')}`,
+  // Cars only carry payment methods in stayInfo; the stay policies and essentials are for hotels and homestays.
+  const stayPolicies = info && listing.type !== 'car' ? info : undefined;
+  const policyRules = stayPolicies ? [
+    stayPolicies.childrenAllowed ? 'Children welcome' : 'Children not allowed',
+    ...(stayPolicies.minCheckInAge ? [`Minimum check-in age: ${stayPolicies.minCheckInAge}`] : []),
+    stayPolicies.extraBedPrice !== undefined ? `Extra bed: PKR ${stayPolicies.extraBedPrice.toLocaleString()} per night` : 'No extra beds',
+    stayPolicies.petsAllowed ? 'Pets allowed' : 'No pets',
+    stayPolicies.smokingAllowed ? 'Smoking allowed' : 'No smoking indoors',
+    `Pay at the property: ${stayPolicies.paymentMethods.map((method) => PAYMENT_LABELS[method]).join(', ')}`,
   ] : [];
-  const essentials = info ? [
-    { icon: Zap, label: 'Power backup', value: info.powerBackup.length ? info.powerBackup.map((item) => POWER_LABELS[item]).join(', ') : 'No backup during power cuts' },
-    { icon: Flame, label: 'Heating', value: info.heating.length ? info.heating.map((item) => HEATING_LABELS[item]).join(', ') : 'Rooms are not heated' },
-    { icon: Droplets, label: 'Hot water', value: HOT_WATER_LABELS[info.hotWater] },
-    { icon: Signal, label: 'Mobile signal', value: info.mobileNetworks.length ? info.mobileNetworks.map((item) => NETWORK_LABELS[item]).join(', ') : 'No mobile signal' },
-    { icon: Car, label: 'Getting there', value: `${ROAD_LABELS[info.roadAccess]}${info.roadNote ? `. ${info.roadNote}` : ''}` },
-    { icon: CalendarRange, label: 'Season', value: openSeason(info.openMonths) },
+  const essentials = stayPolicies ? [
+    { icon: Zap, label: 'Power backup', value: stayPolicies.powerBackup.length ? stayPolicies.powerBackup.map((item) => POWER_LABELS[item]).join(', ') : 'No backup during power cuts' },
+    { icon: Flame, label: 'Heating', value: stayPolicies.heating.length ? stayPolicies.heating.map((item) => HEATING_LABELS[item]).join(', ') : 'Rooms are not heated' },
+    { icon: Droplets, label: 'Hot water', value: HOT_WATER_LABELS[stayPolicies.hotWater] },
+    { icon: Signal, label: 'Mobile signal', value: stayPolicies.mobileNetworks.length ? stayPolicies.mobileNetworks.map((item) => NETWORK_LABELS[item]).join(', ') : 'No mobile signal' },
+    { icon: Car, label: 'Getting there', value: `${ROAD_LABELS[stayPolicies.roadAccess]}${stayPolicies.roadNote ? `. ${stayPolicies.roadNote}` : ''}` },
+    { icon: CalendarRange, label: 'Season', value: openSeason(stayPolicies.openMonths) },
   ] : [];
 
   const sectionClass = 'border-t border-slate-200 pt-6 space-y-4';
@@ -233,11 +238,24 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
             <section className={sectionClass} id="car-specs-section">
               <h2 className={headingClass}>Vehicle details</h2>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3" id="car-specs-grid">
+                {listing.carSpecs.make && <div className={statClass}><span className={statLabel}>Car</span><span className={statValue}>{listing.carSpecs.make} {listing.carSpecs.model}{listing.carSpecs.year ? ` · ${listing.carSpecs.year}` : ''}</span></div>}
                 <div className={statClass}><span className={statLabel}>Category</span><span className={statValue}>{listing.carSpecs.category}</span></div>
                 <div className={statClass}><span className={statLabel}>Gearbox</span><span className={statValue}>{listing.carSpecs.transmission}</span></div>
                 <div className={statClass}><span className={statLabel}>Seats</span><span className={statValue}>{listing.carSpecs.seats} passengers</span></div>
-                <div className={statClass}><span className={statLabel}>Fuel</span><span className={statValue}>{listing.carSpecs.fuelType}</span></div>
+                <div className={statClass}><span className={statLabel}>Fuel</span><span className={statValue}>{listing.carSpecs.fuelType}{listing.carSpecs.fuelIncluded !== undefined ? ` · ${listing.carSpecs.fuelIncluded ? 'included' : 'paid by you'}` : ''}</span></div>
+                {listing.carSpecs.luggage !== undefined && <div className={statClass}><span className={statLabel}>Large bags</span><span className={statValue}>{listing.carSpecs.luggage}</span></div>}
+                <div className={statClass}><span className={statLabel}>Driver</span><span className={statValue}>{listing.carSpecs.driverMode ? DRIVER_LABELS[listing.carSpecs.driverMode] : listing.carSpecs.withDriver ? 'With driver' : 'Self-drive'}</span></div>
               </div>
+              {listing.carSpecs.features?.length ? <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5 text-sm text-slate-700">{listing.carSpecs.features.map((item) => <li key={item} className="flex items-center gap-2"><Check className="w-4 h-4 text-[#006F3C] shrink-0" /> {item}</li>)}</ul> : null}
+              <ul className="space-y-1.5 text-sm text-slate-600">
+                {listing.carSpecs.driverMode !== 'self_drive' && listing.carSpecs.driverPerDay ? <li>Driver: +PKR {listing.carSpecs.driverPerDay.toLocaleString()} per day</li> : null}
+                {listing.carSpecs.outsideCityPerDay !== undefined && <li>Trips outside {listing.location.split(',')[0]}: +PKR {listing.carSpecs.outsideCityPerDay.toLocaleString()} per day</li>}
+                {listing.carSpecs.oneWay === 'flat' && <li>One-way drop-off: PKR {(listing.carSpecs.oneWayFee ?? 0).toLocaleString()}</li>}
+                {listing.carSpecs.oneWay === 'on_request' && <li>One-way drop-off: price on request</li>}
+                {listing.carSpecs.driverMode && listing.carSpecs.driverMode !== 'with_driver' && <li>Self-drive: minimum age {listing.carSpecs.minDriverAge}{listing.carSpecs.deposit ? `, refundable deposit PKR ${listing.carSpecs.deposit.toLocaleString()} at pickup` : ''}. Bring your driving licence.</li>}
+                {info?.paymentMethods?.length ? <li>Pay at pickup: {info.paymentMethods.map((method) => PAYMENT_LABELS[method]).join(', ')}</li> : null}
+                {listing.carSpecs.driverMode && <li>Free cancellation until the day before pickup.</li>}
+              </ul>
             </section>
           )}
 
@@ -330,9 +348,9 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
             </section>
           )}
 
-          {bookable && (
+          {(bookable || carSpecs?.driverMode) && (
             <section className={sectionClass} id="location-map-section">
-              <h2 className={headingClass}>Where you’ll be</h2>
+              <h2 className={headingClass}>{carSpecs ? 'Where the car is based' : 'Where you’ll be'}</h2>
               <p className="flex items-center gap-1 text-sm text-slate-600"><MapPin className="w-4 h-4 text-slate-400 shrink-0" />{listing.location}</p>
               <MapEmbed coordinates={listing.coordinates} location={listing.location} title={listing.title} />
             </section>
@@ -353,6 +371,8 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
 
             {bookable ? (
               <RoomBookingPanel listingId={listingId} meals={meals} entireHome={entireHome} breakfastIncluded={listing.breakfastIncluded} paymentMethods={info?.paymentMethods} openMonths={info?.openMonths} onProceed={onProceedToCheckout} />
+            ) : carSpecs?.driverMode ? (
+              <CarBookingPanel listingId={listingId} baseCity={listing.location} specs={carSpecs} paymentMethods={info?.paymentMethods} onProceed={onProceedToCheckout} />
             ) : (
               <p className="flex items-start gap-2 rounded-lg bg-slate-50 p-4 text-sm text-slate-600" id="booking-coming-soon">
                 <Info className="w-4 h-4 text-[#006F3C] shrink-0 mt-0.5" />
@@ -379,7 +399,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
           onClick={() => document.getElementById('details-booking-column')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
           className="inline-flex min-h-11 items-center gap-1.5 rounded-lg bg-[#006F3C] px-5 text-sm font-semibold text-white hover:bg-[#005C32]"
         >
-          {bookable ? 'Check availability' : 'Details'} <ArrowRight className="w-4 h-4" />
+          {bookable || carSpecs?.driverMode ? 'Check availability' : 'Details'} <ArrowRight className="w-4 h-4" />
         </button>
       </div>
 

@@ -19,8 +19,8 @@ export default function BusinessProfile({ vendor, onChange }: { vendor: VendorPr
   const pending = vendor.pendingChanges;
   const current = detailsOf(vendor);
   const shown = pending ?? current;
-  // Homestay hosts are verified by CNIC and proof of property, not a business registration.
-  const homestay = vendor.businessType === 'homestay';
+  // Homestay hosts and car owner-drivers are individuals: no registration or tax number.
+  const homestay = vendor.businessType === 'homestay' || (vendor.businessType === 'vehicle' && !vendor.registrationNumber);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();

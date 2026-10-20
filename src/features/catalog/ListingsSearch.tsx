@@ -13,7 +13,7 @@ interface ListingsSearchProps {
     destination: string;
     startDate: string;
     endDate: string;
-    extra: { guestCount?: number; experience?: string };
+    extra: { guestCount?: number; experience?: string; withDriver?: boolean };
   };
   onSelectListing: (listing: Listing) => void;
 }
@@ -39,8 +39,11 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
   const [minimumRating, setMinimumRating] = useState(0);
   const [sortBy, setSortBy] = useState<SortOption>('recommended');
   const [transmission, setTransmission] = useState<'all' | 'Automatic' | 'Manual'>('all');
-  const [checkIn, setCheckIn] = useState(initialFilters.startDate || '');
-  const [checkOut, setCheckOut] = useState(initialFilters.endDate || '');
+  // Landing pages send their two dates as "YYYY-MM-DD to YYYY-MM-DD".
+  const [initialStart, initialEnd] = (initialFilters.startDate || '').split(' to ');
+  const [checkIn, setCheckIn] = useState(/^\d{4}-\d{2}-\d{2}$/.test(initialStart ?? '') ? initialStart : '');
+  const [checkOut, setCheckOut] = useState(initialFilters.endDate || (/^\d{4}-\d{2}-\d{2}$/.test(initialEnd ?? '') ? initialEnd : ''));
+  const [driver, setDriver] = useState<'' | 'with_driver' | 'self_drive'>(initialFilters.extra.withDriver === undefined ? '' : initialFilters.extra.withDriver ? 'with_driver' : 'self_drive');
   const [showFilters, setShowFilters] = useState(false);
   const [facilities, setFacilities] = useState('');
   const [page, setPage] = useState(1);
@@ -51,8 +54,10 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
   const homestays = type === 'homestay';
   const searchTerm = useDebouncedValue(query.trim());
   const priceLimit = useDebouncedValue(maxPrice);
-  const supportsDates = type === 'hotel' || type === 'homestay';
-  const datesValid = supportsDates && Boolean(checkIn && checkOut && checkOut > checkIn);
+  const cars = type === 'car';
+  const supportsDates = type === 'hotel' || type === 'homestay' || cars;
+  // Car rentals may start and end on the same day (the return date is a rented day).
+  const datesValid = supportsDates && Boolean(checkIn && checkOut && (cars ? checkOut >= checkIn : checkOut > checkIn));
 
   // The server applies filters before pagination so matching properties cannot disappear beyond the first page.
   const { listings, loading, error, reload, pagination } = useListings(type, searchTerm, {
@@ -62,11 +67,12 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
     ...(datesValid ? { checkIn, checkOut, guests: guests || undefined } : {}),
     amenities: facilities.trim() || undefined,
     ...(homestays ? { experience: experience || undefined, stayType: stayType || undefined } : {}),
-    ...(supportsDates && breakfast ? { breakfast: 'true' as const } : {}),
-    ...(type === 'car' && transmission !== 'all' ? { transmission } : {}),
+    ...(supportsDates && !cars && breakfast ? { breakfast: 'true' as const } : {}),
+    ...(cars && transmission !== 'all' ? { transmission } : {}),
+    ...(cars && driver ? { driver } : {}),
     limit: 24, page,
   });
-  useEffect(() => { setPage(1); }, [searchTerm, priceLimit, minimumRating, sortBy, checkIn, checkOut, guests, facilities, experience, stayType, breakfast, transmission, type]);
+  useEffect(() => { setPage(1); }, [searchTerm, priceLimit, minimumRating, sortBy, checkIn, checkOut, guests, facilities, experience, stayType, breakfast, transmission, driver, type]);
   useEffect(() => { setExperience(initialFilters.extra.experience ?? ''); }, [initialFilters.extra.experience]);
 
   useEffect(() => {
@@ -84,7 +90,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
     setGuests(0);
     setMinimumRating(0);
     setSortBy('recommended');
-    setTransmission('all');
+    setTransmission('all'); setDriver('');
     setFacilities(''); setExperience(''); setStayType(''); setBreakfast(false); setPage(1);
   };
 
@@ -121,22 +127,22 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
           {supportsDates && (
             <fieldset className="space-y-2">
               <legend className="text-xs font-bold text-slate-600">Available between</legend>
-              <label className="block text-[11px] text-slate-500">Check-in
+              <label className="block text-[11px] text-slate-500">{cars ? 'Pickup' : 'Check-in'}
                 <input type="date" min={todayPk()} value={checkIn} onChange={(event) => setCheckIn(event.target.value)}
                   className="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm" />
               </label>
-              <label className="block text-[11px] text-slate-500">Check-out
+              <label className="block text-[11px] text-slate-500">{cars ? 'Return' : 'Check-out'}
                 <input type="date" min={checkIn || todayPk()} value={checkOut} onChange={(event) => setCheckOut(event.target.value)}
                   className="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm" />
               </label>
-              <label className="block text-[11px] text-slate-500">Guests
+              <label className="block text-[11px] text-slate-500">{cars ? 'Passengers' : 'Guests'}
                 <select value={guests} onChange={(event) => setGuests(Number(event.target.value))} className="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
                   <option value={0}>Any</option>
-                  {Array.from({ length: 10 }, (_, index) => index + 1).map((count) => <option key={count} value={count}>{count} guest{count > 1 ? 's' : ''}</option>)}
+                  {Array.from({ length: cars ? 20 : 10 }, (_, index) => index + 1).map((count) => <option key={count} value={count}>{count} {cars ? 'passenger' : 'guest'}{count > 1 ? 's' : ''}</option>)}
                 </select>
               </label>
-              {datesValid ? <p className="text-[11px] text-slate-500">Showing only properties with a free room{guests ? ` for ${guests} guest${guests > 1 ? 's' : ''}` : ''}.</p>
-                : <p className="text-[11px] text-slate-500">Add both dates to see only properties with free rooms.</p>}
+              {datesValid ? <p className="text-[11px] text-slate-500">{cars ? `Showing only cars free on every day${guests ? ` with ${guests} seat${guests > 1 ? 's' : ''}` : ''}.` : `Showing only properties with a free room${guests ? ` for ${guests} guest${guests > 1 ? 's' : ''}` : ''}.`}</p>
+                : <p className="text-[11px] text-slate-500">{cars ? 'Add both dates to see only cars that are free.' : 'Add both dates to see only properties with free rooms.'}</p>}
             </fieldset>
           )}
 
@@ -155,9 +161,9 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
             </select>
           </label>
 
-          {supportsDates && <label className="flex min-h-10 items-center gap-2 text-sm font-semibold text-slate-700"><input type="checkbox" checked={breakfast} onChange={(event) => setBreakfast(event.target.checked)} className="size-4 accent-[#006F3C]" />Breakfast included</label>}
+          {supportsDates && !cars && <label className="flex min-h-10 items-center gap-2 text-sm font-semibold text-slate-700"><input type="checkbox" checked={breakfast} onChange={(event) => setBreakfast(event.target.checked)} className="size-4 accent-[#006F3C]" />Breakfast included</label>}
 
-          {supportsDates && <label className="block space-y-2"><span className="text-xs font-bold text-slate-600">Facilities and amenities</span><input value={facilities} onChange={(event) => setFacilities(event.target.value)} placeholder="WiFi, Parking" className="min-h-10 w-full rounded-lg border border-slate-300 px-3 text-sm" /><span className="block text-[11px] text-slate-500">Separate required facilities with commas.</span></label>}
+          {supportsDates && !cars && <label className="block space-y-2"><span className="text-xs font-bold text-slate-600">Facilities and amenities</span><input value={facilities} onChange={(event) => setFacilities(event.target.value)} placeholder="WiFi, Parking" className="min-h-10 w-full rounded-lg border border-slate-300 px-3 text-sm" /><span className="block text-[11px] text-slate-500">Separate required facilities with commas.</span></label>}
 
           {homestays && <>
             <label className="block space-y-2">
@@ -177,7 +183,18 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
             </label>
           </>}
 
-          {type === 'car' && (
+          {cars && (
+            <label className="block space-y-2">
+              <span className="text-xs font-bold text-slate-600">Driver</span>
+              <select value={driver} onChange={(event) => setDriver(event.target.value as typeof driver)} className="min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
+                <option value="">With or without</option>
+                <option value="with_driver">With driver</option>
+                <option value="self_drive">Self-drive</option>
+              </select>
+            </label>
+          )}
+
+          {cars && (
             <label className="block space-y-2">
               <span className="text-xs font-bold text-slate-600">Transmission</span>
               <select value={transmission} onChange={(event) => setTransmission(event.target.value as typeof transmission)} className="min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">

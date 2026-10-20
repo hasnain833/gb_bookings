@@ -66,13 +66,7 @@ export interface Listing {
     /** Price per guest per night in PKR; included meals cost nothing. */
     meals?: Array<{ type: MealType; included: boolean; price: number }>;
   };
-  carSpecs?: {
-    category: string; // "SUV", "Sedan", "4x4"
-    transmission: 'Automatic' | 'Manual';
-    seats: number;
-    fuelType: string;
-    withDriver: boolean;
-  };
+  carSpecs?: CarSpecs;
   tourSpecs?: {
     durationDays: number;
     maxGroupSize: number;
@@ -88,6 +82,52 @@ export interface Listing {
     perks?: string[];
     expiresAt?: string;
   };
+}
+
+export type CarCategory = 'Sedan' | 'Hatchback' | 'SUV' | '4x4 Jeep' | 'Van' | 'Coaster';
+export type DriverMode = 'with_driver' | 'self_drive' | 'both';
+
+/** A car and its rental terms (PKR). Cars listed before partner fleets only have the first five fields. */
+export interface CarSpecs {
+  category: string;
+  transmission: 'Automatic' | 'Manual';
+  seats: number;
+  fuelType: string;
+  withDriver: boolean;
+  make?: string;
+  model?: string;
+  year?: number;
+  luggage?: number;
+  features?: string[];
+  driverMode?: DriverMode;
+  /** Added per day when renting with a driver. */
+  driverPerDay?: number;
+  fuelIncluded?: boolean;
+  /** Added per day when the trip leaves the base city (the listing location). */
+  outsideCityPerDay?: number;
+  oneWay?: 'not_offered' | 'flat' | 'on_request';
+  oneWayFee?: number;
+  /** Self-drive: refundable deposit paid at pickup. */
+  deposit?: number;
+  minDriverAge?: number;
+  pickupNote?: string;
+}
+
+/** What a car booking resolved to: pickup details and the car's terms at booking time (PKR). */
+export interface BookingRental {
+  pickupPlace?: string;
+  pickupTime?: string;
+  dropoffPlace?: string;
+  licenceNumber?: string;
+  driver: boolean;
+  driverPerDay: number;
+  outsideBaseCity: boolean;
+  outsidePerDay: number;
+  oneWay: boolean;
+  oneWayOnRequest: boolean;
+  oneWayFee: number;
+  fuelIncluded: boolean;
+  deposit: number;
 }
 
 export interface Booking {
@@ -121,6 +161,14 @@ export interface Booking {
   /** Meals the guest chose, with the per-guest nightly price at booking time. */
   meals?: Array<{ type: MealType; price: number }>;
   mealsTotal?: number;
+  /** Car rentals only; `endDate` is then the return date. */
+  rental?: BookingRental;
+  /** Car rentals: driver, out-of-city and one-way charges. */
+  extrasTotal?: number;
+  /** Partner promo code used, e.g. "SUMMER10", its terms ("10% off") and the PKR taken off the total. */
+  couponCode?: string;
+  couponLabel?: string;
+  discount?: number;
   specialRequests?: string;
   checkInTime?: string;
   checkOutTime?: string;

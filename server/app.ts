@@ -22,6 +22,7 @@ import { wishlistRouter } from './modules/wishlist/wishlist.routes.js';
 import { newsletterRouter } from './modules/newsletter/newsletter.routes.js';
 import { compatibilityRouter } from './routes/compatibility.routes.js';
 import { adminReviewRouter, listingReviewHandlers, partnerReviewRouter } from './modules/reviews/review.routes.js';
+import { partnerCouponRouter } from './modules/coupons/coupon.routes.js';
 import { AppError } from './shared/app-error.js';
 
 const allowedCorsOrigins = new Set([
@@ -114,6 +115,7 @@ export function createApp(): Express {
   app.use('/api/v1/admin/bookings', adminBookingRouter);
   app.use('/api/v1/vendor/reviews', partnerReviewRouter);
   app.use('/api/v1/admin/reviews', adminReviewRouter);
+  app.use('/api/v1/vendor/coupons', partnerCouponRouter);
   app.use('/api/v1/media', mediaRouter);
   app.use('/api/media', mediaRouter);
   app.use('/api/v1/wishlist', wishlistRouter);

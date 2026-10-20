@@ -12,6 +12,7 @@ import { VendorMemberModel } from '../../models/vendor-member.model.js';
 import { VendorModel } from '../../models/vendor.model.js';
 import { MEMBER_ACCESS } from '../vendors/member-access.js';
 import { reviewableUntil, reviewsForBookings } from '../reviews/review.service.js';
+import { claimCoupon, couponLabel, discountMinor, findUsableCoupon, releaseCoupon } from '../coupons/coupon.service.js';
 import { AppError, ServiceUnavailableError } from '../../shared/app-error.js';
 import { recordAuditEvent } from '../audit/audit.service.js';
 import type { SessionMetadata } from '../auth/auth.service.js';
@@ -20,8 +21,9 @@ import { notifyBooking } from './booking-notifications.js';
 import { availableRoomCounts, prepareRoomNights, releaseRooms, reserveRooms } from './availability.service.js';
 import type { CreateBookingInput, ListBookingsQuery } from './booking.schemas.js';
 import { stayNights, todayInPakistan } from './stay-dates.js';
+import { rentalExtrasMinor, rentalTerms, shownEnd, storedEnd, type RentalChoice } from './rental.js';
 
-export const BOOKABLE_LISTING_TYPES = ['hotel', 'homestay'];
+export const BOOKABLE_LISTING_TYPES = ['hotel', 'homestay', 'car'];
 
 
 type Actor = { userId: string; roles: UserRole[] };
@@ -80,7 +82,7 @@ export function serializeBooking(booking: any) {
     customerEmail: booking.guest.email,
     customerPhone: booking.guest.phone,
     startDate: booking.checkIn,
-    endDate: booking.checkOut,
+    endDate: shownEnd(booking),
     duration: booking.nights,
     rooms: booking.rooms,
     adults: booking.adults,
@@ -89,6 +91,8 @@ export function serializeBooking(booking: any) {
     currency: booking.pricing.currency,
     nightlyRate: booking.pricing.nightlyRateMinor / 100,
     ...(booking.meals?.length ? { meals: booking.meals.map((meal: any) => ({ type: meal.type, price: meal.priceMinor / 100 })), mealsTotal: (booking.pricing.mealsMinor ?? 0) / 100 } : {}),
+    ...(booking.rental ? { rental: serializeRental(booking.rental), extrasTotal: (booking.pricing.extrasMinor ?? 0) / 100 } : {}),
+    ...(booking.coupon ? { couponCode: booking.coupon.code, couponLabel: couponLabel(booking.coupon), discount: (booking.pricing.discountMinor ?? 0) / 100 } : {}),
     totalPrice: booking.pricing.totalMinor / 100,
     status: booking.status,
     paymentStatus: booking.paymentStatus,
@@ -103,6 +107,17 @@ export function serializeBooking(booking: any) {
     checkOutTime: booking.listingSnapshot.checkOutTime,
     history: (booking.statusHistory ?? []).map(({ status, at, reason }: any) => ({ status, at, reason })),
     createdAt: booking.createdAt,
+  };
+}
+
+function serializeRental(rental: any) {
+  return {
+    pickupPlace: rental.pickupPlace, pickupTime: rental.pickupTime, dropoffPlace: rental.dropoffPlace,
+    driver: rental.driver, driverPerDay: (rental.driverPerDayMinor ?? 0) / 100,
+    outsideBaseCity: rental.outsideBaseCity, outsidePerDay: (rental.outsidePerDayMinor ?? 0) / 100,
+    oneWay: rental.oneWay, oneWayOnRequest: rental.oneWayOnRequest, oneWayFee: (rental.oneWayFeeMinor ?? 0) / 100,
+    fuelIncluded: rental.fuelIncluded, deposit: (rental.depositMinor ?? 0) / 100,
+    ...(rental.licenceNumber ? { licenceNumber: rental.licenceNumber } : {}),
   };
 }
 
@@ -157,13 +172,15 @@ export function partyFits(room: { maxAdults: number; maxChildren: number }, adul
 
 export async function getListingAvailability(
   listingId: string,
-  query: { checkIn: string; checkOut: string; adults: number; children: number; rooms: number; meals?: string[] },
+  query: { checkIn: string; checkOut: string; adults: number; children: number; rooms: number; meals?: string[]; coupon?: string } & RentalChoice,
 ) {
   await requireDatabase();
-  const nights = stayNights(query.checkIn, query.checkOut);
   const listing = await findBookableListing(listingId);
+  const nights = stayNights(query.checkIn, storedEnd(listing.type, query.checkOut));
+  const rental = listing.type === 'car' ? rentalTerms(listing, query) : undefined;
   // Quoted exactly as createBooking will charge: meals per guest per night on top of the room price.
   const mealsMinor = mealsCostMinor(chosenMeals(listing, query.meals), query.adults + query.children, nights.length);
+  const coupon = query.coupon ? await findUsableCoupon(listing.ownerId, query.coupon) : undefined;
   const roomTypes = await HotelRoomTypeModel.find({ listingId: listing._id, status: 'active', deletedAt: null })
     .sort({ basePriceMinor: 1 })
     .lean() as any[];
@@ -178,8 +195,14 @@ export async function getListingAvailability(
     // Guests may cancel until the day before check-in (see cancelOwnBooking); none when the stay starts today.
     freeCancellationUntil: query.checkIn > todayInPakistan() ? dayBefore(query.checkIn) : undefined,
     mealsTotal: mealsMinor / 100,
+    // Car rentals: what the driver, out-of-city and one-way choices resolved to (per car per day, PKR).
+    ...(rental ? { rental: serializeRental(rental) } : {}),
+    ...(coupon ? { coupon: { code: coupon.code, label: couponLabel(coupon) } } : {}),
     rooms: roomTypes.map((room) => {
       const free = available.get(String(room._id)) ?? 0;
+      const extrasMinor = rentalExtrasMinor(rental, nights.length, query.rooms);
+      const grossMinor = room.basePriceMinor * nights.length * query.rooms + mealsMinor + extrasMinor;
+      const offMinor = discountMinor(coupon, grossMinor);
       return {
         id: room.publicId,
         name: room.name,
@@ -193,7 +216,9 @@ export async function getListingAvailability(
         bookable: free >= query.rooms && partyFits(room, query.adults, query.children, query.rooms),
         nightlyRate: room.basePriceMinor / 100,
         roomTotal: (room.basePriceMinor * nights.length * query.rooms) / 100,
-        totalPrice: (room.basePriceMinor * nights.length * query.rooms + mealsMinor) / 100,
+        ...(rental ? { extrasTotal: extrasMinor / 100 } : {}),
+        ...(coupon ? { discount: offMinor / 100 } : {}),
+        totalPrice: (grossMinor - offMinor) / 100,
       };
     }),
   };
@@ -210,7 +235,7 @@ export async function createBooking(
     listingId: input.listingId, roomTypeId: input.roomTypeId, checkIn: input.checkIn, checkOut: input.checkOut,
     rooms: input.rooms, adults: input.adults, children: input.children,
     guest: { name: input.guest.name, email: input.guest.email.toLowerCase(), phone: input.guest.phone },
-    specialRequests: input.specialRequests ?? '', paymentMethod: input.paymentMethod, meals: [...input.meals].sort(),
+    specialRequests: input.specialRequests ?? '', paymentMethod: input.paymentMethod, meals: [...input.meals].sort(), couponCode: input.couponCode, rental: input.rental,
     expectedTotalMinor: input.expectedTotalMinor,
   })).digest('hex');
   const replay = (booking: any) => {
@@ -224,8 +249,9 @@ export async function createBooking(
     if (existing) return replay(existing);
   }
 
-  const nights = stayNights(input.checkIn, input.checkOut);
   const listing = await findBookableListing(input.listingId);
+  const nights = stayNights(input.checkIn, storedEnd(listing.type, input.checkOut));
+  const rental = listing.type === 'car' ? carRental(listing, input.rental) : undefined;
   // ponytail: snapshotted, so a later phone change does not reach existing bookings; look it up live if partners change numbers often.
   const propertyPhone = listing.ownerId ? (await VendorModel.findById(listing.ownerId).select('phone').lean() as any)?.phone : undefined;
   const roomRef = await HotelRoomTypeModel.findOne({
@@ -253,7 +279,10 @@ export async function createBooking(
       const subtotalMinor = room.basePriceMinor * nights.length * input.rooms;
       const meals = chosenMeals(listing, input.meals);
       const mealsMinor = mealsCostMinor(meals, input.adults + input.children, nights.length);
-      const totalMinor = subtotalMinor + mealsMinor;
+      const extrasMinor = rentalExtrasMinor(rental, nights.length, input.rooms);
+      const coupon = input.couponCode ? await claimCoupon(listing.ownerId, input.couponCode, session) : undefined;
+      const couponMinor = discountMinor(coupon, subtotalMinor + mealsMinor + extrasMinor);
+      const totalMinor = subtotalMinor + mealsMinor + extrasMinor - couponMinor;
       if (input.expectedTotalMinor !== undefined && input.expectedTotalMinor !== totalMinor) {
         throw new AppError(409, 'PRICE_CHANGED', 'The room price changed. Edit traveler details and review the latest price before reserving.');
       }
@@ -275,7 +304,7 @@ export async function createBooking(
       },
       roomSnapshot: { publicId: room.publicId, name: room.name, bedType: room.bedType },
       checkIn: input.checkIn,
-      checkOut: input.checkOut,
+      checkOut: storedEnd(listing.type, input.checkOut),
       nights: nights.length,
       rooms: input.rooms,
       adults: input.adults,
@@ -283,7 +312,9 @@ export async function createBooking(
       guest: input.guest,
       specialRequests: input.specialRequests,
       meals: meals.length ? meals : undefined,
-      pricing: { currency: 'PKR', nightlyRateMinor: room.basePriceMinor, subtotalMinor, mealsMinor, totalMinor },
+      pricing: { currency: 'PKR', nightlyRateMinor: room.basePriceMinor, subtotalMinor, mealsMinor, extrasMinor, discountMinor: couponMinor, totalMinor },
+      coupon,
+      rental,
       paymentMethod: input.paymentMethod,
       statusHistory: [{ status: 'pending', by: customerId }],
       idempotencyKey,
@@ -308,6 +339,20 @@ export async function createBooking(
     }
     throw error;
   }
+}
+
+/** Car checkout details plus the car's terms; self-drive renters must give a driving licence number. */
+function carRental(listing: any, input: CreateBookingInput['rental']) {
+  if (!input) throw new AppError(422, 'RENTAL_DETAILS_REQUIRED', 'Give the pickup place and time for this car.');
+  const terms = rentalTerms(listing, input);
+  if (!terms.driver && !input.licenceNumber) throw new AppError(422, 'LICENCE_REQUIRED', 'Self-drive rentals need your driving licence number.');
+  return {
+    ...terms,
+    pickupPlace: input.pickupPlace,
+    pickupTime: input.pickupTime,
+    dropoffPlace: input.dropoffPlace ?? input.pickupPlace,
+    ...(terms.driver ? {} : { licenceNumber: input.licenceNumber }),
+  };
 }
 
 function bookingFilter(query: ListBookingsQuery) {
@@ -413,6 +458,7 @@ async function applyTransition(actor: { userId?: string }, booking: any, action:
     // The stay was validated at creation, so rebuild its nights without the "not in the past" check.
     const nights = stayNights(booking.checkIn, booking.checkOut, booking.checkIn);
     await releaseRooms(booking.roomTypeId, nights, booking.rooms, session);
+    if (booking.coupon) await releaseCoupon(booking.vendorId, booking.coupon.code, session);
   }
     return updated;
   });
@@ -476,18 +522,20 @@ export async function changeVendorBooking(actor: Actor, bookingId: string, input
   }
   // ponytail: no refund rules yet (Phase 2), so a re-quote must not leave recorded money out of step with the total.
   if (booking.paymentStatus === 'paid') throw new AppError(409, 'BOOKING_ALREADY_PAID', 'Payment is already recorded for this booking. Cancel it and make a new one instead.');
-  const nights = stayNights(input.checkIn, input.checkOut);
+  // Cars: input.checkOut is the return date.
+  const checkOut = storedEnd(booking.listingSnapshot.type, input.checkOut);
+  const nights = stayNights(input.checkIn, checkOut);
   const roomRef = await HotelRoomTypeModel.findOne({ publicId: input.roomTypeId, listingId: booking.listingId, status: 'active', deletedAt: null });
   if (!roomRef) throw new AppError(404, 'ROOM_NOT_FOUND', 'That room category is not bookable at this property.');
   if (!partyFits(roomRef, booking.adults, booking.children, input.rooms)) {
     throw new AppError(422, 'OCCUPANCY_EXCEEDED', `${input.rooms} × ${roomRef.name} cannot hold ${booking.adults} adult(s) and ${booking.children} child(ren).`);
   }
-  if (input.checkIn === booking.checkIn && input.checkOut === booking.checkOut && String(roomRef._id) === String(booking.roomTypeId) && input.rooms === booking.rooms) {
+  if (input.checkIn === booking.checkIn && checkOut === booking.checkOut && String(roomRef._id) === String(booking.roomTypeId) && input.rooms === booking.rooms) {
     throw new AppError(400, 'NO_CHANGE', 'Nothing was changed.');
   }
   await prepareRoomNights(roomRef._id, nights);
   const oldNights = stayNights(booking.checkIn, booking.checkOut, booking.checkIn);
-  const before = `${booking.checkIn} → ${booking.checkOut}, ${booking.rooms} × ${booking.roomSnapshot.name}, ${pkr(booking.pricing.totalMinor)}`;
+  const before = `${booking.checkIn} → ${shownEnd(booking)}, ${booking.rooms} × ${booking.roomSnapshot.name}, ${pkr(booking.pricing.totalMinor)}`;
 
   const updated = await inTransaction(async (session) => {
     const room = await HotelRoomTypeModel.findOneAndUpdate(
@@ -497,15 +545,18 @@ export async function changeVendorBooking(actor: Actor, bookingId: string, input
     const subtotalMinor = room.basePriceMinor * nights.length * input.rooms;
     // Meals keep their booked price; their cost follows the new number of nights.
     const mealsMinor = mealsCostMinor(booking.meals, booking.adults + booking.children, nights.length);
-    const totalMinor = subtotalMinor + mealsMinor;
+    // Car extras and the promo code keep the terms fixed at booking and apply to the new days.
+    const extrasMinor = rentalExtrasMinor(booking.rental, nights.length, input.rooms);
+    const couponMinor = discountMinor(booking.coupon, subtotalMinor + mealsMinor + extrasMinor);
+    const totalMinor = subtotalMinor + mealsMinor + extrasMinor - couponMinor;
     // Matching the loaded stay makes a concurrent change or cancellation fail instead of double-moving inventory.
     const changed = await BookingModel.findOneAndUpdate(
       { _id: booking._id, status: booking.status, checkedInAt: null, paymentStatus: { $ne: 'paid' }, checkIn: booking.checkIn, checkOut: booking.checkOut, roomTypeId: booking.roomTypeId, rooms: booking.rooms },
       {
         $set: {
-          checkIn: input.checkIn, checkOut: input.checkOut, nights: nights.length, rooms: input.rooms, roomTypeId: room._id,
+          checkIn: input.checkIn, checkOut, nights: nights.length, rooms: input.rooms, roomTypeId: room._id,
           roomSnapshot: { publicId: room.publicId, name: room.name, bedType: room.bedType },
-          pricing: { currency: 'PKR', nightlyRateMinor: room.basePriceMinor, subtotalMinor, mealsMinor, totalMinor },
+          pricing: { currency: 'PKR', nightlyRateMinor: room.basePriceMinor, subtotalMinor, mealsMinor, extrasMinor, discountMinor: couponMinor, totalMinor },
         },
         $push: { statusHistory: { status: booking.status, by: actor.userId, at: new Date(), reason: `Changed from ${before} to ${input.checkIn} → ${input.checkOut}, ${input.rooms} × ${room.name}, ${pkr(totalMinor)}.` } },
       },
