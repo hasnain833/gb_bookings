@@ -203,13 +203,26 @@ export async function listVendorApplications(query: { status?: string; changes?:
         type: document.type,
         status: document.status,
         mimeType: record?.mimeType,
-        url: record && isCloudinaryConfigured()
-          ? signedDownloadUrl(record.providerAssetId, record.providerResourceType, record.deliveryType)
-          : undefined,
+        // Raw Cloudinary files have no extension, so their signed link downloads a nameless file; the API streams it with its real type instead.
+        url: record ? `/api/v1/admin/vendors/${vendor.publicId}/documents/${document.type}` : undefined,
       };
     }),
   });
   return { data: vendors.map(withDocumentLinks), pagination: { page: query.page, limit: query.limit, total, pages: Math.ceil(total / query.limit) } };
+}
+
+/** Signed source link and stored type of one verification document, for the admin document viewer. */
+export async function vendorDocumentSource(vendorId: string, type: string) {
+  await requireDatabase();
+  if (!isCloudinaryConfigured()) throw new AppError(503, 'MEDIA_PROVIDER_NOT_CONFIGURED', 'Cloudinary media storage is not configured.');
+  const vendor: any = await VendorModel.findOne({ publicId: vendorId, deletedAt: null }).lean();
+  const document = vendor?.verificationDocuments?.find((item: any) => item.type === type);
+  const record: any = document && await MediaModel.findOne({ _id: document.mediaId, deletedAt: null }).lean();
+  if (!record) throw new AppError(404, 'DOCUMENT_NOT_FOUND', 'Verification document was not found.');
+  return {
+    mimeType: record.mimeType as string,
+    url: signedDownloadUrl(record.providerAssetId, record.providerResourceType, record.deliveryType, 60),
+  };
 }
 
 export async function decideVendorApplication(adminUserId: string, vendorId: string, input: { decision: string; notes: string }, metadata: SessionMetadata) {

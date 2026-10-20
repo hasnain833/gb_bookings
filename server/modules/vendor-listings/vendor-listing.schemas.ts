@@ -144,6 +144,7 @@ export const listingStatusSchema = z.object({ status: z.enum(['paused', 'publish
 
 export const adminListingsQuerySchema = z.object({
   status: z.enum(['all', 'draft', 'submitted', 'published', 'paused', 'rejected', 'archived', 'revisions']).default('submitted'),
+  type: z.enum(['hotel', 'homestay', 'car']).optional(),
   q: z.string().trim().min(2).max(100).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),

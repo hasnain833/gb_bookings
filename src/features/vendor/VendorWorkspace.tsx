@@ -1,8 +1,8 @@
-import { ArrowLeft, BarChart3, Briefcase, Building2, CalendarCheck, ChevronRight, LayoutDashboard, LogOut, Plus, ShieldCheck, Star, TicketPercent, Users } from 'lucide-react';
-import type { ReactNode } from 'react';
-import GBLogo from '../../shared/components/GBLogo';
+import { useState, type ReactNode } from 'react';
+import { ArrowLeft, BarChart3, Briefcase, Building2, CalendarCheck, Car, House, LayoutDashboard, LogOut, PanelLeftClose, PanelLeftOpen, Plus, ShieldCheck, Star, TicketPercent, Users } from 'lucide-react';
 
 export type VendorTab = 'overview' | 'properties' | 'new-property' | 'reservations' | 'reviews' | 'promo-codes' | 'reports' | 'team' | 'business' | 'security';
+export type PartnerKind = 'hotel' | 'homestay' | 'car';
 
 /** Areas the server grants this team member (GET /vendors/me → membership.access). */
 export type MemberArea = 'listings' | 'reservations' | 'reports' | 'team' | 'business';
@@ -12,75 +12,117 @@ const TAB_AREA: Partial<Record<VendorTab, MemberArea>> = {
 // Before the account loads, show the owner's layout; security is open to everyone.
 export const canOpen = (access: MemberArea[] | undefined, tab: VendorTab) => !TAB_AREA[tab] || !access || access.includes(TAB_AREA[tab]!);
 
-const navigation = [
-  { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-  { id: 'properties', label: 'Properties & rooms', icon: Building2 },
-  { id: 'reservations', label: 'Reservations', icon: CalendarCheck },
-  { id: 'reviews', label: 'Reviews', icon: Star },
-  { id: 'promo-codes', label: 'Promo codes', icon: TicketPercent },
-  { id: 'reports', label: 'Reports', icon: BarChart3 },
-  { id: 'team', label: 'Team', icon: Users },
-  { id: 'business', label: 'Business profile', icon: Briefcase },
-  { id: 'security', label: 'Account security', icon: ShieldCheck },
-] as const;
+/** Words that change with the partner type; one account is one type. */
+export const partnerWords = (kind: PartnerKind) => ({
+  hotel: { one: 'hotel', many: 'Hotels & rooms', bookings: 'Reservations', partner: 'Hotel partner' },
+  homestay: { one: 'homestay', many: 'My homestays', bookings: 'Reservations', partner: 'Homestay host' },
+  car: { one: 'car', many: 'Cars & fleet', bookings: 'Rentals', partner: 'Car partner' },
+}[kind]);
 
-const titles = (word: string): Record<VendorTab, [string, string]> => ({
-  overview: ['Partner dashboard', `Your ${word}s, rooms and reservations in one place.`],
-  properties: word === 'car' ? ['Cars & fleet', 'Manage your cars, daily prices, fleet counts and publication reviews.'] : [`${word.charAt(0).toUpperCase()}${word.slice(1)}s & rooms`, 'Manage your properties, room categories and publication reviews.'],
-  'new-property': word === 'car' ? ['Add a car', 'Create a car draft with its price and photos, then submit it for admin approval.'] : [`Add a ${word}`, 'Create a property draft, add its rooms, then submit it for admin approval.'],
-  reservations: ['Reservations', 'Review guest requests and manage upcoming stays.'],
-  reviews: ['Guest reviews', 'Read what guests say, reply publicly, or report a review that breaks the rules.'],
-  'promo-codes': ['Promo codes', 'Give guests a discount code. Guests enter it at checkout and pay the reduced total at your property.'],
-  reports: ['Reports', 'Occupancy and money per hotel for any dates.'],
-  team: ['Team', 'Give managers and reception staff their own sign-in.'],
-  business: ['Business profile', 'Your verified business details. Changes are approved by GBBookings before they apply.'],
-  security: ['Account security', 'Manage email verification, your password and active sessions.'],
-});
+const navGroups = (kind: PartnerKind): Array<{ title?: string; items: Array<{ id: VendorTab; label: string; icon: typeof Star }> }> => {
+  const words = partnerWords(kind);
+  return [
+    { items: [
+      { id: 'overview', label: 'Home', icon: LayoutDashboard },
+      { id: 'reservations', label: words.bookings, icon: CalendarCheck },
+      { id: 'properties', label: words.many, icon: kind === 'car' ? Car : kind === 'homestay' ? House : Building2 },
+    ] },
+    { title: 'Grow', items: [
+      { id: 'reviews', label: 'Guest reviews', icon: Star },
+      { id: 'promo-codes', label: 'Promo codes', icon: TicketPercent },
+      { id: 'reports', label: 'Reports', icon: BarChart3 },
+    ] },
+    { title: 'Business', items: [
+      { id: 'team', label: 'Team', icon: Users },
+      { id: 'business', label: 'Business profile', icon: Briefcase },
+      { id: 'security', label: 'Account security', icon: ShieldCheck },
+    ] },
+  ];
+};
 
-export default function VendorWorkspace({ tab, onTab, businessName, status, access, kind = 'hotel', userName, userEmail, onBrowse, onSignOut, hideHeading = false, children }: {
-  tab: VendorTab; access?: MemberArea[]; kind?: 'hotel' | 'homestay' | 'car'; hideHeading?: boolean; onTab: (tab: VendorTab) => void; businessName?: string;
+const titles = (kind: PartnerKind): Record<VendorTab, [string, string]> => {
+  const { one, many, bookings } = partnerWords(kind);
+  return {
+    overview: ['', ''],
+    properties: [many, kind === 'car' ? 'Your cars, daily prices, fleet counts and reviews by GBBookings.' : 'Your properties, room categories and reviews by GBBookings.'],
+    'new-property': [`Add a ${one}`, kind === 'car' ? 'Create a car draft with its price and photos, then submit it for review.' : 'Create a property draft, add its rooms, then submit it for review.'],
+    reservations: [bookings, kind === 'car' ? 'Answer rental requests and manage pickups and returns.' : 'Answer booking requests and manage arrivals and stays.'],
+    reviews: ['Guest reviews', 'Read what guests say, reply publicly, or report a review that breaks the rules.'],
+    'promo-codes': ['Promo codes', `Give guests a discount code. Guests enter it at checkout and pay the reduced total at ${kind === 'car' ? 'pickup' : 'your property'}.`],
+    reports: ['Reports', `Occupancy and money per ${one} for any dates.`],
+    team: ['Team', 'Give managers and reception staff their own sign-in.'],
+    business: ['Business profile', 'Your verified business details. Changes are approved by GBBookings before they apply.'],
+    security: ['Account security', 'Manage email verification, your password and active sessions.'],
+  };
+};
+
+const NAV_KEY = 'gb-partner-nav-open';
+
+export default function VendorWorkspace({ tab, onTab, businessName, status, access, kind = 'hotel', badges = {}, userName, userEmail, onBrowse, onSignOut, hideHeading = false, children }: {
+  tab: VendorTab; access?: MemberArea[]; kind?: PartnerKind; badges?: Partial<Record<VendorTab, number>>; hideHeading?: boolean; onTab: (tab: VendorTab) => void; businessName?: string;
   status?: string; userName: string; userEmail: string; onBrowse: () => void;
   onSignOut: () => Promise<void>; children: ReactNode;
 }) {
-  const word = kind;
-  const heading = titles(word)[tab];
+  const [navOpen, setNavOpen] = useState(() => { try { return localStorage.getItem(NAV_KEY) !== '0'; } catch { return true; } });
+  const toggleNav = () => setNavOpen((open) => { try { localStorage.setItem(NAV_KEY, open ? '0' : '1'); } catch { /* storage blocked */ } return !open; });
+  const words = partnerWords(kind);
+  const heading = titles(kind)[tab];
+  // Below md the menu is always the icon rail; the toggle only widens it on larger screens.
+  const labelClass = navOpen ? 'hidden md:block' : 'hidden';
+  const iconsOnly = navOpen ? 'justify-center md:justify-start' : 'justify-center';
+  const initials = (businessName || words.one).split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
+
   return (
-    <div className="min-h-dvh bg-[#F5F6F2] font-jakarta text-slate-900 lg:flex">
-      <aside className="border-b border-slate-200 bg-white lg:fixed lg:inset-y-0 lg:left-0 lg:z-20 lg:flex lg:w-64 lg:flex-col lg:border-r lg:border-b-0">
-        <div className="flex items-center justify-between gap-3 px-5 py-6 lg:block">
-          <button type="button" onClick={onBrowse} aria-label="Go to GBBookings"><GBLogo size="sm" /></button>
-          <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400 lg:ml-9">Partner dashboard</p>
+    <div className="flex min-h-dvh bg-[#F4F5F1] font-jakarta text-[#17211B]">
+      <nav aria-label="Partner navigation" className={`sticky top-0 flex h-dvh w-[68px] shrink-0 flex-col gap-4 overflow-y-auto bg-[#002816] px-2.5 py-5 text-[#CFE3D6] transition-[width] ${navOpen ? 'md:w-64' : ''}`}>
+        <div className="flex items-center gap-2.5 px-1">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-[#E8890C] text-sm font-extrabold text-white" aria-hidden="true">{initials}</span>
+          <span className={`${labelClass} min-w-0 leading-tight`}>
+            <span className="block truncate text-[15px] font-extrabold text-white">{businessName || `Your ${words.one} business`}</span>
+            <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-[#8FBFA0]"><span className={`size-1.5 rounded-full ${status === 'approved' ? 'bg-emerald-400' : 'bg-amber-400'}`} />{status === 'approved' ? words.partner : status ?? 'Loading…'}</span>
+          </span>
         </div>
-        <div className="mx-4 hidden rounded-xl border border-slate-200 bg-slate-50 p-4 lg:block">
-          <p className="truncate text-sm font-semibold">{businessName || `Your ${word} business`}</p>
-          <p className="mt-2 flex items-center gap-2 text-xs text-slate-500"><span className={`size-2 rounded-full ${status === 'approved' ? 'bg-emerald-500' : 'bg-amber-400'}`} />{status === 'approved' ? `Verified ${word} partner` : status ?? 'Loading…'}</p>
+        <button type="button" onClick={toggleNav} aria-expanded={navOpen} aria-label={navOpen ? 'Collapse menu' : 'Expand menu'} title={navOpen ? 'Collapse menu' : 'Expand menu'}
+          className={`hidden min-h-10 items-center gap-2.5 rounded-lg border border-[#1F4A33] px-3 text-[13px] font-semibold hover:bg-white/5 md:flex ${navOpen ? '' : 'justify-center'}`}>
+          {navOpen ? <PanelLeftClose className="size-[18px] shrink-0" /> : <PanelLeftOpen className="size-[18px] shrink-0" />}<span className={labelClass}>Collapse menu</span>
+        </button>
+        {navGroups(kind).map((group, index) => {
+          const items = group.items.filter((item) => canOpen(access, item.id));
+          if (!items.length) return null;
+          return <div key={index} className="flex flex-col gap-0.5">
+            {group.title && <p className={`${labelClass} px-3 pb-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-[#7FA88F]`}>{group.title}</p>}
+            {group.title && <div className={`${navOpen ? 'md:hidden' : ''} mx-2 mb-2 h-px bg-[#1F4A33]`} />}
+            {items.map(({ id, label, icon: Icon }) => {
+              const disabled = status !== undefined && status !== 'approved' && id !== 'overview' && id !== 'security' && id !== 'business';
+              const current = tab === id || (id === 'properties' && tab === 'new-property');
+              const badge = badges[id];
+              return <button key={id} type="button" disabled={disabled} onClick={() => onTab(id)} aria-current={current ? 'page' : undefined}
+                title={disabled ? 'Unavailable while your partner account is not active' : label} aria-label={label}
+                className={`relative flex min-h-[42px] items-center gap-3 rounded-lg px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40 ${current ? 'bg-[#0B4A2C] text-white' : 'text-[#CFE3D6] hover:bg-white/5 hover:text-white'} ${iconsOnly}`}>
+                <Icon className="size-[19px] shrink-0" />
+                <span className={`${labelClass} flex-1 text-left`}>{label}</span>
+                {!!badge && <span className={`${labelClass} rounded-full bg-[#F59E0B] px-2 text-xs font-extrabold text-[#2A1A00]`}>{badge}</span>}
+                {!!badge && <span aria-hidden="true" className={`${navOpen ? 'md:hidden' : ''} absolute right-2 top-2 size-2 rounded-full bg-[#F59E0B]`} />}
+              </button>;
+            })}
+          </div>;
+        })}
+        <div className="mt-auto flex flex-col gap-0.5 border-t border-[#1F4A33] pt-4">
+          <button type="button" onClick={onBrowse} title="Browse GBBookings" aria-label="Browse GBBookings" className={`flex min-h-[42px] items-center gap-3 rounded-lg px-3 text-sm font-semibold text-[#CFE3D6] hover:bg-white/5 hover:text-white ${iconsOnly}`}><ArrowLeft className="size-[19px] shrink-0" /><span className={labelClass}>Browse GBBookings</span></button>
+          <div className={`flex items-center gap-2.5 px-1 pt-2 ${navOpen ? 'flex-col md:flex-row' : 'flex-col'}`}>
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#F59E3B] font-extrabold text-[#17211B]" aria-hidden="true">{userName.charAt(0).toUpperCase() || 'P'}</span>
+            <span className={`${labelClass} min-w-0 flex-1 text-[13px] leading-tight`}><strong className="block truncate text-white">{userName}</strong><span className="block truncate text-[#8FBFA0]">{userEmail}</span></span>
+            <button type="button" onClick={onSignOut} aria-label="Sign out" title="Sign out" className="flex size-9 shrink-0 items-center justify-center rounded-lg hover:bg-white/10 hover:text-white"><LogOut className="size-4" /></button>
+          </div>
         </div>
-        <nav aria-label="Partner navigation" className="flex gap-1 overflow-x-auto px-3 py-3 lg:mt-4 lg:flex-col lg:overflow-visible">
-          {navigation.filter((item) => canOpen(access, item.id)).map((item) => {
-            const disabled = status !== undefined && status !== 'approved' && item.id !== 'overview' && item.id !== 'security' && item.id !== 'business';
-            const selected = tab === item.id || (item.id === 'properties' && tab === 'new-property');
-            return <button key={item.id} type="button" disabled={disabled} onClick={() => onTab(item.id)} title={disabled ? 'Unavailable while your partner account is not active' : undefined}
-              aria-current={selected ? 'page' : undefined}
-              className={`flex min-h-11 shrink-0 items-center gap-3 rounded-lg px-3 text-left text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-40 ${selected ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600 hover:bg-slate-50'}`}>
-              <item.icon className="size-4 shrink-0" />{item.id === 'properties' ? titles(word).properties[0] : item.label}
-            </button>;
-          })}
-        </nav>
-        <div className="mt-auto hidden space-y-2 border-t border-slate-100 p-4 lg:block">
-          <button type="button" onClick={onBrowse} className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-sm text-slate-600 hover:bg-slate-50"><ArrowLeft className="size-4" />Browse GBBookings</button>
-          <button type="button" onClick={onSignOut} className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-sm text-slate-600 hover:bg-slate-50"><LogOut className="size-4" />Sign out</button>
-        </div>
-      </aside>
-      <div className="min-w-0 flex-1 lg:ml-64">
-        <header className="flex min-h-20 items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 sm:px-8">
-          <div className="flex items-center gap-2 text-xs text-slate-500 sm:text-sm"><span>Partner dashboard</span><ChevronRight className="size-3" /><span className="font-medium text-slate-900">{tab === 'new-property' || tab === 'properties' ? heading[0] : navigation.find((item) => item.id === tab)?.label}</span></div>
-          <div className="flex items-center gap-3"><div className="hidden text-right sm:block"><p className="max-w-48 truncate text-sm font-semibold">{userName}</p><p className="max-w-48 truncate text-xs text-slate-500">{userEmail}</p></div><span className="flex size-10 items-center justify-center rounded-full bg-emerald-50 font-semibold text-emerald-800">{userName.charAt(0).toUpperCase() || 'P'}</span><button type="button" onClick={onSignOut} aria-label="Sign out" className="rounded-lg border border-slate-200 p-3 text-slate-500 lg:hidden"><LogOut className="size-4" /></button></div>
-        </header>
-        <main className="mx-auto max-w-6xl space-y-6 px-4 py-7 sm:px-8 sm:py-9">
-          {!hideHeading && <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="mb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-emerald-700">GBBookings partners</p><h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{heading[0]}</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">{heading[1]}</p></div>{status === 'approved' && tab !== 'new-property' && canOpen(access, 'new-property') && <button type="button" onClick={() => onTab('new-property')} className="flex min-h-11 items-center gap-2 rounded-lg bg-[#006F3C] px-4 text-sm font-semibold text-white hover:bg-[#005c32]"><Plus className="size-4" />Add {word}</button>}</div>}
-          {children}
-        </main>
-      </div>
+      </nav>
+      <main className="min-w-0 flex-1 space-y-6 px-4 pb-12 pt-7 sm:px-8">
+        {!hideHeading && tab !== 'overview' && <div className="flex flex-wrap items-start justify-between gap-4">
+          <div><h1 className="text-3xl font-extrabold tracking-tight">{heading[0]}</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-[#5B6B61]">{heading[1]}</p></div>
+          {status === 'approved' && tab === 'properties' && canOpen(access, 'new-property') && <button type="button" onClick={() => onTab('new-property')} className="flex min-h-11 items-center gap-2 rounded-lg bg-[#006F3C] px-4 text-sm font-bold text-white hover:bg-[#005c32]"><Plus className="size-4" />Add {words.one}</button>}
+        </div>}
+        {children}
+      </main>
     </div>
   );
 }

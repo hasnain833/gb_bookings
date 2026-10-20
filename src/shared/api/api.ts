@@ -721,7 +721,7 @@ export const api = {
   },
 
   admin: {
-    listReviews(params: { status?: 'reported' | 'hidden' | 'all'; page?: number } = {}) {
+    listReviews(params: { status?: 'reported' | 'hidden' | 'all'; page?: number; limit?: number } = {}) {
       return request<Paginated<Review>>(`/api/v1/admin/reviews${queryString(params)}`);
     },
     moderateReview(reviewId: string, action: 'hide' | 'restore' | 'dismiss', reason: string) {
@@ -732,7 +732,7 @@ export const api = {
         method: 'POST', body: JSON.stringify(input),
       });
     },
-    listVendors(params: { status?: string; changes?: 'pending'; page?: number } = {}) {
+    listVendors(params: { status?: string; changes?: 'pending'; page?: number; limit?: number } = {}) {
       return request<Paginated<AdminVendor>>(`/api/v1/admin/vendors${queryString(params)}`);
     },
     decideVendorChanges(vendorId: string, decision: 'approved' | 'rejected', notes: string) {
@@ -745,7 +745,7 @@ export const api = {
         method: 'POST', body: JSON.stringify({ decision, notes }),
       });
     },
-    listListings(params: { status?: VendorListing['status'] | 'all' | 'revisions'; q?: string; page?: number } = {}) {
+    listListings(params: { status?: VendorListing['status'] | 'all' | 'revisions'; type?: 'hotel' | 'homestay' | 'car'; q?: string; page?: number; limit?: number } = {}) {
       return request<Paginated<VendorListing>>(`/api/v1/admin/listings${queryString(params)}`);
     },
     listListingRooms(listingId: string) {

@@ -94,7 +94,7 @@ export default function HotelWorkspace({ listing, onBack, onChange, onAvailabili
           }} />
         : <p className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600">Details can be edited again once the review is finished.</p>)}
       {tab === 'availability' && <AvailabilityTab listing={listing} />}
-      {tab === 'reservations' && <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6"><VendorReservations listingId={listing.id} /></div>}
+      {tab === 'reservations' && <VendorReservations listingId={listing.id} car={car} />}
     </div>
   );
 }

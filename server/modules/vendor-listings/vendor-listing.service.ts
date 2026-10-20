@@ -1073,6 +1073,7 @@ export async function duplicateListing(
 /** Admin view of vendor hotels and homestays in any state; the review queue is status=submitted (oldest first). */
 export async function listListingsForModeration(query: {
   status: string;
+  type?: string;
   q?: string;
   page: number;
   limit: number;
@@ -1081,7 +1082,7 @@ export async function listListingsForModeration(query: {
   const term =
     query.q && new RegExp(query.q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
   const filter: Record<string, unknown> = {
-    type: { $in: ["hotel", "homestay", "car"] },
+    type: query.type ?? { $in: ["hotel", "homestay", "car"] },
     ownerId: { $ne: null },
     // Archiving also sets deletedAt, so archived listings are only shown when asked for.
     ...(query.status === "archived"

@@ -1,4 +1,6 @@
 import { Router } from 'express';
+import { z } from 'zod';
+import { AppError } from '../../shared/app-error.js';
 import { authenticate, authorizePermission } from '../../middleware/authenticate.js';
 import { validate } from '../../middleware/validate.js';
 import { asyncHandler } from '../../shared/async-handler.js';
@@ -15,6 +17,7 @@ import {
   requestVendorChanges,
   getOwnVendor,
   listVendorApplications,
+  vendorDocumentSource,
   submitOwnVendor,
   updateOwnVendor,
 } from './vendor.service.js';
@@ -83,6 +86,15 @@ adminVendorRouter.use(authenticate, authorizePermission('vendor:manage'));
 
 adminVendorRouter.get('/', validate('query', listVendorsQuerySchema), asyncHandler(async (request, response) => {
   response.json(await listVendorApplications(request.query as any));
+}));
+
+adminVendorRouter.get('/:id/documents/:type', validate('params', vendorIdParamsSchema.extend({ type: z.string().regex(/^[a-z_]{1,40}$/) })), asyncHandler(async (request, response) => {
+  const source = await vendorDocumentSource(request.params.id, request.params.type);
+  // ponytail: buffers the whole file; fine under MEDIA_MAX_FILE_MB, but Vercel caps responses at 4.5 MB, so stream or redirect if larger documents are allowed.
+  const upstream = await fetch(source.url);
+  if (!upstream.ok) throw new AppError(502, 'DOCUMENT_FETCH_FAILED', 'Could not load this document from storage.');
+  response.set({ 'Content-Type': source.mimeType, 'Content-Disposition': 'inline', 'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff' });
+  response.send(Buffer.from(await upstream.arrayBuffer()));
 }));
 
 adminVendorRouter.post('/:id/decision', validate('params', vendorIdParamsSchema), validate('body', vendorDecisionSchema), asyncHandler(async (request, response) => {

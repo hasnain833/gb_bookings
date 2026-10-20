@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
 import {
-  CalendarCheck,
-  ChevronDown,
   LoaderCircle,
   Search,
   X,
@@ -32,6 +30,7 @@ const tabLabels: Partial<Record<Tab, string>> = {
   arriving: "Arriving today",
   in_house: "In house",
 };
+const CAR_TAB_LABELS: Partial<Record<Tab, string>> = { arriving: "Pickups today", in_house: "On the road" };
 const todayPk = () =>
   new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Karachi" }).format(
     new Date(),
@@ -240,10 +239,13 @@ export default function VendorReservations({
   properties = [],
   listingId: initialListingId = "",
   defaultTab = "pending",
+  car = false,
 }: {
   properties?: Array<{ id: string; title: string }>;
   listingId?: string;
   defaultTab?: Tab;
+  /** Car partners: pickups and returns instead of arrivals and stays. */
+  car?: boolean;
 }) {
   const [status, setStatus] = useState<Tab>(defaultTab);
   const [search, setSearch] = useState("");
@@ -361,276 +363,144 @@ export default function VendorReservations({
     }
   };
 
-  return (
-    <section
-      className="space-y-4"
-      aria-labelledby="vendor-reservations-heading">
-      {dialog}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <CalendarCheck className="size-5 text-[#006F3C]" />
-          <h2
-            id="vendor-reservations-heading"
-            className="font-bold text-slate-900">
-            Reservations
-          </h2>
-          {pagination && (
-            <span className="text-sm text-slate-500">
-              {pagination.total} found
-            </span>
-          )}
-        </div>
-      </div>
+  const selected = bookings.find((booking) => booking.id === openId) ?? bookings[0];
+  const labels = car ? CAR_TAB_LABELS : tabLabels;
+  const whatsapp = (phone?: string) => phone && `https://wa.me/${phone.replace(/\D/g, "").replace(/^0/, "92")}`;
 
-      {/* Status tabs */}
-      <div
-        role="tablist"
-        aria-label="Filter by status"
-        className="flex gap-1 overflow-x-auto border-b border-slate-200">
+  return (
+    <section className="space-y-4" aria-label="Reservations">
+      {dialog}
+      <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label="Filter by status">
         {statusFilters.map((value) => (
-          <button
-            key={value}
-            type="button"
-            role="tab"
-            aria-selected={status === value}
-            onClick={() => setStatus(value)}
-            className={`min-h-11 shrink-0 border-b-2 px-3 text-sm font-semibold capitalize transition ${status === value ? "border-[#006F3C] text-[#006F3C]" : "border-transparent text-slate-500 hover:text-slate-800"}`}>
-            {tabLabels[value] ?? statusLabel(value)}
+          <button key={value} type="button" role="tab" aria-selected={status === value} onClick={() => setStatus(value)}
+            className={`min-h-10 shrink-0 rounded-full border px-4 text-sm font-bold capitalize transition ${status === value ? "border-[#17211B] bg-[#17211B] text-white" : "border-[#D9DED8] bg-white text-[#3D4A42] hover:bg-[#F7F8F6]"}`}>
+            {labels[value] ?? statusLabel(value)}
           </button>
         ))}
+        {pagination && <span className="ml-auto text-sm text-[#5B6B61]">{pagination.total} found</span>}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
-        <label className="relative">
+      <div className="flex flex-wrap items-center gap-3">
+        <label className="relative min-w-[220px] flex-[1_1_260px]">
           <span className="sr-only">Search reservations</span>
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-          <input
-            type="search"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Reference, guest name, email or phone"
-            className={`${fieldClass} w-full pl-9`}
-          />
+          <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Reference, guest name, email or phone" className={`${fieldClass} w-full pl-9`} />
         </label>
         {properties.length > 1 && (
           <label>
             <span className="sr-only">Property</span>
-            <select
-              value={listingId}
-              onChange={(event) => setListingId(event.target.value)}
-              className={`${fieldClass} w-full`}>
-              <option value="">All properties</option>
-              {properties.map((property) => (
-                <option key={property.id} value={property.id}>
-                  {property.title}
-                </option>
-              ))}
+            <select value={listingId} onChange={(event) => setListingId(event.target.value)} className={fieldClass}>
+              <option value="">All {car ? "cars" : "properties"}</option>
+              {properties.map((property) => <option key={property.id} value={property.id}>{property.title}</option>)}
             </select>
           </label>
         )}
         <label className="flex items-center gap-2 text-xs font-semibold text-slate-600">
-          Check-in from
-          <input
-            type="date"
-            value={from}
-            max={to || undefined}
-            onChange={(event) => setFrom(event.target.value)}
-            className={fieldClass}
-          />
+          {car ? "Pickup from" : "Check-in from"}
+          <input type="date" value={from} max={to || undefined} onChange={(event) => setFrom(event.target.value)} className={fieldClass} />
         </label>
         <label className="flex items-center gap-2 text-xs font-semibold text-slate-600">
           to
-          <input
-            type="date"
-            value={to}
-            min={from || undefined}
-            onChange={(event) => setTo(event.target.value)}
-            className={fieldClass}
-          />
+          <input type="date" value={to} min={from || undefined} onChange={(event) => setTo(event.target.value)} className={fieldClass} />
         </label>
+        {filtered && (
+          <button type="button" onClick={clearFilters} className="inline-flex min-h-9 items-center gap-1 text-sm font-semibold text-[#006F3C]"><X className="size-4" />Clear</button>
+        )}
       </div>
-      {filtered && (
-        <button
-          type="button"
-          onClick={clearFilters}
-          className="inline-flex min-h-9 items-center gap-1 text-sm font-semibold text-[#006F3C]">
-          <X className="size-4" />
-          Clear search and dates
-        </button>
-      )}
 
-      {error && (
-        <p
-          role="alert"
-          className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">
-          {error}
-        </p>
-      )}
+      {error && <p role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
 
-      <div className="space-y-3" aria-live="polite" aria-busy={loading}>
-        {loading && (
-          <div className="flex justify-center py-8">
-            <LoaderCircle
-              className="size-6 animate-spin text-[#006F3C]"
-              aria-label="Loading reservations"
-            />
-          </div>
-        )}
-        {!loading && bookings.length === 0 && (
-          <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">
-            {status === "arriving"
-              ? "No guests left to arrive today"
-              : status === "in_house"
-                ? "No guests are checked in right now"
-                : `No ${status === "all" ? "" : `${statusLabel(status)} `}reservations`}
-            {filtered ? " match your search" : ""}.
-          </div>
-        )}
-        {!loading &&
-          bookings.map((booking) => {
-            const open = openId === booking.id;
-            return (
-              <article
-                key={booking.id}
-                className="rounded-xl border border-slate-200 bg-white">
-                <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
-                  <div className="min-w-0 flex-1 space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="truncate font-semibold text-slate-900">
-                        {booking.customerName}
-                      </p>
-                      <StatusBadge status={booking.status} />
-                      {booking.paymentStatus === "paid" && (
-                        <span className="rounded-full bg-emerald-600 px-2.5 py-1 text-xs font-semibold text-white">
-                          Paid
+      <div className="flex flex-wrap items-start gap-5" aria-live="polite" aria-busy={loading}>
+        <div className="min-w-0 flex-[999_1_420px] space-y-3">
+          {loading && <div className="flex justify-center py-8"><LoaderCircle className="size-6 animate-spin text-[#006F3C]" aria-label="Loading reservations" /></div>}
+          {!loading && bookings.length === 0 && (
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
+              {status === "arriving" ? (car ? "No pickups left today" : "No guests left to arrive today")
+                : status === "in_house" ? (car ? "No cars are out right now" : "No guests are checked in right now")
+                  : `No ${status === "all" ? "" : `${statusLabel(status)} `}${car ? "rentals" : "reservations"}`}
+              {filtered ? " match your search" : ""}.
+            </div>
+          )}
+          {!loading && bookings.length > 0 && (
+            <ul className="overflow-hidden rounded-2xl border border-[#E3E7E2] bg-white">
+              {bookings.map((booking) => {
+                const on = booking.id === selected?.id;
+                const start = new Date(`${booking.startDate}T00:00:00`);
+                return (
+                  <li key={booking.id} className="border-t border-[#EEF1ED] first:border-t-0">
+                    <button type="button" aria-current={on ? "true" : undefined} onClick={() => { setOpenId(booking.id); setChangingId(null); }}
+                      className={`flex w-full flex-wrap items-center gap-3 border-l-4 px-4 py-3 text-left text-sm sm:flex-nowrap ${on ? "border-[#006F3C] bg-[#F1F8F4]" : "border-transparent hover:bg-[#F7F8F6]"}`}>
+                      <span className="w-[52px] shrink-0 rounded-lg bg-[#F4F5F1] py-1 text-center">
+                        <span className="block text-[11px] font-bold uppercase text-[#5B6B61]">{start.toLocaleDateString("en-GB", { month: "short" })}</span>
+                        <span className="block text-lg font-extrabold leading-tight">{start.getDate()}</span>
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-bold">{booking.customerName}</span>
+                        <span className="block truncate text-[13px] text-[#5B6B61]">
+                          {booking.rooms ?? 1} × {booking.roomName ?? "Room"} · {booking.duration} {booking.rental ? "day" : "night"}{booking.duration === 1 ? "" : "s"}
+                          {properties.length > 1 ? ` · ${booking.listingTitle}` : ""}
+                          {booking.rental ? ` · ${booking.rental.driver ? "with driver" : "self-drive"}` : ""}
                         </span>
-                      )}
-                      {booking.checkedInAt &&
-                        booking.status === "confirmed" && (
-                          <span className="rounded-full bg-sky-100 px-2.5 py-1 text-xs font-semibold text-sky-900">
-                            {booking.rental ? "Car out" : "Checked in"}
-                          </span>
-                        )}
-                    </div>
-                    {booking.status === "pending" && booking.respondBy && (
-                      <p className="text-xs font-semibold text-amber-800">
-                        Respond by{" "}
-                        {new Date(booking.respondBy).toLocaleString("en-GB", {
-                          dateStyle: "medium",
-                          timeStyle: "short",
-                        })}{" "}
-                        or the request expires and the rooms are released.
-                      </p>
-                    )}
-                    <p className="text-sm text-slate-600">
-                      {formatDateForDisplay(booking.startDate)} →{" "}
-                      {formatDateForDisplay(booking.endDate)} ·{" "}
-                      {booking.duration} {booking.rental ? "day" : "night"}
-                      {booking.duration === 1 ? "" : "s"} · {booking.rooms ?? 1}{" "}
-                      × {booking.roomName ?? "Room"}
-                      {booking.rental ? ` · ${booking.rental.driver ? "with driver" : "self-drive"}` : ""}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      <span className="font-mono">{booking.reference}</span> ·{" "}
-                      {booking.listingTitle} ·{" "}
-                      <strong className="font-semibold text-slate-700">
-                        PKR {booking.totalPrice.toLocaleString()}
-                      </strong>
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {actionsFor(booking).map(({ action, label }) => (
-                      <button
-                        key={action}
-                        type="button"
-                        disabled={busyId === booking.id}
-                        onClick={() => act(booking, action)}
-                        className={`min-h-11 rounded-lg px-4 text-sm font-semibold disabled:opacity-50 ${
-                          action === "confirm" ||
-                          action === "complete" ||
-                          action === "mark_paid" ||
-                          action === "check_in"
-                            ? "bg-[#006F3C] text-white hover:bg-[#005c32]"
-                            : "border border-slate-300 text-slate-700 hover:bg-slate-50"
-                        }`}>
-                        {busyId === booking.id &&
-                        (action === "confirm" ||
-                          action === "complete" ||
-                          action === "check_in") ? (
-                          <LoaderCircle className="mx-auto size-4 animate-spin" />
-                        ) : (
-                          label
-                        )}
-                      </button>
-                    ))}
-                    {changeable(booking) && (
-                      <button
-                        type="button"
-                        aria-expanded={changingId === booking.id}
-                        disabled={busyId === booking.id}
-                        onClick={() =>
-                          setChangingId(
-                            changingId === booking.id ? null : booking.id,
-                          )
-                        }
-                        className="min-h-11 rounded-lg border border-slate-300 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">
-                        Change
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      aria-expanded={open}
-                      onClick={() => setOpenId(open ? null : booking.id)}
-                      className="inline-flex min-h-11 items-center gap-1 rounded-lg px-3 text-sm font-semibold text-slate-600 hover:bg-slate-50">
-                      Details
-                      <ChevronDown
-                        className={`size-4 transition ${open ? "rotate-180" : ""}`}
-                      />
+                      </span>
+                      <span className="flex shrink-0 flex-wrap items-center gap-1.5">
+                        <StatusBadge status={booking.status} />
+                        {booking.checkedInAt && booking.status === "confirmed" && <span className="rounded-full bg-sky-100 px-2.5 py-1 text-xs font-semibold text-sky-900">{booking.rental ? "Car out" : "In house"}</span>}
+                        {booking.paymentStatus === "paid" && <span className="rounded-full bg-emerald-600 px-2.5 py-1 text-xs font-semibold text-white">Paid</span>}
+                      </span>
+                      <span className="w-[110px] shrink-0 text-right font-extrabold">PKR {booking.totalPrice.toLocaleString()}</span>
                     </button>
-                  </div>
-                </div>
-                {changingId === booking.id && (
-                  <ChangeBookingForm
-                    booking={booking}
-                    onCancel={() => setChangingId(null)}
-                    onChanged={(updated) => {
-                      setBookings((items) =>
-                        items.map((item) =>
-                          item.id === updated.id ? updated : item,
-                        ),
-                      );
-                      setChangingId(null);
-                    }}
-                  />
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          {pagination && pagination.pages > 1 && (
+            <nav aria-label="Reservation pages" className="flex items-center justify-end gap-3 text-sm">
+              <button type="button" disabled={loading || page <= 1} onClick={() => setPage((value) => value - 1)} className="min-h-11 rounded-lg border border-slate-300 bg-white px-4 disabled:opacity-50">Previous</button>
+              <span>Page {pagination.page} of {pagination.pages}</span>
+              <button type="button" disabled={loading || page >= pagination.pages} onClick={() => setPage((value) => value + 1)} className="min-h-11 rounded-lg border border-slate-300 bg-white px-4 disabled:opacity-50">Next</button>
+            </nav>
+          )}
+        </div>
+
+        {!loading && selected && (
+          <aside aria-label="Reservation details" className="min-w-0 flex-[1_1_360px] overflow-hidden rounded-2xl border border-[#E3E7E2] bg-white lg:sticky lg:top-6">
+            <div className="space-y-3 border-b border-[#EEF1ED] p-5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <StatusBadge status={selected.status} />
+                <span className="font-mono text-sm text-[#5B6B61]">{selected.reference}</span>
+              </div>
+              <div>
+                <h2 className="text-2xl font-extrabold">{selected.customerName}</h2>
+                <p className="text-sm text-[#5B6B61]">{selected.listingTitle}</p>
+              </div>
+              {selected.status === "pending" && selected.respondBy && (
+                <p className="rounded-lg bg-[#FFF8EB] p-3 text-[13px] font-semibold text-[#7A4A00]">
+                  Answer by {new Date(selected.respondBy).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}, or the request expires and the {selected.rental ? "car is" : "rooms are"} released.
+                </p>
+              )}
+              <div className="flex flex-wrap gap-2">
+                {actionsFor(selected).map(({ action, label }) => (
+                  <button key={action} type="button" disabled={busyId === selected.id} onClick={() => act(selected, action)}
+                    className={`min-h-11 rounded-lg px-4 text-sm font-bold disabled:opacity-50 ${action === "confirm" || action === "complete" || action === "mark_paid" || action === "check_in" ? "bg-[#006F3C] text-white hover:bg-[#005c32]" : action === "cancel" || action === "no_show" ? "border border-[#F1C4C4] text-[#B91C1C] hover:bg-rose-50" : "border border-slate-300 text-slate-700 hover:bg-slate-50"}`}>
+                    {busyId === selected.id && (action === "confirm" || action === "complete" || action === "check_in") ? <LoaderCircle className="mx-auto size-4 animate-spin" /> : label}
+                  </button>
+                ))}
+                {changeable(selected) && (
+                  <button type="button" aria-expanded={changingId === selected.id} disabled={busyId === selected.id} onClick={() => setChangingId(changingId === selected.id ? null : selected.id)}
+                    className="min-h-11 rounded-lg border border-slate-300 px-4 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50">Change</button>
                 )}
-                {open && <ReservationDetails booking={booking} />}
-              </article>
-            );
-          })}
+                {selected.customerPhone && <a href={whatsapp(selected.customerPhone)} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 px-4 text-sm font-bold text-slate-700 hover:bg-slate-50">WhatsApp guest</a>}
+              </div>
+            </div>
+            {changingId === selected.id && (
+              <ChangeBookingForm booking={selected} onCancel={() => setChangingId(null)}
+                onChanged={(updated) => { setBookings((items) => items.map((item) => (item.id === updated.id ? updated : item))); setChangingId(null); }} />
+            )}
+            <ReservationDetails booking={selected} />
+          </aside>
+        )}
       </div>
-      {pagination && pagination.pages > 1 && (
-        <nav
-          aria-label="Reservation pages"
-          className="flex items-center justify-end gap-3 text-sm">
-          <button
-            type="button"
-            disabled={loading || page <= 1}
-            onClick={() => setPage((value) => value - 1)}
-            className="min-h-11 rounded-lg border border-slate-300 px-4 disabled:opacity-50">
-            Previous
-          </button>
-          <span>
-            Page {pagination.page} of {pagination.pages}
-          </span>
-          <button
-            type="button"
-            disabled={loading || page >= pagination.pages}
-            onClick={() => setPage((value) => value + 1)}
-            className="min-h-11 rounded-lg border border-slate-300 px-4 disabled:opacity-50">
-            Next
-          </button>
-        </nav>
-      )}
     </section>
   );
 }
@@ -699,7 +569,7 @@ function ReservationDetails({ booking }: { booking: Booking }) {
     ["Booked on", formatDateForDisplay(booking.createdAt)],
   ];
   return (
-    <div className="grid gap-6 border-t border-slate-100 bg-slate-50/60 p-4 text-sm md:grid-cols-2">
+    <div className="grid gap-6 p-5 text-sm">
       <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2">
         {rows
           .filter(([, value]) => value)

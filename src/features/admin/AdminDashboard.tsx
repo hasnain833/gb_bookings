@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Building2, CalendarX, Inbox, Search, FileText, LoaderCircle, LogOut, ShieldCheck, Star, Users } from 'lucide-react';
+import { Building2, CalendarX, Car, Hotel, House, Inbox, LayoutDashboard, Mountain, PanelLeftClose, PanelLeftOpen, Search, FileText, LoaderCircle, LogOut, ShieldCheck, Star, Users } from 'lucide-react';
 import { api, type AdminBookingLookup, type AdminUser, type AdminVendor, type Paginated, type UserStatusAction, type VendorListing } from '../../shared/api/api';
 import SecurityPanel from '../account/SecurityPanel';
 import ListingReviewDetails from './ListingReviewDetails';
@@ -8,17 +8,20 @@ import type { Review } from '../../types';
 import { useReasonDialog, type ReasonRequest } from '../../shared/components/ReasonDialog';
 import { useDebouncedValue } from '../../shared/hooks/useDebouncedValue';
 
-type Tab = 'inbox' | 'vendors' | 'listings' | 'reviews' | 'users' | 'cancellations' | 'security';
+type Product = VendorListing['type'];
+type Tab = 'overview' | 'inbox' | Product | 'vendors' | 'reviews' | 'users' | 'cancellations' | 'security';
+type NavItem = { id: Tab | 'tour'; label: string; icon: typeof Users; soon?: boolean };
 
-const tabs: Array<{ id: Tab; label: string; icon: typeof Users }> = [
-  { id: 'inbox', label: 'Review inbox', icon: Inbox },
-  { id: 'listings', label: 'Hotels', icon: FileText },
-  { id: 'vendors', label: 'Partners', icon: Building2 },
-  { id: 'reviews', label: 'Guest reviews', icon: Star },
-  { id: 'users', label: 'Users', icon: Users },
-  { id: 'cancellations', label: 'Cancel a booking', icon: CalendarX },
-  { id: 'security', label: 'Account security', icon: ShieldCheck },
+const navGroups: Array<{ title?: string; items: NavItem[] }> = [
+  { items: [{ id: 'overview', label: 'Overview', icon: LayoutDashboard }, { id: 'inbox', label: 'Review inbox', icon: Inbox }] },
+  { title: 'Products', items: [
+    { id: 'hotel', label: 'Hotels', icon: Hotel }, { id: 'homestay', label: 'Homestays', icon: House },
+    { id: 'car', label: 'Cars', icon: Car }, { id: 'tour', label: 'Tours', icon: Mountain, soon: true },
+  ] },
+  { title: 'People', items: [{ id: 'vendors', label: 'Partners', icon: Building2 }, { id: 'users', label: 'Users', icon: Users }, { id: 'reviews', label: 'Guest reviews', icon: Star }] },
+  { title: 'Tools', items: [{ id: 'cancellations', label: 'Cancel a booking', icon: CalendarX }, { id: 'security', label: 'Account security', icon: ShieldCheck }] },
 ];
+const productNames: Record<Product, [string, string]> = { hotel: ['Hotels', 'hotel'], homestay: ['Homestays', 'homestay'], car: ['Cars', 'car'] };
 
 
 const primaryButton = 'min-h-11 rounded-lg bg-[#006F3C] px-4 text-sm font-semibold text-white transition hover:bg-[#005c32] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 disabled:opacity-50';
@@ -191,7 +194,7 @@ const listingTone: Record<VendorListing['status'], string> = {
 };
 const listingStatusLabel = (status: VendorListing['status']) => listingStatusTabs.find(([value]) => value === status)?.[1] ?? label(status);
 
-function ListingsPanel() {
+function ListingsPanel({ type }: { type: Product }) {
   const { askReason, dialog } = useReviewDialog();
   const [status, setStatus] = useState<VendorListing['status'] | 'all' | 'revisions'>('submitted');
   const [search, setSearch] = useState('');
@@ -200,10 +203,10 @@ function ListingsPanel() {
   const query = useDebouncedValue(search.trim());
   const [revision, setRevision] = useState(0);
   const { result, loading, loadError, replace } = usePaged(
-    () => api.admin.listListings({ status, q: query.length >= 2 ? query : undefined, page }), [status, query, page, revision],
+    () => api.admin.listListings({ status, type, q: query.length >= 2 ? query : undefined, page }), [status, type, query, page, revision],
   );
   const { busyId, error, run } = useAction();
-  useEffect(() => { setPage(1); }, [status, query]);
+  useEffect(() => { setPage(1); }, [status, type, query]);
 
   const decide = async (listing: VendorListing, decision: 'published' | 'rejected') => {
     const takeDown = decision === 'rejected' && listing.status !== 'submitted';
@@ -211,8 +214,8 @@ function ListingsPanel() {
       title: `${decision === 'published' ? 'Publish' : takeDown ? 'Take down' : 'Reject'} ${listing.title}`,
       confirmLabel: decision === 'published' ? 'Publish listing' : takeDown ? 'Take down listing' : 'Reject listing',
       destructive: decision === 'rejected',
-      description: decision === 'published' ? 'Add an approval note before publishing this property.'
-        : takeDown ? 'The property is removed from search and new bookings, and returned to the vendor to fix and resubmit. Existing reservations are kept. This note is shared with the vendor.'
+      description: decision === 'published' ? `Add an approval note before publishing this ${productNames[type][1]}.`
+        : takeDown ? 'The listing is removed from search and new bookings, and returned to the vendor to fix and resubmit. Existing reservations are kept. This note is shared with the vendor.'
           : 'Explain your decision. This note will be shared with the vendor.',
     });
     if (!notes) return;
@@ -240,7 +243,7 @@ function ListingsPanel() {
   };
 
   return (
-    <Panel title="Hotels & homestays" icon={FileText} error={error ?? loadError} loading={loading}
+    <Panel title={productNames[type][0]} icon={FileText} error={error ?? loadError} loading={loading}
       empty={result?.data.length === 0 ? (query ? 'No listings match your search.' : status === 'submitted' ? 'No listings are waiting for review.' : status === 'revisions' ? 'No live listings have changes waiting.' : `No ${listingStatusLabel(status as VendorListing['status']).toLowerCase()} listings.`) : null}
       filter={
         <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
@@ -260,7 +263,7 @@ function ListingsPanel() {
               <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${listingTone[listing.status]}`}>{listingStatusLabel(listing.status)}</span>
               {listing.pendingRevision && <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-800">Changes to review</span>}
             </div>
-            <p className="text-xs text-slate-500">{label(listing.type)} · {listing.location} · from PKR {listing.price.toLocaleString()}/night · {listing.images.length} photo(s){listing.vendorName ? ` · ${listing.vendorName}` : ''}</p>
+            <p className="text-xs text-slate-500">{label(listing.type)} · {listing.location} · from PKR {listing.price.toLocaleString()}/{listing.type === 'car' ? 'day' : 'night'} · {listing.images.length} photo(s){listing.vendorName ? ` · ${listing.vendorName}` : ''}</p>
             {listing.rejectionReason && <p className="text-xs italic text-rose-700">Note to vendor: {listing.rejectionReason}</p>}
             <button type="button" aria-expanded={reviewingId === listing.id} onClick={() => setReviewingId(reviewingId === listing.id ? null : listing.id)} className="min-h-11 text-xs font-semibold text-emerald-700 underline">{reviewingId === listing.id ? 'Close details' : 'Photos, policies & rooms'}</button>
             {reviewingId === listing.id && <ListingReviewDetails listing={listing} />}
@@ -484,7 +487,7 @@ type InboxKind = 'partner' | 'business' | 'hotel' | 'changes';
 type InboxItem = { key: string; kind: InboxKind; title: string; subtitle: string; at?: string; image?: string; vendor?: AdminVendor; listing?: VendorListing };
 const kindLabel: Record<InboxKind, [string, string]> = {
   partner: ['New partner', 'text-[#6B3FA0]'], business: ['Business change', 'text-[#6B3FA0]'],
-  hotel: ['New hotel', 'text-[#1E5BA8]'], changes: ['Hotel changes', 'text-[#8A4B10]'],
+  hotel: ['New listing', 'text-[#1E5BA8]'], changes: ['Listing changes', 'text-[#8A4B10]'],
 };
 const ago = (value?: string) => {
   if (!value) return '';
@@ -492,31 +495,40 @@ const ago = (value?: string) => {
   return minutes < 60 ? `${minutes}m ago` : minutes < 1_440 ? `${Math.round(minutes / 60)}h ago` : `${Math.round(minutes / 1_440)}d ago`;
 };
 
-/** Everything waiting on an admin decision in one queue, oldest first, with the selected item reviewed alongside. */
-function InboxPanel({ onOpen }: { onOpen: (tab: Tab) => void }) {
+const address = (vendor: AdminVendor) => [vendor.address?.city, vendor.address?.region].filter(Boolean).join(', ');
+
+/** Everything waiting on an admin decision, oldest first. */
+async function loadQueue(): Promise<InboxItem[]> {
+  const [partners, business, listings, changes] = await Promise.all([
+    api.admin.listVendors({ status: 'submitted', limit: 100 }), api.admin.listVendors({ changes: 'pending', limit: 100 }),
+    api.admin.listListings({ status: 'submitted', limit: 100 }), api.admin.listListings({ status: 'revisions', limit: 100 }),
+  ]);
+  return [
+    ...partners.data.map((vendor) => ({ key: `p-${vendor.id}`, kind: 'partner' as const, title: vendor.name, subtitle: `${label(vendor.businessType)} · ${address(vendor) || vendor.email} · ${vendor.verificationDocuments.length} document(s)`, at: vendor.submittedAt ?? vendor.createdAt, vendor })),
+    ...business.data.map((vendor) => ({ key: `b-${vendor.id}`, kind: 'business' as const, title: vendor.name, subtitle: 'Wants to change business details', at: vendor.pendingChanges?.requestedAt, vendor })),
+    ...listings.data.map((listing) => ({ key: `h-${listing.id}`, kind: 'hotel' as const, title: listing.title, subtitle: `${listing.vendorName ?? 'Partner'} · ${listing.photos?.length || listing.images.length} photo(s)`, at: listing.updatedAt, image: listing.image, listing })),
+    ...changes.data.map((listing) => ({ key: `c-${listing.id}`, kind: 'changes' as const, title: listing.title, subtitle: `${listing.vendorName ?? 'Partner'} · ${Object.keys(listing.pendingRevision?.changes ?? {}).length || 'room'} change(s)`, at: listing.pendingRevision?.submittedAt, image: listing.image, listing })),
+  ].sort((a, b) => Date.parse(a.at ?? '') - Date.parse(b.at ?? ''));
+}
+
+/** Business type of a partner, or the product of a listing, for the queue's product column. */
+const itemProduct = (item: InboxItem): Product => item.listing?.type ?? (item.vendor?.businessType === 'vehicle' ? 'car' : item.vendor?.businessType === 'homestay' ? 'homestay' : 'hotel');
+
+/** The review queue with the selected item reviewed alongside. */
+function InboxPanel({ onOpen, initialKey, onChanged }: { onOpen: (tab: Tab) => void; initialKey?: string; onChanged: () => void }) {
   const { askReason, dialog } = useReviewDialog();
   const [items, setItems] = useState<InboxItem[] | null>(null);
   const [liveHotels, setLiveHotels] = useState<number | null>(null);
   const [filter, setFilter] = useState<'all' | 'partners' | 'hotel' | 'changes'>('all');
-  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [selectedKey, setSelectedKey] = useState<string | null>(initialKey ?? null);
   const [reload, setReload] = useState(0);
   const { busyId, error, setError, run } = useAction();
 
   useEffect(() => {
     let active = true;
     setError(null);
-    Promise.all([
-      api.admin.listVendors({ status: 'submitted' }), api.admin.listVendors({ changes: 'pending' }),
-      api.admin.listListings({ status: 'submitted' }), api.admin.listListings({ status: 'revisions' }), api.admin.listListings({ status: 'published' }),
-    ]).then(([partners, business, hotels, changes, live]) => {
+    Promise.all([loadQueue(), api.admin.listListings({ status: 'published', limit: 1 })]).then(([next, live]) => {
       if (!active) return;
-      const address = (vendor: AdminVendor) => [vendor.address?.city, vendor.address?.region].filter(Boolean).join(', ');
-      const next: InboxItem[] = [
-        ...partners.data.map((vendor) => ({ key: `p-${vendor.id}`, kind: 'partner' as const, title: vendor.name, subtitle: `${label(vendor.businessType)} · ${address(vendor) || vendor.email} · ${vendor.verificationDocuments.length} document(s)`, at: vendor.submittedAt ?? vendor.createdAt, vendor })),
-        ...business.data.map((vendor) => ({ key: `b-${vendor.id}`, kind: 'business' as const, title: vendor.name, subtitle: 'Wants to change business details', at: vendor.pendingChanges?.requestedAt, vendor })),
-        ...hotels.data.map((listing) => ({ key: `h-${listing.id}`, kind: 'hotel' as const, title: listing.title, subtitle: `${listing.vendorName ?? 'Partner'} · ${listing.photos?.length || listing.images.length} photo(s)`, at: listing.updatedAt, image: listing.image, listing })),
-        ...changes.data.map((listing) => ({ key: `c-${listing.id}`, kind: 'changes' as const, title: listing.title, subtitle: `${listing.vendorName ?? 'Partner'} · ${Object.keys(listing.pendingRevision?.changes ?? {}).length || 'room'} change(s)`, at: listing.pendingRevision?.submittedAt, image: listing.image, listing })),
-      ].sort((a, b) => Date.parse(a.at ?? '') - Date.parse(b.at ?? ''));
       setItems(next);
       setLiveHotels(live.pagination.total);
       setSelectedKey((current) => next.some((item) => item.key === current) ? current : next[0]?.key ?? null);
@@ -538,7 +550,7 @@ function InboxPanel({ onOpen }: { onOpen: (tab: Tab) => void }) {
   const decide = async (item: InboxItem, approve: boolean) => {
     const verbs: Record<InboxKind, [string, string]> = {
       partner: ['Approve partner', 'Reject partner'], business: ['Apply changes', 'Reject changes'],
-      hotel: ['Publish hotel', 'Reject hotel'], changes: ['Approve and publish', 'Reject changes'],
+      hotel: ['Publish listing', 'Reject listing'], changes: ['Approve and publish', 'Reject changes'],
     };
     const confirmLabel = verbs[item.kind][approve ? 0 : 1];
     const notes = await askReason({
@@ -553,15 +565,16 @@ function InboxPanel({ onOpen }: { onOpen: (tab: Tab) => void }) {
       if (item.kind === 'hotel') await api.admin.moderateListing(item.listing!.id, approve ? 'published' : 'rejected', notes);
       if (item.kind === 'changes') await api.admin.decideListingRevision(item.listing!.id, approve ? 'approved' : 'rejected', notes);
       done(item.key);
+      onChanged();
       if (item.kind === 'hotel' && approve) setLiveHotels((value) => (value ?? 0) + 1);
     });
   };
 
   const tiles: Array<[string, number | string, string, boolean]> = [
     ['New partners', count(['partner']), oldestPartner ? `Oldest waiting ${ago(oldestPartner.at).replace(' ago', '')}` : 'None waiting', false],
-    ['New hotels', count(['hotel']), 'Waiting to be published', false],
-    ['Changes to live hotels', count(['changes']), 'Still bookable while you review', true],
-    ['Live hotels', liveHotels ?? '—', 'Visible to guests', false],
+    ['New listings', count(['hotel']), 'Waiting to be published', false],
+    ['Changes to live listings', count(['changes']), 'Still bookable while you review', true],
+    ['Live listings', liveHotels ?? '—', 'Visible to guests', false],
   ];
 
   return (
@@ -592,7 +605,7 @@ function InboxPanel({ onOpen }: { onOpen: (tab: Tab) => void }) {
       {items && <div className="flex flex-wrap items-start gap-5">
         <section aria-label="Review queue" className="min-w-0 max-w-[440px] flex-[1_1_340px] overflow-hidden rounded-2xl border border-[#E1E5DE] bg-white">
           <div className="flex flex-wrap gap-2 border-b border-[#ECEFE9] p-4">
-            {([['all', 'All', items.length], ['partners', 'Partners', count(['partner', 'business'])], ['hotel', 'New hotels', count(['hotel'])], ['changes', 'Changes', count(['changes'])]] as const).map(([id, text, total]) =>
+            {([['all', 'All', items.length], ['partners', 'Partners', count(['partner', 'business'])], ['hotel', 'New listings', count(['hotel'])], ['changes', 'Changes', count(['changes'])]] as const).map(([id, text, total]) =>
               <button key={id} type="button" aria-pressed={filter === id} onClick={() => setFilter(id)}
                 className={`min-h-9 rounded-full border px-3.5 text-[13px] font-semibold ${filter === id ? 'border-[#14201A] bg-[#14201A] text-white' : 'border-[#D7DDD6] bg-white text-[#3D4A42]'}`}>{text} {total}</button>)}
           </div>
@@ -629,7 +642,7 @@ function InboxPanel({ onOpen }: { onOpen: (tab: Tab) => void }) {
             </div>
             <div className="flex flex-wrap items-start gap-2">
               <button type="button" className={`${secondaryButton} border-[#E9C3BC] text-[#A12A1C]`} disabled={busyId === selected.key} onClick={() => decide(selected, false)}>{selected.kind === 'partner' || selected.kind === 'hotel' ? 'Reject' : 'Reject changes'}</button>
-              <button type="button" className={primaryButton} disabled={busyId === selected.key} onClick={() => decide(selected, true)}>{{ partner: 'Approve partner', business: 'Apply changes', hotel: 'Publish hotel', changes: 'Approve and publish' }[selected.kind]}</button>
+              <button type="button" className={primaryButton} disabled={busyId === selected.key} onClick={() => decide(selected, true)}>{{ partner: 'Approve partner', business: 'Apply changes', hotel: 'Publish listing', changes: 'Approve and publish' }[selected.kind]}</button>
             </div>
           </div>
           <div className="space-y-5 p-6">
@@ -658,59 +671,211 @@ function InboxPanel({ onOpen }: { onOpen: (tab: Tab) => void }) {
   );
 }
 
+type Summary = { queue: InboxItem[]; live: Record<Product, number>; waiting: Record<Product, number>; paused: number; partners: number; reported: number };
+
+async function loadSummary(): Promise<Summary> {
+  const total = (result: Promise<Paginated<unknown>>) => result.then((page) => page.pagination.total);
+  const [queue, hotel, homestay, car, paused, partners, reported] = await Promise.all([
+    loadQueue(),
+    ...(['hotel', 'homestay', 'car'] as const).map((type) => total(api.admin.listListings({ status: 'published', type, limit: 1 }))),
+    total(api.admin.listListings({ status: 'paused', limit: 1 })), total(api.admin.listVendors({ status: 'approved', limit: 1 })),
+    total(api.admin.listReviews({ status: 'reported', limit: 1 })),
+  ]);
+  const waiting = { hotel: 0, homestay: 0, car: 0 };
+  queue.forEach((item) => { waiting[itemProduct(item)] += 1; });
+  return { queue, live: { hotel, homestay, car }, waiting, paused, partners, reported };
+}
+
+const kindText: Record<InboxKind, string> = { partner: 'New partner', business: 'Business details change', hotel: 'New listing', changes: 'Changes to a live listing' };
+
+function OverviewPanel({ summary, error, onOpen, onReview }: { summary: Summary | null; error: string | null; onOpen: (tab: Tab) => void; onReview: (key: string) => void }) {
+  const [filter, setFilter] = useState<Product | 'all'>('all');
+  if (error) return <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</p>;
+  if (!summary) return <div className="flex justify-center py-16"><LoaderCircle className="size-6 animate-spin text-[#006F3C]" aria-label="Loading" /></div>;
+  const { queue, live, waiting } = summary;
+  const liveTotal = live.hotel + live.homestay + live.car;
+  const oldest = queue[0]?.at;
+  const shown = queue.filter((item) => filter === 'all' || itemProduct(item) === filter);
+  const changeRequests = queue.filter((item) => item.kind === 'business').length;
+  const watch = [
+    summary.reported > 0 && [`${summary.reported} guest review${summary.reported === 1 ? '' : 's'} reported by partners`, 'reviews'],
+    changeRequests > 0 && [`${changeRequests} partner${changeRequests === 1 ? '' : 's'} asked to change business details`, 'inbox'],
+    summary.paused > 0 && [`${summary.paused} listing${summary.paused === 1 ? ' is' : 's are'} paused by their partner`, 'hotel'],
+  ].filter(Boolean) as Array<[string, Tab]>;
+  const tiles: Array<[string, number | string, string]> = [
+    ['Waiting for you', queue.length, oldest ? `Oldest ${ago(oldest)}` : 'All caught up'],
+    ['Live listings', liveTotal, `${live.hotel} hotels · ${live.homestay} homestays · ${live.car} cars`],
+    ['Approved partners', summary.partners, 'Can list and take bookings'],
+    ['Reported reviews', summary.reported, summary.reported ? 'Waiting for moderation' : 'Nothing reported'],
+  ];
+
+  return (
+    <div className="space-y-6">
+      <section aria-label="Summary" className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
+        {tiles.map(([name, value, hint]) => <div key={name} className="rounded-2xl border border-[#E3E7E2] bg-white p-5">
+          <p className="text-sm font-semibold text-[#5B6B61]">{name}</p>
+          <p className="mt-1.5 text-3xl font-extrabold">{value}</p>
+          <p className="mt-1 text-[13px] text-[#5B6B61]">{hint}</p>
+        </div>)}
+      </section>
+
+      <div className="flex flex-wrap items-start gap-6">
+        <section aria-label="Decision queue" className="min-w-0 flex-[999_1_560px] overflow-hidden rounded-2xl border border-[#E3E7E2] bg-white">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#EEF1ED] px-5 py-4">
+            <h2 className="text-lg font-extrabold">Decision queue</h2>
+            <div className="flex flex-wrap gap-1.5">
+              {(['all', 'hotel', 'homestay', 'car'] as const).map((id) => <button key={id} type="button" aria-pressed={filter === id} onClick={() => setFilter(id)}
+                className={`min-h-9 rounded-full border px-3.5 text-[13px] font-semibold ${filter === id ? 'border-[#17211B] bg-[#17211B] text-white' : 'border-[#D9DED8] bg-white text-[#3D4A42]'}`}>
+                {id === 'all' ? `All ${queue.length}` : `${productNames[id][0]} ${waiting[id]}`}</button>)}
+            </div>
+          </div>
+          {shown.length === 0 ? <p className="p-10 text-center text-sm text-[#5B6B61]">Nothing is waiting here. You are all caught up.</p>
+            : <div className="overflow-x-auto"><table className="w-full min-w-[640px] border-collapse text-sm">
+              <thead><tr className="text-left text-xs tracking-wide text-[#5B6B61]">
+                <th className="px-5 py-3 font-bold">WHAT</th><th className="px-2 py-3 font-bold">PRODUCT</th><th className="px-2 py-3 font-bold">FROM</th><th className="px-2 py-3 font-bold">WAITING</th><th className="px-5 py-3 text-right font-bold"><span className="sr-only">Action</span></th>
+              </tr></thead>
+              <tbody>{shown.map((item) => {
+                const hours = item.at ? (Date.now() - Date.parse(item.at)) / 3_600_000 : 0;
+                return <tr key={item.key} className="border-t border-[#EEF1ED]">
+                  <td className="px-5 py-3.5"><p className="font-bold">{item.title}</p><p className="text-[13px] text-[#5B6B61]">{kindText[item.kind]}</p></td>
+                  <td className="px-2 py-3.5"><span className="rounded-full bg-[#EAF4EE] px-2.5 py-1 text-xs font-bold text-[#0B5A33]">{productNames[itemProduct(item)][0]}</span></td>
+                  <td className="px-2 py-3.5 text-[#3D4A42]">{item.listing ? item.listing.location : (item.vendor && address(item.vendor)) || '—'}</td>
+                  <td className={`px-2 py-3.5 font-semibold ${hours >= 48 ? 'text-[#B91C1C]' : hours >= 24 ? 'text-[#B45309]' : 'text-[#3D4A42]'}`}>{ago(item.at).replace(' ago', '') || '—'}</td>
+                  <td className="px-5 py-3.5 text-right"><button type="button" onClick={() => onReview(item.key)} className="min-h-9 rounded-lg border border-[#C9D3CC] bg-white px-3.5 text-[13px] font-bold text-[#006F3C] hover:bg-[#F1F8F4]">Review</button></td>
+                </tr>;
+              })}</tbody>
+            </table></div>}
+        </section>
+
+        <aside className="flex flex-[1_1_300px] flex-col gap-4">
+          <section className="rounded-2xl border border-[#E3E7E2] bg-white p-5">
+            <h2 className="mb-2 font-extrabold">Products at a glance</h2>
+            {(['hotel', 'homestay', 'car'] as const).map((id) => <button key={id} type="button" onClick={() => onOpen(id)} className="flex w-full items-center justify-between border-t border-[#EEF1ED] py-2.5 text-left">
+              <span><span className="block text-sm font-bold">{productNames[id][0]}</span><span className="text-xs text-[#5B6B61]">{waiting[id] ? `${waiting[id]} waiting` : 'Nothing waiting'}</span></span>
+              <span className="text-xl font-extrabold">{live[id]}</span>
+            </button>)}
+            <div className="flex items-center justify-between border-t border-[#EEF1ED] py-2.5">
+              <span><span className="block text-sm font-bold">Tours</span><span className="text-xs text-[#5B6B61]">Coming in the next phase</span></span>
+              <span className="text-xl font-extrabold text-[#5B6B61]">—</span>
+            </div>
+          </section>
+          {watch.length > 0 && <section className="rounded-2xl border border-[#F5D9A8] bg-[#FFF8EB] p-5">
+            <h2 className="mb-2 font-extrabold text-[#7A4A00]">Keep an eye on</h2>
+            <ul className="space-y-1">{watch.map(([text, tab]) => <li key={text}><button type="button" onClick={() => onOpen(tab)} className="min-h-9 text-left text-sm text-[#4A3A1F] underline-offset-2 hover:underline">{text}</button></li>)}</ul>
+          </section>}
+        </aside>
+      </div>
+    </div>
+  );
+}
+
 const sectionDetails: Record<Tab, { title: string; description: string }> = {
+  overview: { title: '', description: '' },
+  hotel: { title: 'Hotels', description: 'Every hotel on the platform. Review new ones, approve edits to live ones, and take down listings that break the rules.' },
+  homestay: { title: 'Homestays', description: 'Every homestay on the platform, from family rooms to entire homes.' },
+  car: { title: 'Cars', description: 'Every car listing, from rental companies and owner-drivers.' },
   inbox: { title: 'Review inbox', description: 'Partners, hotels and edits waiting for a decision.' },
   vendors: { title: 'Partner reviews', description: 'Review vendor applications, verify documents and manage partner access.' },
-  listings: { title: 'Property moderation', description: 'Review submitted properties before they appear on the platform.' },
   reviews: { title: 'Guest reviews', description: 'Reviews partners reported, and reviews you have hidden. Remove only abusive, fake or off-topic reviews and personal data; honest criticism stays.' },
   users: { title: 'People & access', description: 'Manage customer and partner accounts, invite administrators and control platform access.' },
   cancellations: { title: 'Cancel a booking', description: 'For disputes or fraud only. Hotels run their own reservations; find a booking by its reference to cancel it on the guest’s behalf.' },
   security: { title: 'Account security', description: 'Manage your password, active sessions and two-factor authentication.' },
 };
 
+const NAV_KEY = 'gb-admin-nav-open';
+
 export default function AdminDashboard({ roles, userName = 'Staff member', userEmail = '', onSignOut }: {
   roles: string[]; userName?: string; userEmail?: string; onSignOut: () => Promise<void>;
 }) {
-  const allowed = roles.includes('admin') ? tabs : [];
-  const [tab, setTab] = useState<Tab | undefined>(allowed[0]?.id);
+  const isAdmin = roles.includes('admin');
+  const [tab, setTab] = useState<Tab>('overview');
+  const [inboxKey, setInboxKey] = useState<string>();
   const [signingOut, setSigningOut] = useState(false);
-  const selected = allowed.find((item) => item.id === tab)?.id ?? allowed[0]?.id;
-  const roleName = 'Platform Admin';
-  const navigate = (next: Tab) => { setTab(next); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  const [navOpen, setNavOpen] = useState(() => { try { return localStorage.getItem(NAV_KEY) !== '0'; } catch { return true; } });
+  const [summary, setSummary] = useState<Summary | null>(null);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [summaryRevision, setSummaryRevision] = useState(0);
+
+  // The menu badges and the overview share one summary; it reloads after inbox decisions.
+  useEffect(() => {
+    if (!isAdmin) return;
+    let active = true;
+    setSummaryError(null);
+    loadSummary().then((next) => active && setSummary(next))
+      .catch((reason) => active && setSummaryError(reason instanceof Error ? reason.message : 'The overview could not be loaded.'));
+    return () => { active = false; };
+  }, [isAdmin, summaryRevision]);
+
+  const navigate = (next: Tab) => { setTab(next); setInboxKey(undefined); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  const toggleNav = () => setNavOpen((open) => { try { localStorage.setItem(NAV_KEY, open ? '0' : '1'); } catch { /* storage blocked */ } return !open; });
   const signOut = async () => { setSigningOut(true); try { await onSignOut(); } finally { setSigningOut(false); } };
 
-  if (!selected) return <main className="p-8"><h1 className="text-xl font-bold">Admin access required</h1></main>;
-  const section = sectionDetails[selected];
+  if (!isAdmin) return <main className="p-8"><h1 className="text-xl font-bold">Admin access required</h1></main>;
+  const section = sectionDetails[tab];
+  const badges: Partial<Record<Tab, number>> = { inbox: summary?.queue.length, reviews: summary?.reported };
+  // Below md the menu is always the icon rail; the toggle only widens it on larger screens.
+  const labelClass = navOpen ? 'hidden md:block' : 'hidden';
+  const iconsOnly = navOpen ? 'justify-center md:justify-start' : 'justify-center';
+
   return (
-    <div className="min-h-dvh bg-[#F3F4EF] font-jakarta text-[#14201A]">
+    <div className="flex min-h-dvh bg-[#F4F5F1] font-jakarta text-[#17211B]">
       <a href="#admin-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:p-3">Skip to workspace</a>
-      <header className="bg-[#0E2A1D] text-white">
-        <div className="mx-auto flex max-w-[1360px] flex-wrap items-center gap-x-5 gap-y-3 px-4 py-3.5 sm:px-6">
-          <div className="flex items-center gap-2.5">
-            <span className="flex size-[34px] items-center justify-center rounded-[9px] bg-[#1F8A55]"><ShieldCheck className="size-[18px]" /></span>
-            <span className="text-[17px] font-extrabold">GBBookings<span className="text-[#F59E3B]">.com</span></span>
-            <span className="rounded-md border border-[#2C4A3B] px-2 py-1 text-[11px] font-bold tracking-[0.14em] text-[#8FB3A0]">ADMIN</span>
-          </div>
-          <nav aria-label="Admin sections" className="order-3 flex w-full gap-1 overflow-x-auto lg:order-none lg:w-auto lg:flex-1">
-            {allowed.map(({ id, label: text }) => <button key={id} type="button" onClick={() => navigate(id)} aria-current={selected === id ? 'page' : undefined}
-              className={`flex min-h-10 shrink-0 items-center rounded-lg px-3.5 text-sm font-semibold ${selected === id ? 'bg-[#1C4632] text-white' : 'text-[#C9D6CE] hover:text-white'}`}>{text}</button>)}
-          </nav>
-          <div className="ml-auto flex items-center gap-2.5">
-            <span className="hidden text-right text-[13px] leading-tight sm:block"><strong className="block">{userName}</strong><span className="text-[#8FB3A0]">{userEmail || roleName}</span></span>
-            <span className="flex size-[38px] items-center justify-center rounded-full bg-[#F59E3B] font-extrabold text-[#14201A]" aria-hidden="true">{userName.charAt(0).toUpperCase()}</span>
-            <button type="button" onClick={signOut} disabled={signingOut} aria-label="Sign out" title="Sign out" className="flex size-10 items-center justify-center rounded-lg text-[#C9D6CE] hover:bg-white/10 hover:text-white disabled:opacity-50"><LogOut className="size-4" /></button>
-          </div>
+      <nav aria-label="Admin sections" className={`sticky top-0 flex h-dvh w-[68px] shrink-0 flex-col gap-4 overflow-y-auto bg-[#002816] px-2.5 py-5 text-[#CFE3D6] transition-[width] ${navOpen ? 'md:w-64' : ''}`}>
+        <div className="flex items-center gap-2.5 px-1">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-[#006F3C]"><ShieldCheck className="size-5 text-white" /></span>
+          <span className={`${labelClass} leading-tight`}><span className="block text-base font-extrabold text-white">GBBookings</span><span className="text-[11px] font-bold tracking-[0.14em] text-[#8FBFA0]">ADMIN</span></span>
         </div>
-      </header>
-      <main id="admin-content" className="mx-auto max-w-[1360px] space-y-6 px-4 pb-12 pt-7 sm:px-6">
-        {selected === 'inbox' ? <InboxPanel onOpen={navigate} /> : <>
-          <div><h1 className="text-3xl font-extrabold tracking-tight">{section.title}</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-[#5A6B61]">{section.description}</p></div>
-          {selected === 'vendors' && <VendorsPanel />}
-          {selected === 'listings' && <ListingsPanel />}
-          {selected === 'reviews' && <ReviewsPanel />}
-          {selected === 'users' && <UsersPanel />}
-          {selected === 'cancellations' && <CancelBookingPanel />}
-          {selected === 'security' && <section className="rounded-2xl border border-[#E1E5DE] bg-white p-4 sm:p-6"><SecurityPanel /></section>}
+        <button type="button" onClick={toggleNav} aria-expanded={navOpen} aria-label={navOpen ? 'Collapse menu' : 'Expand menu'} title={navOpen ? 'Collapse menu' : 'Expand menu'}
+          className={`hidden min-h-10 items-center gap-2.5 rounded-lg border border-[#1F4A33] px-3 text-[13px] font-semibold hover:bg-white/5 md:flex ${navOpen ? '' : 'justify-center'}`}>
+          {navOpen ? <PanelLeftClose className="size-[18px] shrink-0" /> : <PanelLeftOpen className="size-[18px] shrink-0" />}<span className={labelClass}>Collapse menu</span>
+        </button>
+        {navGroups.map((group, index) => <div key={index} className="flex flex-col gap-0.5">
+          {group.title && <p className={`${labelClass} px-3 pb-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-[#7FA88F]`}>{group.title}</p>}
+          {group.title && <div className={`${navOpen ? 'md:hidden' : ''} mx-2 mb-2 h-px bg-[#1F4A33]`} />}
+          {group.items.map(({ id, label: text, icon: Icon, soon }) => {
+            const current = tab === id;
+            const badge = soon ? undefined : badges[id as Tab];
+            const tone = current ? 'bg-[#0B4A2C] text-white' : soon ? 'text-[#6F9680]' : 'text-[#CFE3D6] hover:bg-white/5 hover:text-white';
+            return <button key={id} type="button" disabled={soon} title={soon ? `${text} (coming soon)` : text} aria-label={soon ? `${text}, coming soon` : text} aria-current={current ? 'page' : undefined}
+              onClick={() => navigate(id as Tab)}
+              className={`relative flex min-h-[42px] items-center gap-3 rounded-lg px-3 text-sm font-semibold disabled:cursor-not-allowed ${tone} ${iconsOnly}`}>
+              <Icon className="size-[19px] shrink-0" />
+              <span className={`${labelClass} flex-1 text-left`}>{text}</span>
+              {soon && <span className={`${labelClass} rounded-full border border-[#3E6B50] px-2 text-[11px] text-[#9CC5AC]`}>Soon</span>}
+              {!!badge && <span className={`${labelClass} rounded-full px-2 text-xs font-extrabold ${id === 'reviews' ? 'bg-[#7F1D1D] text-[#FECACA]' : 'bg-[#F59E0B] text-[#2A1A00]'}`}>{badge}</span>}
+              {!!badge && <span aria-hidden="true" className={`${navOpen ? 'md:hidden' : ''} absolute right-2 top-2 size-2 rounded-full bg-[#F59E0B]`} />}
+            </button>;
+          })}
+        </div>)}
+        <div className={`mt-auto flex items-center gap-2.5 border-t border-[#1F4A33] px-1 pt-4 ${navOpen ? 'flex-col md:flex-row' : 'flex-col'}`}>
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#F59E3B] font-extrabold text-[#17211B]" aria-hidden="true">{userName.charAt(0).toUpperCase()}</span>
+          <span className={`${labelClass} min-w-0 flex-1 text-[13px] leading-tight`}><strong className="block truncate text-white">{userName}</strong><span className="block truncate text-[#8FBFA0]">{userEmail || 'Platform Admin'}</span></span>
+          <button type="button" onClick={signOut} disabled={signingOut} aria-label="Sign out" title="Sign out" className="flex size-9 shrink-0 items-center justify-center rounded-lg hover:bg-white/10 hover:text-white disabled:opacity-50"><LogOut className="size-4" /></button>
+        </div>
+      </nav>
+      <main id="admin-content" className="min-w-0 flex-1 space-y-6 px-4 pb-12 pt-7 sm:px-8">
+        {tab === 'overview' && <>
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold text-[#5B6B61]">{new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+              <h1 className="mt-1 text-3xl font-extrabold tracking-tight">{!summary ? 'Overview' : summary.queue.length === 0 ? 'Nothing needs your decision' : `${summary.queue.length} decision${summary.queue.length === 1 ? '' : 's'} waiting`}</h1>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" className={secondaryButton} onClick={() => setSummaryRevision((value) => value + 1)}>Refresh</button>
+              <button type="button" className={`${primaryButton} inline-flex items-center gap-2`} onClick={() => navigate('cancellations')}><Search className="size-4" />Find a booking</button>
+            </div>
+          </div>
+          <OverviewPanel summary={summary} error={summaryError} onOpen={navigate} onReview={(key) => { navigate('inbox'); setInboxKey(key); }} />
+        </>}
+        {tab === 'inbox' && <InboxPanel key={inboxKey ?? 'inbox'} initialKey={inboxKey} onOpen={navigate} onChanged={() => setSummaryRevision((value) => value + 1)} />}
+        {tab !== 'overview' && tab !== 'inbox' && <>
+          <div><h1 className="text-3xl font-extrabold tracking-tight">{section.title}</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-[#5B6B61]">{section.description}</p></div>
+          {(tab === 'hotel' || tab === 'homestay' || tab === 'car') && <ListingsPanel key={tab} type={tab} />}
+          {tab === 'vendors' && <VendorsPanel />}
+          {tab === 'reviews' && <ReviewsPanel />}
+          {tab === 'users' && <UsersPanel />}
+          {tab === 'cancellations' && <CancelBookingPanel />}
+          {tab === 'security' && <section className="rounded-2xl border border-[#E1E5DE] bg-white p-4 sm:p-6"><SecurityPanel /></section>}
         </>}
       </main>
     </div>
