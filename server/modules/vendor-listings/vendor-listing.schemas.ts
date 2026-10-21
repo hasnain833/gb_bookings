@@ -143,6 +143,16 @@ export const updateHotelListingSchema = listingFields.omit({ type: true }).exten
 export const listingParamsSchema = z.object({ id: z.string().regex(/^lst_[0-9a-f-]{36}$/i, 'Invalid listing identifier.') }).strict();
 export const roomParamsSchema = listingParamsSchema.extend({ roomId: z.string().regex(/^rom_[0-9a-f-]{36}$/i, 'Invalid room identifier.') });
 
+const seasons = z.array(z.object({
+  name: z.string().trim().min(1).max(60),
+  from: isoDay,
+  to: isoDay,
+  price: z.number().int().nonnegative(),
+}).strict().refine((season) => season.from <= season.to, { message: 'A season must end on or after its start date.' }))
+  .max(20)
+  .refine((list) => [...list].sort((a, b) => a.from.localeCompare(b.from)).every((season, index, sorted) => index === 0 || sorted[index - 1].to < season.from),
+    { message: 'Seasons cannot overlap.' });
+
 export const roomTypeSchema = z.object({
   name: z.string().trim().min(2).max(120),
   description: z.string().trim().max(2_000).optional(),
@@ -151,6 +161,9 @@ export const roomTypeSchema = z.object({
   maxChildren: z.number().int().min(0).max(20),
   totalRooms: z.number().int().min(1).max(10_000),
   basePrice: z.number().int().nonnegative(),
+  // null clears the weekend price.
+  weekendPrice: z.number().int().nonnegative().nullable().optional(),
+  seasons: seasons.optional(),
   amenities: cleanList,
   photos: z.array(photo).max(10).optional(),
 }).strict();

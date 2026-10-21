@@ -49,6 +49,7 @@ function publicUser(user: any) {
     emailVerified: Boolean(user.emailVerifiedAt),
     twoFactorEnabled: Boolean(user.twoFactor?.enabled),
     twoFactorChannel: user.twoFactor?.channel ?? 'email',
+    memberSince: user.createdAt,
   };
 }
 

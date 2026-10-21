@@ -93,7 +93,7 @@ export default function TourBookingPanel({ listingId, specs, departures = [], pa
           <ul className="space-y-1 text-xs text-slate-500">
             <li>{unit.available} seat{unit.available === 1 ? '' : 's'} left on this date</li>
             {quote?.freeCancellationUntil && <li>Free cancellation until {formatDateForDisplay(quote.freeCancellationUntil)}</li>}
-            <li>Pay at the start of the tour{paymentMethods?.length ? ` (${paymentMethods.map((method) => PAYMENT_LABELS[method]).join(', ')})` : ''}</li>
+            <li>Pay on arrival, at the start{paymentMethods?.length ? ` (${paymentMethods.map((method) => PAYMENT_LABELS[method]).join(', ')})` : ''}</li>
           </ul>
         </div>}
       </div>

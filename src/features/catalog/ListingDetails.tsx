@@ -11,15 +11,17 @@ import { DRIVER_LABELS } from '../vendor/CarFields';
 import { MapEmbed } from '../../shared/components/MapPin';
 import { HEATING_LABELS, HOT_WATER_LABELS, NETWORK_LABELS, openSeason, PAYMENT_LABELS, POWER_LABELS, ROAD_LABELS } from '../../shared/utils/stayInfo';
 import type { CheckoutParams } from '../booking/CheckoutFlow';
-import { ArrowLeft, ArrowRight, Star, MapPin, Heart, Share2, Check, Clock, Info, Utensils, Languages, Home, Zap, Flame, Droplets, Signal, Car, CalendarRange } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Star, MapPin, Heart, Share2, Check, Clock, Info, Utensils, Languages, Home, Zap, Flame, Droplets, Signal, Car, CalendarRange, MessageSquare } from 'lucide-react';
 
 interface ListingDetailsProps {
   listingId: string;
   onBack: () => void;
   onProceedToCheckout: (bookingParams: CheckoutParams) => void;
+  /** Opens the inbox with this listing's partner (sign-in first if needed). */
+  onMessage?: (start: { listingId: string; title: string; image?: string }) => void;
 }
 
-export default function ListingDetails({ listingId, onBack, onProceedToCheckout }: ListingDetailsProps) {
+export default function ListingDetails({ listingId, onBack, onProceedToCheckout, onMessage }: ListingDetailsProps) {
   const [rawListing, setRawListing] = useState<Listing | null>(null);
   const listing = rawListing;
   const [loading, setLoading] = useState(true);
@@ -127,7 +129,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
     stayPolicies.extraBedPrice !== undefined ? `Extra bed: PKR ${stayPolicies.extraBedPrice.toLocaleString()} per night` : 'No extra beds',
     stayPolicies.petsAllowed ? 'Pets allowed' : 'No pets',
     stayPolicies.smokingAllowed ? 'Smoking allowed' : 'No smoking indoors',
-    `Pay at the property: ${stayPolicies.paymentMethods.map((method) => PAYMENT_LABELS[method]).join(', ')}`,
+    `Pay on arrival: ${stayPolicies.paymentMethods.map((method) => PAYMENT_LABELS[method]).join(', ')}`,
   ] : [];
   const essentials = stayPolicies ? [
     { icon: Zap, label: 'Power backup', value: stayPolicies.powerBackup.length ? stayPolicies.powerBackup.map((item) => POWER_LABELS[item]).join(', ') : 'No backup during power cuts' },
@@ -256,7 +258,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
                 {listing.carSpecs.oneWay === 'flat' && <li>One-way drop-off: PKR {(listing.carSpecs.oneWayFee ?? 0).toLocaleString()}</li>}
                 {listing.carSpecs.oneWay === 'on_request' && <li>One-way drop-off: price on request</li>}
                 {listing.carSpecs.driverMode && listing.carSpecs.driverMode !== 'with_driver' && <li>Self-drive: minimum age {listing.carSpecs.minDriverAge}{listing.carSpecs.deposit ? `, refundable deposit PKR ${listing.carSpecs.deposit.toLocaleString()} at pickup` : ''}. Bring your driving licence.</li>}
-                {info?.paymentMethods?.length ? <li>Pay at pickup: {info.paymentMethods.map((method) => PAYMENT_LABELS[method]).join(', ')}</li> : null}
+                {info?.paymentMethods?.length ? <li>Pay on arrival, at pickup: {info.paymentMethods.map((method) => PAYMENT_LABELS[method]).join(', ')}</li> : null}
                 {listing.carSpecs.driverMode && <li>Free cancellation until the day before pickup.</li>}
               </ul>
             </section>
@@ -281,7 +283,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
               <ul className="space-y-1.5 text-sm text-slate-600">
                 {listing.tourSpecs.childPrice !== undefined && <li>Children: PKR {listing.tourSpecs.childPrice.toLocaleString()} each{listing.tourSpecs.minAge ? ` (minimum age ${listing.tourSpecs.minAge})` : ''}</li>}
                 {listing.tourSpecs.childPrice === undefined && listing.tourSpecs.minAge ? <li>Minimum age {listing.tourSpecs.minAge}</li> : null}
-                {tourSpecs && info?.paymentMethods?.length ? <li>Pay at the start: {info.paymentMethods.map((method) => PAYMENT_LABELS[method]).join(', ')}</li> : null}
+                {tourSpecs && info?.paymentMethods?.length ? <li>Pay on arrival, at the start: {info.paymentMethods.map((method) => PAYMENT_LABELS[method]).join(', ')}</li> : null}
                 {tourSpecs && <li>Free cancellation until the day before the tour starts.</li>}
               </ul>
               <h3 className="pt-2 text-sm font-semibold text-slate-900">Itinerary</h3>
@@ -398,6 +400,9 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout 
                 Online booking for {listing.type === 'car' ? 'vehicles' : 'tours'} is coming soon. Contact support to arrange this {listing.type === 'car' ? 'rental' : 'trip'}.
               </p>
             )}
+            {onMessage && <button type="button" onClick={() => onMessage({ listingId, title: listing.title, image: listing.image })}
+              className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white text-sm font-semibold text-slate-800 hover:bg-slate-50">
+              <MessageSquare className="size-4" aria-hidden="true" />{listing.type === 'homestay' ? 'Message the host' : 'Message the partner'}</button>}
           </div>
         </div>
       </div>

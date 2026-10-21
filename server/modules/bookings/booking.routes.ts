@@ -26,7 +26,10 @@ import {
   createBooking,
   getBooking,
   getListingAvailability,
+  handleSafepayWebhook,
   listCustomerBookings,
+  startOnlinePayment,
+  verifyOnlinePayment,
   listVendorBookings,
   changeVendorBooking,
   vendorReport,
@@ -64,6 +67,21 @@ bookingRouter.get('/:id', validate('params', bookingIdParamsSchema), asyncHandle
 }));
 
 bookingRouter.post('/:id/review', validate('params', bookingIdParamsSchema), ...createReviewHandlers);
+
+bookingRouter.post('/:id/pay', validate('params', bookingIdParamsSchema), asyncHandler(async (request, response) => {
+  response.json({ data: await startOnlinePayment(actor(request), request.params.id) });
+}));
+
+bookingRouter.post('/:id/payment/verify', validate('params', bookingIdParamsSchema), asyncHandler(async (request, response) => {
+  response.json({ data: await verifyOnlinePayment(actor(request), request.params.id) });
+}));
+
+/** Safepay calls this after payment events. No sign-in: the payment is always re-checked with Safepay. */
+export const paymentWebhookRouter = Router();
+paymentWebhookRouter.post('/safepay/webhook', asyncHandler(async (request, response) => {
+  await handleSafepayWebhook(request.body);
+  response.json({ received: true });
+}));
 
 bookingRouter.post('/:id/cancel', validate('params', bookingIdParamsSchema), validate('body', cancelBookingSchema), asyncHandler(async (request, response) => {
   response.json({ data: await cancelOwnBooking(actor(request), request.params.id, request.body.reason, sessionMetadata(request)) });

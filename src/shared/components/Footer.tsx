@@ -179,7 +179,7 @@ export default function Footer({ onNavigate }: FooterProps) {
             <div className="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-white/10">
               <div className="flex flex-col space-y-2 text-xs pb-6 lg:pb-0 lg:pr-6">
                 <h5 className="text-white font-semibold text-xs uppercase tracking-wider">Payment</h5>
-                <p className="text-slate-300">Pay at the property when you check in. Online payment is coming soon.</p>
+                <p className="text-slate-300">Pay on arrival: you pay the partner when you check in, pick up the car or start the tour. Online payment is coming soon.</p>
               </div>
 
               <div className="flex flex-col space-y-2 text-xs py-6 lg:py-0 lg:px-6">
@@ -222,9 +222,11 @@ export default function Footer({ onNavigate }: FooterProps) {
           <div className="border-t border-white/10 mt-8 pt-6 relative overflow-hidden">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-slate-400 relative z-10 text-left">
               <p className="text-left">© {new Date().getFullYear()} GBBookings.com - All Rights Reserved.</p>
-              <div className="flex gap-4">
+              <div className="flex flex-wrap gap-x-4 gap-y-2">
                 <a href="/terms" className="hover:text-white">Terms</a>
                 <a href="/privacy" className="hover:text-white">Privacy Policy</a>
+                <a href="/refunds" className="hover:text-white">Refund Policy</a>
+                <a href="/service" className="hover:text-white">Service Policy</a>
               </div>
             </div>
           </div>

@@ -170,7 +170,12 @@ export interface Booking {
   totalPrice: number;
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'no_show';
   paymentStatus: 'pending' | 'paid' | 'refunded';
-  paymentMethod: 'card' | 'jazzcash' | 'easypaisa' | 'pay_at_hotel';
+  paymentMethod: 'online' | 'card' | 'jazzcash' | 'easypaisa' | 'pay_at_hotel';
+  /** GBBookings' commission on this booking (PKR) and the percent agreed at booking time. */
+  platformFee?: number;
+  platformFeePercent?: number;
+  /** What the guest gets back after a paid booking was cancelled. */
+  refund?: { percent: number; amount: number };
   createdAt: string;
   // Additional details
   guests?: number;
@@ -232,16 +237,6 @@ export interface Review {
   hiddenReason?: string;
   report?: { reason: string; at: string };
   listingTitle?: string;
-}
-
-export interface SupportTicket {
-  id: string;
-  subject: string;
-  category: 'booking' | 'payment' | 'vendor' | 'other';
-  message: string;
-  status: 'open' | 'resolved';
-  createdAt: string;
-  replies?: { id: string; sender: 'user' | 'support'; message: string; createdAt: string }[];
 }
 
 export const handleImageError = (e: any) => {

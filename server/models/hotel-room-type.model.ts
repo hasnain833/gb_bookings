@@ -15,6 +15,12 @@ const hotelRoomTypeSchema = new Schema({
   totalRooms: { type: Number, required: true, min: 1, max: 10_000 },
   inventoryVersion: { type: Number, default: 0 },
   basePriceMinor: { type: Number, required: true, min: 0 },
+  // Optional price for Friday and Saturday nights, and date ranges with their own price (see bookings/room-price.ts).
+  weekendPriceMinor: { type: Number, min: 0, default: undefined },
+  seasons: {
+    type: [new Schema({ name: { type: String, trim: true, maxlength: 60 }, from: String, to: String, priceMinor: { type: Number, min: 0 } }, { _id: false })],
+    default: [],
+  },
   amenities: { type: [String], default: [] },
   photos: { type: [photoSchema], default: [] },
   // Guest-facing edits on a live listing ({ changes, isNew? }); reviewed together with the listing's revision.

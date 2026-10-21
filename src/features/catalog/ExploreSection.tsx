@@ -64,7 +64,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
         <div className="relative flex flex-col justify-end min-h-[380px] px-4 pt-16 pb-8 sm:min-h-[420px] sm:px-8 lg:px-10">
           <div className="max-w-3xl text-white">
             <h1 className="text-3xl font-bold leading-tight sm:text-[2.6rem]">Find your next stay in Gilgit-Baltistan</h1>
-            <p className="mt-3 max-w-2xl text-sm text-slate-200 sm:text-base">Hotels, homestays, tours and cars from local partners. Pay at the property.</p>
+            <p className="mt-3 max-w-2xl text-sm text-slate-200 sm:text-base">Hotels, homestays, tours and cars from local partners. Pay on arrival.</p>
           </div>
 
           <form onSubmit={submitSearch} className="mt-6 rounded-xl bg-white p-2.5 shadow-lg">

@@ -1,6 +1,6 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import { CalendarDays, Image as ImageIcon, LoaderCircle, Minus, Plus } from 'lucide-react';
-import { api, type RoomCalendar as Calendar, type VendorListing, type VendorRoom, type VendorRoomInput } from '../../shared/api/api';
+import { api, type RoomCalendar as Calendar, type RoomSeason, type VendorListing, type VendorRoom, type VendorRoomInput } from '../../shared/api/api';
 import { useReasonDialog } from '../../shared/components/ReasonDialog';
 import ChipInput from './ChipInput';
 import PhotoManager, { toPhotoInput, type EditablePhoto } from './PhotoManager';
@@ -113,6 +113,7 @@ function RoomCard({ listing, room, live, editable, busy, onRun, onReplace, onRem
   const car = Boolean(unit);
   const [editing, setEditing] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [pricesOpen, setPricesOpen] = useState(false);
   const [price, setPrice] = useState(room.basePrice);
   const [count, setCount] = useState(room.totalRooms);
   const [refresh, setRefresh] = useState(0);
@@ -154,6 +155,9 @@ function RoomCard({ listing, room, live, editable, busy, onRun, onReplace, onRem
           {isNew && <p className="mt-2 text-sm text-amber-900">Hidden from guests until approved.</p>}
           {canEdit && <div className="mt-3 flex flex-wrap gap-2">
             {!car && <button type="button" className={secondaryButton} disabled={busy} onClick={() => setEditing(true)}>Edit details &amp; photos</button>}
+            {!isNew && <button type="button" className={secondaryButton} aria-expanded={pricesOpen} onClick={() => setPricesOpen(!pricesOpen)}>
+              Weekend &amp; season prices{(room.weekendPrice != null || room.seasons?.length) ? ' · on' : ''}
+            </button>}
             {(editable || isNew) && <button type="button" className={`${secondaryButton} text-rose-700`} disabled={busy} onClick={onRemove}>{editable ? 'Remove' : 'Withdraw'}</button>}
           </div>}
         </div>
@@ -179,6 +183,8 @@ function RoomCard({ listing, room, live, editable, busy, onRun, onReplace, onRem
           </label>}
         </div>}
       </div>
+      {pricesOpen && canEdit && <PriceRules room={room} perWhat={listing.type === 'tour' ? 'adult' : car ? 'day' : 'night'} busy={busy}
+        onSave={(input) => onRun(async () => { onReplace(await api.updateHotelRoom(listing.id, room.id, input)); setPricesOpen(false); })} />}
       {!isNew && <div>
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <p className="text-sm font-bold">{unit ? unit.strip : 'Rooms free · next 14 nights'}</p>
@@ -193,6 +199,45 @@ function RoomCard({ listing, room, live, editable, busy, onRun, onReplace, onRem
         {calendarOpen && <div className="mt-4"><RoomCalendar listingId={listing.id} room={room} /></div>}
       </div>}
     </article>
+  );
+}
+
+/** Weekend and season prices; like the base price they apply at once. A season beats the weekend price. */
+function PriceRules({ room, perWhat, busy, onSave }: {
+  room: VendorRoom; perWhat: 'night' | 'day' | 'adult'; busy: boolean; onSave: (input: { weekendPrice: number | null; seasons: RoomSeason[] }) => void;
+}) {
+  const [weekend, setWeekend] = useState(room.weekendPrice != null ? String(room.weekendPrice) : '');
+  const [seasons, setSeasons] = useState<RoomSeason[]>(room.seasons ?? []);
+  const setSeason = (index: number, patch: Partial<RoomSeason>) => setSeasons(seasons.map((season, at) => at === index ? { ...season, ...patch } : season));
+  const weekendWords = perWhat === 'night' ? 'Friday & Saturday nights' : perWhat === 'day' ? 'Fridays & Saturdays' : 'Tours starting on a Friday or Saturday';
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    onSave({ weekendPrice: weekend === '' ? null : Number(weekend), seasons: seasons.map((season) => ({ ...season, name: season.name.trim() })) });
+  };
+
+  return (
+    <form onSubmit={submit} className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+      <p className="text-sm text-slate-600">Base price: <strong>PKR {room.basePrice.toLocaleString()}</strong> per {perWhat}. A season price beats the weekend price. Changes apply to new bookings at once.</p>
+      <label className="block max-w-xs text-sm font-semibold text-slate-700">{weekendWords} (PKR, empty = base price)
+        <input type="number" min={0} step={1} value={weekend} onChange={(event) => setWeekend(event.target.value)} className={`${inputClass} mt-1`} />
+      </label>
+      <fieldset className="space-y-2">
+        <legend className="text-sm font-semibold text-slate-700">Seasons</legend>
+        {seasons.length === 0 && <p className="text-sm text-slate-500">None. Add one for peak summer or a quiet winter, for example.</p>}
+        {seasons.map((season, index) => (
+          <div key={index} className="grid grid-cols-2 gap-2 sm:grid-cols-[1.4fr_1fr_1fr_1fr_auto] sm:items-end">
+            <label className="col-span-2 text-xs font-bold text-slate-600 sm:col-span-1">Name<input required maxLength={60} placeholder="Peak summer" value={season.name} onChange={(event) => setSeason(index, { name: event.target.value })} className={`${inputClass} mt-1`} /></label>
+            <label className="text-xs font-bold text-slate-600">From<input required type="date" value={season.from} onChange={(event) => setSeason(index, { from: event.target.value })} className={`${inputClass} mt-1`} /></label>
+            <label className="text-xs font-bold text-slate-600">To<input required type="date" min={season.from} value={season.to} onChange={(event) => setSeason(index, { to: event.target.value })} className={`${inputClass} mt-1`} /></label>
+            <label className="text-xs font-bold text-slate-600">PKR per {perWhat}<input required type="number" min={0} step={1} value={season.price} onChange={(event) => setSeason(index, { price: Number(event.target.value) })} className={`${inputClass} mt-1`} /></label>
+            <button type="button" className={`${secondaryButton} text-rose-700`} onClick={() => setSeasons(seasons.filter((_, at) => at !== index))}>Remove</button>
+          </div>
+        ))}
+        {seasons.length < 20 && <button type="button" className={secondaryButton} onClick={() => setSeasons([...seasons, { name: '', from: '', to: '', price: room.basePrice }])}><Plus className="size-4" />Add season</button>}
+      </fieldset>
+      <button type="submit" className={primaryButton} disabled={busy}>Save prices</button>
+    </form>
   );
 }
 

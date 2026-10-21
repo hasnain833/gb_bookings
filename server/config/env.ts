@@ -58,6 +58,10 @@ const envSchema = z.object({
   GEMINI_API_KEY: optionalString(z.string().min(1)),
   // Hours a property has to accept or decline a booking request before it expires and the rooms are released.
   PENDING_BOOKING_HOURS: z.coerce.number().int().min(1).max(168).default(24),
+  // Safepay hosted checkout ("Pay now"). Without both keys only Pay on arrival is offered.
+  SAFEPAY_ENV: z.enum(["sandbox", "production"]).default("sandbox"),
+  SAFEPAY_API_KEY: optionalString(z.string().min(1)),
+  SAFEPAY_SECRET_KEY: optionalString(z.string().min(1)),
   VERCEL: z.string().optional(),
 });
 

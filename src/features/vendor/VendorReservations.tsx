@@ -61,6 +61,16 @@ const actionsFor = (booking: Booking) =>
     .filter((action): action is VendorBookingAction => action !== "change")
     .map((action) => ({ action, label: action === "cancel" && booking.status === "pending" ? "Decline" : (booking.rental && CAR_ACTION_LABELS[action]) || (booking.tour && TOUR_ACTION_LABELS[action]) || ACTION_LABELS[action] }));
 const changeable = (booking: Booking) => Boolean(booking.vendorActions?.includes("change"));
+// Mirrors server/modules/bookings/room-price.ts: a season wins, then Friday/Saturday, then the base price.
+const priceOn = (room: VendorRoom, date: string) => {
+  const season = room.seasons?.find((item) => item.from <= date && date <= item.to);
+  if (season) return season.price;
+  const weekday = new Date(`${date}T00:00:00Z`).getUTCDay();
+  return (weekday === 5 || weekday === 6) && room.weekendPrice != null ? room.weekendPrice : room.basePrice;
+};
+const priceForDays = (room: VendorRoom, from: string, days: number) =>
+  Array.from({ length: days }, (_, index) => new Date(Date.parse(`${from}T00:00:00Z`) + index * 86_400_000).toISOString().slice(0, 10))
+    .reduce((total, date) => total + priceOn(room, date), 0);
 const nightsBetween = (from: string, to: string) =>
   Math.round(
     (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) /
@@ -111,8 +121,8 @@ function ChangeBookingForm({
   // Car rentals count the return day too.
   const nights = nightsBetween(form.checkIn, form.checkOut) + (car ? 1 : 0);
   const total = tour
-    ? (room ? room.basePrice * (booking.adults ?? 1) + (tour.childPrice ?? room.basePrice) * (booking.children ?? 0) : null)
-    : room && nights > 0 ? room.basePrice * nights * form.rooms : null;
+    ? (room ? priceOn(room, form.checkIn) * (booking.adults ?? 1) + (tour.childPrice ?? priceOn(room, form.checkIn)) * (booking.children ?? 0) : null)
+    : room && nights > 0 ? priceForDays(room, form.checkIn, nights) * form.rooms : null;
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
     setBusy(true);
@@ -518,6 +528,12 @@ export default function VendorReservations({
   );
 }
 
+/** GBBookings' fee on this booking, and any refund owed to the guest after a paid booking was cancelled. */
+const moneyRows = (booking: Booking): Array<[string, string | undefined]> => [
+  ["GBBookings fee", booking.platformFeePercent ? `PKR ${(booking.platformFee ?? 0).toLocaleString()} (${booking.platformFeePercent}%)${booking.status === "cancelled" && !booking.platformFee ? " · none, cancelled" : ""}` : undefined],
+  ["Refund to guest", booking.refund ? `PKR ${booking.refund.amount.toLocaleString()} (${booking.refund.percent}% of the total)` : undefined],
+];
+
 function ReservationDetails({ booking }: { booking: Booking }) {
   const rental = booking.rental;
   const tour = booking.tour;
@@ -529,7 +545,7 @@ function ReservationDetails({ booking }: { booking: Booking }) {
     ["Meeting point", tour.meetingPoint ? `${tour.meetingPoint}${tour.startTime ? ` at ${tour.startTime}` : ""}` : undefined],
     ["Price", booking.nightlyRate ? `PKR ${booking.nightlyRate.toLocaleString()} per adult${booking.children ? ` · PKR ${(tour.childPrice ?? booking.nightlyRate).toLocaleString()} per child` : ""}` : undefined],
     ["Promo code", booking.couponCode ? `${booking.couponCode} · ${booking.couponLabel} (−PKR ${(booking.discount ?? 0).toLocaleString()})` : undefined],
-    ["Total", `PKR ${booking.totalPrice.toLocaleString()}`],
+    ["Total", `PKR ${booking.totalPrice.toLocaleString()}`], ...moneyRows(booking),
     ["Started", booking.checkedInAt ? new Date(booking.checkedInAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" }) : undefined],
     ["Payment", booking.paymentStatus === "paid" ? `Paid${booking.paidAt ? ` · recorded ${new Date(booking.paidAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}` : ""}` : "Collect at the start of the tour"],
     ["Booked on", formatDateForDisplay(booking.createdAt)],
@@ -545,7 +561,7 @@ function ReservationDetails({ booking }: { booking: Booking }) {
     ["Rate", booking.nightlyRate ? `PKR ${booking.nightlyRate.toLocaleString()} × ${booking.duration} day(s) × ${booking.rooms ?? 1} car(s)` : undefined],
     ["Driver & trip charges", booking.extrasTotal ? `PKR ${booking.extrasTotal.toLocaleString()}` : undefined],
     ["Promo code", booking.couponCode ? `${booking.couponCode} · ${booking.couponLabel} (−PKR ${(booking.discount ?? 0).toLocaleString()})` : undefined],
-    ["Total", `PKR ${booking.totalPrice.toLocaleString()}`],
+    ["Total", `PKR ${booking.totalPrice.toLocaleString()}`], ...moneyRows(booking),
     ["Handed over", booking.checkedInAt ? new Date(booking.checkedInAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" }) : undefined],
     ["Payment", booking.paymentStatus === "paid" ? `Paid${booking.paidAt ? ` · recorded ${new Date(booking.paidAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}` : ""}` : "Collect at pickup"],
     ["Booked on", formatDateForDisplay(booking.createdAt)],
@@ -577,7 +593,7 @@ function ReservationDetails({ booking }: { booking: Booking }) {
         : undefined,
     ],
     ["Promo code", booking.couponCode ? `${booking.couponCode} · ${booking.couponLabel} (−PKR ${(booking.discount ?? 0).toLocaleString()})` : undefined],
-    ["Total", `PKR ${booking.totalPrice.toLocaleString()}`],
+    ["Total", `PKR ${booking.totalPrice.toLocaleString()}`], ...moneyRows(booking),
     [
       "Arrival",
       booking.checkedInAt

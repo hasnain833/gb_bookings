@@ -7,8 +7,8 @@ import { AppError, ServiceUnavailableError } from '../shared/app-error.js';
 import { ACCESS_COOKIE, verifyAccessToken } from '../modules/auth/auth.tokens.js';
 import { asyncHandler } from '../shared/async-handler.js';
 
-export const authenticate: RequestHandler = asyncHandler(async (request, _response, next) => {
-  const token = request.cookies?.[ACCESS_COOKIE];
+/** Checks an access token and its session; shared by HTTP requests and the realtime socket. */
+export async function sessionFromToken(token: string | undefined) {
   if (!token) throw new AppError(401, 'AUTHENTICATION_REQUIRED', 'Please sign in to continue.');
 
   const payload = verifyAccessToken(token);
@@ -25,8 +25,11 @@ export const authenticate: RequestHandler = asyncHandler(async (request, _respon
   ]);
   if (!sessionExists) throw new AppError(401, 'AUTHENTICATION_REQUIRED', 'Your session is no longer active.');
   if (!user) throw new AppError(403, 'ACCOUNT_UNAVAILABLE', 'This account is not currently active.');
+  return { userId: payload.sub, sessionId: payload.sid, roles: user.roles };
+}
 
-  request.auth = { userId: payload.sub, sessionId: payload.sid, roles: user.roles };
+export const authenticate: RequestHandler = asyncHandler(async (request, _response, next) => {
+  request.auth = await sessionFromToken(request.cookies?.[ACCESS_COOKIE]);
   next();
 });
 

@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Building2, CalendarX, Car, Hotel, House, Inbox, LayoutDashboard, Mountain, PanelLeftClose, PanelLeftOpen, Search, FileText, LoaderCircle, LogOut, ShieldCheck, Star, Users } from 'lucide-react';
-import { api, type AdminBookingLookup, type AdminUser, type AdminVendor, type Paginated, type UserStatusAction, type VendorListing } from '../../shared/api/api';
+import { Building2, CalendarX, Car, Percent, Hotel, House, Inbox, LayoutDashboard, Mountain, PanelLeftClose, PanelLeftOpen, Search, FileText, LoaderCircle, LogOut, ShieldCheck, Star, Users } from 'lucide-react';
+import { api, type AdminBookingLookup, type AdminUser, type AdminVendor, type Paginated, type PlatformSettings, type UserStatusAction, type VendorListing } from '../../shared/api/api';
 import SecurityPanel from '../account/SecurityPanel';
 import ListingReviewDetails from './ListingReviewDetails';
 import { ReviewCard } from '../reviews/ReviewParts';
@@ -9,7 +9,7 @@ import { useReasonDialog, type ReasonRequest } from '../../shared/components/Rea
 import { useDebouncedValue } from '../../shared/hooks/useDebouncedValue';
 
 type Product = VendorListing['type'];
-type Tab = 'overview' | 'inbox' | Product | 'vendors' | 'reviews' | 'users' | 'cancellations' | 'security';
+type Tab = 'overview' | 'inbox' | Product | 'vendors' | 'reviews' | 'users' | 'cancellations' | 'settings' | 'security';
 type NavItem = { id: Tab; label: string; icon: typeof Users };
 
 const navGroups: Array<{ title?: string; items: NavItem[] }> = [
@@ -19,7 +19,7 @@ const navGroups: Array<{ title?: string; items: NavItem[] }> = [
     { id: 'car', label: 'Cars', icon: Car }, { id: 'tour', label: 'Tours', icon: Mountain },
   ] },
   { title: 'People', items: [{ id: 'vendors', label: 'Partners', icon: Building2 }, { id: 'users', label: 'Users', icon: Users }, { id: 'reviews', label: 'Guest reviews', icon: Star }] },
-  { title: 'Tools', items: [{ id: 'cancellations', label: 'Cancel a booking', icon: CalendarX }, { id: 'security', label: 'Account security', icon: ShieldCheck }] },
+  { title: 'Tools', items: [{ id: 'cancellations', label: 'Cancel a booking', icon: CalendarX }, { id: 'settings', label: 'Fees & refunds', icon: Percent }, { id: 'security', label: 'Account security', icon: ShieldCheck }] },
 ];
 const productNames: Record<Product, [string, string]> = { hotel: ['Hotels', 'hotel'], homestay: ['Homestays', 'homestay'], car: ['Cars', 'car'], tour: ['Tours', 'tour'] };
 const PRODUCTS: Product[] = ['hotel', 'homestay', 'car', 'tour'];
@@ -448,7 +448,7 @@ function CancelBookingPanel() {
     if (!booking) return;
     const reason = await askReason({
       title: `Cancel ${booking.reference}?`, confirmLabel: 'Cancel booking', destructive: true,
-      description: 'Rooms are released and both the guest and the hotel are emailed this reason. Only use this for disputes or fraud.',
+      description: `Rooms are released and both the guest and the hotel are emailed this reason. Only use this for disputes or fraud.${booking.paymentStatus === 'paid' ? ` The booking is paid, so the guest is owed a full refund of PKR ${booking.totalPrice.toLocaleString()}.` : ''}`,
     });
     if (!reason) return;
     run(booking.id, async () => {
@@ -473,7 +473,8 @@ function CancelBookingPanel() {
       {booking && <div className="space-y-4 rounded-xl border border-slate-200 p-5">
         <div className="flex flex-wrap items-center justify-between gap-3"><p className="font-mono text-lg font-bold">{booking.reference}</p><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold capitalize">{label(booking.status)}</span></div>
         <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
-          {[['Hotel', booking.listingTitle], ['Room', `${booking.rooms ?? 1} × ${booking.roomName}`], ['Stay', `${booking.startDate} → ${booking.endDate}`], ['Total', `PKR ${booking.totalPrice.toLocaleString()}`],
+          {[['Hotel', booking.listingTitle], ['Room', `${booking.rooms ?? 1} × ${booking.roomName}`], ['Stay', `${booking.startDate} → ${booking.endDate}`], ['Total', `PKR ${booking.totalPrice.toLocaleString()}`], ['Payment', booking.paymentStatus === 'paid' ? 'Paid' : label(booking.paymentStatus)],
+            ['GBBookings fee', `PKR ${(booking.platformFee ?? 0).toLocaleString()} (${booking.platformFeePercent ?? 0}%)`], ...(booking.refund ? [['Refund to guest', `PKR ${booking.refund.amount.toLocaleString()} (${booking.refund.percent}%)`]] : []),
             ['Guest', `${booking.customerName} · ${booking.customerEmail}`], ['Hotel business', booking.vendor ? `${booking.vendor.name} · ${booking.vendor.email}${booking.vendor.phone ? ` · ${booking.vendor.phone}` : ''}` : '—'],
           ].map(([term, value]) => <div key={term}><dt className="text-slate-500">{term}</dt><dd className="font-medium text-slate-900 break-words">{value}</dd></div>)}
         </dl>
@@ -481,6 +482,52 @@ function CancelBookingPanel() {
           : <p className="text-sm text-slate-500">This booking is {label(booking.status)} and can no longer be cancelled.</p>}
       </div>}
     </section>
+  );
+}
+
+/** Commission and guest refund rules. Tiers count hours from when the booking was made. */
+function SettingsPanel() {
+  const [settings, setSettings] = useState<PlatformSettings | null>(null);
+  const [notice, setNotice] = useState('');
+  const { busyId, error, setError, run } = useAction();
+  useEffect(() => { run('load', async () => setSettings(await api.admin.getSettings())); }, []);
+  if (!settings) return error ? <p role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{error}</p> : <p className="text-sm text-slate-500">Loading…</p>;
+
+  const set = (patch: Partial<PlatformSettings>) => { setSettings({ ...settings, ...patch }); setNotice(''); setError(null); };
+  const setTier = (index: number, patch: Partial<PlatformSettings['refundTiers'][number]>) =>
+    set({ refundTiers: settings.refundTiers.map((tier, at) => at === index ? { ...tier, ...patch } : tier) });
+  const lastHours = settings.refundTiers.at(-1)?.withinHours;
+  const save = (event: React.FormEvent) => {
+    event.preventDefault();
+    run('save', async () => { setSettings(await api.admin.saveSettings(settings)); setNotice('Saved. New bookings and cancellations use these rules.'); });
+  };
+  const percentInput = (value: number, onChange: (value: number) => void, max = 100) =>
+    <input required type="number" min={0} max={max} step={0.01} value={value} onChange={(event) => onChange(Number(event.target.value))} className={`${selectClass} mt-1.5 w-28`} />;
+
+  return (
+    <form onSubmit={save} className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6">
+      <fieldset className="space-y-2">
+        <legend className="text-base font-bold text-slate-900">Commission</legend>
+        <label className="block text-sm font-semibold text-slate-800">Percent of every booking's total{percentInput(settings.commissionPercent, (commissionPercent) => set({ commissionPercent }), 50)}</label>
+        <p className="text-sm text-slate-500">Each booking keeps the percent it was made with. A cancelled unpaid booking owes nothing; on a paid one it is charged only on what the partner keeps.</p>
+      </fieldset>
+      <fieldset className="space-y-3">
+        <legend className="text-base font-bold text-slate-900">Refunds when a guest cancels a paid booking</legend>
+        <p className="text-sm text-slate-500">Counted from when the booking was made. Partner or GBBookings cancellations always refund in full. Guests still cannot cancel on or after the start date.</p>
+        {settings.refundTiers.map((tier, index) => (
+          <div key={index} className="flex flex-wrap items-end gap-3">
+            <label className="text-sm font-semibold text-slate-800">Cancelled within (hours)<input required type="number" min={1} step={1} value={tier.withinHours} onChange={(event) => setTier(index, { withinHours: Number(event.target.value) })} className={`${selectClass} mt-1.5 block w-28`} /></label>
+            <label className="text-sm font-semibold text-slate-800">Refund %{percentInput(tier.refundPercent, (refundPercent) => setTier(index, { refundPercent }))}</label>
+            <button type="button" className={`${secondaryButton} text-rose-700`} onClick={() => set({ refundTiers: settings.refundTiers.filter((_, at) => at !== index) })}>Remove</button>
+          </div>
+        ))}
+        {settings.refundTiers.length < 10 && <button type="button" className={secondaryButton} onClick={() => set({ refundTiers: [...settings.refundTiers, { withinHours: (lastHours ?? 0) + 24, refundPercent: 50 }] })}>Add a time limit</button>}
+        <label className="block text-sm font-semibold text-slate-800">{lastHours ? `Cancelled after ${lastHours} hours: refund %` : 'Refund %'}{percentInput(settings.laterRefundPercent, (laterRefundPercent) => set({ laterRefundPercent }))}</label>
+      </fieldset>
+      {error && <p role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
+      {notice && <p role="status" className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">{notice}</p>}
+      <button className={primaryButton} disabled={busyId === 'save'}>Save</button>
+    </form>
   );
 }
 
@@ -777,6 +824,7 @@ const sectionDetails: Record<Tab, { title: string; description: string }> = {
   reviews: { title: 'Guest reviews', description: 'Reviews partners reported, and reviews you have hidden. Remove only abusive, fake or off-topic reviews and personal data; honest criticism stays.' },
   users: { title: 'People & access', description: 'Manage customer and partner accounts, invite administrators and control platform access.' },
   cancellations: { title: 'Cancel a booking', description: 'For disputes or fraud only. Hotels run their own reservations; find a booking by its reference to cancel it on the guest’s behalf.' },
+  settings: { title: 'Fees & refunds', description: 'GBBookings’ commission on every booking, and how much a guest gets back when they cancel a paid booking. Changes apply to bookings made or cancelled from now on.' },
   security: { title: 'Account security', description: 'Manage your password, active sessions and two-factor authentication.' },
 };
 
@@ -872,6 +920,7 @@ export default function AdminDashboard({ roles, userName = 'Staff member', userE
           {tab === 'reviews' && <ReviewsPanel />}
           {tab === 'users' && <UsersPanel />}
           {tab === 'cancellations' && <CancelBookingPanel />}
+          {tab === 'settings' && <SettingsPanel />}
           {tab === 'security' && <section className="rounded-2xl border border-[#E1E5DE] bg-white p-4 sm:p-6"><SecurityPanel /></section>}
         </>}
       </main>

@@ -3,9 +3,25 @@ import { KeyRound, LoaderCircle, LogOut, MonitorSmartphone, ShieldCheck } from '
 import { api, type AuthSession, type AuthUser } from '../../shared/api/api';
 import { PASSWORD_PATTERN, PASSWORD_REQUIREMENTS } from '../../shared/utils/password';
 
+const SESSIONS_SHOWN = 3;
+
+/** "Chrome on Windows" from a user-agent string; scripts and tools read as such. */
+export function deviceName(userAgent: string) {
+  const ua = userAgent || '';
+  const browser = /Edg\//.test(ua) ? 'Edge' : /OPR\//.test(ua) ? 'Opera' : /Chrome\//.test(ua) ? 'Chrome' : /Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : null;
+  const os = /Android/.test(ua) ? 'Android' : /iPhone|iPad/.test(ua) ? 'iPhone' : /Windows/.test(ua) ? 'Windows' : /Mac OS X/.test(ua) ? 'Mac' : /Linux/.test(ua) ? 'Linux' : null;
+  if (browser) return os ? `${browser} on ${os}` : browser;
+  if (/^(node|curl|axios|python|postman|undici)/i.test(ua)) return 'App or script (not a browser)';
+  return ua ? ua.slice(0, 40) : 'Unknown device';
+}
+
 export default function SecurityPanel() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [sessions, setSessions] = useState<AuthSession[]>([]);
+  const [showAllSessions, setShowAllSessions] = useState(false);
+  // This device first, then the most recently used.
+  const sortedSessions = [...sessions].sort((a, b) => Number(b.current) - Number(a.current) || Date.parse(b.lastUsedAt) - Date.parse(a.lastUsedAt));
+  const visibleSessions = showAllSessions ? sortedSessions : sortedSessions.slice(0, SESSIONS_SHOWN);
   const [loading, setLoading] = useState(true);
   const [challengeId, setChallengeId] = useState('');
   const [code, setCode] = useState('');
@@ -128,16 +144,18 @@ export default function SecurityPanel() {
       <section>
         <div className="mb-4 flex items-center gap-3"><MonitorSmartphone className="size-5 text-indigo-600" /><div><h3 className="font-bold text-slate-900">Active sessions</h3><p className="text-xs text-slate-500">Devices currently signed in to your account.</p></div></div>
         <div className="divide-y divide-slate-200 border-y border-slate-200">
-          {sessions.map((session) => (
-            <div key={session.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center">
-              <KeyRound className="size-5 shrink-0 text-slate-400" />
-              <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-800">{session.userAgent}</p><p className="text-xs text-slate-500">{session.ipAddress || 'Unknown IP'} · Last used {new Date(session.lastUsedAt).toLocaleString()}</p></div>
-              {session.current && <span className="text-xs font-bold text-emerald-700">Current</span>}
-              <button type="button" disabled={busy} onClick={() => revoke(session)} title="Sign out session" className="flex size-10 items-center justify-center text-rose-600 hover:bg-rose-50"><LogOut className="size-4" /></button>
+          {visibleSessions.map((session) => (
+            <div key={session.id} className="flex items-center gap-3 py-3.5">
+              <KeyRound className="size-5 shrink-0 text-slate-400" aria-hidden="true" />
+              <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-800" title={session.userAgent}>{deviceName(session.userAgent)}</p><p className="text-xs text-slate-500">{session.ipAddress || 'Unknown IP'} · Last used {new Date(session.lastUsedAt).toLocaleString()}</p></div>
+              {session.current && <span className="text-xs font-bold text-emerald-700">This device</span>}
+              <button type="button" disabled={busy} onClick={() => revoke(session)} aria-label={`Sign out ${deviceName(session.userAgent)}`} title="Sign out session" className="flex size-10 shrink-0 items-center justify-center rounded-lg text-rose-600 hover:bg-rose-50"><LogOut className="size-4" /></button>
             </div>
           ))}
           {sessions.length === 0 && <p className="py-6 text-sm text-slate-500">No active sessions were found.</p>}
         </div>
+        {sessions.length > SESSIONS_SHOWN && <button type="button" aria-expanded={showAllSessions} onClick={() => setShowAllSessions(!showAllSessions)} className="mt-2 min-h-11 text-sm font-bold text-[#006F3C] underline">
+          {showAllSessions ? 'Show fewer' : `Show all ${sessions.length} devices`}</button>}
       </section>
     </div>
   );

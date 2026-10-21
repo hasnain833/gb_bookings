@@ -117,6 +117,8 @@ export interface AuthUser {
   emailVerified?: boolean;
   twoFactorEnabled?: boolean;
   twoFactorChannel?: 'email' | 'sms';
+  phone?: string;
+  memberSince?: string;
 }
 
 export interface AuthResponse {
@@ -249,6 +251,10 @@ export interface VendorRoom {
   maxChildren: number;
   totalRooms: number;
   basePrice: number;
+  /** Friday and Saturday nights; null clears it. */
+  weekendPrice?: number | null;
+  /** Date ranges (YYYY-MM-DD, inclusive) with their own price; a season beats the weekend price. */
+  seasons?: RoomSeason[];
   amenities: string[];
   photos: ListingPhoto[];
   status: 'active' | 'paused' | 'archived';
@@ -256,7 +262,35 @@ export interface VendorRoom {
   pendingRevision?: { changes: Partial<RoomContent>; isNew: boolean };
 }
 
-export type VendorRoomInput = Omit<VendorRoom, 'id' | 'status' | 'photos' | 'pendingRevision'> & { photos?: PhotoInput[] };
+/** Admin-set money rules: GBBookings' commission, and refunds when a guest cancels a paid booking within N hours of booking. */
+export interface PlatformSettings {
+  commissionPercent: number;
+  refundTiers: Array<{ withinHours: number; refundPercent: number }>;
+  laterRefundPercent: number;
+}
+
+/** A guest↔partner thread about one listing. `side` is which side the viewer is on. */
+export interface Conversation {
+  id: string;
+  side: 'guest' | 'partner';
+  listing: { publicId: string; title: string; image?: string; type?: string };
+  partnerName?: string;
+  guestName?: string;
+  lastMessage?: { body: string; sender: 'guest' | 'partner'; at: string };
+  unread: number;
+  updatedAt: string;
+}
+export interface ChatMessage { id: string; sender: 'guest' | 'partner'; body: string; contactsHidden: boolean; at: string; mine: boolean }
+export interface ConversationThread {
+  conversation: Conversation;
+  messages: ChatMessage[];
+  bookings: Array<{ reference: string; checkIn: string; checkOut: string; status: string }>;
+}
+export interface SentMessage { conversation: Conversation; message: ChatMessage }
+
+export interface RoomSeason { name: string; from: string; to: string; price: number }
+
+export type VendorRoomInput =Omit<VendorRoom, 'id' | 'status' | 'photos' | 'pendingRevision'> & { photos?: PhotoInput[] };
 
 export interface RoomCalendar {
   roomId: string;
@@ -321,6 +355,8 @@ export interface ListingAvailability {
   currency: 'PKR';
   /** Last day the guest can cancel for free; absent when the stay starts today. */
   freeCancellationUntil?: string;
+  /** Whether checkout can offer Pay now (online payment is set up). */
+  onlinePayment?: boolean;
   mealsTotal: number;
   /** The promo code applied to the quote. */
   coupon?: { code: string; label: string };
@@ -344,6 +380,8 @@ export interface CreateBookingInput {
   couponCode?: string;
   /** Car rentals; then checkOut is the return date, adults are passengers and rooms are cars. */
   rental?: { driver: boolean; pickupPlace: string; pickupTime: string; dropoffPlace?: string; outsideBaseCity: boolean; oneWay: boolean; licenceNumber?: string };
+  /** Pay now (online) or Pay on arrival. */
+  paymentMethod: 'online' | 'pay_at_hotel';
   expectedTotalMinor?: number;
 }
 
@@ -633,8 +671,30 @@ export const api = {
     });
   },
 
-  getBookingsPage(page = 1, status?: Booking['status']) {
-    return request<Paginated<Booking>>(`/api/v1/bookings${queryString({ page, status })}`);
+  listConversations(side: 'guest' | 'partner') {
+    return request<{ data: Conversation[] }>(`/api/v1/messages/conversations${queryString({ side })}`).then((result) => result.data);
+  },
+  getConversation(id: string) {
+    return request<{ data: ConversationThread }>(`/api/v1/messages/conversations/${encodeURIComponent(id)}`).then((result) => result.data);
+  },
+  /** A guest's first message to a listing's partner (reuses their thread for that listing). */
+  startConversation(listingId: string, body: string) {
+    return request<{ data: SentMessage }>('/api/v1/messages/conversations', { method: 'POST', body: JSON.stringify({ listingId, body }) }).then((result) => result.data);
+  },
+  sendMessage(conversationId: string, body: string) {
+    return request<{ data: SentMessage }>(`/api/v1/messages/conversations/${encodeURIComponent(conversationId)}/messages`, { method: 'POST', body: JSON.stringify({ body }) }).then((result) => result.data);
+  },
+  unreadMessages() {
+    return request<{ data: { guest: number; partner: number; isPartner: boolean } }>('/api/v1/messages/unread').then((result) => result.data);
+  },
+
+  /** The guest's bookings; `trip` picks the Upcoming, Past or Cancelled tab. */
+  getBookingsPage(page = 1, trip?: 'upcoming' | 'past' | 'cancelled') {
+    return request<Paginated<Booking>>(`/api/v1/bookings${queryString({ page, trip })}`);
+  },
+
+  updateProfile(input: { name?: string; phone?: string }) {
+    return request<AuthResponse>('/api/v1/auth/me', { method: 'PATCH', body: JSON.stringify(input) }).then((result) => result.user);
   },
 
   getListingAvailability(listingId: string, params: { checkIn: string; checkOut: string; adults: number; children?: number; rooms?: number; meals?: MealType[]; coupon?: string; driver?: boolean; outsideBaseCity?: boolean; oneWay?: boolean }) {
@@ -657,8 +717,28 @@ export const api = {
     return request<{ data: Booking }>('/api/v1/bookings', {
       method: 'POST',
       headers: { 'Idempotency-Key': idempotencyKey },
-      body: JSON.stringify({ ...input, paymentMethod: 'pay_at_hotel' }),
+      body: JSON.stringify(input),
     }).then((result) => result.data);
+  },
+
+  /** GBBookings' current commission percent (public, for the Become a partner page). */
+  getCommission() {
+    return request<{ data: { commissionPercent: number } }>('/api/v1/settings/commission').then((result) => result.data.commissionPercent);
+  },
+
+  /** The admin-set refund rules for guests cancelling a paid booking (public). */
+  getRefundRules() {
+    return request<{ data: Omit<PlatformSettings, 'commissionPercent'> }>('/api/v1/settings/refunds').then((result) => result.data);
+  },
+
+  /** Opens Safepay's payment page for an unpaid Pay now booking; returns where to send the guest. */
+  startPayment(bookingId: string) {
+    return request<{ data: { url: string } }>(`/api/v1/bookings/${encodeURIComponent(bookingId)}/pay`, { method: 'POST' }).then((result) => result.data.url);
+  },
+
+  /** After returning from Safepay: the server checks the payment with Safepay and returns the booking. */
+  verifyPayment(bookingId: string) {
+    return request<{ data: Booking }>(`/api/v1/bookings/${encodeURIComponent(bookingId)}/payment/verify`, { method: 'POST' }).then((result) => result.data);
   },
 
   cancelBooking(bookingId: string, reason: string) {
@@ -783,6 +863,12 @@ export const api = {
       return request<{ data: Booking }>(`/api/v1/admin/bookings/${encodeURIComponent(bookingId)}/cancel`, {
         method: 'POST', body: JSON.stringify({ reason }),
       }).then((result) => result.data);
+    },
+    getSettings() {
+      return request<{ data: PlatformSettings }>('/api/v1/admin/settings').then((result) => result.data);
+    },
+    saveSettings(settings: PlatformSettings) {
+      return request<{ data: PlatformSettings }>('/api/v1/admin/settings', { method: 'PUT', body: JSON.stringify(settings) }).then((result) => result.data);
     },
   },
 

@@ -1,3 +1,4 @@
+import type { InboxStart } from '../features/messages/Inbox';
 import { lazy, Suspense, useState, useEffect, useRef } from 'react';
 import { Sparkles } from 'lucide-react';
 import Navbar from '../shared/components/Navbar';
@@ -23,6 +24,7 @@ const BecomePartner = lazy(() => import('../features/partner/BecomePartner'));
 const AdminDashboard = lazy(() => import('../features/admin/AdminDashboard'));
 const AiPlannerWidget = lazy(() => import('../features/planner/AiPlannerWidget'));
 const LegalPage = lazy(() => import('../features/support/LegalPage'));
+const Inbox = lazy(() => import('../features/messages/Inbox'));
 const SupportCentre = lazy(() => import('../features/support/SupportCentre'));
 const AuthModal = lazy(() => import('../features/auth/AuthModal'));
 const AccountActionModal = lazy(() => import('../features/auth/AccountActionModal'));
@@ -30,7 +32,7 @@ const Footer = lazy(() => import('../shared/components/Footer'));
 const MobileInstallPrompt = lazy(() => import('../shared/components/MobileInstallPrompt'));
 
 // Views that need a signed-in user. Every navigation path (navbar, dashboards, deep flows) is gated at render time.
-const PROTECTED_VIEWS = new Set(['user-dashboard', 'vendor-dashboard', 'admin-dashboard', 'checkout']);
+const PROTECTED_VIEWS = new Set(['bookings', 'profile', 'inbox', 'vendor-dashboard', 'admin-dashboard', 'checkout']);
 const STAFF_ROLES = ['admin'];
 // Granted only when an admin approves the business; applicants are customers until then.
 const VENDOR_ROLES = ['vendor_owner', 'vendor_staff'];
@@ -39,11 +41,11 @@ const VENDOR_ROLES = ['vendor_owner', 'vendor_staff'];
 const homeDashboard = (roles: string[]) =>
   roles.some((role) => STAFF_ROLES.includes(role)) ? 'admin-dashboard'
     : roles.some((role) => VENDOR_ROLES.includes(role)) ? 'vendor-dashboard'
-    : 'user-dashboard';
+    : 'bookings';
 
 // URL <-> view sync so refresh, deep links and the browser Back button work.
 // ponytail: hand-rolled History API routing; move to a router library if routes need more params than a listing id.
-const PATH_VIEWS = new Set(['homestays', 'hotels', 'cars', 'tours', 'destinations', 'offers', 'user-dashboard', 'vendor-dashboard', 'become-partner', 'admin-dashboard', 'ai-planner', 'support', 'terms', 'privacy']);
+const PATH_VIEWS = new Set(['homestays', 'hotels', 'cars', 'tours', 'destinations', 'offers', 'bookings', 'profile', 'inbox', 'vendor-dashboard', 'become-partner', 'admin-dashboard', 'ai-planner', 'support', 'terms', 'privacy', 'refunds', 'service']);
 const SEARCH_TYPES = ['hotel', 'car', 'tour', 'homestay', 'destination', 'offer'] as const;
 type SearchType = typeof SEARCH_TYPES[number];
 
@@ -71,6 +73,14 @@ function readLocation() {
     return { view: 'search', type: SEARCH_TYPES.includes(type) ? type : undefined, destination: query.get('destination') ?? undefined };
   }
   if (first === 'list-property') return { view: 'become-partner' }; // old links
+  // Back from Safepay: /bookings?payment=<booking id>[&cancelled=1]. Read now; the first URL sync drops the query.
+  // /user-dashboard is the old address of the bookings page.
+  if (first === 'bookings' || first === 'user-dashboard') {
+    const query = new URLSearchParams(window.location.search);
+    // Safepay appends its own "?tracker=…" to our link, so take just the booking id out of the value.
+    const bookingId = query.get('payment')?.match(/bkg_[0-9a-f-]{36}/i)?.[0];
+    return { view: 'bookings', payment: bookingId ? { bookingId, cancelled: query.has('cancelled') } : undefined };
+  }
   return { view: PATH_VIEWS.has(first) ? first : 'explore' };
 }
 
@@ -204,6 +214,15 @@ export default function App() {
     }
   }, [needsSignIn]);
 
+  // Inbox: a listing or booking can open (or start) the thread with its partner.
+  const [inboxStart, setInboxStart] = useState<InboxStart | undefined>(undefined);
+  const openInbox = (start?: InboxStart) => {
+    if (!isLoggedIn) { void handleOpenAuthModal('signin'); return; }
+    setInboxStart(start);
+    setView('inbox');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleOpenAuthModal = async (mode: 'signin' | 'register' = 'signin') => {
     // Finish clearing the old cookies before allowing a different account to sign in.
     if (logoutInFlight.current) await logoutInFlight.current;
@@ -308,7 +327,7 @@ export default function App() {
     } else if (v === 'my-dashboard') {
       setView(homeDashboard(userRoles));
     } else if (v === 'dashboard-user' || v === 'user-dashboard') {
-      setView('user-dashboard');
+      setView('bookings');
     } else if (v === 'dashboard-vendor' || v === 'vendor-dashboard') {
       setView(isVendor ? 'vendor-dashboard' : 'become-partner');
     } else {
@@ -370,7 +389,6 @@ export default function App() {
       {/* Top Navigation Bar */}
       <Navbar 
         currentView={
-          view === 'user-dashboard' ? 'dashboard-user' :
           view === 'vendor-dashboard' ? 'dashboard-vendor' :
           view === 'search' && searchParams.type === 'hotel' ? 'hotels' :
           view === 'search' && searchParams.type === 'homestay' ? 'homestays' :
@@ -387,7 +405,7 @@ export default function App() {
         isStaff={isStaff}
         isPartner={isVendor}
         onOpenNotifications={() => {
-          setView('user-dashboard');
+          setView('bookings');
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
         onOpenAuthModal={handleOpenAuthModal}
@@ -422,7 +440,7 @@ export default function App() {
             )}
           </section>
         ) : (<>
-        {(view === 'terms' || view === 'privacy') && <LegalPage policy={view} />}
+        {(view === 'terms' || view === 'privacy' || view === 'refunds' || view === 'service') && <LegalPage policy={view} />}
         {view === 'explore' && (
           <ExploreSection 
             setView={handleNavigation}
@@ -497,6 +515,7 @@ export default function App() {
         {view === 'details' && selectedListingId && (
           <ListingDetails 
             listingId={selectedListingId}
+            onMessage={openInbox}
             onBack={() => setView('search')}
             onProceedToCheckout={handleProceedToCheckout}
           />
@@ -509,17 +528,22 @@ export default function App() {
             userEmail={userEmail}
             userName={userName}
             existingBooking={receiptBooking ?? undefined}
-            onCancel={() => setView(receiptBooking ? 'user-dashboard' : 'details')}
+            onCancel={() => setView(receiptBooking ? 'bookings' : 'details')}
             onSuccess={() => {
               saveCheckout(null);
-              setView('user-dashboard');
+              setView('bookings');
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
           />
         )}
 
-        {view === 'user-dashboard' && (
-          <UserDashboard key={userId}
+        {view === 'inbox' && <Inbox key={`${userId}-${inboxStart?.listingId ?? ''}`} start={inboxStart} />}
+
+        {(view === 'bookings' || view === 'profile') && (
+          <UserDashboard key={`${userId}-${view}`}
+            onMessage={(booking) => openInbox({ listingId: booking.listingId, title: booking.listingTitle, image: booking.listingImage })}
+            section={view}
+            paymentReturn={initialLocation.payment}
             userEmail={userEmail}
             userName={userName}
             setView={(v) => {

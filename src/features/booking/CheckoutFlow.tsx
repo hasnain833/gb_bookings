@@ -49,6 +49,9 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
   const [promoError, setPromoError] = useState('');
   const [extras, setExtras] = useState(params.extrasTotal ?? 0);
   const [licenceNumber, setLicenceNumber] = useState('');
+  // Pay now is offered only when online payment is set up on the server.
+  const [onlineAvailable, setOnlineAvailable] = useState(false);
+  const [payNow, setPayNow] = useState(false);
   const car = Boolean(params.rental);
   const tour = params.tour;
   const selfDrive = car && !params.rental!.driver;
@@ -68,6 +71,7 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
     const room = result.rooms.find((item) => item.id === params.roomTypeId);
     if (!room?.bookable) throw new Error('This room is no longer available. Return to the property to choose another room or dates.');
     setQuote(room.totalPrice); setMealCost(result.mealsTotal); setExtras(room.extrasTotal ?? 0);
+    setOnlineAvailable(Boolean(result.onlinePayment)); if (!result.onlinePayment) setPayNow(false);
     setCoupon(result.coupon ? { ...result.coupon, discount: room.discount ?? 0 } : null);
   };
   const review = async (event: FormEvent) => {
@@ -95,8 +99,13 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
         guest: { name: contact.name.trim(), email: contact.email.trim(), phone: contact.phone.trim() },
         specialRequests: specialRequests.trim() || undefined, meals: params.meals?.length ? params.meals : undefined, couponCode: coupon?.code,
         ...(params.rental ? { rental: { ...params.rental, ...(selfDrive ? { licenceNumber: licenceNumber.trim() } : {}) } } : {}),
-        expectedTotalMinor: Math.round(quote * 100),
+        expectedTotalMinor: Math.round(quote * 100), paymentMethod: payNow ? 'online' : 'pay_at_hotel',
       }, checkoutKey.current);
+      if (payNow) {
+        setBooking(created);
+        try { window.location.assign(await api.startPayment(created.id)); return; }
+        catch (reason) { throw new Error(`${reason instanceof Error ? reason.message : 'The payment page did not open.'} Your booking ${created.reference} is held for an hour: open My Bookings to pay.`); }
+      }
       setBooking(created); setStep('receipt');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Unable to reserve. Please retry.'); }
@@ -158,12 +167,23 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
                   <div className="flex gap-2"><input id="checkout-promo" value={promo} onChange={(event) => setPromo(event.target.value.toUpperCase())} maxLength={20} autoComplete="off" placeholder="e.g. SUMMER10" className={inputClass.replace('mt-1.5 ', '') + ' uppercase'} aria-invalid={Boolean(promoError)} aria-describedby={promoError ? 'checkout-promo-error' : undefined} /><button disabled={busy || !promo.trim()} className="min-h-11 shrink-0 rounded-lg border border-slate-300 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">Apply</button></div>
                   {promoError && <p id="checkout-promo-error" role="alert" className="text-sm text-rose-700">{promoError}</p>}
                 </form>}
+            {onlineAvailable && <fieldset className="space-y-2">
+              <legend className="text-sm font-semibold text-slate-800">How would you like to pay?</legend>
+              {([[true, 'Pay now', 'Card or mobile wallet on Safepay’s secure page. Confirmed instantly.'], [false, 'Pay on arrival', `Pay ${payWhere}. The partner confirms your request within a day.`]] as const).map(([value, title, hint]) => (
+                <label key={title} className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 ${payNow === value ? 'border-[#006F3C] bg-emerald-50/50' : 'border-slate-200'}`}>
+                  <input type="radio" name="payment" checked={payNow === value} onChange={() => setPayNow(value)} className="mt-1 accent-[#006F3C]" />
+                  <span><span className="block font-semibold text-slate-900">{title}</span><span className="block text-sm text-slate-500">{hint}</span></span>
+                </label>
+              ))}
+            </fieldset>}
             <ol className="space-y-3 text-sm text-slate-700">
-              {['You send a reservation request — no payment is taken today.', 'The property confirms it, and we email you.', `You pay PKR ${quote.toLocaleString()} ${payWhere}. ${cancellationNote}`].map((text, index) => (
+              {(payNow
+                ? [`You pay PKR ${quote.toLocaleString()} now on Safepay’s secure page.`, 'Your booking is confirmed as soon as the payment goes through, and we email you.', 'If you cancel before the start date, you get money back under our refund policy.']
+                : ['You send a reservation request — no payment is taken today.', 'The property confirms it, and we email you.', `You pay PKR ${quote.toLocaleString()} ${payWhere}. ${cancellationNote}`]).map((text, index) => (
                 <li key={text} className="flex gap-3"><span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-xs font-bold text-[#006F3C]">{index + 1}</span><span className="pt-0.5">{text}</span></li>
               ))}
             </ol>
-            <button id="btn-confirm-booking" type="button" disabled={busy} onClick={reserve} className={buttonClass + ' flex w-full items-center justify-center gap-2'}>{busy && <LoaderCircle className="size-4 animate-spin" />}{busy ? 'Sending request…' : `Request reservation · PKR ${quote.toLocaleString()}`}</button>
+            <button id="btn-confirm-booking" type="button" disabled={busy} onClick={reserve} className={buttonClass + ' flex w-full items-center justify-center gap-2'}>{busy && <LoaderCircle className="size-4 animate-spin" />}{busy ? (payNow ? 'Opening the payment page…' : 'Sending request…') : payNow ? `Pay PKR ${quote.toLocaleString()} now` : `Request reservation · PKR ${quote.toLocaleString()}`}</button>
             <p className="text-center text-xs text-slate-500">By requesting, you agree to the property’s policies shown on its page.</p>
           </section>}
         </div>
@@ -187,9 +207,9 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
                 {mealCost > 0 && <div className="flex justify-between text-slate-600"><span>Meals ({params.meals!.map(mealLabel).join(', ')})</span><span>PKR {mealCost.toLocaleString()}</span></div>}
                 {coupon && <div className="flex justify-between text-emerald-700"><span>Promo {coupon.code}</span><span>−PKR {coupon.discount.toLocaleString()}</span></div>}
                 <div className="flex justify-between border-t border-slate-100 pt-3 text-base font-bold text-slate-950"><span>Total</span><span>PKR {quote.toLocaleString()}</span></div>
-                <p className="text-xs text-slate-500">{tour ? 'Paid at the start of the tour.' : car ? 'Paid at pickup.' : 'Paid at the property on arrival.'}</p>
+                <p className="text-xs text-slate-500">{payNow ? 'Paid now, online.' : tour ? 'Paid at the start of the tour.' : car ? 'Paid at pickup.' : 'Paid at the property on arrival.'}</p>
               </div>
-              <p className="flex items-start gap-2 rounded-lg bg-emerald-50 p-3 text-xs leading-5 text-emerald-900"><ShieldCheck className="size-4 shrink-0" />No payment today. {cancellationNote}</p>
+              <p className="flex items-start gap-2 rounded-lg bg-emerald-50 p-3 text-xs leading-5 text-emerald-900"><ShieldCheck className="size-4 shrink-0" />{payNow ? <>Secure payment by Safepay. See our <a href="/refunds" className="underline">refund policy</a>.</> : <>No payment today. {cancellationNote}</>}</p>
             </div>
           </div>
         </aside>
@@ -229,7 +249,7 @@ function Receipt({ booking, onDone }: { booking: Booking; onDone: () => void }) 
   const print = () => { const title = document.title; document.title = `GBBookings ${paid ? 'receipt' : 'voucher'} ${reference}`; window.print(); document.title = title; };
   const rental = booking.rental;
   const tour = booking.tour;
-  const payment = booking.paymentStatus === 'paid' ? 'Paid' : booking.status === 'cancelled' ? 'Nothing to pay — reservation cancelled' : `Pay PKR ${booking.totalPrice.toLocaleString()} ${tour ? 'at the start of the tour' : rental ? 'at pickup' : 'at the property'}`;
+  const payment = booking.refund ? `Paid · refund of PKR ${booking.refund.amount.toLocaleString()} (${booking.refund.percent}%) due after cancellation` : booking.paymentStatus === 'paid' ? 'Paid' : booking.status === 'cancelled' ? 'Nothing to pay — reservation cancelled' : `Pay on arrival: PKR ${booking.totalPrice.toLocaleString()} ${tour ? 'at the start of the tour' : rental ? 'at pickup' : 'at check-in'}`;
 
   return (
     <div id="checkout-flow-component" className="mx-auto max-w-2xl space-y-6 px-4 pb-24">

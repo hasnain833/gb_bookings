@@ -14,26 +14,17 @@ import { mediaRouter } from './modules/media/media.routes.js';
 import { createListingRouter } from './modules/listings/listing.routes.js';
 import { adminVendorRouter, vendorRouter } from './modules/vendors/vendor.routes.js';
 import { adminListingRouter, vendorListingRouter } from './modules/vendor-listings/vendor-listing.routes.js';
-import { adminBookingRouter, availabilityHandlers, bookingRouter, vendorBookingRouter } from './modules/bookings/booking.routes.js';
+import { adminBookingRouter, availabilityHandlers, bookingRouter, paymentWebhookRouter, vendorBookingRouter } from './modules/bookings/booking.routes.js';
 import { adminUserRouter } from './modules/users/user-admin.routes.js';
 import { wishlistRouter } from './modules/wishlist/wishlist.routes.js';
+import { adminSettingsRouter, publicSettingsRouter } from './modules/settings/settings.routes.js';
+import { messageRouter } from './modules/messages/message.routes.js';
 import { newsletterRouter } from './modules/newsletter/newsletter.routes.js';
-import { compatibilityRouter } from './routes/compatibility.routes.js';
 import { adminReviewRouter, listingReviewHandlers, partnerReviewRouter } from './modules/reviews/review.routes.js';
 import { partnerCouponRouter } from './modules/coupons/coupon.routes.js';
 import { AppError } from './shared/app-error.js';
+import { isAllowedOrigin } from './shared/origin.js';
 
-const allowedCorsOrigins = new Set([
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
-  ...(env.APP_URL ? [new URL(env.APP_URL).origin] : []),
-]);
-
-function isAllowedOrigin(origin: string, host?: string) {
-  if (allowedCorsOrigins.has(origin)) return true;
-  // Browsers send Origin on same-origin POSTs, so the deployed domain must always pass.
-  try { return new URL(origin).host === host; } catch { return false; }
-}
 
 export function createApp(): Express {
   const app = express();
@@ -97,8 +88,12 @@ export function createApp(): Express {
   app.use('/api/v1/admin/listings', adminListingRouter);
   app.use('/api/v1/admin/users', adminUserRouter);
   app.use('/api/v1/bookings', bookingRouter);
+  app.use('/api/v1/payments', paymentWebhookRouter);
+  app.use('/api/v1/messages', messageRouter);
   app.use('/api/v1/vendor/bookings', vendorBookingRouter);
   app.use('/api/v1/admin/bookings', adminBookingRouter);
+  app.use('/api/v1/admin/settings', adminSettingsRouter);
+  app.use('/api/v1/settings', publicSettingsRouter);
   app.use('/api/v1/vendor/reviews', partnerReviewRouter);
   app.use('/api/v1/admin/reviews', adminReviewRouter);
   app.use('/api/v1/vendor/coupons', partnerCouponRouter);
@@ -106,7 +101,6 @@ export function createApp(): Express {
   app.use('/api/v1/wishlist', wishlistRouter);
   app.use('/api/v1/newsletter', newsletterRouter);
   app.use('/api/v1/ai', aiRouter);
-  app.use('/api', compatibilityRouter);
 
   return app;
 }

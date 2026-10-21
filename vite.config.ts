@@ -18,6 +18,8 @@ export default defineConfig(() => ({
       "/api": {
         target: "http://127.0.0.1:8000",
         changeOrigin: true,
+        // Realtime messages (Socket.IO at /api/v1/realtime).
+        ws: true,
       },
     },
     hmr: process.env.DISABLE_HMR !== "true",

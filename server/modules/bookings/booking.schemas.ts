@@ -46,9 +46,9 @@ export const createBookingSchema = z.object({
     email: z.string().trim().email(),
     phone: z.string().trim().min(7).max(30),
   }).strict(),
-  // Online payment providers arrive in a later phase; Phase 1 settles at the property.
+  // Pay on arrival (a request the partner confirms) or Pay now through Safepay (confirmed once paid).
   paymentMethod: z.enum(paymentMethods)
-    .refine((method) => method === 'pay_at_hotel', 'Only pay-at-hotel is available right now.')
+    .refine((method) => method === 'pay_at_hotel' || method === 'online', 'Choose Pay now or Pay on arrival.')
     .default('pay_at_hotel'),
   specialRequests: z.string().trim().max(1_000).optional(),
   meals: z.array(z.enum(['breakfast', 'lunch', 'dinner'])).max(3).default([])
@@ -82,6 +82,8 @@ export const listBookingsQuerySchema = z.object({
   listingId: z.string().regex(/^lst_[0-9a-f-]{36}$/i).optional(),
   // Reception views: guests due today (not yet checked in) and guests currently checked in.
   stay: z.enum(['arriving', 'in_house']).optional(),
+  // Guest's My bookings tabs.
+  trip: z.enum(['upcoming', 'past', 'cancelled']).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(25),
 }).strict();

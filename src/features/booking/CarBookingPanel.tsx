@@ -120,7 +120,7 @@ export default function CarBookingPanel({ listingId, baseCity, specs, paymentMet
         {error && <p className="text-xs font-bold text-rose-600" role="alert">{error}</p>}
         {unit && !unit.bookable && <p className="text-xs font-bold text-rose-600" role="alert">{unit.available < cars ? `Only ${unit.available} of this car free on those dates.` : `Too many passengers for ${cars} car${cars > 1 ? 's' : ''}.`}</p>}
         {unit?.bookable && rental && <div className="space-y-2 border-t border-slate-200 pt-4 text-sm" id="car-price-breakdown">
-          <div className="flex justify-between text-slate-500"><span>{pkr(unit.nightlyRate)} × {days} day{days > 1 ? 's' : ''}{cars > 1 ? ` × ${cars} cars` : ''}</span><span className="text-slate-800">{pkr(unit.roomTotal)}</span></div>
+          <div className="flex justify-between text-slate-500"><span>{unit.nightlyRate * days * cars !== unit.roomTotal ? 'avg. ' : ''}{pkr(unit.nightlyRate)} × {days} day{days > 1 ? 's' : ''}{cars > 1 ? ` × ${cars} cars` : ''}</span><span className="text-slate-800">{pkr(unit.roomTotal)}</span></div>
           {rental.driver && rental.driverPerDay > 0 && <div className="flex justify-between text-slate-500"><span>Driver {pkr(rental.driverPerDay)} × {days} day{days > 1 ? 's' : ''}</span><span className="text-slate-800">{pkr(rental.driverPerDay * days * cars)}</span></div>}
           {rental.outsidePerDay > 0 && <div className="flex justify-between text-slate-500"><span>Outside {baseCity.split(',')[0]} × {days} day{days > 1 ? 's' : ''}</span><span className="text-slate-800">{pkr(rental.outsidePerDay * days * cars)}</span></div>}
           {rental.oneWayFee > 0 && <div className="flex justify-between text-slate-500"><span>One-way drop-off</span><span className="text-slate-800">{pkr(rental.oneWayFee * cars)}</span></div>}
@@ -130,7 +130,7 @@ export default function CarBookingPanel({ listingId, baseCity, specs, paymentMet
             {rental.oneWayOnRequest && <li>One-way fee is quoted by the partner when they confirm.</li>}
             {!rental.driver && <li>Self-drive: bring your driving licence{specs.minDriverAge ? ` (minimum age ${specs.minDriverAge})` : ''}{rental.deposit ? `. Refundable deposit ${pkr(rental.deposit)} at pickup` : ''}.</li>}
             {quote?.freeCancellationUntil && <li>Free cancellation until {formatDateForDisplay(quote.freeCancellationUntil)}</li>}
-            <li>Pay at pickup{paymentMethods?.length ? ` (${paymentMethods.map((method) => PAYMENT_LABELS[method]).join(', ')})` : ''}</li>
+            <li>Pay on arrival, at pickup{paymentMethods?.length ? ` (${paymentMethods.map((method) => PAYMENT_LABELS[method]).join(', ')})` : ''}</li>
           </ul>
         </div>}
       </div>

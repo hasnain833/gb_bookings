@@ -207,6 +207,8 @@ function roomView(room: any) {
     maxChildren: room.maxChildren,
     totalRooms: room.totalRooms,
     basePrice: room.basePriceMinor / 100,
+    ...(room.weekendPriceMinor != null ? { weekendPrice: room.weekendPriceMinor / 100 } : {}),
+    seasons: (room.seasons ?? []).map((season: any) => ({ name: season.name, from: season.from, to: season.to, price: season.priceMinor / 100 })),
     amenities: room.amenities ?? [],
     photos: publicPhotos(room.photos),
     status: room.status,
@@ -576,11 +578,12 @@ export async function addRoomType(
       status: { $ne: "archived" },
     }),
   );
-  const { basePrice, photos, ...fields } = input;
+  const { basePrice, photos, weekendPrice, seasons, ...fields } = input;
   const room = await HotelRoomTypeModel.create({
     listingId: listing._id,
     ...fields,
     basePriceMinor: basePrice * 100,
+    ...priceRulesMinor({ weekendPrice, seasons }),
     photos: photos ? await resolvePhotos(userId, photos, []) : [],
     // A room added to a live hotel stays hidden (paused) until the revision is approved.
     ...(live
@@ -634,7 +637,15 @@ async function syncListingPrice(listing: any) {
 }
 
 // Price, inventory and pausing are day-to-day operations and apply at once; on a live listing, what guests read waits for review.
-const LIVE_ROOM_FIELDS = ["basePrice", "totalRooms", "status"];
+const LIVE_ROOM_FIELDS = ["basePrice", "weekendPrice", "seasons", "totalRooms", "status"];
+
+/** Weekend and season prices in minor units; like the base price they apply at once, without review. */
+function priceRulesMinor(input: { weekendPrice?: number | null; seasons?: Array<{ name: string; from: string; to: string; price: number }> }) {
+  return {
+    ...(input.weekendPrice !== undefined ? { weekendPriceMinor: input.weekendPrice === null ? null : input.weekendPrice * 100 } : {}),
+    ...(input.seasons ? { seasons: input.seasons.map(({ price, ...season }) => ({ ...season, priceMinor: price * 100 })) } : {}),
+  };
+}
 
 export async function updateRoomType(
   userId: string,
@@ -675,6 +686,9 @@ export async function updateRoomType(
     update.basePriceMinor = update.basePrice * 100;
     delete update.basePrice;
   }
+  Object.assign(update, priceRulesMinor(update));
+  delete update.weekendPrice;
+  delete update.seasons;
   const pending = current.pendingRevision?.changes;
   if (photos)
     edits.photos = await resolvePhotos(userId, photos, [

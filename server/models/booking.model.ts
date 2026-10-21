@@ -5,7 +5,8 @@ const { Schema } = mongoose;
 
 export const bookingStatuses = ['pending', 'confirmed', 'cancelled', 'completed', 'no_show'] as const;
 export type BookingStatus = typeof bookingStatuses[number];
-export const paymentMethods = ['pay_at_hotel', 'card', 'jazzcash', 'easypaisa'] as const;
+// 'online' is Pay now through Safepay; 'pay_at_hotel' is Pay on arrival. Card/wallet values are unused leftovers.
+export const paymentMethods = ['pay_at_hotel', 'online', 'card', 'jazzcash', 'easypaisa'] as const;
 
 const statusEventSchema = new Schema({
   status: { type: String, enum: bookingStatuses, required: true },
@@ -59,7 +60,12 @@ const bookingSchema = new Schema({
     // Car rentals: driver, out-of-city and one-way charges.
     extrasMinor: { type: Number, min: 0, default: 0 },
     totalMinor: { type: Number, required: true, min: 0 },
+    // GBBookings' commission: the admin-set percent at booking time, and the amount (re-worked on a change or cancellation).
+    commissionPercent: { type: Number, min: 0, default: 0 },
+    commissionMinor: { type: Number, min: 0, default: 0 },
   },
+  // Set when a paid booking is cancelled: what the guest gets back (see bookings refund rules in modules/settings).
+  refund: { type: new Schema({ percent: Number, amountMinor: Number }, { _id: false }), default: undefined },
   // Car rentals: where and when the guest takes the car, and the car's terms at booking time (minor units).
   // `checkOut` is the day after the return date, so rented days count like hotel nights (see bookings/rental.ts).
   rental: {
@@ -97,6 +103,8 @@ const bookingSchema = new Schema({
   paymentStatus: { type: String, enum: ['pending', 'paid', 'refunded'], default: 'pending' },
   paidAt: { type: Date },
   paymentCollectedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+  // Pay now: every Safepay tracker opened for this booking (a retry opens a new one) and the one that was paid.
+  onlinePayment: { type: new Schema({ trackers: [String], paidTracker: String }, { _id: false }), default: undefined },
   // Arrival is a fact about a confirmed stay, not a status: the booking stays "confirmed" until completed.
   checkedInAt: { type: Date },
   checkedInBy: { type: Schema.Types.ObjectId, ref: 'User' },
@@ -107,6 +115,7 @@ const bookingSchema = new Schema({
 }, { timestamps: true });
 
 bookingSchema.index({ customerId: 1, createdAt: -1 });
+bookingSchema.index({ 'onlinePayment.trackers': 1 }, { sparse: true });
 bookingSchema.index({ vendorId: 1, status: 1, checkIn: 1 });
 bookingSchema.index(
   { customerId: 1, idempotencyKey: 1 },

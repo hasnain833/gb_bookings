@@ -43,7 +43,7 @@ export default function RoomBookingPanel({ listingId, meals = [], entireHome = f
   // The server quotes the free-cancellation date and the meal cost with the availability.
   const choices = [
     ...(availability?.freeCancellationUntil ? [`Free cancellation until ${formatDateForDisplay(availability.freeCancellationUntil)}`] : []),
-    paymentMethods?.length ? `Pay at the property (${paymentMethods.map((method) => PAYMENT_LABELS[method]).join(', ')})` : 'Pay at the property',
+    paymentMethods?.length ? `Pay on arrival (${paymentMethods.map((method) => PAYMENT_LABELS[method]).join(', ')})` : 'Pay on arrival',
     ...(breakfastIncluded ? ['Breakfast included'] : []),
   ];
   const offSeason = Boolean(checkIn && openMonths?.length && !openMonths.includes(Number(checkIn.slice(5, 7))));
@@ -179,7 +179,7 @@ export default function RoomBookingPanel({ listingId, meals = [], entireHome = f
       {selectedRoom && availability && (
         <div className="space-y-2 border-t border-slate-200 pt-4 text-sm" id="booking-price-breakdown">
           <div className="flex justify-between text-slate-500">
-            <span>PKR {selectedRoom.nightlyRate.toLocaleString()} × {availability.nights} night{availability.nights > 1 ? 's' : ''}{entireHome ? '' : ` × ${rooms} room${rooms > 1 ? 's' : ''}`}</span>
+            <span>{selectedRoom.nightlyRate * availability.nights * rooms !== selectedRoom.roomTotal ? 'avg. ' : ''}PKR {selectedRoom.nightlyRate.toLocaleString()} × {availability.nights} night{availability.nights > 1 ? 's' : ''}{entireHome ? '' : ` × ${rooms} room${rooms > 1 ? 's' : ''}`}</span>
             <span className="text-slate-800">PKR {selectedRoom.roomTotal.toLocaleString()}</span>
           </div>
           {mealCost > 0 && <div className="flex justify-between text-slate-500">

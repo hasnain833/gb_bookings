@@ -5,9 +5,11 @@ import { env } from './config/env.js';
 import { connectDatabase, disconnectDatabase } from './database/connection.js';
 import { finalizeApp } from './app.js';
 import { expireStalePendingBookings } from './modules/bookings/booking.service.js';
+import { attachRealtime } from './modules/messages/realtime.js';
 
 export async function startServer(app: Express) {
   const server = createServer(app);
+  attachRealtime(server);
 
   if (env.NODE_ENV === 'production') {
     // Single-process deploys serve the built frontend; in development Vite serves it on port 3000.
