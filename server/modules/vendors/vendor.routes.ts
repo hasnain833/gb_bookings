@@ -17,6 +17,7 @@ import {
   requestVendorChanges,
   getOwnVendor,
   listVendorApplications,
+  recheckVendorIdentity,
   vendorDocumentSource,
   submitOwnVendor,
   updateOwnVendor,
@@ -95,6 +96,10 @@ adminVendorRouter.get('/:id/documents/:type', validate('params', vendorIdParamsS
   if (!upstream.ok) throw new AppError(502, 'DOCUMENT_FETCH_FAILED', 'Could not load this document from storage.');
   response.set({ 'Content-Type': source.mimeType, 'Content-Disposition': 'inline', 'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff' });
   response.send(Buffer.from(await upstream.arrayBuffer()));
+}));
+
+adminVendorRouter.post('/:id/identity-check', validate('params', vendorIdParamsSchema), asyncHandler(async (request, response) => {
+  response.json({ data: await recheckVendorIdentity(request.params.id) });
 }));
 
 adminVendorRouter.post('/:id/decision', validate('params', vendorIdParamsSchema), validate('body', vendorDecisionSchema), asyncHandler(async (request, response) => {

@@ -1,5 +1,8 @@
 import { z } from 'zod';
 
+// 13 digits, dashes optional; stored as 12345-1234567-1.
+const cnicNumber = z.string().trim().regex(/^\d{5}-?\d{7}-?\d$/, 'Enter the CNIC as 12345-1234567-1.')
+  .transform((value) => value.replace(/-/g, '').replace(/^(\d{5})(\d{7})(\d)$/, '$1-$2-$3'));
 const businessType = z.enum(['hotel', 'homestay', 'vehicle', 'tour_operator', 'multi_service']);
 const address = z.object({
   line1: z.string().trim().min(3).max(200),
@@ -17,6 +20,7 @@ export const createVendorSchema = z.object({
   businessType,
   registrationNumber: z.string().trim().min(2).max(100).optional(),
   taxNumber: z.string().trim().max(100).optional(),
+  cnicNumber: cnicNumber.optional(),
   address: address.optional(),
 }).strict();
 

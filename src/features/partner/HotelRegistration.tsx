@@ -58,7 +58,7 @@ export default function HotelRegistration({ kind = 'hotel', vendor, emailVerifie
   const [notice, setNotice] = useState('');
   const [business, setBusiness] = useState({
     name: vendor?.name ?? '', email: vendor?.email ?? '', phone: vendor?.phone ?? '',
-    registrationNumber: vendor?.registrationNumber ?? '', taxNumber: vendor?.taxNumber ?? '',
+    registrationNumber: vendor?.registrationNumber ?? '', taxNumber: vendor?.taxNumber ?? '', cnicNumber: vendor?.cnicNumber ?? '',
     line1: vendor?.address?.line1 ?? '', city: vendor?.address?.city ?? '', region: vendor?.address?.region ?? 'Gilgit-Baltistan',
   });
   const [uploading, setUploading] = useState<string | null>(null);
@@ -84,7 +84,7 @@ export default function HotelRegistration({ kind = 'hotel', vendor, emailVerifie
     event.preventDefault();
     void run(async () => {
       const input = {
-        name: business.name.trim(), email: business.email.trim(), phone: business.phone.trim(), businessType: businessTypeOf(kind),
+        name: business.name.trim(), email: business.email.trim(), phone: business.phone.trim(), businessType: businessTypeOf(kind), cnicNumber: business.cnicNumber.trim(),
         ...(individual ? {} : { registrationNumber: business.registrationNumber.trim(), taxNumber: business.taxNumber.trim() || undefined }),
         address: { line1: business.line1.trim(), city: business.city.trim(), region: business.region.trim(), country: 'PK' },
       };
@@ -155,6 +155,7 @@ export default function HotelRegistration({ kind = 'hotel', vendor, emailVerifie
           <div className="grid gap-5 sm:grid-cols-2">
             <Field label={homestay ? 'Host or family name' : ownerDriver ? 'Your name, as guests should see it' : 'Registered business name'} hint={homestay ? 'As guests should see it, e.g. "Karim Family Homestay".' : ownerDriver ? (tour ? 'e.g. "Hunza Treks with Ali".' : 'e.g. "Ali’s Prado – Skardu".') : undefined}><input required minLength={2} maxLength={160} className={inputClass} value={business.name} onChange={(e) => setBusiness({ ...business, name: e.target.value })} /></Field>
             {!individual && <Field label="Registration number"><input required minLength={2} maxLength={100} className={inputClass} value={business.registrationNumber} onChange={(e) => setBusiness({ ...business, registrationNumber: e.target.value })} /></Field>}
+            <Field label={individual ? 'Your CNIC number' : 'Owner’s CNIC number'} hint="Must match the CNIC you upload in the next step."><input required inputMode="numeric" pattern="\d{5}-?\d{7}-?\d" title="13 digits, e.g. 12345-1234567-1" placeholder="12345-1234567-1" maxLength={15} className={inputClass} value={business.cnicNumber} onChange={(e) => setBusiness({ ...business, cnicNumber: e.target.value })} /></Field>
             <Field label={individual ? 'Email' : 'Business email'} hint="Booking requests are sent here."><input required type="email" className={inputClass} value={business.email} onChange={(e) => setBusiness({ ...business, email: e.target.value })} /></Field>
             <Field label={individual ? 'Phone' : 'Business phone'}><input required type="tel" minLength={7} maxLength={30} placeholder="03XX XXXXXXX" className={inputClass} value={business.phone} onChange={(e) => setBusiness({ ...business, phone: e.target.value })} /></Field>
             <Field label={homestay ? 'Home address' : ownerDriver ? 'Your address' : 'Street address'} wide><input required className={inputClass} value={business.line1} onChange={(e) => setBusiness({ ...business, line1: e.target.value })} /></Field>
@@ -191,7 +192,7 @@ export default function HotelRegistration({ kind = 'hotel', vendor, emailVerifie
       {step === 'review' && vendor && <Card>
         <h2 className="text-lg font-bold">Review and submit</h2>
         <dl className="mt-4 grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
-          {[[homestay ? 'Host' : ownerDriver ? (tour ? 'Guide' : 'Owner-driver') : 'Business', vendor.name], ...(individual ? [] : [['Registration no.', vendor.registrationNumber]]), ['Email', vendor.email], ['Phone', vendor.phone],
+          {[[homestay ? 'Host' : ownerDriver ? (tour ? 'Guide' : 'Owner-driver') : 'Business', vendor.name], ...(individual ? [] : [['Registration no.', vendor.registrationNumber]]), ['CNIC', vendor.cnicNumber || '—'], ['Email', vendor.email], ['Phone', vendor.phone],
             ['Address', [vendor.address?.line1, vendor.address?.city, vendor.address?.region].filter(Boolean).join(', ')], ...(individual ? [] : [['NTN', vendor.taxNumber || '—']]),
           ].map(([term, value]) => <div key={term}><dt className="text-slate-500">{term}</dt><dd className="font-medium text-slate-900">{value}</dd></div>)}
           <div className="sm:col-span-2"><dt className="text-slate-500">Documents</dt><dd className="font-medium text-slate-900">{documents.filter((document) => attached.has(document.type)).map((document) => document.label).join(', ')}</dd></div>

@@ -43,6 +43,7 @@ export default function Inbox({ start }: { start?: InboxStart }) {
       if (openRef.current !== id) return;
       setThread(loaded);
       setConversations((items) => items?.map((item) => item.id === id ? { ...item, unread: 0 } : item) ?? items);
+      window.dispatchEvent(new Event('gb:messages-read'));
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not open this conversation.'); }
   }, []);
 

@@ -56,6 +56,8 @@ const envSchema = z.object({
   CLOUDINARY_API_SECRET: optionalString(z.string().min(1)),
   MEDIA_MAX_FILE_MB: z.coerce.number().int().min(1).max(25).default(10),
   GEMINI_API_KEY: optionalString(z.string().min(1)),
+  // Used by the AI planner and the CNIC pre-check; change it here if Google retires the model.
+  GEMINI_MODEL: z.string().min(1).default("gemini-2.5-flash"),
   // Hours a property has to accept or decline a booking request before it expires and the rooms are released.
   PENDING_BOOKING_HOURS: z.coerce.number().int().min(1).max(168).default(24),
   // Safepay hosted checkout ("Pay now"). Without both keys only Pay on arrival is offered.

@@ -22,6 +22,18 @@ const vendorSchema = new Schema({
     required: true,
   },
   registrationNumber: { type: String, trim: true, maxlength: 100 },
+  // Owner's / host's CNIC as 12345-1234567-1; indexed to spot one CNIC on several partner accounts.
+  cnicNumber: { type: String, trim: true, maxlength: 15, index: true },
+  // Automatic pre-check of the identity document, shown to the admin; never approves anything itself.
+  identityCheck: {
+    type: new Schema({
+      status: { type: String, enum: ['passed', 'flagged'] },
+      findings: [{ _id: false, level: { type: String, enum: ['ok', 'warn', 'fail'] }, text: String }],
+      read: { name: String, cnicNumber: String, expiryDate: String },
+      checkedAt: Date,
+    }, { _id: false }),
+    default: undefined,
+  },
   taxNumber: { type: String, trim: true, maxlength: 100 },
   address: {
     line1: { type: String, trim: true, maxlength: 200 },

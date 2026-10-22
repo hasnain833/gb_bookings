@@ -14,6 +14,7 @@ import { isEmailConfigured } from '../email/resend.service.js';
 import { isCloudinaryConfigured, signedDownloadUrl } from '../media/cloudinary.service.js';
 import { notifyVendorDecision } from './vendor-notifications.js';
 import { canAccess } from './member-access.js';
+import { runIdentityCheck } from './identity-check.js';
 
 // Hotels prove a registered business; homestay hosts are usually families, verified by CNIC and proof of the property.
 const REQUIRED_DOCUMENTS: Record<string, string[]> = {
@@ -47,6 +48,7 @@ function serializeVendor(vendor: any) {
     businessType: vendor.businessType,
     registrationNumber: vendor.registrationNumber,
     taxNumber: vendor.taxNumber,
+    cnicNumber: vendor.cnicNumber,
     address: vendor.address,
     status: vendor.status,
     verificationDocuments: vendor.verificationDocuments ?? [],
@@ -136,6 +138,7 @@ export async function submitOwnVendor(userId: string, metadata: SessionMetadata)
     vendor.businessType === 'vehicle' && !vendor.registrationNumber && !attached.has('driving_licence') && 'driving_licence',
     vendor.businessType === 'tour_operator' && !vendor.registrationNumber && !attached.has('guide_licence') && 'guide_licence',
     !vendor.address?.line1 && 'address',
+    !vendor.cnicNumber && 'cnicNumber',
     vendor.verificationDocuments.length === 0 && 'verificationDocuments',
     ...(REQUIRED_DOCUMENTS[vendor.businessType] ?? []).filter((type) => !attached.has(type)),
   ].filter(Boolean);
@@ -148,7 +151,17 @@ export async function submitOwnVendor(userId: string, metadata: SessionMetadata)
     actorId: userId, actorType: 'user', action: 'vendor.application_submitted',
     resourceType: 'vendor', resourceId: vendor.publicId, ...metadata,
   });
+  // ponytail: runs inside the request (up to ~40 s with AI reading); move to a queue if submissions time out on Vercel.
+  await runIdentityCheck(vendor).catch((error) => console.error(`CNIC check for ${vendor.publicId} failed:`, error));
   return serializeVendor(vendor);
+}
+
+/** Admin: runs the CNIC pre-check again (e.g. after setting GEMINI_API_KEY) and returns its result. */
+export async function recheckVendorIdentity(vendorId: string) {
+  await requireDatabase();
+  const vendor = await VendorModel.findOne({ publicId: vendorId, deletedAt: null });
+  if (!vendor) throw new AppError(404, 'VENDOR_NOT_FOUND', 'Vendor organization was not found.');
+  return runIdentityCheck(vendor);
 }
 
 /** An approved vendor asks to change its business details; nothing changes until an admin approves. */
@@ -200,6 +213,7 @@ export async function listVendorApplications(query: { status?: string; changes?:
     .map((record) => [String(record._id), record]));
   const withDocumentLinks = (vendor: any) => ({
     ...serializeVendor(vendor),
+    identityCheck: vendor.identityCheck,
     verificationDocuments: (vendor.verificationDocuments ?? []).map((document: any) => {
       const record = media.get(String(document.mediaId));
       return {

@@ -157,6 +157,7 @@ export interface VendorProfile {
   status: 'draft' | 'submitted' | 'approved' | 'rejected' | 'suspended' | 'archived';
   registrationNumber?: string;
   taxNumber?: string;
+  cnicNumber?: string;
   address?: Record<string, string>;
   rejectionReason?: string;
   submittedAt?: string;
@@ -412,6 +413,15 @@ export interface AdminVendor extends Omit<VendorProfile, 'verificationDocuments'
   submittedAt?: string;
   createdAt: string;
   verificationDocuments: Array<{ type: string; status: string; mimeType?: string; url?: string }>;
+  identityCheck?: IdentityCheck;
+}
+
+/** Automatic CNIC pre-check run when a partner submits; the admin still decides. */
+export interface IdentityCheck {
+  status: 'passed' | 'flagged';
+  findings: Array<{ level: 'ok' | 'warn' | 'fail'; text: string }>;
+  read?: { name?: string; cnicNumber?: string; expiryDate?: string };
+  checkedAt: string;
 }
 
 export type AdminBookingLookup = Booking & { vendor?: { name: string; email: string; phone?: string } };
@@ -507,6 +517,7 @@ export const api = {
     businessType: VendorProfile['businessType'];
     registrationNumber?: string;
     taxNumber?: string;
+    cnicNumber?: string;
     address?: { line1: string; line2?: string; city: string; region: string; postalCode?: string; country?: string };
   }) {
     return request<{ data: VendorProfile }>('/api/v1/vendors', { method: 'POST', body: JSON.stringify(input) });
@@ -826,6 +837,9 @@ export const api = {
       return request<{ data: AdminVendor }>(`/api/v1/admin/vendors/${encodeURIComponent(vendorId)}/changes/decision`, {
         method: 'POST', body: JSON.stringify({ decision, notes }),
       }).then((result) => result.data);
+    },
+    recheckIdentity(vendorId: string) {
+      return request<{ data: IdentityCheck }>(`/api/v1/admin/vendors/${encodeURIComponent(vendorId)}/identity-check`, { method: 'POST' }).then((result) => result.data);
     },
     decideVendor(vendorId: string, decision: 'approved' | 'rejected' | 'suspended', notes: string) {
       return request<{ data: AdminVendor }>(`/api/v1/admin/vendors/${encodeURIComponent(vendorId)}/decision`, {

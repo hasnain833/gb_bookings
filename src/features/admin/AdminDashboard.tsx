@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Building2, CalendarX, Car, Percent, Hotel, House, Inbox, LayoutDashboard, Mountain, PanelLeftClose, PanelLeftOpen, Search, FileText, LoaderCircle, LogOut, ShieldCheck, Star, Users } from 'lucide-react';
-import { api, type AdminBookingLookup, type AdminUser, type AdminVendor, type Paginated, type PlatformSettings, type UserStatusAction, type VendorListing } from '../../shared/api/api';
+import { AlertTriangle, Building2, CalendarX, CheckCircle2, XCircle, Car, Percent, Hotel, House, Inbox, LayoutDashboard, Mountain, PanelLeftClose, PanelLeftOpen, Search, FileText, LoaderCircle, LogOut, ShieldCheck, Star, Users } from 'lucide-react';
+import { api, type AdminBookingLookup, type AdminUser, type AdminVendor, type IdentityCheck, type Paginated, type PlatformSettings, type UserStatusAction, type VendorListing } from '../../shared/api/api';
 import SecurityPanel from '../account/SecurityPanel';
 import ListingReviewDetails from './ListingReviewDetails';
 import { ReviewCard } from '../reviews/ReviewParts';
@@ -29,6 +29,36 @@ const primaryButton = 'min-h-11 rounded-lg bg-[#006F3C] px-4 text-sm font-semibo
 const secondaryButton = 'min-h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 disabled:opacity-50';
 const selectClass = 'min-h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm capitalize outline-none focus:border-teal-700 focus:ring-2 focus:ring-teal-700/10';
 const label = (value: string) => value.replace(/_/g, ' ');
+
+const FINDING_ICON = { ok: [CheckCircle2, 'text-emerald-700'], warn: [AlertTriangle, 'text-amber-600'], fail: [XCircle, 'text-rose-700'] } as const;
+
+/** The automatic CNIC pre-check for a partner application. Advice for the reviewer only; the admin still decides. */
+function IdentityCheckPanel({ vendor }: { vendor: AdminVendor }) {
+  const [check, setCheck] = useState<IdentityCheck | undefined>(vendor.identityCheck);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  useEffect(() => { setCheck(vendor.identityCheck); setError(''); }, [vendor.id, vendor.identityCheck]);
+  const recheck = async () => {
+    setBusy(true); setError('');
+    try { setCheck(await api.admin.recheckIdentity(vendor.id)); }
+    catch (reason) { setError(reason instanceof Error ? reason.message : 'The check could not run.'); }
+    finally { setBusy(false); }
+  };
+  return <div className="rounded-xl border border-slate-200 p-4">
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <h3 className="text-[15px] font-bold">CNIC check {vendor.cnicNumber && <span className="font-normal text-slate-500">· {vendor.cnicNumber}</span>}</h3>
+      {check && <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${check.status === 'passed' ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800'}`}>{check.status === 'passed' ? 'All checks passed' : 'Needs a closer look'}</span>}
+    </div>
+    {check ? <ul className="mt-3 space-y-1.5">
+      {check.findings.map((finding) => { const [Icon, tone] = FINDING_ICON[finding.level]; return <li key={finding.text} className="flex gap-2 text-sm text-slate-700"><Icon className={`mt-0.5 size-4 shrink-0 ${tone}`} aria-label={finding.level} />{finding.text}</li>; })}
+    </ul> : <p className="mt-2 text-sm text-slate-500">Not checked yet.</p>}
+    {error && <p role="alert" className="mt-2 text-sm text-rose-700">{error}</p>}
+    <p className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+      {check && <span>Checked {new Date(check.checkedAt).toLocaleString('en-PK')}. Automatic checks cannot spot a good fake: always open the CNIC.</span>}
+      <button type="button" disabled={busy} onClick={() => void recheck()} className="inline-flex min-h-11 items-center gap-1.5 font-semibold text-[#006F3C] underline disabled:opacity-50">{busy && <LoaderCircle className="size-3.5 animate-spin" />}{check ? 'Check again' : 'Run check'}</button>
+    </p>
+  </div>;
+}
 const roleLabels: Record<string, string> = {
   admin: 'Platform Admin',
   vendor_owner: 'Vendor Owner', vendor_staff: 'Vendor Employee', customer: 'Customer',
@@ -163,6 +193,7 @@ function VendorsPanel() {
                 ? <a key={document.type} href={document.url} target="_blank" rel="noreferrer" className="text-xs font-semibold text-[#006F3C] underline">{label(document.type)}</a>
                 : <span key={document.type} className="text-xs text-slate-500">{label(document.type)} (link unavailable)</span>)}
             </div>
+            {vendor.status === 'submitted' && <div className="pt-2"><IdentityCheckPanel vendor={vendor} /></div>}
             {(vendor.verificationNotes || vendor.rejectionReason) && <p className="text-xs italic text-slate-600">Note: {vendor.rejectionReason ?? vendor.verificationNotes}</p>}
             {vendor.pendingChanges && <ChangeRequestDiff vendor={vendor} />}
           </div>
@@ -709,6 +740,7 @@ function InboxPanel({ onOpen, initialKey, onChanged }: { onOpen: (tab: Tab) => v
                     : <span key={document.type} className="inline-flex min-h-11 items-center rounded-lg border border-[#ECEFE9] px-3 text-sm capitalize text-[#5A6B61]">{label(document.type)} (link unavailable)</span>)}
                 </div>
               </div>}
+              {selected.kind === 'partner' && <IdentityCheckPanel vendor={selected.vendor} />}
               {selected.kind === 'business' && <ChangeRequestDiff vendor={selected.vendor} />}
             </>}
             {selected.listing && <ListingReviewDetails key={selected.key} listing={selected.listing} />}

@@ -13,7 +13,9 @@
     "build:backend": "esbuild server/index.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist-server/server.cjs",
     "start:production": "cross-env NODE_ENV=production node dist-server/server.cjs",
     "clean": "node -e \"for(const dir of ['dist','dist-server'])require('node:fs').rmSync(dir,{recursive:true,force:true})\"",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test": "tsx server/scripts/check-contact-filter.ts && tsx server/scripts/check-refunds.ts && tsx server/scripts/check-room-price.ts && tsx server/scripts/check-tours.ts && tsx server/scripts/check-identity.ts",
+    "test:e2e": "tsx server/scripts/check-e2e.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

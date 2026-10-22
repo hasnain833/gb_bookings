@@ -31,7 +31,7 @@ const plannerHandler = asyncHandler(async (request, response) => {
     const { destination, budget, duration, travelers, interests } = request.body;
     const ai = getAiClient();
     const result = await ai.models.generateContent({
-      model: 'gemini-3.5-flash',
+      model: env.GEMINI_MODEL,
       contents: `Create a practical ${duration}-day Pakistan itinerary for ${travelers} traveler(s) visiting ${destination}. The total budget is PKR ${budget}. Interests: ${interests || 'sightseeing, nature, and local food'}. Clearly distinguish suggestions from confirmed availability.`,
       config: {
         systemInstruction: 'You are the GBBookings travel planner. Give concise day-by-day guidance. Never claim live price or availability unless supplied by the marketplace API.',
