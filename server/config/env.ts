@@ -43,6 +43,8 @@ const envSchema = z.object({
     .default(30),
   OTP_TTL_MINUTES: z.coerce.number().int().min(2).max(30).default(10),
   OTP_MAX_ATTEMPTS: z.coerce.number().int().min(3).max(10).default(5),
+  // "Sign in with Google" (Google Cloud → Credentials → OAuth client ID, type Web). Same value as VITE_GOOGLE_CLIENT_ID.
+  GOOGLE_CLIENT_ID: optionalString(z.string().min(1)),
   RESEND_API_KEY: optionalString(z.string().min(1)),
   RESEND_SENDER_EMAIL: optionalString(z.string().email()),
   RESEND_SENDER_NAME: z

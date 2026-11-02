@@ -12,6 +12,7 @@ import type { AddressInfo } from 'node:net';
 process.env.MONGODB_DB_NAME = `gbbookings_e2e_${Date.now()}`;
 process.env.RESEND_API_KEY = '';
 process.env.NODE_ENV = 'test';
+process.env.GOOGLE_CLIENT_ID = 'e2e-google-client';
 
 const mongoose = (await import('mongoose')).default;
 const bcrypt = (await import('bcryptjs')).default;
@@ -31,9 +32,21 @@ const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}/api/v1`
 // Safepay "paid?" answers per tracker; every other Safepay call goes through to the sandbox.
 const realFetch = globalThis.fetch;
 const paidTrackers = new Set<string>();
+// Google tokeninfo: a fake credential "e2e-google|<sub>|<email>|<aud>" stands for a signed ID token.
+// Resend: the last emailed security code is kept in `lastEmailedCode` (email is only switched on for the account checks).
+let lastEmailedCode = '';
 globalThis.fetch = (async (url: any, init?: any) => {
   const match = String(url).match(/\/reporter\/api\/v1\/payments\/([^/?]+)/);
   if (match) return new Response(JSON.stringify({ data: { tracker: { state: paidTrackers.has(decodeURIComponent(match[1])) ? 'TRACKER_ENDED' : 'TRACKER_STARTED' } } }), { status: 200 });
+  if (String(url).startsWith('https://oauth2.googleapis.com/tokeninfo')) {
+    const [tag, sub, email, aud] = (new URL(String(url)).searchParams.get('id_token') ?? '').split('|');
+    if (tag !== 'e2e-google') return new Response('{"error":"invalid_token"}', { status: 400 });
+    return new Response(JSON.stringify({ iss: 'https://accounts.google.com', aud, sub, email, email_verified: 'true', name: 'Google Guest' }), { status: 200 });
+  }
+  if (String(url).startsWith('https://api.resend.com/')) {
+    lastEmailedCode = JSON.parse(init.body).html.match(/>(\d{6})</)?.[1] ?? '';
+    return new Response(JSON.stringify({ id: randomUUID() }), { status: 200 });
+  }
   return realFetch(url, init);
 }) as typeof fetch;
 
@@ -101,6 +114,32 @@ try {
     await ok(partner.call('POST', '/vendors/me/documents', { type, mediaId: (await media(partner.record._id, 'document')).publicId }));
   }
   await ok(partner.call('POST', '/vendors/me/submit'));
+  // While the application is reviewed, the applicant can save "Add a property" progress but not create the listing.
+  const savedDraft = (await ok(partner.call('PUT', '/vendor/listing-drafts/hotel', { step: 3, data: { hotel: { title: 'Draft hotel' } } }))).data;
+  assert.deepEqual([savedDraft.step, savedDraft.data.hotel.title], [3, 'Draft hotel']);
+  await fails(partner.call('PUT', '/vendor/listing-drafts/homestay', { step: 0, data: {} }), 403, 'LISTING_TYPE_NOT_ALLOWED');
+  // Listing comes first: anyone signed in may start a draft before applying.
+  assert.equal((await ok(guest.call('GET', '/vendor/listing-drafts/hotel'))).data, null);
+  // With the application submitted, the listing is created and submitted too; publishing waits for the partner's approval.
+  const earlyInput = {
+    type: 'hotel', title: 'E2E Passu Lodge', location: 'Karakoram Highway, Passu, Gojal', description: 'A lodge listed together with the partner application.',
+    address: { line1: 'Karakoram Highway', area: 'Passu', city: 'Gojal', region: 'Gilgit-Baltistan' },
+    price: 8_000, imageIds: [(await media(partner.record._id, 'image')).publicId],
+    hotelSpecs: {
+      hotelType: 'Lodge', amenities: ['WiFi', 'Parking'], facilities: [], policies: [], checkInTime: '14:00', checkOutTime: '12:00',
+      breakfast: { offered: true, included: false, price: 600, kinds: ['Desi'] }, parking: { available: 'paid', price: 200, onSite: true, reservation: false }, licenceNumber: 'GBTD-123',
+    },
+    stayInfo: { childrenAllowed: true, petsAllowed: false, smokingAllowed: false, paymentMethods: ['cash'], hotWater: 'always', roadAccess: 'car', openMonths: [5, 6, 7, 8, 9] },
+  };
+  await fails(partner.call('POST', '/vendor/listings', { ...earlyInput, hotelSpecs: { ...earlyInput.hotelSpecs, parking: { available: 'paid' } } }), 400);
+  const early = (await ok(partner.call('POST', '/vendor/listings', earlyInput), 201)).data;
+  assert.deepEqual([early.address.area, early.hotelSpecs.parking.price, early.hotelSpecs.breakfast.price, early.hotelSpecs.licenceNumber], ['Passu', 200, 600, 'GBTD-123'], 'address parts, parking, breakfast and licence are stored');
+  assert.equal((await ok(partner.call('GET', '/vendor/listing-drafts/hotel'))).data, null, 'creating the listing clears the saved draft');
+  await ok(partner.call('POST', `/vendor/listings/${early.id}/rooms`, {
+    name: 'Standard Double Room', roomType: 'double', beds: [{ kind: 'double', count: 1 }], bathroom: 'private', maxAdults: 2, maxChildren: 0, totalRooms: 1, basePrice: 8_000, amenities: [],
+  }), 201);
+  await ok(partner.call('POST', `/vendor/listings/${early.id}/submit`));
+  await fails(admin.call('POST', `/admin/listings/${early.id}/decision`, { decision: 'published', notes: 'Looks good' }), 409, 'VENDOR_APPROVAL_REQUIRED');
   const queue = (await ok(admin.call('GET', '/admin/vendors?status=submitted'))).data;
   const queued = queue.find((item: any) => item.id === vendor.id);
   assert.ok(queued, 'submitted partner is in the admin queue');
@@ -112,8 +151,9 @@ try {
   assert.notEqual(document.status, 404, 'admin can open the identity document');
   await fails(guest.call('POST', `/admin/vendors/${vendor.id}/decision`, { decision: 'approved', notes: 'Looks good' }), 403);
   await ok(admin.call('POST', `/admin/vendors/${vendor.id}/decision`, { decision: 'approved', notes: 'Documents checked' }));
+  await ok(admin.call('POST', `/admin/listings/${early.id}/decision`, { decision: 'published', notes: 'Looks good' }));
   await partner.login();
-  step('partner registers with CNIC, uploads documents, CNIC pre-check runs, admin approves');
+  step('partner drafts, submits a listing with the application, CNIC pre-check runs, admin approves the partner and then the listing');
 
   // 2. Listing creation and review
   const listing = (await ok(partner.call('POST', '/vendor/listings', {
@@ -124,6 +164,16 @@ try {
   const room = (await ok(partner.call('POST', `/vendor/listings/${listing.id}/rooms`, {
     name: 'Deluxe Double', bedType: 'Double', maxAdults: 2, maxChildren: 1, totalRooms: 1, basePrice: 10_000, amenities: [],
   }), 201)).data;
+  // Property types come from a fixed list per kind; rooms describe beds and bathroom, and the bed line is built from them.
+  const hotelSpecs = { hotelType: 'Apartment', amenities: ['WiFi'], facilities: [], policies: [], checkInTime: '14:00', checkOutTime: '12:00' };
+  await fails(partner.call('PATCH', `/vendor/listings/${listing.id}`, { hotelSpecs }), 422, 'PROPERTY_TYPE_INVALID');
+  await ok(partner.call('PATCH', `/vendor/listings/${listing.id}`, { hotelSpecs: { ...hotelSpecs, hotelType: 'Guest House' } }));
+  await fails(partner.call('POST', `/vendor/listings/${listing.id}/rooms`, { name: 'No beds', maxAdults: 2, maxChildren: 0, totalRooms: 1, basePrice: 12_000, amenities: [] }), 422, 'BEDS_REQUIRED');
+  const twin = (await ok(partner.call('POST', `/vendor/listings/${listing.id}/rooms`, {
+    name: 'Standard Twin Room', roomType: 'twin', beds: [{ kind: 'single', count: 2 }], bathroom: 'shared', bathroomItems: ['Toilet', 'Shower'], sizeSqm: 16,
+    maxAdults: 2, maxChildren: 0, totalRooms: 2, basePrice: 12_000, amenities: [],
+  }), 201)).data;
+  assert.deepEqual([twin.bedType, twin.bathroom, twin.sizeSqm], ['2 single beds', 'shared', 16]);
   await fails(partner.call('POST', `/vendor/listings/${listing.id}/submit`), 400, 'LISTING_INCOMPLETE');
   await ok(partner.call('PATCH', `/vendor/listings/${listing.id}`, { stayInfo: {
     childrenAllowed: true, petsAllowed: false, smokingAllowed: false, paymentMethods: ['cash'], hotWater: 'always', roadAccess: 'car', openMonths: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
@@ -140,11 +190,15 @@ try {
   await ok(guest.call('GET', `/listings/${listing.id}`));
   const revisions = (await ok(admin.call('GET', '/admin/listings?status=revisions'))).data;
   assert.ok(revisions.some((item: any) => item.id === listing.id), 'edit waits as a revision');
+  const reBedded = (await ok(partner.call('PATCH', `/vendor/listings/${listing.id}/rooms/${twin.id}`, { beds: [{ kind: 'double', count: 1 }] }))).data;
+  assert.deepEqual([reBedded.bedType, reBedded.pendingRevision.changes.bedType], ['2 single beds', '1 double bed'], 'new beds wait for review with their bed line');
   await ok(admin.call('POST', `/admin/listings/${listing.id}/revision/decision`, { decision: 'approved', notes: 'Fine' }));
   step('live listing edit waits for review while the listing stays bookable');
 
   // 3. Pay on arrival: quote, book, replay, sold out, confirm, mark paid, admin cancel
   const quote = await ok(guest.call('GET', `/listings/${listing.id}/availability?checkIn=${day(30)}&checkOut=${day(32)}&adults=2`));
+  const twinQuote = quote.rooms.find((item: any) => item.id === twin.id);
+  assert.deepEqual([twinQuote.bedType, twinQuote.beds, twinQuote.bathroom, twinQuote.sizeSqm], ['1 double bed', [{ kind: 'double', count: 1 }], 'shared', 16], 'guests see the approved beds and bathroom');
   const stay = { listingId: listing.id, roomTypeId: room.id, checkIn: day(30), checkOut: day(32), rooms: 1, adults: 2, guest: { name: 'E2E Guest', email: guest.email, phone: '03007654321' } };
   await fails(guest.call('POST', '/bookings', { ...stay, expectedTotalMinor: 1 }), 409, 'PRICE_CHANGED');
   const key = { 'Idempotency-Key': `e2e-${randomUUID()}` };
@@ -226,6 +280,54 @@ try {
   const partnerCancelled = (await ok(partner.call('POST', `/vendor/bookings/${another.id}/actions`, { action: 'cancel', reason: 'Road closed' }))).data;
   assert.deepEqual(partnerCancelled.refund, { percent: 100, amount: 10_000 });
   step('guest return page confirms payment; partner cancel refunds in full');
+
+  // 8. Sign in with Google, then delete the account
+  const googleToken = (sub: string, email: string, aud = 'e2e-google-client') => ['e2e-google', sub, email, aud, ''.padEnd(100, '.')].join('|');
+  const googleEmail = `google-${randomUUID().slice(0, 8)}@e2e.test`;
+  await fails(client().call('POST', '/auth/google', { credential: googleToken('g-1', googleEmail, 'someone-elses-client') }), 401, 'GOOGLE_TOKEN_INVALID');
+  const googler = client();
+  const googleUser = (await ok(googler.call('POST', '/auth/google', { credential: googleToken('g-1', googleEmail) }))).user;
+  assert.deepEqual([googleUser.email, googleUser.roles, googleUser.emailVerified], [googleEmail, ['customer'], true]);
+  const again = client();
+  assert.equal((await ok(again.call('POST', '/auth/google', { credential: googleToken('g-1', googleEmail) }))).user.id, googleUser.id, 'same Google account signs in to the same user');
+  assert.equal((await ok(client().call('POST', '/auth/google', { credential: googleToken('g-guest', guest.email) }))).user.id, (await ok(guest.call('GET', '/auth/me'))).user.id, 'Google links to the existing account with that email');
+  await fails(client().call('POST', '/auth/google', { credential: googleToken('g-other', guest.email) }), 409, 'GOOGLE_ACCOUNT_MISMATCH');
+  step('Google sign-in creates, re-uses and links accounts; wrong audience and a second Google account are refused');
+
+  const { env } = await import('../config/env.js');
+  Object.assign(env, { RESEND_API_KEY: 'e2e', RESEND_SENDER_EMAIL: 'e2e@e2e.test' });
+  try {
+    await fails(partner.call('POST', '/auth/me/delete/request'), 409, 'ACCOUNT_DELETION_BLOCKED');
+    const upcoming = (await ok(googler.call('POST', '/bookings', { ...stay, checkIn: day(50), checkOut: day(51), guest: { ...stay.guest, email: googleEmail } }), 201)).data;
+    await fails(googler.call('POST', '/auth/me/delete/request'), 409, 'ACCOUNT_DELETION_BLOCKED');
+    await ok(googler.call('POST', `/bookings/${upcoming.id}/cancel`, { reason: 'Changed plans' }));
+    const { challengeId } = await ok(googler.call('POST', '/auth/me/delete/request'));
+    assert.match(lastEmailedCode, /^\d{6}$/);
+    await fails(googler.call('POST', '/auth/me/delete', { challengeId, code: lastEmailedCode === '000000' ? '111111' : '000000' }), 400, 'INVALID_OTP');
+    await ok(googler.call('POST', '/auth/me/delete', { challengeId, code: lastEmailedCode }), 204);
+  } finally {
+    Object.assign(env, { RESEND_API_KEY: undefined, RESEND_SENDER_EMAIL: undefined });
+  }
+  await fails(again.call('GET', '/auth/me'), 401);
+  const deleted = await UserModel.findOne({ publicId: googleUser.id }).lean() as any;
+  assert.deepEqual([deleted.status, deleted.name, deleted.googleId, deleted.email.endsWith('@deleted.invalid')], ['archived', 'Deleted user', undefined, true]);
+  assert.equal((await BookingModel.findOne({ customerId: deleted._id }).lean() as any).guest.email, googleEmail, 'booking keeps its guest snapshot');
+  assert.notEqual((await ok(client().call('POST', '/auth/google', { credential: googleToken('g-1', googleEmail) }))).user.id, googleUser.id, 'the email can sign up again as a new account');
+  step('account deletion: blocked for partners and upcoming stays, needs the emailed code, anonymises and signs out everywhere');
+
+  // 9. Rate limits are counted in the database, shared by every server instance
+  const { MongoRateLimitStore } = await import('../shared/rate-limit-store.js');
+  const [serverA, serverB] = [new MongoRateLimitStore('e2e:'), new MongoRateLimitStore('e2e:')];
+  for (const store of [serverA, serverB]) store.init({ windowMs: 1_000 } as any);
+  assert.equal((await serverA.increment('ip')).totalHits, 1);
+  assert.equal((await serverB.increment('ip')).totalHits, 2, 'two servers share one count');
+  await Promise.all(Array.from({ length: 5 }, () => serverA.increment('race')));
+  assert.equal((await serverB.increment('race')).totalHits, 6, 'simultaneous first hits are all counted');
+  await new Promise((resolve) => setTimeout(resolve, 1_100));
+  assert.equal((await serverA.increment('ip')).totalHits, 1, 'a new window starts again at 1');
+  const counters = mongoose.connection.collection('ratelimits');
+  assert.ok(await counters.findOne({ _id: /^api:/ as any }) && await counters.findOne({ _id: /^auth:/ as any }), 'API and sign-in limiters use the shared store');
+  step('rate limits: one count across server instances, safe under concurrent hits, windows reset');
 
   console.log('\nEnd-to-end checks passed.');
 } finally {

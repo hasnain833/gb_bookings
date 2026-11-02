@@ -4,12 +4,24 @@ import { photoSchema } from './listing.model.js';
 
 const { Schema } = mongoose;
 
+const bedSchema = new Schema({ kind: { type: String, required: true }, count: { type: Number, required: true, min: 1, max: 20 } }, { _id: false });
+
 const hotelRoomTypeSchema = new Schema({
   publicId: { type: String, required: true, unique: true, immutable: true, default: () => `rom_${randomUUID()}` },
   listingId: { type: Schema.Types.ObjectId, ref: 'Listing', required: true, index: true },
   name: { type: String, required: true, trim: true, maxlength: 120 },
   description: { type: String, trim: true, maxlength: 2_000 },
+  // Short bed line shown to guests; built from `beds` / `bedrooms` when those are given (see src/shared/utils/rooms.ts).
   bedType: { type: String, required: true, trim: true, maxlength: 80 },
+  // Hotels and homestays: what the unit is, its beds and bathroom. Entire places use bedrooms / bathrooms / cots.
+  roomType: { type: String },
+  beds: { type: [bedSchema], default: undefined },
+  bedrooms: { type: [new Schema({ beds: { type: [bedSchema], default: [] } }, { _id: false })], default: undefined },
+  bathroom: { type: String, enum: ['private', 'shared'] },
+  bathroomItems: { type: [String], default: undefined },
+  bathrooms: { type: Number, min: 0, max: 20 },
+  sizeSqm: { type: Number, min: 1, max: 5_000 },
+  cots: Boolean,
   maxAdults: { type: Number, required: true, min: 1, max: 40 },
   maxChildren: { type: Number, required: true, min: 0, max: 20 },
   totalRooms: { type: Number, required: true, min: 1, max: 10_000 },

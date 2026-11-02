@@ -22,6 +22,8 @@ const userSchema = new Schema({
   },
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   passwordHash: { type: String, required: true, select: false },
+  // Google account id ("sub") once the user signs in with Google.
+  googleId: { type: String, unique: true, sparse: true },
   name: { type: String, required: true, trim: true, maxlength: 120 },
   phone: { type: String, trim: true, maxlength: 30 },
   roles: { type: [String], enum: userRoles, default: ['customer'], required: true },

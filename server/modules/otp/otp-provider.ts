@@ -7,7 +7,7 @@ export interface OtpDelivery {
   destination: string;
   recipientName?: string;
   code: string;
-  purpose: 'signup' | 'two_factor_login' | 'two_factor_setup' | 'email_verification' | 'phone_verification';
+  purpose: 'signup' | 'two_factor_login' | 'two_factor_setup' | 'email_verification' | 'phone_verification' | 'account_deletion';
   expiresInMinutes: number;
 }
 
@@ -35,7 +35,9 @@ export class ResendEmailOtpProvider implements OtpProvider {
         <div style="max-width:560px;margin:0 auto;padding:32px 16px">
           <h1 style="font-size:22px">GBBookings security code</h1>
           <p>Hello${name},</p>
-          <p>Use this one-time code to continue:</p>
+          <p>${delivery.purpose === 'account_deletion'
+            ? 'Use this one-time code to <strong>permanently delete your GBBookings account</strong>. If you did not ask for this, change your password.'
+            : 'Use this one-time code to continue:'}</p>
           <p style="font-size:32px;font-weight:700;letter-spacing:8px;color:#006f3c">${delivery.code}</p>
           <p>This code expires in ${delivery.expiresInMinutes} minutes. Never share it with anyone.</p>
         </div></body></html>`,

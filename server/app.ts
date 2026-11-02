@@ -13,7 +13,7 @@ import { healthRouter } from './modules/health/health.routes.js';
 import { mediaRouter } from './modules/media/media.routes.js';
 import { createListingRouter } from './modules/listings/listing.routes.js';
 import { adminVendorRouter, vendorRouter } from './modules/vendors/vendor.routes.js';
-import { adminListingRouter, vendorListingRouter } from './modules/vendor-listings/vendor-listing.routes.js';
+import { adminListingRouter, listingDraftRouter, vendorListingRouter } from './modules/vendor-listings/vendor-listing.routes.js';
 import { adminBookingRouter, availabilityHandlers, bookingRouter, paymentWebhookRouter, vendorBookingRouter } from './modules/bookings/booking.routes.js';
 import { adminUserRouter } from './modules/users/user-admin.routes.js';
 import { wishlistRouter } from './modules/wishlist/wishlist.routes.js';
@@ -24,32 +24,32 @@ import { adminReviewRouter, listingReviewHandlers, partnerReviewRouter } from '.
 import { partnerCouponRouter } from './modules/coupons/coupon.routes.js';
 import { AppError } from './shared/app-error.js';
 import { isAllowedOrigin } from './shared/origin.js';
+import { MongoRateLimitStore } from './shared/rate-limit-store.js';
 
 
 export function createApp(): Express {
   const app = express();
 
   if (env.VERCEL) {
-    // The /api/:path* rewrite forwards its catch-all parameter alongside the query.
-    // It is routing metadata, not an endpoint filter; strict schemas must not see it.
     app.use((request, _response, next) => {
       delete request.query.path;
       next();
     });
   }
 
-  if (env.TRUST_PROXY) app.set('trust proxy', 1);
+  if (env.TRUST_PROXY || env.VERCEL) app.set('trust proxy', 1);
   app.disable('x-powered-by');
   app.use(helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
-    // Vite injects an inline React Refresh preamble in development.
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
     contentSecurityPolicy: env.NODE_ENV === 'development' ? false : {
       directives: {
         'img-src': ["'self'", 'data:', 'blob:', 'https:'],
-        'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+        'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://accounts.google.com/gsi/style'],
         'font-src': ["'self'", 'data:', 'https://fonts.gstatic.com'],
-        // Keyless Google Maps embed on property pages.
-        'frame-src': ["'self'", 'https://www.google.com', 'https://maps.google.com'],
+        'script-src': ["'self'", 'https://accounts.google.com/gsi/client'],
+        'connect-src': ["'self'", 'https://accounts.google.com/gsi/', 'https://photon.komoot.io'],
+        'frame-src': ["'self'", 'https://www.google.com', 'https://maps.google.com', 'https://accounts.google.com/gsi/'],
       },
     },
   }));
@@ -74,6 +74,8 @@ export function createApp(): Express {
     limit: 120,
     standardHeaders: 'draft-8',
     legacyHeaders: false,
+    store: new MongoRateLimitStore('api:'),
+    passOnStoreError: true,
     skip: (request) => request.path.startsWith('/health'),
   }));
 
@@ -84,6 +86,7 @@ export function createApp(): Express {
   app.use('/api/v1/listings', createListingRouter());
   app.use('/api/v1/vendors', vendorRouter);
   app.use('/api/v1/admin/vendors', adminVendorRouter);
+  app.use('/api/v1/vendor/listing-drafts', listingDraftRouter);
   app.use('/api/v1/vendor/listings', vendorListingRouter);
   app.use('/api/v1/admin/listings', adminListingRouter);
   app.use('/api/v1/admin/users', adminUserRouter);

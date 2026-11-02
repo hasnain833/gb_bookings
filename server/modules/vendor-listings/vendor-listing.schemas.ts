@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { BATHROOM_ITEMS, BED_KINDS, BREAKFAST_KINDS, ROOM_TYPES, type BedKind, type RoomTypeKey } from '../../../src/shared/utils/rooms.js';
 
 const mediaId = z.string().regex(/^med_[0-9a-f-]{36}$/i, 'Invalid media identifier.');
 const cleanList = z.array(z.string().trim().min(1).max(100)).max(100).default([]);
@@ -115,6 +116,26 @@ const listingFields = z.object({
     policies: cleanList,
     checkInTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
     checkOutTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+    breakfast: z.object({
+      offered: z.boolean(),
+      included: z.boolean().default(false),
+      price: z.number().int().min(0).max(100_000).optional(),
+      kinds: z.array(z.enum(BREAKFAST_KINDS)).max(BREAKFAST_KINDS.length).optional(),
+    }).strict().refine((breakfast) => !breakfast.offered || breakfast.included || Boolean(breakfast.price), 'Set the breakfast price per person, or mark it included.').optional(),
+    parking: z.object({
+      available: z.enum(['none', 'free', 'paid']),
+      price: z.number().int().min(0).max(100_000).optional(),
+      onSite: z.boolean().optional(),
+      reservation: z.boolean().optional(),
+    }).strict().refine((parking) => parking.available !== 'paid' || Boolean(parking.price), 'Set the parking price per day.').optional(),
+    licenceNumber: z.string().trim().max(60).optional(),
+  }).strict().optional(),
+  address: z.object({
+    line1: z.string().trim().min(2).max(160),
+    area: z.string().trim().max(100).optional(),
+    city: z.string().trim().min(2).max(100),
+    region: z.string().trim().max(100).optional(),
+    postcode: z.string().trim().max(20).optional(),
   }).strict().optional(),
   carSpecs: carSpecsSchema.optional(),
   tourSpecs: tourSpecsSchema.optional(),
@@ -153,10 +174,27 @@ const seasons = z.array(z.object({
   .refine((list) => [...list].sort((a, b) => a.from.localeCompare(b.from)).every((season, index, sorted) => index === 0 || sorted[index - 1].to < season.from),
     { message: 'Seasons cannot overlap.' });
 
+const beds = z.array(z.object({ kind: z.enum(Object.keys(BED_KINDS) as [BedKind, ...BedKind[]]), count: z.number().int().min(1).max(20) }).strict()).min(1).max(10);
+
+/** Beds and bathroom of a hotel / homestay unit. `bedType` is built from `beds` / `bedrooms` when they are sent. */
+const roomLayout = {
+  roomType: z.enum(Object.keys(ROOM_TYPES) as [RoomTypeKey, ...RoomTypeKey[]]).optional(),
+  beds: beds.optional(),
+  // Entire places: the beds in each bedroom (a studio may list one "bedroom").
+  bedrooms: z.array(z.object({ beds }).strict()).min(1).max(20).optional(),
+  bathroom: z.enum(['private', 'shared']).optional(),
+  bathroomItems: z.array(z.enum(BATHROOM_ITEMS)).max(BATHROOM_ITEMS.length).optional(),
+  bathrooms: z.number().int().min(0).max(20).optional(),
+  sizeSqm: z.number().int().min(1).max(5_000).optional(),
+  cots: z.boolean().optional(),
+};
+
 export const roomTypeSchema = z.object({
   name: z.string().trim().min(2).max(120),
   description: z.string().trim().max(2_000).optional(),
-  bedType: z.string().trim().min(2).max(80),
+  // Free text for cars, tours and older rooms; optional when beds or bedrooms are given.
+  bedType: z.string().trim().min(2).max(80).optional(),
+  ...roomLayout,
   maxAdults: z.number().int().min(1).max(40),
   maxChildren: z.number().int().min(0).max(20),
   totalRooms: z.number().int().min(1).max(10_000),

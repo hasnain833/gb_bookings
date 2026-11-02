@@ -1,3 +1,4 @@
+import { roomLayoutOf } from '../../../src/shared/utils/rooms.js';
 import { createHash } from 'node:crypto';
 import type { ClientSession } from 'mongoose';
 import { env } from '../../config/env.js';
@@ -254,6 +255,7 @@ export async function getListingAvailability(
         name: room.name,
         description: room.description,
         bedType: room.bedType,
+        ...roomLayoutOf(room),
         maxAdults: room.maxAdults,
         maxChildren: room.maxChildren,
         amenities: room.amenities ?? [],

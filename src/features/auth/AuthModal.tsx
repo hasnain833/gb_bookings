@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { X, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useLanguage } from '../../app/LanguageContext';
 import { useBodyScrollLock } from '../../shared/utils/scrollLock';
@@ -13,6 +13,38 @@ interface AuthModalProps {
 
 const inputClass = 'mt-1 w-full h-11 px-3 rounded-lg border border-slate-300 text-sm text-slate-900 focus:border-[#006F3C] focus:ring-2 focus:ring-[#006F3C]/20 outline-none';
 const labelClass = 'block text-sm font-medium text-slate-700';
+
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
+
+let googleScript: Promise<void> | undefined;
+const loadGoogleScript = () => googleScript ??= new Promise<void>((resolve, reject) => {
+  const script = document.createElement('script');
+  script.src = 'https://accounts.google.com/gsi/client';
+  script.async = true;
+  script.onload = () => resolve();
+  script.onerror = () => { googleScript = undefined; reject(new Error('Google sign-in could not load.')); };
+  document.head.appendChild(script);
+});
+
+/** Google's own "Continue with Google" button; passes the signed ID token on. Renders nothing until a client ID is configured. */
+function GoogleButton({ onCredential }: { onCredential: (credential: string) => void }) {
+  const slot = useRef<HTMLDivElement>(null);
+  const latest = useRef(onCredential);
+  latest.current = onCredential;
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID) return;
+    let cancelled = false;
+    loadGoogleScript().then(() => {
+      const google = (window as any).google;
+      if (cancelled || !slot.current || !google?.accounts?.id) return;
+      google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: (response: { credential: string }) => latest.current(response.credential) });
+      google.accounts.id.renderButton(slot.current, { theme: 'outline', size: 'large', text: 'continue_with', shape: 'rectangular', width: Math.min(slot.current.offsetWidth || 320, 400) });
+    }).catch(() => undefined);
+    return () => { cancelled = true; };
+  }, []);
+  if (!GOOGLE_CLIENT_ID) return null;
+  return <div ref={slot} className="flex min-h-11 justify-center" />;
+}
 
 // Mounted only while open, so every open starts with a clean form.
 export default function AuthModal({ onClose, initialMode = 'signin', onSuccessLogin }: AuthModalProps) {
@@ -34,6 +66,8 @@ export default function AuthModal({ onClose, initialMode = 'signin', onSuccessLo
   const [notice, setNotice] = useState('');
   const [challengeId, setChallengeId] = useState('');
   const [otpCode, setOtpCode] = useState('');
+  // Set while a Google sign-in waits for its two-step code; "Resend code" signs in with it again.
+  const [googleCredential, setGoogleCredential] = useState('');
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => event.key === 'Escape' && onClose();
@@ -87,6 +121,13 @@ export default function AuthModal({ onClose, initialMode = 'signin', onSuccessLo
       else finish(response.user);
     });
   };
+
+  const handleGoogle = (credential: string) => run(async () => {
+    const response = await api.googleSignIn(credential, rememberMe);
+    if ('requiresTwoFactor' in response) {
+      setGoogleCredential(credential); setOtpPurpose('login'); setChallengeId(response.challengeId); setOtpCode(''); setResendAfter(Date.now() + 60_000);
+    } else finish(response.user);
+  });
 
   const handleOtpSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -151,7 +192,7 @@ export default function AuthModal({ onClose, initialMode = 'signin', onSuccessLo
 
         {challengeId ? (
           <form onSubmit={handleOtpSubmit} className="mt-5 space-y-4">
-            <p className="text-sm leading-6 text-slate-500">We sent a 6-digit code to <strong>{email.trim()}</strong>. {otpPurpose === 'signup' && 'Your account will be created after you verify this code.'}</p>
+            <p className="text-sm leading-6 text-slate-500">We sent a 6-digit code to <strong>{email.trim() || 'your email'}</strong>. {otpPurpose === 'signup' && 'Your account will be created after you verify this code.'}</p>
             <input
               aria-label="Security code"
               inputMode="numeric"
@@ -170,15 +211,21 @@ export default function AuthModal({ onClose, initialMode = 'signin', onSuccessLo
             <button type="button" disabled={isLoading || remainingSeconds > 0} onClick={() => run(async () => {
               const response = otpPurpose === 'signup'
                 ? await api.register({ name: fullName.trim(), email: email.trim().toLowerCase(), password, confirmPassword, acceptTerms: true })
-                : await api.login({ email: email.trim().toLowerCase(), password, rememberMe });
+                : googleCredential ? await api.googleSignIn(googleCredential, rememberMe)
+                  : await api.login({ email: email.trim().toLowerCase(), password, rememberMe });
               if ('challengeId' in response) { setChallengeId(response.challengeId); setOtpCode(''); setResendAfter(Date.now() + 60_000); setNotice('A new code is on its way. Check your spam folder too.'); }
               else finish(response.user);
             })} className="min-h-11 w-full text-sm font-semibold text-[#006F3C] disabled:text-slate-400">{remainingSeconds ? `Resend code in ${remainingSeconds}s` : 'Resend code'}</button>
-            <button type="button" disabled={isLoading} onClick={() => { setChallengeId(''); setOtpCode(''); setErrorMessage(''); setNotice(''); }} className="min-h-11 w-full text-sm font-medium text-slate-600 hover:text-slate-900">
+            <button type="button" disabled={isLoading} onClick={() => { setChallengeId(''); setOtpCode(''); setGoogleCredential(''); setErrorMessage(''); setNotice(''); }} className="min-h-11 w-full text-sm font-medium text-slate-600 hover:text-slate-900">
               Back
             </button>
           </form>
-        ) : (
+        ) : (<>
+          {GOOGLE_CLIENT_ID && <div className="mt-5 space-y-3">
+            <GoogleButton onCredential={handleGoogle} />
+            <p className="text-center text-xs text-slate-500">Continuing with Google means you agree to our <a href="/terms" target="_blank" rel="noreferrer" className="font-semibold text-[#006F3C] underline">Terms</a> and <a href="/privacy" target="_blank" rel="noreferrer" className="font-semibold text-[#006F3C] underline">Privacy Policy</a>.</p>
+            <div className="flex items-center gap-3 text-xs font-medium uppercase text-slate-400"><span className="h-px flex-1 bg-slate-200" />or with email<span className="h-px flex-1 bg-slate-200" /></div>
+          </div>}
           <form onSubmit={handleSubmit} className="mt-5 space-y-4">
             {!isSignIn && (
               <label className={labelClass}>
@@ -248,7 +295,7 @@ export default function AuthModal({ onClose, initialMode = 'signin', onSuccessLo
               <p className="text-xs text-center text-slate-500">By creating an account you agree to our Terms and Privacy Policy.</p>
             )}
           </form>
-        )}
+        </>)}
       </div>
     </div>
   );

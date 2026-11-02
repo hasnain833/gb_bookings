@@ -1,6 +1,11 @@
-import { useState } from 'react';
-import { LocateFixed, MapPin, Navigation } from 'lucide-react';
+import { lazy, Suspense, useEffect, useState } from 'react';
+import { LocateFixed, MapPin, Navigation, Search } from 'lucide-react';
 import type { LatLng } from '../api/api';
+import type { PropertyAddress } from '../utils/rooms';
+
+// Leaflet loads only on screens that show the pin map.
+const PinMap = lazy(() => import('./PinMap'));
+const inputClass = 'mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-[15px] font-normal outline-none focus:border-[#006F3C] focus:ring-2 focus:ring-[#006F3C]/15';
 
 const valid = (lat: number, lng: number) => Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
 const round = (value: number) => Math.round(value * 1e6) / 1e6;
@@ -76,8 +81,92 @@ export function LocationPinField({ value, onChange, location }: { value?: LatLng
         <span className="text-xs text-slate-500">Only use this while you are at the property.</span>
       </div>
       {error && <p role="alert" className="text-sm text-rose-700">{error}</p>}
-      {value ? <MapEmbed coordinates={value} location={location} title="your property" className="h-56" />
-        : <p className="flex items-start gap-2 rounded-lg bg-slate-50 p-3 text-xs text-slate-600"><MapPin className="mt-0.5 size-4 shrink-0" />Without a pin, guests see the map for the location text, which can be far off in villages.</p>}
+      <Suspense fallback={<div className="h-72 animate-pulse rounded-xl bg-slate-100" />}>
+        <PinMap value={value} onChange={(point) => { setText(`${point.lat}, ${point.lng}`); setError(''); onChange(point); }} />
+      </Suspense>
+      <p className="flex items-start gap-2 text-xs text-slate-600"><MapPin className="mt-0.5 size-4 shrink-0" />{value
+        ? 'Drag the pin to the exact entrance if it is a little off.'
+        : `Tap the map where ${location ? 'the property' : 'your property'} is. Without a pin, guests see the map for the address text, which can be far off in villages.`}</p>
+    </div>
+  );
+}
+
+type PhotonFeature = { geometry: { coordinates: [number, number] }; properties: Record<string, string | undefined> };
+
+/** A Photon (OpenStreetMap) result as our address parts. */
+function toAddress(p: PhotonFeature['properties']): PropertyAddress {
+  const street = [p.housenumber, p.street].filter(Boolean).join(' ');
+  return {
+    line1: street ? (p.name && p.name !== p.street ? `${p.name}, ${street}` : street) : p.name ?? '',
+    area: p.district ?? p.locality ?? p.suburb ?? '',
+    city: p.city ?? p.town ?? p.village ?? p.county ?? p.name ?? '',
+    region: p.state ?? '',
+    postcode: p.postcode ?? '',
+  };
+}
+
+/**
+ * Address search with suggestions (OpenStreetMap via Photon: free, no key; results nearer Gilgit-Baltistan first),
+ * then the address in parts for the partner to check. Picking a suggestion also sets the map pin.
+ */
+export function AddressFields({ value, onChange, onPin }: { value: PropertyAddress; onChange: (value: PropertyAddress) => void; onPin: (point: LatLng) => void }) {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<PhotonFeature[]>([]);
+  const [searching, setSearching] = useState(false);
+  useEffect(() => {
+    if (query.trim().length < 3) { setResults([]); return undefined; }
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      setSearching(true);
+      fetch(`https://photon.komoot.io/api/?${new URLSearchParams({ q: query.trim(), limit: '6', lang: 'en', lat: '35.92', lon: '74.31' })}`, { signal: controller.signal })
+        .then((response) => response.json()).then((data) => setResults(data.features ?? []))
+        .catch(() => undefined).finally(() => setSearching(false));
+    }, 350);
+    return () => { window.clearTimeout(timer); controller.abort(); };
+  }, [query]);
+  const pick = (feature: PhotonFeature) => {
+    onChange({ ...toAddress(feature.properties), region: feature.properties.state || value.region });
+    onPin({ lat: round(feature.geometry.coordinates[1]), lng: round(feature.geometry.coordinates[0]) });
+    setQuery(''); setResults([]);
+  };
+  const field = (key: keyof PropertyAddress, label: string, required = false, wide = false) => (
+    <label className={`block text-sm font-semibold text-slate-700 ${wide ? 'sm:col-span-2' : ''}`}>{label}{!required && <span className="font-normal text-slate-500"> (optional)</span>}
+      <input required={required} maxLength={key === 'postcode' ? 20 : 160} value={value[key] ?? ''} onChange={(event) => onChange({ ...value, [key]: event.target.value })} className={inputClass} />
+    </label>
+  );
+  return (
+    <div className="space-y-4">
+      <div className="relative">
+        <label className="block text-sm font-semibold text-slate-700">Find your address
+          <span className="relative mt-1.5 block">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Start typing: hotel name, village or road" aria-autocomplete="list" aria-controls="address-results"
+              className={`${inputClass} mt-0 pl-9`} />
+          </span>
+        </label>
+        {(results.length > 0 || searching) && (
+          <ul id="address-results" role="listbox" className="absolute z-20 mt-1 max-h-72 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
+            {searching && !results.length && <li className="p-3 text-sm text-slate-500">Searching…</li>}
+            {results.map((feature, index) => {
+              const p = feature.properties;
+              return <li key={index} role="option" aria-selected={false}>
+                <button type="button" onClick={() => pick(feature)} className="block min-h-11 w-full px-3 py-2 text-left text-sm hover:bg-emerald-50">
+                  <span className="font-semibold">{p.name ?? p.street}</span>
+                  <span className="block text-xs text-slate-500">{[p.street, p.district ?? p.locality, p.city ?? p.county, p.state, p.country].filter((part, at, all) => part && part !== p.name && all.indexOf(part) === at).join(', ')}</span>
+                </button>
+              </li>;
+            })}
+          </ul>
+        )}
+        <p className="mt-1 text-xs text-slate-500">Not found? Fill in the address below yourself. Search uses OpenStreetMap.</p>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        {field('line1', 'Street, building or village', true, true)}
+        {field('area', 'Area or neighbourhood')}
+        {field('city', 'Town or city', true)}
+        {field('region', 'Region / district')}
+        {field('postcode', 'Postcode')}
+      </div>
     </div>
   );
 }

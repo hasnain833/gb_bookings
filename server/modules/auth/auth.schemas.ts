@@ -63,3 +63,8 @@ export const disableTwoFactorSchema = z.object({
 export const sessionIdParamsSchema = z.object({
   id: z.string().regex(/^ses_[0-9a-f-]{36}$/i, 'Invalid session identifier.'),
 }).strict();
+
+export const googleSignInSchema = z.object({
+  credential: z.string().min(100).max(4_096),
+  rememberMe: z.boolean().default(false),
+}).strict();

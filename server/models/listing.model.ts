@@ -49,6 +49,11 @@ const listingSchema = new Schema({
   title: { type: String, required: true, trim: true, maxlength: 160 },
   slug: { type: String, trim: true, lowercase: true },
   location: { type: String, required: true, trim: true, maxlength: 240 },
+  // Hotels and homes: the address in parts; `location` is the one-line version shown and searched.
+  address: {
+    type: new Schema({ line1: String, area: String, city: String, region: String, postcode: String }, { _id: false }),
+    default: undefined,
+  },
   coordinates: { type: coordinatesSchema, default: undefined },
   // Policies and practical facts guests check before booking (hotels and homestays). See STAY_INFO in vendor-listing.schemas.
   stayInfo: {
@@ -97,6 +102,12 @@ const listingSchema = new Schema({
     hotelType: String,
     checkInTime: String,
     checkOutTime: String,
+    // Hotels: breakfast served at the property (homestays use homestaySpecs.meals). Price in PKR per person.
+    breakfast: { offered: Boolean, included: Boolean, price: Number, kinds: { type: [String], default: undefined } },
+    // Hotels and homes. Price in PKR per day.
+    parking: { available: { type: String, enum: ['none', 'free', 'paid'] }, price: Number, onSite: Boolean, reservation: Boolean },
+    // Registration with the tourism department, where the law asks for it.
+    licenceNumber: String,
   },
   homestaySpecs: {
     roomsAvailable: { type: Number, min: 0 },

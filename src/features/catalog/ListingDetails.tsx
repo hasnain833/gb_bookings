@@ -8,6 +8,7 @@ import RoomBookingPanel from '../booking/RoomBookingPanel';
 import CarBookingPanel from '../booking/CarBookingPanel';
 import TourBookingPanel from '../booking/TourBookingPanel';
 import { DRIVER_LABELS } from '../vendor/CarFields';
+import { extrasLines } from '../vendor/PropertyExtrasFields';
 import { MapEmbed } from '../../shared/components/MapPin';
 import { HEATING_LABELS, HOT_WATER_LABELS, NETWORK_LABELS, openSeason, PAYMENT_LABELS, POWER_LABELS, ROAD_LABELS } from '../../shared/utils/stayInfo';
 import type { CheckoutParams } from '../booking/CheckoutFlow';
@@ -130,6 +131,8 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout,
     stayPolicies.petsAllowed ? 'Pets allowed' : 'No pets',
     stayPolicies.smokingAllowed ? 'Smoking allowed' : 'No smoking indoors',
     `Pay on arrival: ${stayPolicies.paymentMethods.map((method) => PAYMENT_LABELS[method]).join(', ')}`,
+    ...extrasLines(listing.hotelSpecs ?? {}),
+    ...(listing.hotelSpecs?.licenceNumber ? [`Tourism registration: ${listing.hotelSpecs.licenceNumber}`] : []),
   ] : [];
   const essentials = stayPolicies ? [
     { icon: Zap, label: 'Power backup', value: stayPolicies.powerBackup.length ? stayPolicies.powerBackup.map((item) => POWER_LABELS[item]).join(', ') : 'No backup during power cuts' },
@@ -161,7 +164,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout,
       {/* Title row */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between" id="listing-details-header">
         <div className="space-y-1.5 min-w-0">
-          <span className="inline-block rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium capitalize text-[#006F3C]">{listing.type === 'homestay' ? `Homestay · ${entireHome ? 'Entire home' : 'Private rooms'}` : listing.type}</span>
+          <span className="inline-block rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium capitalize text-[#006F3C]">{listing.type === 'homestay' ? `${listing.hotelSpecs?.hotelType || 'Homestay'} · ${entireHome ? 'Entire place' : 'Private rooms'}` : listing.type === 'hotel' ? listing.hotelSpecs?.hotelType || 'Hotel' : listing.type}</span>
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-950 leading-tight wrap-break-word">{listing.title}</h1>
           <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-600">
             <span className="inline-flex items-center gap-1"><MapPin className="w-4 h-4 text-slate-400 shrink-0" /> {listing.location}</span>

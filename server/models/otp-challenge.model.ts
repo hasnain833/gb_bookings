@@ -14,7 +14,7 @@ const otpChallengeSchema = new Schema({
   userId: { type: Schema.Types.ObjectId, ref: 'User', index: true },
   purpose: {
     type: String,
-    enum: ['signup', 'two_factor_login', 'two_factor_setup', 'email_verification', 'phone_verification'],
+    enum: ['signup', 'two_factor_login', 'two_factor_setup', 'email_verification', 'phone_verification', 'account_deletion'],
     required: true,
     index: true,
   },

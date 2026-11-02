@@ -1,3 +1,4 @@
+import type { PropertyAddress, PropertyExtras, RoomLayout } from '../utils/rooms';
 import type {
   Booking,
   Listing,
@@ -72,7 +73,7 @@ async function request<T>(path: string, init: RequestInit = {}, allowRefresh = t
       const canRefresh = allowRefresh
         && response.status === 401
         && (hasKnownSession || path.endsWith('/auth/me'))
-        && !/\/auth\/(login(?:\/verify-otp)?|register(?:\/verify-otp)?|refresh|forgot-password|reset-password)$/.test(path);
+        && !/\/auth\/(login(?:\/verify-otp)?|register(?:\/verify-otp)?|google|refresh|forgot-password|reset-password)$/.test(path);
       if (canRefresh) {
         try {
           if (!refreshInFlight) {
@@ -123,6 +124,14 @@ export interface AuthUser {
 
 export interface AuthResponse {
   user: AuthUser;
+}
+
+/** Saved progress of the "Add a property" wizard. */
+export interface ListingDraft {
+  kind: 'hotel' | 'homestay';
+  step: number;
+  data: Record<string, unknown>;
+  updatedAt: string;
 }
 
 export interface TwoFactorChallengeResponse {
@@ -209,6 +218,7 @@ type ListingContent = Pick<VendorListing, 'title' | 'location' | 'description' |
 type RoomContent = Pick<VendorRoom, 'name' | 'description' | 'bedType' | 'maxAdults' | 'maxChildren' | 'amenities' | 'photos'>;
 
 export interface VendorListing {
+  address?: PropertyAddress;
   id: string;
   type: 'hotel' | 'homestay' | 'car' | 'tour';
   title: string;
@@ -226,7 +236,7 @@ export interface VendorListing {
   /** Present in admin listings. */
   vendorName?: string;
   updatedAt?: string;
-  hotelSpecs?: { hotelType: string; amenities: string[]; facilities: string[]; policies: string[]; checkInTime: string; checkOutTime: string };
+  hotelSpecs?: { hotelType: string; amenities: string[]; facilities: string[]; policies: string[]; checkInTime: string; checkOutTime: string } & PropertyExtras;
   homestaySpecs?: HomestaySpecs;
   carSpecs?: CarSpecs;
   tourSpecs?: TourSpecs;
@@ -243,7 +253,7 @@ export type TourSpecsInput = Required<Pick<TourSpecs, 'durationDays' | 'category
 export type CarSpecsInput = Omit<CarSpecs, 'withDriver' | 'make' | 'model' | 'year' | 'driverMode' | 'fuelIncluded' | 'oneWay' | 'features'>
   & Required<Pick<CarSpecs, 'make' | 'model' | 'year' | 'driverMode' | 'fuelIncluded' | 'oneWay' | 'features'>>;
 
-export interface VendorRoom {
+export interface VendorRoom extends RoomLayout {
   id: string;
   name: string;
   description?: string;
@@ -321,7 +331,7 @@ export interface ListingFilters {
   page?: number;
 }
 
-export interface RoomAvailability {
+export interface RoomAvailability extends RoomLayout {
   id: string;
   name: string;
   description?: string;
@@ -477,6 +487,21 @@ export const api = {
     });
   },
 
+  googleSignIn(credential: string, rememberMe: boolean) {
+    return request<AuthResponse | TwoFactorChallengeResponse>('/api/v1/auth/google', {
+      method: 'POST',
+      body: JSON.stringify({ credential, rememberMe }),
+    });
+  },
+
+  requestAccountDeletion() {
+    return request<{ challengeId: string; expiresInSeconds: number }>('/api/v1/auth/me/delete/request', { method: 'POST' });
+  },
+
+  deleteAccount(challengeId: string, code: string) {
+    return request<void>('/api/v1/auth/me/delete', { method: 'POST', body: JSON.stringify({ challengeId, code }) });
+  },
+
   verifyLoginOtp(challengeId: string, code: string) {
     return request<AuthResponse>('/api/v1/auth/login/verify-otp', {
       method: 'POST',
@@ -508,6 +533,18 @@ export const api = {
     return request<void>('/api/v1/auth/two-factor/disable', {
       method: 'POST', body: JSON.stringify({ password }),
     });
+  },
+
+  getListingDraft(kind: 'hotel' | 'homestay') {
+    return request<{ data: ListingDraft | null }>(`/api/v1/vendor/listing-drafts/${kind}`).then((result) => result.data);
+  },
+
+  saveListingDraft(kind: 'hotel' | 'homestay', step: number, data: Record<string, unknown>) {
+    return request<{ data: ListingDraft }>(`/api/v1/vendor/listing-drafts/${kind}`, { method: 'PUT', body: JSON.stringify({ step, data }) }).then((result) => result.data);
+  },
+
+  deleteListingDraft(kind: 'hotel' | 'homestay') {
+    return request<void>(`/api/v1/vendor/listing-drafts/${kind}`, { method: 'DELETE' });
   },
 
   createVendorApplication(input: {
@@ -572,6 +609,7 @@ export const api = {
     carSpecs?: CarSpecsInput;
     tourSpecs?: TourSpecsInput;
     departures?: string[];
+    address?: PropertyAddress;
     title: string;
     location: string;
     description: string;
@@ -579,12 +617,12 @@ export const api = {
     imageIds: string[];
     /** Same photos as imageIds, with order and captions. */
     photos?: PhotoInput[];
-    hotelSpecs?: { hotelType: string; amenities: string[]; facilities: string[]; policies: string[]; checkInTime: string; checkOutTime: string };
+    hotelSpecs?: { hotelType: string; amenities: string[]; facilities: string[]; policies: string[]; checkInTime: string; checkOutTime: string } & PropertyExtras;
   }) {
     return request<{ data: VendorListing }>('/api/v1/vendor/listings', { method: 'POST', body: JSON.stringify(input) });
   },
 
-  updateHotelListing(listingId: string, input: Partial<Pick<VendorListing, 'title' | 'location' | 'description' | 'hotelSpecs'>> & { homestaySpecs?: Omit<HomestaySpecsInput, 'stayType'>; carSpecs?: CarSpecsInput; tourSpecs?: TourSpecsInput; departures?: string[]; coordinates?: LatLng; stayInfo?: ListingStayInfoInput; imageIds?: string[]; photos?: PhotoInput[] }) {
+  updateHotelListing(listingId: string, input: Partial<Pick<VendorListing, 'title' | 'location' | 'description' | 'hotelSpecs'>> & { address?: PropertyAddress; homestaySpecs?: Omit<HomestaySpecsInput, 'stayType'>; carSpecs?: CarSpecsInput; tourSpecs?: TourSpecsInput; departures?: string[]; coordinates?: LatLng; stayInfo?: ListingStayInfoInput; imageIds?: string[]; photos?: PhotoInput[] }) {
     return request<{ data: VendorListing }>(`/api/v1/vendor/listings/${encodeURIComponent(listingId)}`, {
       method: 'PATCH', body: JSON.stringify(input),
     }).then((result) => result.data);

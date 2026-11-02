@@ -3,11 +3,16 @@ import { authenticate, authorizePermission } from '../../middleware/authenticate
 import { validate } from '../../middleware/validate.js';
 import { asyncHandler } from '../../shared/async-handler.js';
 import { sessionMetadata } from '../auth/auth.service.js';
+import { z } from 'zod';
 import {
   addRoomType,
+  assertListingAccess,
   archiveListing,
   archiveRoomType,
   createHotelListing,
+  deleteListingDraft,
+  getListingDraft,
+  saveListingDraft,
   getRoomCalendar,
   setRoomClosures,
   duplicateListing,
@@ -40,7 +45,10 @@ import {
 export const vendorListingRouter = Router();
 export const adminListingRouter = Router();
 
-vendorListingRouter.use(authenticate, authorizePermission('listing:manage:own'));
+vendorListingRouter.use(authenticate, asyncHandler(async (request, _response, next) => {
+  await assertListingAccess(request.auth!.userId);
+  next();
+}));
 
 vendorListingRouter.get('/', asyncHandler(async (request, response) => {
   response.json({ data: await listOwnListings(request.auth!.userId) });
@@ -120,4 +128,26 @@ adminListingRouter.post('/:id/decision', validate('params', listingParamsSchema)
 adminListingRouter.post('/:id/revision/decision', validate('params', listingParamsSchema), validate('body', revisionDecisionSchema), asyncHandler(async (request, response) => {
   const listing = await decideListingRevision(request.auth!.userId, request.params.id, request.body, sessionMetadata(request));
   response.json({ data: listing });
+}));
+
+/** "Add a property" wizard progress. Not behind listing:manage:own: applicants (still customers) may draft too. */
+export const listingDraftRouter = Router();
+const draftKindParams = z.object({ kind: z.enum(['hotel', 'homestay', 'car', 'tour']) }).strict();
+
+listingDraftRouter.use(authenticate);
+
+listingDraftRouter.get('/:kind', validate('params', draftKindParams), asyncHandler(async (request, response) => {
+  response.json({ data: await getListingDraft(request.auth!.userId, request.params.kind) });
+}));
+
+listingDraftRouter.put('/:kind', validate('params', draftKindParams), validate('body', z.object({
+  step: z.number().int().min(0).max(20),
+  data: z.record(z.string(), z.unknown()),
+}).strict()), asyncHandler(async (request, response) => {
+  response.json({ data: await saveListingDraft(request.auth!.userId, request.params.kind, request.body) });
+}));
+
+listingDraftRouter.delete('/:kind', validate('params', draftKindParams), asyncHandler(async (request, response) => {
+  await deleteListingDraft(request.auth!.userId, request.params.kind);
+  response.status(204).send();
 }));

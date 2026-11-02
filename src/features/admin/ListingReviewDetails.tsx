@@ -1,8 +1,11 @@
+import { extrasLines } from '../vendor/PropertyExtrasFields';
+import { describeBeds, roomFacts, type Bed } from '../../shared/utils/rooms';
 import { useEffect, useState } from 'react';
 import { api, mealLabel, type ListingPhoto, type MealOption, type VendorListing, type VendorRoom } from '../../shared/api/api';
 
 const mealText = (meal: MealOption) => `${mealLabel(meal.type)} ${meal.included ? 'included' : `PKR ${meal.price}`}`;
-const text = (value: unknown): string => Array.isArray(value) ? value.map((item) => item && typeof item === 'object' && 'type' in item ? mealText(item as MealOption) : String(item)).join(', ')
+const text = (value: unknown): string => Array.isArray(value) ? value.map((item) => item && typeof item === 'object' && 'type' in item ? mealText(item as MealOption) : item && typeof item === 'object' && 'kind' in item ? describeBeds([item as Bed]) : item && typeof item === 'object' && 'beds' in item ? `bedroom with ${describeBeds((item as { beds: Bed[] }).beds)}` : String(item)).join(', ')
+  : value && typeof value === 'object' ? Object.entries(value).map(([key, item]) => `${key}: ${text(item)}`).join(', ')
   : value == null || value === '' ? '—' : String(value);
 const mapLink = (lat: number, lng: number) => `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
 
@@ -50,7 +53,7 @@ export default function ListingReviewDetails({ listing }: { listing: VendorListi
       {changedRooms.map((room) => <div key={room.id} className="space-y-1 rounded-md bg-white p-2">
         <p className="text-xs font-semibold">{room.pendingRevision!.isNew ? `New room category: ${room.name}` : `Room: ${room.name}`}</p>
         {room.pendingRevision!.isNew
-          ? <><p className="text-xs text-slate-600">{room.totalRooms} rooms · {room.bedType} · {room.maxAdults} adults / {room.maxChildren} children · PKR {room.basePrice.toLocaleString()} per night</p>{room.photos.length > 0 && <Photos photos={room.photos} label="Room photo" />}</>
+          ? <><p className="text-xs text-slate-600">{room.totalRooms} rooms · {[room.bedType, ...roomFacts(room)].join(' · ')} · {room.maxAdults} adults / {room.maxChildren} children · PKR {room.basePrice.toLocaleString()} per night</p>{room.photos.length > 0 && <Photos photos={room.photos} label="Room photo" />}</>
           : <Changes before={room as unknown as Record<string, unknown>} after={room.pendingRevision!.changes as Record<string, unknown>} />}
       </div>)}
       {loading && <p className="text-xs text-slate-500">Loading room changes…</p>}
@@ -93,11 +96,11 @@ export default function ListingReviewDetails({ listing }: { listing: VendorListi
     <p className="text-xs text-slate-600"><span className="font-semibold">Map pin: </span>{listing.coordinates
       ? <a href={mapLink(listing.coordinates.lat, listing.coordinates.lng)} target="_blank" rel="noreferrer" className="font-semibold text-[#006F3C] underline">{listing.coordinates.lat}, {listing.coordinates.lng}</a>
       : 'not set'}</p>
-    {listing.hotelSpecs && <dl className="grid gap-2 text-xs text-slate-600"><div><dt className="font-semibold">Check-in / check-out</dt><dd>{listing.hotelSpecs.checkInTime} / {listing.hotelSpecs.checkOutTime}</dd></div>{(['amenities', 'facilities', 'policies'] as const).map((key) => <div key={key}><dt className="font-semibold capitalize">{key}</dt><dd>{listing.hotelSpecs?.[key].join(', ') || 'None provided'}</dd></div>)}</dl>}
+    {listing.hotelSpecs && <dl className="grid gap-2 text-xs text-slate-600"><div><dt className="font-semibold">Check-in / check-out</dt><dd>{listing.hotelSpecs.checkInTime} / {listing.hotelSpecs.checkOutTime}</dd></div>{(['amenities', 'facilities', 'policies'] as const).map((key) => <div key={key}><dt className="font-semibold capitalize">{key}</dt><dd>{listing.hotelSpecs?.[key].join(', ') || 'None provided'}</dd></div>)}{extrasLines(listing.hotelSpecs).length > 0 && <div><dt className="font-semibold">Breakfast & parking</dt><dd>{extrasLines(listing.hotelSpecs).join(" · ")}</dd></div>}{listing.hotelSpecs.licenceNumber && <div><dt className="font-semibold">Tourism registration</dt><dd>{listing.hotelSpecs.licenceNumber}</dd></div>}</dl>}
     <h3 className="text-sm font-semibold">{listing.type === 'car' ? 'Daily price and fleet count' : listing.type === 'tour' ? 'Adult price and seats per departure' : 'Room categories for approval'}</h3>
     {loading && <p role="status" className="text-xs text-slate-500">Loading rooms…</p>}
     {error && <div role="alert" className="text-xs text-rose-700">{error}<button type="button" onClick={() => setAttempt((value) => value + 1)} className="ml-2 min-h-11 underline">Try again</button></div>}
     {!loading && !error && rooms.length === 0 && <p className="text-xs text-slate-500">No room categories.</p>}
-    {!loading && !error && rooms.map((room) => <div key={room.id} className="rounded-lg border border-slate-200 bg-white p-3"><p className="text-sm font-semibold">{room.name}<span className="ml-2 text-xs font-normal capitalize text-slate-500">{room.status}</span></p><p className="mt-1 text-xs leading-5 text-slate-600">{listing.type === 'tour' ? `${room.totalRooms} seats per departure · PKR ${room.basePrice.toLocaleString()} per adult` : `${room.totalRooms} rooms · ${room.bedType} · ${room.maxAdults} adults / ${room.maxChildren} children · PKR ${room.basePrice.toLocaleString()} per night`}</p>{room.description && <p className="mt-1 text-xs text-slate-600">{room.description}</p>}{room.amenities.length > 0 && <p className="mt-1 text-xs text-slate-500">{room.amenities.join(', ')}</p>}{room.photos.length > 0 && <div className="mt-2"><Photos photos={room.photos} label="Room photo" /></div>}</div>)}
+    {!loading && !error && rooms.map((room) => <div key={room.id} className="rounded-lg border border-slate-200 bg-white p-3"><p className="text-sm font-semibold">{room.name}<span className="ml-2 text-xs font-normal capitalize text-slate-500">{room.status}</span></p><p className="mt-1 text-xs leading-5 text-slate-600">{listing.type === 'tour' ? `${room.totalRooms} seats per departure · PKR ${room.basePrice.toLocaleString()} per adult` : `${room.totalRooms} rooms · ${[room.bedType, ...roomFacts(room)].join(' · ')} · ${room.maxAdults} adults / ${room.maxChildren} children · PKR ${room.basePrice.toLocaleString()} per night`}</p>{room.description && <p className="mt-1 text-xs text-slate-600">{room.description}</p>}{room.amenities.length > 0 && <p className="mt-1 text-xs text-slate-500">{room.amenities.join(', ')}</p>}{room.photos.length > 0 && <div className="mt-2"><Photos photos={room.photos} label="Room photo" /></div>}</div>)}
   </div>;
 }

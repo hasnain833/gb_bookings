@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { KeyRound, LoaderCircle, LogOut, MonitorSmartphone, ShieldCheck } from 'lucide-react';
+import { KeyRound, LoaderCircle, LogOut, MonitorSmartphone, ShieldCheck, Trash2 } from 'lucide-react';
 import { api, type AuthSession, type AuthUser } from '../../shared/api/api';
 import { PASSWORD_PATTERN, PASSWORD_REQUIREMENTS } from '../../shared/utils/password';
 
@@ -30,6 +30,10 @@ export default function SecurityPanel() {
   const [busy, setBusy] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [deleteChallenge, setDeleteChallenge] = useState('');
+  const [deleteCode, setDeleteCode] = useState('');
+  // Partner and admin accounts are closed by support (the server enforces this too).
+  const customerOnly = (user?.roles ?? [user?.role ?? 'customer']).every((role) => role === 'customer');
 
   const load = async () => {
     setLoading(true);
@@ -156,6 +160,29 @@ export default function SecurityPanel() {
         </div>
         {sessions.length > SESSIONS_SHOWN && <button type="button" aria-expanded={showAllSessions} onClick={() => setShowAllSessions(!showAllSessions)} className="mt-2 min-h-11 text-sm font-bold text-[#006F3C] underline">
           {showAllSessions ? 'Show fewer' : `Show all ${sessions.length} devices`}</button>}
+      </section>
+
+      <section className="border-t border-rose-200 pt-6">
+        <div className="mb-4 flex items-center gap-3"><Trash2 className="size-5 text-rose-600" /><div><h3 className="font-bold text-slate-900">Delete account</h3><p className="text-xs leading-5 text-slate-500">Removes your name, email, phone, saved stays and sign-in for good. Past bookings stay with the property under the details you booked with. This cannot be undone.</p></div></div>
+        {!customerOnly ? <p className="text-sm text-slate-600">Partner and admin accounts are closed by GBBookings support. Email info@gbbookings.com.</p>
+          : deleteChallenge ? (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <label className="flex-1 text-xs font-semibold text-slate-600">Six-digit code from your email<input inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={deleteCode} onChange={(event) => setDeleteCode(event.target.value.replace(/\D/g, ''))} className="mt-1 min-h-11 w-full max-w-xs rounded-md border border-slate-300 px-3 font-mono text-lg" /></label>
+              <button type="button" disabled={busy} onClick={() => { setDeleteChallenge(''); setDeleteCode(''); }} className="min-h-11 rounded-md border border-slate-300 px-4 text-sm font-bold text-slate-700">Keep my account</button>
+              <button type="button" disabled={busy || deleteCode.length !== 6} onClick={async () => {
+                setBusy(true); setMessage('');
+                try { await api.deleteAccount(deleteChallenge, deleteCode); window.location.assign('/'); }
+                catch (reason) { setMessage(reason instanceof Error ? reason.message : 'Unable to delete the account.'); setBusy(false); }
+              }} className="min-h-11 rounded-md bg-rose-600 px-4 text-sm font-bold text-white disabled:opacity-50">Delete my account</button>
+            </div>
+          ) : (
+            <button type="button" disabled={busy} onClick={async () => {
+              setBusy(true); setMessage('');
+              try { setDeleteChallenge((await api.requestAccountDeletion()).challengeId); setMessage('We emailed you a code. Enter it below to delete your account.'); }
+              catch (reason) { setMessage(reason instanceof Error ? reason.message : 'Unable to start account deletion.'); }
+              finally { setBusy(false); }
+            }} className="min-h-11 rounded-md border border-rose-300 px-4 text-sm font-bold text-rose-700 disabled:opacity-50">Delete my account…</button>
+          )}
       </section>
     </div>
   );

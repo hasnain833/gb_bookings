@@ -34,6 +34,7 @@ function toPublicListing(record: ListingRecord): Listing {
     ...(latLng(record.coordinates) ? { coordinates: latLng(record.coordinates) } : {}),
     ...(record.stayInfo?.paymentMethods?.length ? { stayInfo: record.stayInfo } : {}),
     breakfastIncluded: (record.homestaySpecs?.meals ?? []).some((meal: any) => meal.type === 'breakfast' && meal.included)
+      || Boolean(record.hotelSpecs?.breakfast?.included)
       || (record.hotelSpecs?.amenities ?? []).some((item: string) => BREAKFAST_AMENITY.test(item)),
     ...(record.hotelSpecs ? { hotelSpecs: record.hotelSpecs } : {}),
     ...(record.homestaySpecs ? { homestaySpecs: record.homestaySpecs } : {}),
@@ -74,7 +75,7 @@ async function visibleFilter(type?: string) {
   } as Record<string, unknown>;
 }
 
-const CATEGORY_FIELD: Record<string, string> = { hotel: 'hotelSpecs.hotelType', car: 'carSpecs.category', tour: 'tourSpecs.category' };
+const CATEGORY_FIELD: Record<string, string> = { hotel: 'hotelSpecs.hotelType', homestay: 'hotelSpecs.hotelType', car: 'carSpecs.category', tour: 'tourSpecs.category' };
 
 export async function listPublishedListings(query: ListListingsQuery) {
   await requireDatabase();
@@ -107,6 +108,7 @@ export async function listPublishedListings(query: ListListingsQuery) {
     (filter.$and as unknown[]).push({ $or: [
       { 'homestaySpecs.meals': { $elemMatch: { type: 'breakfast', included: true } } },
       { 'hotelSpecs.amenities': BREAKFAST_AMENITY },
+      { 'hotelSpecs.breakfast.included': true },
     ] });
   }
   // Homestays created before stay types existed rent rooms.

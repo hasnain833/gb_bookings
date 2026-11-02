@@ -4,6 +4,7 @@ import { api, mealLabel, type ListingAvailability, type MealOption } from '../..
 import type { MealType, StayInfo } from '../../types';
 import { openSeason, PAYMENT_LABELS } from '../../shared/utils/stayInfo';
 import { formatDateForDisplay } from '../../shared/utils/date';
+import { roomFacts } from '../../shared/utils/rooms';
 import type { CheckoutParams } from './CheckoutFlow';
 
 interface RoomBookingPanelProps {
@@ -148,7 +149,7 @@ export default function RoomBookingPanel({ listingId, meals = [], entireHome = f
             <div className="min-w-0 flex-1">
               <span className="text-sm font-semibold text-slate-900 block">{room.name}</span>
               <span className="text-xs text-slate-500 block mt-0.5">
-                {room.bedType} · up to {room.maxAdults} adults{room.maxChildren ? `, ${room.maxChildren} child` : ''}
+                {[room.bedType, ...roomFacts(room)].join(' · ')} · up to {room.maxAdults} adults{room.maxChildren ? `, ${room.maxChildren} child` : ''}
               </span>
               <span className={`text-xs font-medium block mt-0.5 ${room.available ? 'text-emerald-600' : 'text-rose-600'}`}>
                 {room.available === 0 ? 'Sold out' : !room.bookable ? 'Does not fit your party' : `${room.available} left`}

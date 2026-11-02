@@ -3,6 +3,7 @@ import { ArrowRight, BadgeCheck, CalendarDays, Clock, CreditCard, LoaderCircle }
 import { api, ApiError, type VendorProfile } from '../../shared/api/api';
 import { formatDateForDisplay } from '../../shared/utils/date';
 import HotelRegistration, { businessTypeOf, type PartnerKind } from './HotelRegistration';
+import AddHotelWizard from '../vendor/AddHotelWizard';
 
 interface BecomePartnerProps {
   isLoggedIn: boolean;
@@ -47,6 +48,9 @@ export default function BecomePartner({ isLoggedIn, isPartner, onSignIn, onOpenD
   const [loading, setLoading] = useState(isLoggedIn);
   const [error, setError] = useState('');
   const [registering, setRegistering] = useState<PartnerKind | null>(null);
+  // Hotel and homestay applicants may build their first listing while the application is reviewed.
+  const [drafting, setDrafting] = useState<'hotel' | 'homestay' | null>(null);
+  const [notice, setNotice] = useState('');
   const [attempt, setAttempt] = useState(0);
   const [commission, setCommission] = useState<number | null>(null);
 
@@ -84,12 +88,29 @@ export default function BecomePartner({ isLoggedIn, isPartner, onSignIn, onOpenD
       onExit={() => setRegistering(null)} /></div>;
   }
 
-  const start = (kind: PartnerKind) => (isLoggedIn ? setRegistering(kind) : onSignIn());
+  // Hotels and homes: the listing comes first, step by step; a new partner's registration is its last step, and
+  // submitting it sends the listing for review together with the application.
+  if (drafting && isLoggedIn && (!vendor || vendor.status === 'draft' || vendor.status === 'submitted')) {
+    const closeFlow = (message = '') => { setDrafting(null); setNotice(message); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+    return <div className="px-4 pb-20 pt-2"><AddHotelWizard kind={drafting}
+      registration={vendor?.status === 'submitted' ? undefined : (onSubmitted) => <HotelRegistration embedded kind={drafting} vendor={vendor} emailVerified={emailVerified}
+        onVendorChange={(next) => { setVendor(next); if (next.status === 'submitted') onSubmitted(); }}
+        onEmailVerified={async () => { const verified = (await api.getCurrentUser()).user.emailVerified !== false; setEmailVerified(verified); return verified; }}
+        onExit={() => closeFlow()} />}
+      onExit={() => closeFlow()}
+      onDone={(listing) => closeFlow(`${listing.title} and your partner application were sent to GBBookings. We'll email you once they are checked, usually within a day.`)} /></div>;
+  }
+
+  const start = (kind: PartnerKind) => {
+    if (!isLoggedIn) return onSignIn();
+    const flow = (kind === 'hotel' || kind === 'homestay') && (!vendor || vendor.status === 'draft');
+    if (flow) setDrafting(kind); else setRegistering(kind);
+  };
 
   const card = 'rounded-2xl border border-slate-200 bg-white';
   return (
     <div className="pb-20">
-      <section className="overflow-hidden rounded-3xl bg-cover bg-[center_40%]" style={{ backgroundImage: `url(${HERO_PHOTO})` }}>
+      <section className="overflow-hidden rounded-3xl bg-cover bg-position-[center_40%]" style={{ backgroundImage: `url(${HERO_PHOTO})` }}>
         <div className="bg-[#09140e]/65 px-6 pb-28 pt-14 text-white sm:px-12 sm:pb-32 sm:pt-20">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-200">Partner with GBBookings</p>
           <h1 className="mt-4 max-w-3xl text-3xl font-extrabold leading-tight sm:text-5xl">Bring travellers to your hotel, homestay, cars or tours in Gilgit-Baltistan</h1>
@@ -102,17 +123,19 @@ export default function BecomePartner({ isLoggedIn, isPartner, onSignIn, onOpenD
       </section>
 
       <section id="partner-types" aria-label="What would you like to list?" className="relative -mt-16 space-y-4 px-3 sm:px-6">
+        {notice && <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">{notice}</p>}
         {error && <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error} <button type="button" onClick={() => setAttempt((value) => value + 1)} className="ml-2 font-semibold underline">Try again</button></div>}
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {TYPES.map((type) => (
             <article key={type.id} className={`${card} flex flex-col overflow-hidden shadow-sm`}>
-              <img src={type.image} alt={type.alt} loading="lazy" referrerPolicy="no-referrer" className="aspect-[4/3] w-full object-cover" />
+              <img src={type.image} alt={type.alt} loading="lazy" referrerPolicy="no-referrer" className="aspect-4/3 w-full object-cover" />
               <div className="flex flex-1 flex-col gap-2.5 p-5">
                 <h2 className="text-xl font-extrabold text-slate-950">{type.title}</h2>
                 <p className="text-sm leading-6 text-slate-600">{type.text}</p>
                 <p className="flex-1 text-xs leading-5 text-slate-600"><strong className="text-slate-900">You’ll need:</strong> {type.need}</p>
                 <div className="pt-2">
-                  <PartnerAction kind={type.id as PartnerKind} loading={loading} isLoggedIn={isLoggedIn} isPartner={isPartner} vendor={vendor} onStart={() => start(type.id as PartnerKind)} onOpenDashboard={onOpenDashboard} onSupport={onSupport} />
+                  <PartnerAction kind={type.id as PartnerKind} loading={loading} isLoggedIn={isLoggedIn} isPartner={isPartner} vendor={vendor} onStart={() => start(type.id as PartnerKind)} onOpenDashboard={onOpenDashboard} onSupport={onSupport}
+                    onDraft={type.id === 'hotel' || type.id === 'homestay' ? () => setDrafting(type.id as 'hotel' | 'homestay') : undefined} />
                 </div>
               </div>
             </article>
@@ -175,11 +198,11 @@ export default function BecomePartner({ isLoggedIn, isPartner, onSignIn, onOpenD
 
 const PARTNER_NAME: Record<string, string> = { hotel: 'a hotel business', homestay: 'a homestay host', vehicle: 'a car rental partner', tour_operator: 'a tour partner' };
 const LIST_WHAT: Record<PartnerKind, string> = { hotel: 'a hotel', homestay: 'a homestay', car: 'cars', tour: 'tours' };
-const REGISTER: Record<PartnerKind, string> = { hotel: 'Register your hotel', homestay: 'Register as a host', car: 'Register your cars', tour: 'Register your tours' };
+const REGISTER: Record<PartnerKind, string> = { hotel: 'List your property', homestay: 'List your home', car: 'Register your cars', tour: 'Register your tours' };
 
-function PartnerAction({ kind, loading, isLoggedIn, isPartner, vendor, onStart, onOpenDashboard, onSupport }: {
+function PartnerAction({ kind, loading, isLoggedIn, isPartner, vendor, onStart, onOpenDashboard, onSupport, onDraft }: {
   kind: PartnerKind; loading: boolean; isLoggedIn: boolean; isPartner: boolean; vendor: VendorProfile | null;
-  onStart: () => void; onOpenDashboard: () => void; onSupport: () => void;
+  onStart: () => void; onOpenDashboard: () => void; onSupport: () => void; onDraft?: () => void;
 }) {
   if (loading) return <LoaderCircle className="size-5 animate-spin text-[#006F3C]" aria-label="Loading your partner status" />;
   if (!isLoggedIn) return <button type="button" onClick={onStart} className={`${primaryButton} w-full`}>Sign in to register<ArrowRight className="size-4" /></button>;
@@ -189,7 +212,7 @@ function PartnerAction({ kind, loading, isLoggedIn, isPartner, vendor, onStart, 
   );
   if (isPartner || vendor?.status === 'approved') return <button type="button" onClick={onOpenDashboard} className={`${primaryButton} w-full`}>Open partner dashboard<ArrowRight className="size-4" /></button>;
   if (!vendor) return <button type="button" onClick={onStart} className={`${primaryButton} w-full`}>{REGISTER[kind]}<ArrowRight className="size-4" /></button>;
-  if (vendor.status === 'draft') return <button type="button" onClick={onStart} className={`${primaryButton} w-full`}>Continue registration<ArrowRight className="size-4" /></button>;
+  if (vendor.status === 'draft') return <button type="button" onClick={onStart} className={`${primaryButton} w-full`}>{kind === 'hotel' || kind === 'homestay' ? 'Continue your listing' : 'Continue registration'}<ArrowRight className="size-4" /></button>;
   if (vendor.status === 'rejected') return (
     <div className="space-y-3">
       <p className="rounded-lg bg-rose-50 p-3 text-xs leading-5 text-rose-800"><strong className="block">Changes requested</strong>{vendor.rejectionReason}</p>
@@ -197,7 +220,10 @@ function PartnerAction({ kind, loading, isLoggedIn, isPartner, vendor, onStart, 
     </div>
   );
   if (vendor.status === 'submitted') return (
-    <p className="flex items-start gap-2 rounded-lg bg-amber-50 p-3 text-xs leading-5 text-amber-900"><Clock className="mt-0.5 size-4 shrink-0" /><span><strong className="block">Application under review</strong>{vendor.submittedAt ? `Submitted ${formatDateForDisplay(vendor.submittedAt)}. ` : ''}Your partner dashboard opens here once it’s approved.</span></p>
+    <div className="space-y-3">
+      <p className="flex items-start gap-2 rounded-lg bg-amber-50 p-3 text-xs leading-5 text-amber-900"><Clock className="mt-0.5 size-4 shrink-0" /><span><strong className="block">Application under review</strong>{vendor.submittedAt ? `Submitted ${formatDateForDisplay(vendor.submittedAt)}. ` : ''}Your partner dashboard opens here once it’s approved.</span></p>
+      {onDraft && <button type="button" onClick={onDraft} className={`${primaryButton} w-full`}>Add your {LIST_WHAT[kind].replace(/^an? /, '')} while you wait<ArrowRight className="size-4" /></button>}
+    </div>
   );
   return (
     <p className="rounded-lg bg-rose-50 p-3 text-xs leading-5 text-rose-800"><strong className="block">Partner account {vendor.status}</strong>Please <button type="button" onClick={onSupport} className="font-semibold underline">contact support</button>.</p>

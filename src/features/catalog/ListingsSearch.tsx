@@ -1,3 +1,4 @@
+import { HOME_TYPES, HOTEL_TYPES } from '../../shared/utils/rooms';
 import { useEffect, useState } from 'react';
 import { MapPin, RefreshCw, Search, SlidersHorizontal } from 'lucide-react';
 import type { Listing, ListingType } from '../../types';
@@ -56,7 +57,8 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
   const priceLimit = useDebouncedValue(maxPrice);
   const cars = type === 'car';
   const tours = type === 'tour';
-  const [tourType, setTourType] = useState('');
+  const stays = type === 'hotel' || homestays;
+  const [category, setCategory] = useState('');
   const supportsDates = type === 'hotel' || type === 'homestay' || cars;
   // Car rentals may start and end on the same day (the return date is a rented day).
   const datesValid = supportsDates && Boolean(checkIn && checkOut && (cars ? checkOut >= checkIn : checkOut > checkIn));
@@ -70,7 +72,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
     sort: SORT_PARAM[sortBy],
     ...(datesValid ? { checkIn, checkOut, guests: guests || undefined } : {}),
     ...tourDate,
-    ...(tours && tourType ? { category: tourType } : {}),
+    ...(category && (tours || stays) ? { category } : {}),
     amenities: facilities.trim() || undefined,
     ...(homestays ? { experience: experience || undefined, stayType: stayType || undefined } : {}),
     ...(supportsDates && !cars && breakfast ? { breakfast: 'true' as const } : {}),
@@ -78,7 +80,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
     ...(cars && driver ? { driver } : {}),
     limit: 24, page,
   });
-  useEffect(() => { setPage(1); }, [searchTerm, priceLimit, minimumRating, sortBy, checkIn, checkOut, guests, facilities, experience, stayType, breakfast, transmission, driver, tourType, type]);
+  useEffect(() => { setPage(1); }, [searchTerm, priceLimit, minimumRating, sortBy, checkIn, checkOut, guests, facilities, experience, stayType, breakfast, transmission, driver, category, type]);
   useEffect(() => { setExperience(initialFilters.extra.experience ?? ''); }, [initialFilters.extra.experience]);
 
   useEffect(() => {
@@ -97,7 +99,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
     setMinimumRating(0);
     setSortBy('recommended');
     setTransmission('all'); setDriver('');
-    setFacilities(''); setExperience(''); setStayType(''); setBreakfast(false); setTourType(''); setPage(1);
+    setFacilities(''); setExperience(''); setStayType(''); setBreakfast(false); setCategory(''); setPage(1);
   };
 
   return (
@@ -168,12 +170,12 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
               <p className="text-[11px] text-slate-500">{checkIn ? `Showing only tours starting that day with ${guests || 1} free seat${(guests || 1) > 1 ? 's' : ''}.` : 'Add a start date to see only tours with free seats.'}</p>
             </fieldset>
           )}
-          {tours && (
+          {(tours || stays) && (
             <label className="block space-y-2">
-              <span className="text-xs font-bold text-slate-600">Type of tour</span>
-              <select value={tourType} onChange={(event) => setTourType(event.target.value)} className="min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
+              <span className="text-xs font-bold text-slate-600">{tours ? 'Type of tour' : 'Type of property'}</span>
+              <select value={category} onChange={(event) => setCategory(event.target.value)} className="min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
                 <option value="">Any type</option>
-                {['Trekking', 'Sightseeing', 'Jeep safari', 'Cultural', 'Adventure', 'Day trip'].map((item) => <option key={item}>{item}</option>)}
+                {(tours ? ['Trekking', 'Sightseeing', 'Jeep safari', 'Cultural', 'Adventure', 'Day trip'] : homestays ? HOME_TYPES : HOTEL_TYPES).map((item) => <option key={item}>{item}</option>)}
               </select>
             </label>
           )}

@@ -4,6 +4,7 @@ import { authenticate } from '../../middleware/authenticate.js';
 import { validate } from '../../middleware/validate.js';
 import { AppError } from '../../shared/app-error.js';
 import { asyncHandler } from '../../shared/async-handler.js';
+import { MongoRateLimitStore } from '../../shared/rate-limit-store.js';
 import {
   requestPasswordReset,
   resetPassword,
@@ -16,6 +17,7 @@ import {
   changePasswordSchema,
   disableTwoFactorSchema,
   forgotPasswordSchema,
+  googleSignInSchema,
   loginSchema,
   registerSchema,
   resetPasswordSchema,
@@ -42,6 +44,9 @@ import {
   revokeUserSession,
   sessionMetadata,
   updateUserProfile,
+  googleSignIn,
+  requestAccountDeletion,
+  deleteAccount,
 } from './auth.service.js';
 import { REFRESH_COOKIE } from './auth.tokens.js';
 
@@ -52,6 +57,8 @@ export const authenticationLimiter = rateLimit({
   limit: 20,
   standardHeaders: 'draft-8',
   legacyHeaders: false,
+  store: new MongoRateLimitStore('auth:'),
+  passOnStoreError: true,
   message: {
     error: { code: 'AUTH_RATE_LIMITED', message: 'Too many authentication attempts. Please try again later.' },
   },
@@ -87,6 +94,16 @@ authRouter.post('/login', authenticationLimiter, validate('body', loginSchema), 
     result.session.refreshExpiresAt,
     result.session.rememberMe,
   );
+  response.json({ user: result.user });
+}));
+
+authRouter.post('/google', authenticationLimiter, validate('body', googleSignInSchema), asyncHandler(async (request, response) => {
+  const result = await googleSignIn(request.body.credential, request.body.rememberMe, sessionMetadata(request), request.cookies?.[TRUSTED_DEVICE_COOKIE]);
+  if (result.requiresTwoFactor) {
+    response.status(202).json(result);
+    return;
+  }
+  setAuthCookies(response, result.session.accessToken, result.session.refreshToken, result.session.refreshExpiresAt, result.session.rememberMe);
   response.json({ user: result.user });
 }));
 
@@ -143,6 +160,17 @@ authRouter.get('/me', authenticate, asyncHandler(async (request, response) => {
 authRouter.patch('/me', authenticate, validate('body', updateProfileSchema), asyncHandler(async (request, response) => {
   const user = await updateUserProfile(request.auth!.userId, request.body);
   response.json({ user });
+}));
+
+authRouter.post('/me/delete/request', authenticationLimiter, authenticate, asyncHandler(async (request, response) => {
+  response.json(await requestAccountDeletion(request.auth!.userId, sessionMetadata(request)));
+}));
+
+authRouter.post('/me/delete', authenticationLimiter, authenticate, validate('body', verifyOtpSchema), asyncHandler(async (request, response) => {
+  await deleteAccount(request.auth!.userId, request.body.challengeId, request.body.code, sessionMetadata(request));
+  clearAuthCookies(response);
+  clearTrustedDeviceCookie(response);
+  response.status(204).send();
 }));
 
 authRouter.post('/change-password', authenticate, validate('body', changePasswordSchema), asyncHandler(async (request, response) => {

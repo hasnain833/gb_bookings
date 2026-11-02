@@ -48,9 +48,11 @@ type Step = 'email' | 'business' | 'documents' | 'review';
 const STEPS: Array<[Step, string]> = [['business', 'Business details'], ['documents', 'Documents'], ['review', 'Review & submit']];
 
 /** Partner application (hotel business or homestay host): details → verification documents → submit for admin review. */
-export default function HotelRegistration({ kind = 'hotel', vendor, emailVerified, onVendorChange, onEmailVerified, onExit }: {
+export default function HotelRegistration({ kind = 'hotel', vendor, emailVerified, onVendorChange, onEmailVerified, onExit, embedded = false }: {
   kind?: PartnerKind; vendor: VendorProfile | null; emailVerified: boolean;
   onVendorChange: (vendor: VendorProfile) => void; onEmailVerified: () => Promise<boolean>; onExit: () => void;
+  /** Shown as the last step of the listing flow, which has its own heading and navigation. */
+  embedded?: boolean;
 }) {
   const [step, setStep] = useState<Step>(!emailVerified ? 'email' : vendor?.verificationDocuments?.length ? 'review' : vendor ? 'documents' : 'business');
   const [busy, setBusy] = useState(false);
@@ -107,13 +109,13 @@ export default function HotelRegistration({ kind = 'hotel', vendor, emailVerifie
   const submit = () => run(async () => { onVendorChange((await api.submitVendorApplication()).data); });
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <button type="button" onClick={onExit} className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-950"><ArrowLeft className="size-4" />All partner types</button>
-      <div>
+    <div className={embedded ? 'space-y-6' : 'mx-auto max-w-3xl space-y-6'}>
+      {!embedded && <button type="button" onClick={onExit} className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-950"><ArrowLeft className="size-4" />All partner types</button>}
+      {!embedded && <div>
         <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#006F3C]">{homestay ? 'Homestay host registration' : car ? 'Car rental partner registration' : tour ? 'Tour partner registration' : 'Hotel partner registration'}</p>
         <h1 className="mt-2 text-2xl font-bold text-slate-950 sm:text-3xl">{homestay ? 'Register as a homestay host' : car ? 'Rent out your cars' : tour ? 'Sell your tours' : 'Register your hotel business'}</h1>
         <p className="mt-2 text-sm leading-6 text-slate-600">Your progress is saved after each step. {homestay ? 'Once our team verifies you, you can add your home and its rooms.' : car ? 'Once our team verifies you, you can add your cars.' : tour ? 'Once our team verifies you, you can add your tours.' : 'Once our team approves the business, you can add your hotels and rooms.'}</p>
-      </div>
+      </div>}
 
       {step !== 'email' && <ol className="grid grid-cols-3 gap-2" aria-label="Registration progress">
         {STEPS.map(([id, text], index) => {

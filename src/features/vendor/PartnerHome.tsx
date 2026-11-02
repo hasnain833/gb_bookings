@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AlertTriangle, LoaderCircle, Plus } from 'lucide-react';
-import { api, type VendorListing, type VendorReport } from '../../shared/api/api';
+import { api, type ListingDraft, type VendorListing, type VendorReport } from '../../shared/api/api';
 import type { Booking, Review } from '../../types';
 import { useReasonDialog } from '../../shared/components/ReasonDialog';
 import { LISTING_STATUS } from './HotelWorkspace';
@@ -45,6 +45,13 @@ export default function PartnerHome({ kind, listings, access, userName, onTab, o
   const today = pkDate(new Date());
   const in14 = pkDate(new Date(Date.now() + 13 * 86_400_000));
   const reports = canOpen(access, 'reports');
+  // An "Add a property" wizard left part-way (hotels and homestays only).
+  const [draft, setDraft] = useState<ListingDraft | null>(null);
+  useEffect(() => {
+    if ((kind !== 'hotel' && kind !== 'homestay') || !canOpen(access, 'new-property')) return;
+    api.getListingDraft(kind).then(setDraft).catch(() => undefined);
+  }, [kind, access]);
+  const draftTitle = (draft?.data.hotel as { title?: string } | undefined)?.title;
 
   useEffect(() => {
     let active = true;
@@ -116,6 +123,12 @@ export default function PartnerHome({ kind, listings, access, userName, onTab, o
         {canOpen(access, 'new-property') && <button type="button" onClick={() => onTab('new-property')} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#006F3C] px-4 text-sm font-bold text-white hover:bg-[#005c32]"><Plus className="size-4" />Add {words.one}</button>}
       </div>
 
+      {draft && <div className="flex flex-wrap items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+        <Plus className="size-5 shrink-0" />
+        <span className="flex-[1_1_300px]">You have an unfinished {words.one}{draftTitle ? <>: <strong>{draftTitle}</strong></> : ''}. It was saved {new Date(draft.updatedAt).toLocaleDateString()}.</span>
+        <button type="button" onClick={() => onTab('new-property')} className="min-h-10 font-bold underline">Continue</button>
+      </div>}
+
       {missingPolicies.map((listing) => <div key={listing.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-[#F5D9A8] bg-[#FFF8EB] px-4 py-3 text-sm text-[#6B4300]">
         <AlertTriangle className="size-5 shrink-0 text-[#B45309]" />
         <span className="flex-[1_1_300px]"><strong>{listing.title}</strong> has no policies or mountain essentials yet. Guests see less, so you get fewer bookings.</span>
@@ -158,7 +171,7 @@ export default function PartnerHome({ kind, listings, access, userName, onTab, o
                     <p className="font-bold">{booking.customerName} <span className="font-medium text-[#5B6B61]">· {booking.reference}</span></p>
                     <p className="text-[13px] text-[#5B6B61]">{what}</p>
                   </div>
-                  <div className="min-w-[110px] text-right">
+                  <div className="min-w-27.5 text-right">
                     <p className="font-extrabold">PKR {booking.totalPrice.toLocaleString()}</p>
                     <p className={`text-xs font-bold ${left.tone}`}>{left.text}</p>
                   </div>
@@ -184,7 +197,7 @@ export default function PartnerHome({ kind, listings, access, userName, onTab, o
           </div>
 
           <aside className="flex flex-[1_1_300px] flex-col gap-4">
-            {reports && <section className="rounded-2xl bg-[#003D21] p-5 text-white">
+            {reports && <section className="rounded-2xl bg-forest-900 p-5 text-white">
               <p className="text-sm font-semibold text-[#B5D5C1]">Next 14 days</p>
               <p className="mt-1 text-3xl font-extrabold">{percent(data.ahead)}% booked</p>
               <div className="mt-3 h-2 rounded-full bg-[#1F5A3B]"><div className="h-2 rounded-full bg-[#7FD3A2]" style={{ width: `${percent(data.ahead)}%` }} /></div>

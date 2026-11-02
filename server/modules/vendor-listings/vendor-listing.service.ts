@@ -2,6 +2,8 @@ import { connectDatabase } from "../../database/connection.js";
 import { inTransaction } from "../../database/transaction.js";
 import { HotelRoomTypeModel } from "../../models/hotel-room-type.model.js";
 import { ListingModel, latLng } from "../../models/listing.model.js";
+import { ListingDraftModel } from "../../models/listing-draft.model.js";
+import { bedSummary, HOME_TYPES, HOTEL_TYPES, roomLayoutOf } from "../../../src/shared/utils/rooms.js";
 import { MediaModel } from "../../models/media.model.js";
 import { VendorMemberModel } from "../../models/vendor-member.model.js";
 import { VendorModel } from "../../models/vendor.model.js";
@@ -63,6 +65,7 @@ function listingView(listing: any) {
     type: listing.type,
     title: listing.title,
     location: listing.location,
+    address: listing.address,
     description: listing.description,
     price: listing.price,
     currency: listing.currency,
@@ -195,6 +198,14 @@ function assertEntireHome(
     );
 }
 
+/** Hotels and homestays choose their property type from a fixed list; an older listing may keep the value it has. */
+function assertPropertyType(type: string, hotelType: string | undefined, current?: string) {
+  if (!hotelType || hotelType === current || (type !== "hotel" && type !== "homestay")) return;
+  const allowed: readonly string[] = type === "homestay" ? HOME_TYPES : HOTEL_TYPES;
+  if (!allowed.includes(hotelType))
+    throw new AppError(422, "PROPERTY_TYPE_INVALID", `Choose one of these property types: ${allowed.join(", ")}.`);
+}
+
 function roomView(room: any) {
   const revision = room.pendingRevision;
   const { photos, ...changes } = revision?.changes ?? {};
@@ -203,6 +214,7 @@ function roomView(room: any) {
     name: room.name,
     description: room.description,
     bedType: room.bedType,
+    ...roomLayoutOf(room),
     maxAdults: room.maxAdults,
     maxChildren: room.maxChildren,
     totalRooms: room.totalRooms,
@@ -226,6 +238,10 @@ function roomView(room: any) {
   };
 }
 
+/**
+ * The business whose listings this user manages. An applicant whose application is submitted may already create and
+ * submit listings (they arrive with the application); publishing still waits for the partner's approval (moderateListing).
+ */
 async function approvedVendor(userId: string) {
   await requireDatabase();
   const membership = await VendorMemberModel.findOne({
@@ -242,16 +258,21 @@ async function approvedVendor(userId: string) {
   }
   const vendor = await VendorModel.findOne({
     _id: membership.vendorId,
-    status: "approved",
+    status: { $in: ["submitted", "approved"] },
     deletedAt: null,
   });
   if (!vendor)
     throw new AppError(
       403,
       "VENDOR_APPROVAL_REQUIRED",
-      "The vendor must be approved before managing listings.",
+      "Submit your partner application before adding listings.",
     );
   return vendor;
+}
+
+/** Route guard for /vendor/listings: replaces the partner-role check, so applicants with a submitted application get in. */
+export async function assertListingAccess(userId: string) {
+  await approvedVendor(userId);
 }
 
 async function ownedListing(userId: string, listingId: string) {
@@ -328,6 +349,11 @@ function setListingPhotos(listing: any, photos: any[]) {
 }
 
 // What guests read. Edits to these on a live listing (or its rooms) wait for review; everything else applies at once.
+// Nested sub-documents as plain data (undefined when unset or empty), so revisions compare by value.
+const plainValue = (value: any) => {
+  const plain = value?.toObject?.() ?? value;
+  return plain && Object.values(plain).some((item) => item !== undefined) ? JSON.parse(JSON.stringify(plain)) : undefined;
+};
 const listingContent = (listing: any) => ({
   title: listing.title,
   location: listing.location,
@@ -339,7 +365,11 @@ const listingContent = (listing: any) => ({
     policies: [...(listing.hotelSpecs.policies ?? [])],
     checkInTime: listing.hotelSpecs.checkInTime,
     checkOutTime: listing.hotelSpecs.checkOutTime,
+    breakfast: plainValue(listing.hotelSpecs.breakfast),
+    parking: plainValue(listing.hotelSpecs.parking),
+    licenceNumber: listing.hotelSpecs.licenceNumber,
   },
+  address: plainValue(listing.address),
   homestaySpecs:
     listing.type === "homestay" ? homestayContent(listing) : undefined,
   carSpecs: listing.type === "car" ? (listing.carSpecs?.toObject?.() ?? listing.carSpecs) : undefined,
@@ -352,6 +382,7 @@ const roomContent = (room: any) => ({
   name: room.name,
   description: room.description,
   bedType: room.bedType,
+  ...roomLayoutOf(room),
   maxAdults: room.maxAdults,
   maxChildren: room.maxChildren,
   amenities: [...(room.amenities ?? [])],
@@ -443,6 +474,7 @@ export async function createHotelListing(
 ) {
   const vendor = await approvedVendor(userId);
   assertListingTypeAllowed(vendor, input.type);
+  assertPropertyType(input.type, input.hotelSpecs?.hotelType);
   const photos = await resolvePhotos(
     userId,
     input.photos ?? input.imageIds.map((id: string) => ({ mediaId: id })),
@@ -453,6 +485,7 @@ export async function createHotelListing(
     type: input.type,
     title: input.title,
     location: input.location,
+    address: input.address,
     description: input.description,
     price: input.price,
     priceMinor: input.price * 100,
@@ -472,6 +505,8 @@ export async function createHotelListing(
       await resolveHomestayInput(userId, null, input.homestaySpecs),
     );
   await listing.save();
+  // The wizard's saved progress has become a real listing.
+  await ListingDraftModel.deleteOne({ userId, kind: listing.type });
   await recordAuditEvent({
     actorId: userId,
     actorType: "user",
@@ -497,6 +532,7 @@ export async function updateHotelListing(
       "LISTING_LOCKED",
       "Listings cannot be edited while under review.",
     );
+  assertPropertyType(listing.type, input.hotelSpecs?.hotelType, listing.hotelSpecs?.hotelType);
   const { price, imageIds, photos, departures, ...edits } = input;
   // Each listing type keeps its own spec block.
   if (listing.type === "car" || listing.type === "tour") delete edits.hotelSpecs;
@@ -579,9 +615,12 @@ export async function addRoomType(
     }),
   );
   const { basePrice, photos, weekendPrice, seasons, ...fields } = input;
+  const bedType = bedSummary(fields) ?? fields.bedType;
+  if (!bedType) throw new AppError(422, "BEDS_REQUIRED", "Add the beds in this room.");
   const room = await HotelRoomTypeModel.create({
     listingId: listing._id,
     ...fields,
+    bedType,
     basePriceMinor: basePrice * 100,
     ...priceRulesMinor({ weekendPrice, seasons }),
     photos: photos ? await resolvePhotos(userId, photos, []) : [],
@@ -682,6 +721,8 @@ export async function updateRoomType(
   const edits: Record<string, any> = {};
   for (const [key, value] of Object.entries(fields))
     (LIVE_ROOM_FIELDS.includes(key) ? update : edits)[key] = value;
+  // New beds rewrite the bed line guests see; it is reviewed with them on a live listing.
+  if (edits.beds || edits.bedrooms) edits.bedType = bedSummary(edits) ?? edits.bedType;
   if (update.basePrice !== undefined) {
     update.basePriceMinor = update.basePrice * 100;
     delete update.basePrice;
@@ -1373,4 +1414,42 @@ export async function decideListingRevision(
     });
   }
   return listingView(listing);
+}
+
+/**
+ * Listing drafts: the "Add a property" wizard saved on every step. Applicants may draft while their partner
+ * application is reviewed; creating the listing itself still needs an approved business (approvedVendor).
+ */
+async function draftOwner(userId: string, kind: string) {
+  await requireDatabase();
+  const membership = await VendorMemberModel.findOne({ userId, status: "active", deletedAt: null });
+  // Listing comes first: someone who has not applied yet may draft any kind; the application follows at the end.
+  if (!membership) return;
+  const vendor = canAccess(membership.role, "listings")
+    ? await VendorModel.findOne({ _id: membership.vendorId, status: { $in: ["draft", "submitted", "approved"] }, deletedAt: null })
+    : null;
+  if (!vendor)
+    throw new AppError(403, "VENDOR_ACCESS_REQUIRED", "Register as a partner before adding a property.");
+  assertListingTypeAllowed(vendor, kind);
+}
+
+const draftView = (draft: any) => draft && { kind: draft.kind, step: draft.step, data: draft.data, updatedAt: draft.updatedAt };
+
+export async function getListingDraft(userId: string, kind: string) {
+  await draftOwner(userId, kind);
+  return draftView(await ListingDraftModel.findOne({ userId, kind }).lean());
+}
+
+export async function saveListingDraft(userId: string, kind: string, input: { step: number; data: Record<string, unknown> }) {
+  await draftOwner(userId, kind);
+  return draftView(await ListingDraftModel.findOneAndUpdate(
+    { userId, kind },
+    { $set: { step: input.step, data: input.data } },
+    { upsert: true, returnDocument: "after", lean: true },
+  ));
+}
+
+export async function deleteListingDraft(userId: string, kind: string) {
+  await requireDatabase();
+  await ListingDraftModel.deleteOne({ userId, kind });
 }

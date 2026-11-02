@@ -1,3 +1,4 @@
+import type { PropertyExtras } from './shared/utils/rooms';
 export type ListingType = 'hotel' | 'car' | 'tour' | 'homestay' | 'destination' | 'offer';
 export type MealType = 'breakfast' | 'lunch' | 'dinner';
 
@@ -50,6 +51,9 @@ export interface Listing {
     policies?: string[];
     checkInTime?: string;
     checkOutTime?: string;
+    breakfast?: PropertyExtras["breakfast"];
+    parking?: PropertyExtras["parking"];
+    licenceNumber?: string;
   };
   homestaySpecs?: {
     roomsAvailable: number;
