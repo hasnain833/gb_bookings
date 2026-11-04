@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, BadgeCheck, CalendarDays, Clock, CreditCard, LoaderCircle } from 'lucide-react';
+import { toast } from '../../shared/components/Toaster';
+import { ArrowRight, BadgeCheck, CalendarDays, CheckCircle2, Clock, CreditCard, LoaderCircle } from 'lucide-react';
 import { api, ApiError, type VendorProfile } from '../../shared/api/api';
 import { formatDateForDisplay } from '../../shared/utils/date';
 import HotelRegistration, { businessTypeOf, type PartnerKind } from './HotelRegistration';
@@ -53,6 +54,7 @@ export default function BecomePartner({ isLoggedIn, isPartner, onSignIn, onOpenD
   const [notice, setNotice] = useState('');
   const [attempt, setAttempt] = useState(0);
   const [commission, setCommission] = useState<number | null>(null);
+  const [hasListing, setHasListing] = useState(false);
 
   useEffect(() => { api.getCommission().then(setCommission).catch(() => undefined); }, []);
 
@@ -69,6 +71,7 @@ export default function BecomePartner({ isLoggedIn, isPartner, onSignIn, onOpenD
     ]).then(([profile, verified]) => {
       if (!active) return;
       setVendor(profile); setEmailVerified(verified);
+      if (profile?.status === 'submitted') api.getVendorListings().then((listings) => { if (active) setHasListing(listings.length > 0); }).catch(() => undefined);
       // Approved since the account was loaded: refresh roles so the header shows the dashboard.
       if (profile?.status === 'approved' && !isPartner) onAccountChange();
     }).catch((reason) => active && setError(reason instanceof Error ? reason.message : 'Unable to load your partner status.'))
@@ -98,7 +101,7 @@ export default function BecomePartner({ isLoggedIn, isPartner, onSignIn, onOpenD
         onEmailVerified={async () => { const verified = (await api.getCurrentUser()).user.emailVerified !== false; setEmailVerified(verified); return verified; }}
         onExit={() => closeFlow()} />}
       onExit={() => closeFlow()}
-      onDone={(listing) => closeFlow(`${listing.title} and your partner application were sent to GBBookings. We'll email you once they are checked, usually within a day.`)} /></div>;
+      onDone={(listing) => { setHasListing(true); toast('Submitted for review. We\'ll email you once it\'s checked, usually within a day.'); closeFlow(`${listing.title} and your partner application were sent to GBBookings. We'll email you once they are checked, usually within a day.`); }} /></div>;
   }
 
   const start = (kind: PartnerKind) => {
@@ -134,7 +137,7 @@ export default function BecomePartner({ isLoggedIn, isPartner, onSignIn, onOpenD
                 <p className="text-sm leading-6 text-slate-600">{type.text}</p>
                 <p className="flex-1 text-xs leading-5 text-slate-600"><strong className="text-slate-900">You’ll need:</strong> {type.need}</p>
                 <div className="pt-2">
-                  <PartnerAction kind={type.id as PartnerKind} loading={loading} isLoggedIn={isLoggedIn} isPartner={isPartner} vendor={vendor} onStart={() => start(type.id as PartnerKind)} onOpenDashboard={onOpenDashboard} onSupport={onSupport}
+                  <PartnerAction kind={type.id as PartnerKind} loading={loading} isLoggedIn={isLoggedIn} isPartner={isPartner} vendor={vendor} listingSubmitted={hasListing} onStart={() => start(type.id as PartnerKind)} onOpenDashboard={onOpenDashboard} onSupport={onSupport}
                     onDraft={type.id === 'hotel' || type.id === 'homestay' ? () => setDrafting(type.id as 'hotel' | 'homestay') : undefined} />
                 </div>
               </div>
@@ -200,8 +203,8 @@ const PARTNER_NAME: Record<string, string> = { hotel: 'a hotel business', homest
 const LIST_WHAT: Record<PartnerKind, string> = { hotel: 'a hotel', homestay: 'a homestay', car: 'cars', tour: 'tours' };
 const REGISTER: Record<PartnerKind, string> = { hotel: 'List your property', homestay: 'List your home', car: 'Register your cars', tour: 'Register your tours' };
 
-function PartnerAction({ kind, loading, isLoggedIn, isPartner, vendor, onStart, onOpenDashboard, onSupport, onDraft }: {
-  kind: PartnerKind; loading: boolean; isLoggedIn: boolean; isPartner: boolean; vendor: VendorProfile | null;
+function PartnerAction({ kind, loading, isLoggedIn, isPartner, vendor, listingSubmitted, onStart, onOpenDashboard, onSupport, onDraft }: {
+  kind: PartnerKind; loading: boolean; isLoggedIn: boolean; isPartner: boolean; vendor: VendorProfile | null; listingSubmitted?: boolean;
   onStart: () => void; onOpenDashboard: () => void; onSupport: () => void; onDraft?: () => void;
 }) {
   if (loading) return <LoaderCircle className="size-5 animate-spin text-[#006F3C]" aria-label="Loading your partner status" />;
@@ -222,7 +225,8 @@ function PartnerAction({ kind, loading, isLoggedIn, isPartner, vendor, onStart, 
   if (vendor.status === 'submitted') return (
     <div className="space-y-3">
       <p className="flex items-start gap-2 rounded-lg bg-amber-50 p-3 text-xs leading-5 text-amber-900"><Clock className="mt-0.5 size-4 shrink-0" /><span><strong className="block">Application under review</strong>{vendor.submittedAt ? `Submitted ${formatDateForDisplay(vendor.submittedAt)}. ` : ''}Your partner dashboard opens here once it’s approved.</span></p>
-      {onDraft && <button type="button" onClick={onDraft} className={`${primaryButton} w-full`}>Add your {LIST_WHAT[kind].replace(/^an? /, '')} while you wait<ArrowRight className="size-4" /></button>}
+      {onDraft && !listingSubmitted && <button type="button" onClick={onDraft} className={`${primaryButton} w-full`}>Add your {LIST_WHAT[kind].replace(/^an? /, '')} while you wait<ArrowRight className="size-4" /></button>}
+      {listingSubmitted && <p className="flex items-start gap-2 rounded-lg bg-emerald-50 p-3 text-xs leading-5 text-emerald-900"><CheckCircle2 className="mt-0.5 size-4 shrink-0" /><span>Your {LIST_WHAT[kind].replace(/^an? /, '')} was sent with your application. There's nothing more to do for now. We'll email you once it's checked.</span></p>}
     </div>
   );
   return (

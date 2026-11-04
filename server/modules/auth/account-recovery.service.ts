@@ -154,6 +154,14 @@ export async function requestPasswordReset(email: string, metadata: SessionMetad
   return true;
 }
 
+export async function resetLinkOwner(rawToken: string) {
+  await requireDatabase();
+  const token = await AuthTokenModel.findOne({ tokenHash: hashToken(rawToken), type: 'password_reset', consumedAt: null, expiresAt: { $gt: new Date() } }).lean() as any;
+  const user = token && await UserModel.findOne({ _id: token.userId, status: 'active', deletedAt: null }).select('name email').lean() as any;
+  if (!user) throw new AppError(400, 'INVALID_OR_EXPIRED_TOKEN', 'This link is invalid or has expired.');
+  return { name: user.name, email: user.email };
+}
+
 export async function resetPassword(rawToken: string, newPassword: string, metadata: SessionMetadata & { requestId?: string }) {
   await requireDatabase();
   const token = await consumeActionToken(rawToken, 'password_reset');

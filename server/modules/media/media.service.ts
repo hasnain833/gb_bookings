@@ -24,6 +24,22 @@ function serializeMedia(media: any) {
   };
 }
 
+// Enough for several full listings a day; stops one account filling the Cloudinary plan.
+const UPLOADS_PER_DAY = { image: 100, document: 20 };
+const UPLOADS_STORED = { image: 1_000, document: 50 };
+
+export async function assertUploadAllowed(userId: string, kind: 'image' | 'document') {
+  await requireDependencies();
+  const mine = { ownerId: userId, resourceType: kind };
+  const [today, stored] = await Promise.all([
+    // Deleted files count today, so uploading and deleting in a loop is limited too.
+    MediaModel.countDocuments({ ...mine, createdAt: { $gte: new Date(Date.now() - 86_400_000) } }),
+    MediaModel.countDocuments({ ...mine, deletedAt: null }),
+  ]);
+  if (today >= UPLOADS_PER_DAY[kind]) throw new AppError(429, 'UPLOAD_LIMIT_REACHED', 'You have uploaded a lot of files today. Please try again tomorrow.');
+  if (stored >= UPLOADS_STORED[kind]) throw new AppError(429, 'UPLOAD_LIMIT_REACHED', 'You have reached the upload limit for this account. Delete some files, or contact GBBookings.');
+}
+
 export async function uploadOwnedMedia(
   userId: string,
   file: Express.Multer.File,

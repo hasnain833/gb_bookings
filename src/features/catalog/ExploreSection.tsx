@@ -4,6 +4,7 @@ import type { Listing, ListingType } from '../../types';
 import { handleImageError } from '../../types';
 import { api } from '../../shared/api/api';
 import FeaturedRow from './FeaturedRow';
+import DateInput from '../../shared/components/DateInput';
 
 interface ExploreSectionProps {
   setView: (view: string) => void;
@@ -64,7 +65,7 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
         <div className="relative flex flex-col justify-end min-h-[380px] px-4 pt-16 pb-8 sm:min-h-[420px] sm:px-8 lg:px-10">
           <div className="max-w-3xl text-white">
             <h1 className="text-3xl font-bold leading-tight sm:text-[2.6rem]">Find your next stay in Gilgit-Baltistan</h1>
-            <p className="mt-3 max-w-2xl text-sm text-slate-200 sm:text-base">Hotels, homestays, tours and cars from local partners. Pay on arrival.</p>
+            <p className="mt-3 max-w-2xl text-sm text-slate-200 sm:text-base">Hotels, homestays, tours and cars from local partners. Pay now or on arrival.</p>
           </div>
 
           <form onSubmit={submitSearch} className="mt-6 rounded-xl bg-white p-2.5 shadow-lg">
@@ -85,11 +86,11 @@ export default function ExploreSection({ setView, setSearchFilters, onSelectList
               </label>
               <label className="relative">
                 <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} className="min-h-12 w-full rounded-md border border-slate-200 pl-10 pr-2 text-sm text-slate-700 outline-none focus:border-[#006F3C]" />
+                <DateInput value={startDate} onChange={(event) => setStartDate(event.target.value)} className="min-h-12 w-full rounded-md border border-slate-200 pl-10 pr-2 text-sm text-slate-700 outline-none focus:border-[#006F3C]" />
               </label>
               <label className="relative">
                 <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <input type="date" min={startDate} value={endDate} onChange={(event) => setEndDate(event.target.value)} className="min-h-12 w-full rounded-md border border-slate-200 pl-10 pr-2 text-sm text-slate-700 outline-none focus:border-[#006F3C]" />
+                <DateInput min={startDate} value={endDate} onChange={(event) => setEndDate(event.target.value)} className="min-h-12 w-full rounded-md border border-slate-200 pl-10 pr-2 text-sm text-slate-700 outline-none focus:border-[#006F3C]" />
               </label>
               <label className="relative">
                 <Users className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />

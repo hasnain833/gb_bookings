@@ -1,5 +1,6 @@
 import type { StayInfo } from '../../types';
 import { HEATING_LABELS, HOT_WATER_LABELS, MONTHS, NETWORK_LABELS, PAYMENT_LABELS, POWER_LABELS, ROAD_LABELS } from '../../shared/utils/stayInfo';
+import Select from '../../shared/components/Select';
 
 export const defaultStayInfo = (): StayInfo => ({
   childrenAllowed: true, petsAllowed: false, smokingAllowed: false, paymentMethods: ['cash'],
@@ -58,10 +59,10 @@ export default function StayInfoFields({ value, onChange }: { value: StayInfo; o
       <p className="-mt-3 text-xs text-slate-500 sm:col-span-2">Travellers to Gilgit-Baltistan ask about these before booking. Be honest; it prevents bad reviews.</p>
       <Toggles legend="Power backup during load-shedding" hint="Leave empty if there is no backup." options={entries(POWER_LABELS)} value={value.powerBackup} onChange={(powerBackup) => set({ powerBackup })} />
       <Toggles legend="Heating" hint="Leave empty if rooms are not heated." options={entries(HEATING_LABELS)} value={value.heating} onChange={(heating) => set({ heating })} />
-      <label className="text-sm font-semibold text-slate-700">Hot water<select className={inputClass} value={value.hotWater} onChange={(e) => set({ hotWater: e.target.value as StayInfo['hotWater'] })}>
-        {entries(HOT_WATER_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
-      <label className="text-sm font-semibold text-slate-700">Road access<select className={inputClass} value={value.roadAccess} onChange={(e) => set({ roadAccess: e.target.value as StayInfo['roadAccess'] })}>
-        {entries(ROAD_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
+      <label className="text-sm font-semibold text-slate-700">Hot water<Select className={inputClass} value={value.hotWater} onChange={(e) => set({ hotWater: e.target.value as StayInfo['hotWater'] })}>
+        {entries(HOT_WATER_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</Select></label>
+      <label className="text-sm font-semibold text-slate-700">Road access<Select className={inputClass} value={value.roadAccess} onChange={(e) => set({ roadAccess: e.target.value as StayInfo['roadAccess'] })}>
+        {entries(ROAD_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</Select></label>
       <label className="text-sm font-semibold text-slate-700 sm:col-span-2">Directions note <span className="font-normal text-slate-500">(optional)</span>
         <input maxLength={300} className={inputClass} value={value.roadNote ?? ''} placeholder="e.g. 10-minute walk up from the Altit Fort parking; we carry luggage"
           onChange={(e) => set({ roadNote: e.target.value || undefined })} /></label>

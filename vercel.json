@@ -6,8 +6,29 @@
       "destination": "/api/index.ts"
     },
     {
+      "source": "/sitemap.xml",
+      "destination": "/api/index.ts"
+    },
+    {
+      "source": "/robots.txt",
+      "destination": "/api/index.ts"
+    },
+    {
+      "source": "/listing/:id",
+      "destination": "/api/index.ts"
+    },
+    {
+      "source": "/(hotels|homestays|cars|tours)",
+      "destination": "/api/index.ts"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
-  ]
+  ],
+  "functions": {
+    "api/index.ts": {
+      "includeFiles": "dist/index.html"
+    }
+  }
 }

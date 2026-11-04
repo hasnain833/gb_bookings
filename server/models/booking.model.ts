@@ -1,3 +1,4 @@
+import { CANCELLATION_POLICY_KEYS } from '../../src/shared/utils/cancellation.js';
 import { randomBytes, randomUUID } from 'node:crypto';
 import mongoose, { type Model } from 'mongoose';
 
@@ -60,12 +61,64 @@ const bookingSchema = new Schema({
     // Car rentals: driver, out-of-city and one-way charges.
     extrasMinor: { type: Number, min: 0, default: 0 },
     totalMinor: { type: Number, required: true, min: 0 },
+    // Partner fees and admin-set taxes, with their rates, so a change re-quotes this booking at the terms it was made under.
+    charges: {
+      type: [new Schema({ name: String, type: { type: String, enum: ['fee', 'tax'] }, kind: { type: String, enum: ['percent', 'amount'] }, rate: Number, amountMinor: Number }, { _id: false })],
+      default: undefined,
+    },
+    feesMinor: { type: Number, min: 0, default: 0 },
+    taxesMinor: { type: Number, min: 0, default: 0 },
+    // A paid booking changed to cost more: the part the partner collects on arrival. Never reached GBBookings.
+    balanceDueMinor: { type: Number, min: 0, default: 0 },
     // GBBookings' commission: the admin-set percent at booking time, and the amount (re-worked on a change or cancellation).
     commissionPercent: { type: Number, min: 0, default: 0 },
     commissionMinor: { type: Number, min: 0, default: 0 },
   },
   // Set when a paid booking is cancelled: what the guest gets back (see bookings refund rules in modules/settings).
   refund: { type: new Schema({ percent: Number, amountMinor: Number }, { _id: false }), default: undefined },
+  // Each sum owed back to the guest. 'safepay' goes back through the gateway; 'partner' is money the partner collected and returns.
+  // 'sending' stays in place if the result was never heard, so nobody can pay it twice by retrying blindly.
+  refunds: {
+    type: [new Schema({
+      kind: { type: String, enum: ['cancellation', 'change', 'late_payment'], required: true },
+      channel: { type: String, enum: ['safepay', 'partner'], required: true },
+      amountMinor: { type: Number, required: true, min: 1 },
+      status: { type: String, enum: ['pending', 'sending', 'sent', 'failed'], default: 'pending' },
+      lastError: { type: String, maxlength: 500 },
+      note: { type: String, maxlength: 500 },
+      sentAt: Date,
+      sentBy: { type: Schema.Types.ObjectId, ref: 'User' },
+      createdAt: { type: Date, default: Date.now },
+    })],
+    default: undefined,
+  },
+  // The policy at booking time. Absent on older bookings, which keep the refund tiers they were sold under.
+  cancellationPolicy: { type: String, enum: CANCELLATION_POLICY_KEYS },
+  // A guest's request to move the booking; the partner accepts or declines.
+  changeRequest: {
+    type: new Schema({
+      checkIn: String, checkOut: String, roomTypeId: String, roomName: String, rooms: Number, note: { type: String, maxlength: 500 },
+      status: { type: String, enum: ['pending', 'declined'], default: 'pending' },
+      // Set when the partner proposes the change and the guest has to answer.
+      proposedBy: { type: String, enum: ['partner'] }, reason: { type: String, maxlength: 300 }, newTotalMinor: Number,
+      declineReason: { type: String, maxlength: 500 },
+      requestedAt: Date,
+    }, { _id: false }),
+    default: undefined,
+  },
+  // The latest change made to the booking, so the guest can see what happened and why.
+  lastChange: {
+    type: new Schema({
+      at: Date, askedByGuest: Boolean, reason: { type: String, maxlength: 300 },
+      from: new Schema({ checkIn: String, checkOut: String, roomName: String, rooms: Number, totalMinor: Number }, { _id: false }),
+    }, { _id: false }),
+    default: undefined,
+  },
+  balanceCollectedAt: { type: Date },
+  // The partner statement this booking was settled on.
+  payoutId: { type: Schema.Types.ObjectId, ref: 'Payout', index: true },
+  reminderSentAt: { type: Date },
+  reviewInviteSentAt: { type: Date },
   // Car rentals: where and when the guest takes the car, and the car's terms at booking time (minor units).
   // `checkOut` is the day after the return date, so rented days count like hotel nights (see bookings/rental.ts).
   rental: {
@@ -115,6 +168,7 @@ const bookingSchema = new Schema({
 }, { timestamps: true });
 
 bookingSchema.index({ customerId: 1, createdAt: -1 });
+bookingSchema.index({ 'refunds.status': 1 }, { sparse: true });
 bookingSchema.index({ 'onlinePayment.trackers': 1 }, { sparse: true });
 bookingSchema.index({ vendorId: 1, status: 1, checkIn: 1 });
 bookingSchema.index(

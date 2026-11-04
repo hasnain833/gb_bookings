@@ -9,7 +9,10 @@ import { VendorModel } from '../../models/vendor.model.js';
 import { AppError, ServiceUnavailableError } from '../../shared/app-error.js';
 import { reservationVendorIds } from '../bookings/booking.service.js';
 import { hideContacts } from './contact-filter.js';
-import { emitToRooms } from './realtime.js';
+import { env } from '../../config/env.js';
+import { escapeHtml } from '../email/auth-email.templates.js';
+import { isEmailConfigured, sendTransactionalEmail } from '../email/resend.service.js';
+import { publishToUser, publishToVendorTeam } from './realtime.js';
 
 export type Side = 'guest' | 'partner';
 
@@ -113,11 +116,42 @@ async function sendInConversation(userId: string, conversation: any, side: Side,
   const other = side === 'guest' ? 'partnerUnread' : 'guestUnread';
   const updated = await ConversationModel.findOneAndUpdate(
     { _id: conversation._id },
-    { $set: { lastMessage: { body: text.slice(0, 160), sender: side, at: message.createdAt } }, $inc: { [other]: 1 } },
+    { $set: { lastMessage: { body: text.slice(0, 160), sender: side, at: message.createdAt }, alertPending: true }, $inc: { [other]: 1 } },
     { returnDocument: 'after' },
   );
   // Push to both sides; each client works out which side it is on from the conversation it has open.
-  emitToRooms([`user:${conversation.guestId}`], 'message', { conversation: serializeConversation(updated, 'guest'), message: serializeMessage(message, 'guest') });
-  emitToRooms([`vendor:${conversation.vendorId}`], 'message', { conversation: serializeConversation(updated, 'partner'), message: serializeMessage(message, 'partner') });
+  await Promise.all([
+    publishToUser(String(conversation.guestId), { conversation: serializeConversation(updated, 'guest'), message: serializeMessage(message, 'guest') }),
+    publishToVendorTeam(conversation.vendorId, { conversation: serializeConversation(updated, 'partner'), message: serializeMessage(message, 'partner') }),
+  ]);
   return { conversation: serializeConversation(updated, side), message: serializeMessage(message, side) };
+}
+
+const ALERT_AFTER_MS = 10 * 60_000;
+
+/**
+ * Emails whoever has not read a message after ten minutes: "offline" here means they did not open it, which also covers
+ * a tab left open. One email per quiet spell; the text passed the contact filter when it was sent.
+ */
+export async function sendOfflineMessageAlerts(now = new Date()) {
+  if (!isEmailConfigured()) return 0;
+  const due = await ConversationModel.find({ alertPending: true, 'lastMessage.at': { $lt: new Date(now.getTime() - ALERT_AFTER_MS) } }).limit(50).select('_id').lean();
+  let sent = 0;
+  for (const { _id } of due) {
+    const conversation = await ConversationModel.findOneAndUpdate({ _id, alertPending: true }, { $set: { alertPending: false } }, { returnDocument: 'after' });
+    if (!conversation?.lastMessage?.at) continue;
+    const toPartner = conversation.lastMessage.sender === 'guest';
+    if (!(toPartner ? conversation.partnerUnread : conversation.guestUnread)) continue;
+    const recipient = toPartner
+      ? await VendorModel.findById(conversation.vendorId).select('name email').lean() as any
+      : await UserModel.findById(conversation.guestId).select('name email').lean() as any;
+    if (!recipient?.email) continue;
+    const from = toPartner ? conversation.guestName ?? 'A guest' : conversation.listingSnapshot?.partnerName ?? 'The partner';
+    const title = conversation.listingSnapshot?.title ?? 'your booking';
+    await sendTransactionalEmail({
+      to: { email: recipient.email, name: recipient.name }, subject: `New message about ${title}`, tag: 'message-alert',
+      htmlContent: `<p>Hello ${escapeHtml(recipient.name ?? '')},</p><p><strong>${escapeHtml(from)}</strong> sent you a message about ${escapeHtml(title)}:</p><blockquote style="border-left:3px solid #dce5df;margin:0;padding:4px 12px">${escapeHtml(conversation.lastMessage.body ?? '')}</blockquote><p><a href="${escapeHtml(env.APP_URL ?? '')}/inbox">Open your inbox to reply</a></p>`,
+    }).then(() => { sent += 1; }).catch((error) => console.error('Message alert email failed:', error));
+  }
+  return sent;
 }

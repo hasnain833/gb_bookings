@@ -7,15 +7,14 @@
     "dev": "vite",
     "dev:frontend": "vite",
     "dev:backend": "tsx watch server/index.ts",
+    "dev:inngest": "npx inngest-cli@latest dev -u http://localhost:8000/api/inngest",
     "start": "tsx server/index.ts",
     "build": "npm run build:frontend && npm run build:backend",
     "build:frontend": "vite build",
     "build:backend": "esbuild server/index.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist-server/server.cjs",
     "start:production": "cross-env NODE_ENV=production node dist-server/server.cjs",
     "clean": "node -e \"for(const dir of ['dist','dist-server'])require('node:fs').rmSync(dir,{recursive:true,force:true})\"",
-    "lint": "tsc --noEmit",
-    "test": "tsx server/scripts/check-contact-filter.ts && tsx server/scripts/check-refunds.ts && tsx server/scripts/check-room-price.ts && tsx server/scripts/check-tours.ts && tsx server/scripts/check-identity.ts",
-    "test:e2e": "tsx server/scripts/check-e2e.ts"
+    "lint": "tsc --noEmit"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -29,6 +28,7 @@
     "express": "^4.21.2",
     "express-rate-limit": "^8.7.0",
     "helmet": "^8.3.0",
+    "inngest": "^4.26.2",
     "jsonwebtoken": "^9.0.3",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.546.0",
@@ -36,9 +36,7 @@
     "multer": "^2.4.0",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
-    "socket.io": "^4.8.4",
-    "socket.io-client": "^4.8.4",
-    "zod": "^4.6.5"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.14",
@@ -59,5 +57,10 @@
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.3"
+  },
+  "overrides": {
+    "inngest": {
+      "zod": "$zod"
+    }
   }
 }

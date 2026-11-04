@@ -22,6 +22,8 @@ export interface StayInfo {
 }
 
 export interface Listing {
+  cancellationPolicy?: string;
+  fees?: Array<{ name: string; kind: 'percent' | 'amount'; value: number }>;
   id: string;
   type: ListingType;
   title: string;
@@ -180,6 +182,17 @@ export interface Booking {
   platformFeePercent?: number;
   /** What the guest gets back after a paid booking was cancelled. */
   refund?: { percent: number; amount: number };
+  /** Each sum owed back to the guest and how far it has got. */
+  refunds?: Array<{ kind: 'cancellation' | 'change' | 'late_payment'; channel: 'safepay' | 'partner'; amount: number; status: 'pending' | 'sending' | 'sent' | 'failed'; sentAt?: string }>;
+  /** Fees and taxes on top of the price, already included in `totalPrice`. */
+  charges?: Array<{ name: string; type: 'fee' | 'tax'; amount: number }>;
+  /** A paid booking changed to cost more: what the partner collects on arrival. */
+  balanceDue?: number;
+  balanceCollectedAt?: string;
+  /** Absent on older bookings, which keep the refund tiers they were sold under. */
+  cancellationPolicy?: string;
+  lastChange?: { at: string; askedByGuest: boolean; reason?: string; from: { checkIn: string; checkOut: string; roomName?: string; rooms: number; total: number } };
+  changeRequest?: { checkIn: string; checkOut: string; roomTypeId: string; roomName?: string; rooms: number; note?: string; status: 'pending' | 'declined'; declineReason?: string; requestedAt: string; proposedBy?: 'partner'; reason?: string; newTotalMinor?: number };
   createdAt: string;
   // Additional details
   guests?: number;

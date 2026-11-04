@@ -6,7 +6,10 @@ import { useListings } from '../../shared/hooks/useListings';
 import { EXPERIENCE_TYPES } from '../../shared/api/api';
 import { useDebouncedValue } from '../../shared/hooks/useDebouncedValue';
 import { CardSkeleton } from '../../shared/components/SkeletonLoader';
+import { nextDay } from '../../shared/utils/date';
 import ListingCard from '../../shared/components/ListingCard';
+import Select from '../../shared/components/Select';
+import DateInput from '../../shared/components/DateInput';
 
 interface ListingsSearchProps {
   type: ListingType;
@@ -14,7 +17,7 @@ interface ListingsSearchProps {
     destination: string;
     startDate: string;
     endDate: string;
-    extra: { guestCount?: number; experience?: string; withDriver?: boolean };
+    extra: { guestCount?: number; experience?: string; withDriver?: boolean; category?: string; sort?: 'price-low' };
   };
   onSelectListing: (listing: Listing) => void;
 }
@@ -38,7 +41,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
   const [query, setQuery] = useState(initialFilters.destination || '');
   const [maxPrice, setMaxPrice] = useState(PRICE_CEILING);
   const [minimumRating, setMinimumRating] = useState(0);
-  const [sortBy, setSortBy] = useState<SortOption>('recommended');
+  const [sortBy, setSortBy] = useState<SortOption>(initialFilters.extra.sort ?? 'recommended');
   const [transmission, setTransmission] = useState<'all' | 'Automatic' | 'Manual'>('all');
   // Landing pages send their two dates as "YYYY-MM-DD to YYYY-MM-DD".
   const [initialStart, initialEnd] = (initialFilters.startDate || '').split(' to ');
@@ -58,7 +61,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
   const cars = type === 'car';
   const tours = type === 'tour';
   const stays = type === 'hotel' || homestays;
-  const [category, setCategory] = useState('');
+  const [category, setCategory] = useState(initialFilters.extra.category ?? '');
   const supportsDates = type === 'hotel' || type === 'homestay' || cars;
   // Car rentals may start and end on the same day (the return date is a rented day).
   const datesValid = supportsDates && Boolean(checkIn && checkOut && (cars ? checkOut >= checkIn : checkOut > checkIn));
@@ -70,7 +73,8 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
     maxPrice: priceLimit < PRICE_CEILING ? priceLimit : undefined,
     minRating: minimumRating || undefined,
     sort: SORT_PARAM[sortBy],
-    ...(datesValid ? { checkIn, checkOut, guests: guests || undefined } : {}),
+    guests: guests || undefined,
+    ...(datesValid ? { checkIn, checkOut } : {}),
     ...tourDate,
     ...(category && (tours || stays) ? { category } : {}),
     amenities: facilities.trim() || undefined,
@@ -136,21 +140,21 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
             <fieldset className="space-y-2">
               <legend className="text-xs font-bold text-slate-600">Available between</legend>
               <label className="block text-[11px] text-slate-500">{cars ? 'Pickup' : 'Check-in'}
-                <input type="date" min={todayPk()} value={checkIn} onChange={(event) => setCheckIn(event.target.value)}
+                <DateInput min={todayPk()} value={checkIn} onChange={(event) => { setCheckIn(event.target.value); if (checkOut && event.target.value >= checkOut && !(cars && event.target.value === checkOut)) setCheckOut(''); }}
                   className="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm" />
               </label>
               <label className="block text-[11px] text-slate-500">{cars ? 'Return' : 'Check-out'}
-                <input type="date" min={checkIn || todayPk()} value={checkOut} onChange={(event) => setCheckOut(event.target.value)}
+                <DateInput min={cars ? checkIn || todayPk() : nextDay(checkIn || todayPk())} value={checkOut} onChange={(event) => setCheckOut(event.target.value)}
                   className="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm" />
               </label>
               <label className="block text-[11px] text-slate-500">{cars ? 'Passengers' : 'Guests'}
-                <select value={guests} onChange={(event) => setGuests(Number(event.target.value))} className="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
+                <Select value={guests} onChange={(event) => setGuests(Number(event.target.value))} className="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
                   <option value={0}>Any</option>
                   {Array.from({ length: cars ? 20 : 10 }, (_, index) => index + 1).map((count) => <option key={count} value={count}>{count} {cars ? 'passenger' : 'guest'}{count > 1 ? 's' : ''}</option>)}
-                </select>
+                </Select>
               </label>
-              {datesValid ? <p className="text-[11px] text-slate-500">{cars ? `Showing only cars free on every day${guests ? ` with ${guests} seat${guests > 1 ? 's' : ''}` : ''}.` : `Showing only properties with a free room${guests ? ` for ${guests} guest${guests > 1 ? 's' : ''}` : ''}.`}</p>
-                : <p className="text-[11px] text-slate-500">{cars ? 'Add both dates to see only cars that are free.' : 'Add both dates to see only properties with free rooms.'}</p>}
+              {datesValid ? <p className="text-[11px] text-slate-500">{cars ? `Showing only cars free on every day${guests ? ` with ${guests} seats in total` : ''}.` : `Showing only properties with free rooms${guests ? ` for ${guests} guest${guests > 1 ? 's' : ''} in total` : ''}.`}</p>
+                : <p className="text-[11px] text-slate-500">{guests ? `Showing places that can take ${guests} ${cars ? 'passengers' : 'guests'} in total, across all their ${cars ? 'cars' : 'rooms'}. ` : ''}{cars ? 'Add both dates to see only cars that are free.' : 'Add both dates to see only properties with free rooms.'}</p>}
             </fieldset>
           )}
 
@@ -158,14 +162,14 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
             <fieldset className="space-y-2">
               <legend className="text-xs font-bold text-slate-600">When</legend>
               <label className="block text-[11px] text-slate-500">Start date
-                <input type="date" min={todayPk()} value={checkIn} onChange={(event) => setCheckIn(event.target.value)}
+                <DateInput min={todayPk()} value={checkIn} onChange={(event) => setCheckIn(event.target.value)}
                   className="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm" />
               </label>
               <label className="block text-[11px] text-slate-500">Travellers
-                <select value={guests} onChange={(event) => setGuests(Number(event.target.value))} className="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
+                <Select value={guests} onChange={(event) => setGuests(Number(event.target.value))} className="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
                   <option value={0}>Any</option>
                   {Array.from({ length: 20 }, (_, index) => index + 1).map((count) => <option key={count} value={count}>{count} traveller{count > 1 ? 's' : ''}</option>)}
-                </select>
+                </Select>
               </label>
               <p className="text-[11px] text-slate-500">{checkIn ? `Showing only tours starting that day with ${guests || 1} free seat${(guests || 1) > 1 ? 's' : ''}.` : 'Add a start date to see only tours with free seats.'}</p>
             </fieldset>
@@ -173,10 +177,10 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
           {(tours || stays) && (
             <label className="block space-y-2">
               <span className="text-xs font-bold text-slate-600">{tours ? 'Type of tour' : 'Type of property'}</span>
-              <select value={category} onChange={(event) => setCategory(event.target.value)} className="min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
+              <Select value={category} onChange={(event) => setCategory(event.target.value)} className="min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
                 <option value="">Any type</option>
                 {(tours ? ['Trekking', 'Sightseeing', 'Jeep safari', 'Cultural', 'Adventure', 'Day trip'] : homestays ? HOME_TYPES : HOTEL_TYPES).map((item) => <option key={item}>{item}</option>)}
-              </select>
+              </Select>
             </label>
           )}
 
@@ -187,12 +191,12 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
 
           <label className="block space-y-2">
             <span className="text-xs font-bold text-slate-600">Minimum rating</span>
-            <select value={minimumRating} onChange={(event) => setMinimumRating(Number(event.target.value))} className="min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
+            <Select value={minimumRating} onChange={(event) => setMinimumRating(Number(event.target.value))} className="min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
               <option value={0}>Any rating</option>
               <option value={3}>3+ stars</option>
               <option value={4}>4+ stars</option>
               <option value={4.5}>4.5+ stars</option>
-            </select>
+            </Select>
           </label>
 
           {supportsDates && !cars && <label className="flex min-h-10 items-center gap-2 text-sm font-semibold text-slate-700"><input type="checkbox" checked={breakfast} onChange={(event) => setBreakfast(event.target.checked)} className="size-4 accent-[#006F3C]" />Breakfast included</label>}
@@ -202,52 +206,52 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
           {homestays && <>
             <label className="block space-y-2">
               <span className="text-xs font-bold text-slate-600">Experience</span>
-              <select value={experience} onChange={(event) => setExperience(event.target.value)} className="min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
+              <Select value={experience} onChange={(event) => setExperience(event.target.value)} className="min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
                 <option value="">Any experience</option>
                 {EXPERIENCE_TYPES.map((value) => <option key={value}>{value}</option>)}
-              </select>
+              </Select>
             </label>
             <label className="block space-y-2">
               <span className="text-xs font-bold text-slate-600">Type of stay</span>
-              <select value={stayType} onChange={(event) => setStayType(event.target.value as typeof stayType)} className="min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
+              <Select value={stayType} onChange={(event) => setStayType(event.target.value as typeof stayType)} className="min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
                 <option value="">Rooms or entire home</option>
                 <option value="rooms">Private rooms</option>
                 <option value="entire_home">Entire home</option>
-              </select>
+              </Select>
             </label>
           </>}
 
           {cars && (
             <label className="block space-y-2">
               <span className="text-xs font-bold text-slate-600">Driver</span>
-              <select value={driver} onChange={(event) => setDriver(event.target.value as typeof driver)} className="min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
+              <Select value={driver} onChange={(event) => setDriver(event.target.value as typeof driver)} className="min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
                 <option value="">With or without</option>
                 <option value="with_driver">With driver</option>
                 <option value="self_drive">Self-drive</option>
-              </select>
+              </Select>
             </label>
           )}
 
           {cars && (
             <label className="block space-y-2">
               <span className="text-xs font-bold text-slate-600">Transmission</span>
-              <select value={transmission} onChange={(event) => setTransmission(event.target.value as typeof transmission)} className="min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
+              <Select value={transmission} onChange={(event) => setTransmission(event.target.value as typeof transmission)} className="min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
                 <option value="all">All</option>
                 <option value="Automatic">Automatic</option>
                 <option value="Manual">Manual</option>
-              </select>
+              </Select>
             </label>
           )}
         </aside>
 
         <main className="space-y-4">
           <div className="flex items-center justify-end">
-            <select aria-label="Sort results" value={sortBy} onChange={(event) => setSortBy(event.target.value as SortOption)} className="min-h-10 rounded-lg border border-slate-300 bg-white px-3 text-xs font-bold text-slate-700">
+            <Select aria-label="Sort results" value={sortBy} onChange={(event) => setSortBy(event.target.value as SortOption)} className="min-h-10 rounded-lg border border-slate-300 bg-white px-3 text-xs font-bold text-slate-700">
               <option value="recommended">Recommended</option>
               <option value="price-low">Price: low to high</option>
               <option value="price-high">Price: high to low</option>
               <option value="rating">Highest rated</option>
-            </select>
+            </Select>
           </div>
 
           {firstLoad ? (

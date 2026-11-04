@@ -5,6 +5,8 @@ import type { StayInfo, TourCategory, TourSpecs } from '../../types';
 import { PAYMENT_LABELS } from '../../shared/utils/stayInfo';
 import { formatDateForDisplay } from '../../shared/utils/date';
 import ChipInput from './ChipInput';
+import Select, { TimeInput } from '../../shared/components/Select';
+import DateInput from '../../shared/components/DateInput';
 
 export const TOUR_CATEGORIES: TourCategory[] = ['Trekking', 'Sightseeing', 'Jeep safari', 'Cultural', 'Adventure', 'Day trip'];
 const INCLUDED = ['Guide', 'Transport', 'Hotel / camp stays', 'Breakfast', 'All meals', 'Entry tickets', 'Porters', 'Camping gear', 'Permits'];
@@ -59,12 +61,12 @@ export function TourBasicsFields({ value, onChange }: { value: TourDraft; onChan
   const set = <K extends keyof TourDraft>(key: K, next: TourDraft[K]) => onChange({ ...value, [key]: next });
   return (
     <div className="grid gap-4 sm:grid-cols-2">
-      <Field label="Type of tour"><select className={fieldClass} value={value.category} onChange={(event) => set('category', event.target.value as TourCategory)}>{TOUR_CATEGORIES.map((category) => <option key={category}>{category}</option>)}</select></Field>
+      <Field label="Type of tour"><Select className={fieldClass} value={value.category} onChange={(event) => set('category', event.target.value as TourCategory)}>{TOUR_CATEGORIES.map((category) => <option key={category}>{category}</option>)}</Select></Field>
       <Field label="Duration (days)" hint="1 for a day trip."><input type="number" required min={1} max={60} className={fieldClass} value={value.durationDays} onChange={(event) => set('durationDays', Number(event.target.value))} /></Field>
-      <Field label="Difficulty"><select className={fieldClass} value={value.difficulty} onChange={(event) => set('difficulty', event.target.value as TourDraft['difficulty'])}><option>Easy</option><option>Moderate</option><option>Challenging</option></select></Field>
+      <Field label="Difficulty"><Select className={fieldClass} value={value.difficulty} onChange={(event) => set('difficulty', event.target.value as TourDraft['difficulty'])}><option>Easy</option><option>Moderate</option><option>Challenging</option></Select></Field>
       <Field label="Minimum age" hint="0 if all ages are welcome."><input type="number" min={0} max={30} className={fieldClass} value={value.minAge} onChange={(event) => set('minAge', Number(event.target.value))} /></Field>
       <Field label="Meeting point" hint="Where guests join, e.g. “Pickup from hotels in Karimabad” or “Skardu airport”."><input required maxLength={300} className={fieldClass} value={value.meetingPoint} onChange={(event) => set('meetingPoint', event.target.value)} /></Field>
-      <Field label="Start time (optional)"><input type="time" className={fieldClass} value={value.startTime} onChange={(event) => set('startTime', event.target.value)} /></Field>
+      <Field label="Start time (optional)"><TimeInput className={fieldClass} value={value.startTime} onChange={(event) => set('startTime', event.target.value)} /></Field>
       <div className="sm:col-span-2"><ChipInput label="Guide languages" value={value.languages} onChange={(languages) => set('languages', languages)} suggestions={LANGUAGES} /></div>
     </div>
   );
@@ -142,7 +144,7 @@ export function DeparturesField({ value, onChange }: { value: string[]; onChange
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-end gap-2">
-        <label className="text-sm font-semibold text-slate-700">Add a departure date<input type="date" min={today} value={date} onChange={(event) => setDate(event.target.value)} className={fieldClass} /></label>
+        <label className="text-sm font-semibold text-slate-700">Add a departure date<DateInput min={today} value={date} onChange={(event) => setDate(event.target.value)} className={fieldClass} /></label>
         <button type="button" disabled={!date} onClick={add} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#006F3C] px-4 text-sm font-bold text-white disabled:opacity-50"><Plus className="size-4" />Add</button>
       </div>
       {upcoming.length === 0 ? <p className="text-sm text-slate-500">No upcoming departures yet. Guests can only book dates you add.</p>

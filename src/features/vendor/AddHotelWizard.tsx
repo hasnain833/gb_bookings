@@ -30,6 +30,7 @@ import {
   secondaryButton,
 } from "./RoomManager";
 import type { VendorRoomInput } from "../../shared/api/api";
+import Select, { TimeInput } from '../../shared/components/Select';
 
 const inputClass =
   "mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-[15px] outline-none focus:border-[#006F3C] focus:ring-2 focus:ring-[#006F3C]/15";
@@ -363,9 +364,9 @@ export default function AddHotelWizard({
             </Field>
             {homestay && (
               <Field label="Experience">
-                <select className={inputClass} value={host.experienceType} onChange={(e) => setHost({ ...host, experienceType: e.target.value as typeof host.experienceType })}>
+                <Select className={inputClass} value={host.experienceType} onChange={(e) => setHost({ ...host, experienceType: e.target.value as typeof host.experienceType })}>
                   {EXPERIENCE_TYPES.map((value) => <option key={value}>{value}</option>)}
-                </select>
+                </Select>
               </Field>
             )}
             <Field label="Description" wide>
@@ -402,8 +403,8 @@ export default function AddHotelWizard({
 
         {id === "rules" && (
           <div className="grid gap-5 rounded-2xl border border-slate-200 bg-white p-5 sm:grid-cols-2">
-            <Field label="Check-in from"><input type="time" className={inputClass} value={hotel.checkInTime} onChange={(e) => setHotel({ ...hotel, checkInTime: e.target.value })} /></Field>
-            <Field label="Check-out by"><input type="time" className={inputClass} value={hotel.checkOutTime} onChange={(e) => setHotel({ ...hotel, checkOutTime: e.target.value })} /></Field>
+            <Field label="Check-in from"><TimeInput className={inputClass} value={hotel.checkInTime} onChange={(e) => setHotel({ ...hotel, checkInTime: e.target.value })} /></Field>
+            <Field label="Check-out by"><TimeInput className={inputClass} value={hotel.checkOutTime} onChange={(e) => setHotel({ ...hotel, checkOutTime: e.target.value })} /></Field>
             <div className="sm:col-span-2">
               <ChipInput label="House rules" value={policies} onChange={setPolicies}
                 suggestions={homestay ? ["No smoking indoors", "No alcohol", "Modest dress in the village", "Families and couples only", "Quiet hours after 10 pm", "ID required at check-in"] : ["No smoking indoors", "No pets", "ID required at check-in", "Quiet hours after 10 pm"]} />

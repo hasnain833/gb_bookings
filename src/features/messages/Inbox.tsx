@@ -8,7 +8,7 @@ import { handleImageError } from '../../types';
 /** Opens (or starts) the thread with a listing's partner, e.g. from a booking card or listing page. */
 export type InboxStart = { listingId: string; title: string; image?: string };
 
-const POLL_MS = 15_000;
+const POLL_MS = 4_000;
 const timeLabel = (value: string) => {
   const date = new Date(value);
   return date.toDateString() === new Date().toDateString()
@@ -95,7 +95,7 @@ export default function Inbox({ start }: { start?: InboxStart }) {
     <div className="flex flex-wrap items-end justify-between gap-3">
       <h1 className="text-3xl font-extrabold tracking-tight text-slate-950">Inbox</h1>
       {isPartner && <div role="tablist" aria-label="Whose messages" className="flex rounded-xl border border-slate-200 bg-white p-1">
-        {([['partner', 'Guest messages'], ['guest', 'My trips']] as const).map(([id, label]) => (
+        {([['partner', 'From my guests'], ['guest', 'My own trips']] as const).map(([id, label]) => (
           <button key={id} type="button" role="tab" aria-selected={side === id} onClick={() => { setSide(id); setDraftStart(null); }}
             className={`flex min-h-10 items-center gap-2 rounded-lg px-4 text-sm font-bold ${side === id ? 'bg-[#006F3C] text-white' : 'text-slate-600 hover:bg-slate-50'}`}>
             {label}{unread[id] > 0 && side !== id && <span className="rounded-full bg-rose-600 px-1.5 text-xs text-white">{unread[id]}</span>}

@@ -6,6 +6,8 @@ import ChipInput from './ChipInput';
 import PhotoManager, { toPhotoInput, type EditablePhoto } from './PhotoManager';
 import RoomCalendar from './RoomCalendar';
 import { BATHROOM_ITEMS, BED_KINDS, bedSummary, ROOM_NAME_PRESETS, ROOM_TYPES, type Bed, type BedKind, type RoomLayout, type RoomTypeKey } from '../../shared/utils/rooms';
+import Select from '../../shared/components/Select';
+import DateInput from '../../shared/components/DateInput';
 
 const inputClass = 'min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[#006F3C]';
 export const primaryButton = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#006F3C] px-4 text-sm font-bold text-white hover:bg-[#005c32] disabled:opacity-50';
@@ -59,9 +61,9 @@ function BedRows({ label, beds, onChange }: { label: string; beds: Bed[]; onChan
       <legend className="text-sm font-semibold text-slate-700">{label}</legend>
       {beds.map((bed, index) => (
         <div key={index} className="flex gap-2">
-          <select aria-label="Kind of bed" className={inputClass} value={bed.kind} onChange={(e) => set(index, { kind: e.target.value as BedKind })}>
+          <Select aria-label="Kind of bed" className={inputClass} value={bed.kind} onChange={(e) => set(index, { kind: e.target.value as BedKind })}>
             {Object.entries(BED_KINDS).map(([value, text]) => <option key={value} value={value}>{text}</option>)}
-          </select>
+          </Select>
           <input aria-label="How many" type="number" min={1} max={20} required className={countClass} value={bed.count} onChange={(e) => set(index, { count: Number(e.target.value) })} />
           <button type="button" aria-label="Remove this bed" onClick={() => onChange(beds.filter((_, at) => at !== index))} className={`${secondaryButton} px-3`}><Minus className="size-4" /></button>
         </div>
@@ -121,10 +123,10 @@ export function RoomForm({ initial, live, busy, submitLabel, onSubmit, onCancel,
     <form onSubmit={submit} className="grid gap-4 rounded-xl border-2 border-[#006F3C] bg-white p-5 sm:grid-cols-3">
       {live && <p className="text-sm text-slate-600 sm:col-span-3">Price and room count change immediately. Name, beds, bathroom, capacity, description, amenities and photos are reviewed by GBBookings first; guests see the current version until then.</p>}
       {!singleUnit && <label className="text-sm font-semibold text-slate-700">Room type
-        <select className={`${inputClass} mt-1`} required value={room.roomType ?? ''} onChange={(e) => chooseRoomType(e.target.value as RoomTypeKey)}>
+        <Select className={`${inputClass} mt-1`} required value={room.roomType ?? ''} onChange={(e) => chooseRoomType(e.target.value as RoomTypeKey)}>
           {!room.roomType && <option value="" disabled>Choose…</option>}
           {Object.entries(ROOM_TYPES).map(([value, text]) => <option key={value} value={value}>{text}</option>)}
-        </select></label>}
+        </Select></label>}
       <label className="text-sm font-semibold text-slate-700">Name<input className={`${inputClass} mt-1`} required minLength={2} list="room-names" placeholder={singleUnit ? 'Entire home' : 'Deluxe Double Room'} value={room.name} onChange={(e) => setRoom({ ...room, name: e.target.value })} /></label>
       <datalist id="room-names">{(room.roomType ? ROOM_NAME_PRESETS[room.roomType] : []).map((name) => <option key={name} value={name} />)}</datalist>
       {!singleUnit && <label className="text-sm font-semibold text-slate-700">Rooms of this type<input {...number('totalRooms')} min={1} /></label>}
@@ -248,7 +250,8 @@ function RoomCard({ listing, room, live, editable, busy, onRun, onReplace, onRem
           {isNew && <p className="mt-2 text-sm text-amber-900">Hidden from guests until approved.</p>}
           {canEdit && <div className="mt-3 flex flex-wrap gap-2">
             {!car && <button type="button" className={secondaryButton} disabled={busy} onClick={() => setEditing(true)}>Edit details &amp; photos</button>}
-            {!isNew && <button type="button" className={secondaryButton} aria-expanded={pricesOpen} onClick={() => setPricesOpen(!pricesOpen)}>
+            {isNew ? <span className="inline-flex min-h-11 items-center text-sm text-slate-600">You can set weekend and season prices once this room is approved.</span>
+              : <button type="button" className={secondaryButton} aria-expanded={pricesOpen} onClick={() => setPricesOpen(!pricesOpen)}>
               Weekend &amp; season prices{(room.weekendPrice != null || room.seasons?.length) ? ' · on' : ''}
             </button>}
             {(editable || isNew) && <button type="button" className={`${secondaryButton} text-rose-700`} disabled={busy} onClick={onRemove}>{editable ? 'Remove' : 'Withdraw'}</button>}
@@ -321,8 +324,8 @@ function PriceRules({ room, perWhat, busy, onSave }: {
         {seasons.map((season, index) => (
           <div key={index} className="grid grid-cols-2 gap-2 sm:grid-cols-[1.4fr_1fr_1fr_1fr_auto] sm:items-end">
             <label className="col-span-2 text-xs font-bold text-slate-600 sm:col-span-1">Name<input required maxLength={60} placeholder="Peak summer" value={season.name} onChange={(event) => setSeason(index, { name: event.target.value })} className={`${inputClass} mt-1`} /></label>
-            <label className="text-xs font-bold text-slate-600">From<input required type="date" value={season.from} onChange={(event) => setSeason(index, { from: event.target.value })} className={`${inputClass} mt-1`} /></label>
-            <label className="text-xs font-bold text-slate-600">To<input required type="date" min={season.from} value={season.to} onChange={(event) => setSeason(index, { to: event.target.value })} className={`${inputClass} mt-1`} /></label>
+            <label className="text-xs font-bold text-slate-600">From<DateInput required value={season.from} onChange={(event) => setSeason(index, { from: event.target.value })} className={`${inputClass} mt-1`} /></label>
+            <label className="text-xs font-bold text-slate-600">To<DateInput required min={season.from} value={season.to} onChange={(event) => setSeason(index, { to: event.target.value })} className={`${inputClass} mt-1`} /></label>
             <label className="text-xs font-bold text-slate-600">PKR per {perWhat}<input required type="number" min={0} step={1} value={season.price} onChange={(event) => setSeason(index, { price: Number(event.target.value) })} className={`${inputClass} mt-1`} /></label>
             <button type="button" className={`${secondaryButton} text-rose-700`} onClick={() => setSeasons(seasons.filter((_, at) => at !== index))}>Remove</button>
           </div>

@@ -95,7 +95,9 @@ async function request<T>(path: string, init: RequestInit = {}, allowRefresh = t
         ?? payload?.error?.message
         ?? (typeof payload?.error === 'string' ? payload.error : null)
         ?? 'We couldn’t complete this request. Please try again.';
-      const message = response.status === 503 ? 'This service is temporarily unavailable. Please try again shortly.'
+      // Provider setup errors stay private; every other 503 says what is actually down.
+      const message = response.status === 503 && /^EMAIL_|^SMS_/.test(payload?.error?.code ?? '') ? 'This service is temporarily unavailable. Please try again shortly.'
+        : response.status === 503 ? suppliedMessage
         : response.status >= 500 ? 'Something went wrong on our side. Please try again in a moment.'
           : payload?.error?.code === 'VALIDATION_ERROR' ? Object.values(payload.error.details?.fieldErrors ?? {}).flat().join(' ') || 'Please check the information you entered.' : suppliedMessage;
       throw new ApiError(message, response.status);
@@ -156,6 +158,18 @@ export interface AuthSession {
   expiresAt: string;
 }
 
+export interface PayoutProfile { accountTitle: string; bankName: string; iban: string }
+
+export type MoneyRow = { collectedOnline: number; refunded: number; commission: number; net: number };
+export type StatementLine = MoneyRow & { reference: string; listingTitle: string; checkIn: string; status: string; paymentMethod: string; total: number };
+export type Payout = MoneyRow & { id: string; reference: string; status: 'open' | 'settled'; bookings: number; createdAt: string; settledAt?: string; bankReference?: string; vendorName?: string };
+export type PayoutStatement = Payout & { lines: StatementLine[]; bank?: PayoutProfile; vendor?: { name: string; taxNumber?: string; address?: Record<string, string> } };
+export type PartnerBalance = MoneyRow & { vendorId: string; name: string; email: string; bookings: number; hasBankDetails: boolean };
+export type AdminRefund = { id: string; bookingId: string; reference: string; guestName: string; guestEmail: string; listingTitle: string; kind: string; channel: 'safepay' | 'partner'; amount: number; status: 'pending' | 'sending' | 'sent' | 'failed'; lastError?: string; note?: string; sentAt?: string; createdAt: string };
+export type Reconciliation = { from: string; to: string; collectedOnline: number; refundsSent: number; refundsOutstanding: number; paidToPartners: number; receivedFromPartners: number; commissionSettled: number; expectedHeld: number };
+export type ChangeQuote = { roomName: string; currentTotal: number; newTotal: number; refund?: number; balanceDue?: number };
+export type ChangeRequestInput = { checkIn: string; checkOut: string; roomTypeId: string; rooms: number; note?: string };
+
 export interface VendorProfile {
   id: string;
   name: string;
@@ -168,6 +182,9 @@ export interface VendorProfile {
   taxNumber?: string;
   cnicNumber?: string;
   address?: Record<string, string>;
+  /** Owner only. */
+  payoutProfile?: PayoutProfile;
+  agreement?: { version: string; acceptedAt: string };
   rejectionReason?: string;
   submittedAt?: string;
   verificationDocuments?: Array<{ type: string; status: string }>;
@@ -177,6 +194,7 @@ export interface VendorProfile {
 }
 
 export interface VendorChangeRequest {
+  payoutProfile?: PayoutProfile;
   name: string; email: string; phone: string; registrationNumber?: string; taxNumber?: string;
   address: { line1: string; city: string; region: string };
 }
@@ -218,6 +236,8 @@ type ListingContent = Pick<VendorListing, 'title' | 'location' | 'description' |
 type RoomContent = Pick<VendorRoom, 'name' | 'description' | 'bedType' | 'maxAdults' | 'maxChildren' | 'amenities' | 'photos'>;
 
 export interface VendorListing {
+  cancellationPolicy?: string;
+  fees?: Array<{ name: string; kind: 'percent' | 'amount'; value: number }>;
   address?: PropertyAddress;
   id: string;
   type: 'hotel' | 'homestay' | 'car' | 'tour';
@@ -235,6 +255,7 @@ export interface VendorListing {
   revisionRejectionReason?: string;
   /** Present in admin listings. */
   vendorName?: string;
+  vendorId?: string;
   updatedAt?: string;
   hotelSpecs?: { hotelType: string; amenities: string[]; facilities: string[]; policies: string[]; checkInTime: string; checkOutTime: string } & PropertyExtras;
   homestaySpecs?: HomestaySpecs;
@@ -278,6 +299,7 @@ export interface PlatformSettings {
   commissionPercent: number;
   refundTiers: Array<{ withinHours: number; refundPercent: number }>;
   laterRefundPercent: number;
+  taxes: Array<{ name: string; percent: number }>;
 }
 
 /** A guest↔partner thread about one listing. `side` is which side the viewer is on. */
@@ -332,6 +354,8 @@ export interface ListingFilters {
 }
 
 export interface RoomAvailability extends RoomLayout {
+  /** Fees and taxes, already included in totalPrice. */
+  charges?: Array<{ name: string; type: 'fee' | 'tax'; amount: number }>;
   id: string;
   name: string;
   description?: string;
@@ -368,6 +392,7 @@ export interface ListingAvailability {
   freeCancellationUntil?: string;
   /** Whether checkout can offer Pay now (online payment is set up). */
   onlinePayment?: boolean;
+  cancellationPolicy?: string;
   mealsTotal: number;
   /** The promo code applied to the quote. */
   coupon?: { code: string; label: string };
@@ -396,7 +421,7 @@ export interface CreateBookingInput {
   expectedTotalMinor?: number;
 }
 
-export type VendorBookingAction = 'confirm' | 'cancel' | 'complete' | 'no_show' | 'mark_paid' | 'check_in';
+export type VendorBookingAction = 'confirm' | 'cancel' | 'complete' | 'no_show' | 'mark_paid' | 'check_in' | 'collect_balance';
 
 /** Reservation list filters; `from`/`to` bound the check-in date, `q` matches reference, guest name, email or phone. */
 export type BookingListParams = { status?: Booking['status']; stay?: 'arriving' | 'in_house'; from?: string; to?: string; q?: string; listingId?: string; page?: number };
@@ -622,7 +647,7 @@ export const api = {
     return request<{ data: VendorListing }>('/api/v1/vendor/listings', { method: 'POST', body: JSON.stringify(input) });
   },
 
-  updateHotelListing(listingId: string, input: Partial<Pick<VendorListing, 'title' | 'location' | 'description' | 'hotelSpecs'>> & { address?: PropertyAddress; homestaySpecs?: Omit<HomestaySpecsInput, 'stayType'>; carSpecs?: CarSpecsInput; tourSpecs?: TourSpecsInput; departures?: string[]; coordinates?: LatLng; stayInfo?: ListingStayInfoInput; imageIds?: string[]; photos?: PhotoInput[] }) {
+  updateHotelListing(listingId: string, input: Partial<Pick<VendorListing, 'title' | 'location' | 'description' | 'hotelSpecs'>> & { address?: PropertyAddress; homestaySpecs?: Omit<HomestaySpecsInput, 'stayType'>; carSpecs?: CarSpecsInput; tourSpecs?: TourSpecsInput; departures?: string[]; coordinates?: LatLng; stayInfo?: ListingStayInfoInput; imageIds?: string[]; photos?: PhotoInput[]; cancellationPolicy?: string; fees?: NonNullable<VendorListing['fees']> }) {
     return request<{ data: VendorListing }>(`/api/v1/vendor/listings/${encodeURIComponent(listingId)}`, {
       method: 'PATCH', body: JSON.stringify(input),
     }).then((result) => result.data);
@@ -691,8 +716,12 @@ export const api = {
     return request<void>('/api/v1/auth/logout', { method: 'POST' });
   },
 
-  changePassword(currentPassword: string, newPassword: string) {
-    return request<void>('/api/v1/auth/change-password', { method: 'POST', body: JSON.stringify({ currentPassword, newPassword }) });
+  requestPasswordChangeCode() {
+    return request<{ challengeId: string }>('/api/v1/auth/change-password/code', { method: 'POST' });
+  },
+
+  changePassword(challengeId: string, code: string, newPassword: string) {
+    return request<void>('/api/v1/auth/change-password', { method: 'POST', body: JSON.stringify({ challengeId, code, newPassword }) });
   },
 
   forgotPassword(email: string) {
@@ -711,6 +740,18 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ token }),
     });
+  },
+
+  checkResetLink(token: string) {
+    return request<{ name: string; email: string }>('/api/v1/auth/reset-password/check', { method: 'POST', body: JSON.stringify({ token }) });
+  },
+
+  getUnavailableDates(listingId: string) {
+    return request<{ dates: string[] }>(`/api/v1/listings/${encodeURIComponent(listingId)}/unavailable-dates`).then((result) => result.dates);
+  },
+
+  tripChat(messages: Array<{ role: 'user' | 'assistant'; text: string }>) {
+    return request<{ reply: string }>('/api/v1/ai/chat', { method: 'POST', body: JSON.stringify({ messages }) }).then((result) => result.reply);
   },
 
   resetPassword(token: string, newPassword: string) {
@@ -801,7 +842,36 @@ export const api = {
   },
 
   /** New dates, room category or room count; the server re-quotes the price at today's rate. */
-  changeVendorBooking(bookingId: string, input: { checkIn: string; checkOut: string; roomTypeId: string; rooms: number }) {
+  /** With `preview`, only works out the price; nothing is sent to the partner. */
+  requestBookingChange(bookingId: string, input: ChangeRequestInput & { preview?: boolean }) {
+    return request<{ data: { quote: ChangeQuote; booking?: Booking } }>(`/api/v1/bookings/${encodeURIComponent(bookingId)}/change-request`, { method: 'POST', body: JSON.stringify(input) }).then((result) => result.data);
+  },
+
+  decideBookingChange(bookingId: string, decision: 'accept' | 'decline', reason?: string) {
+    return request<{ data: Booking }>(`/api/v1/vendor/bookings/${encodeURIComponent(bookingId)}/change-request`, { method: 'POST', body: JSON.stringify({ decision, ...(reason ? { reason } : {}) }) }).then((result) => result.data);
+  },
+
+  acceptPartnerAgreement(version: string) {
+    return request<{ data: VendorProfile }>('/api/v1/vendors/me/agreement', { method: 'POST', body: JSON.stringify({ version }) }).then((result) => result.data);
+  },
+
+  realtimeToken() {
+    return request<{ data: { channel: string; token: { key: string; apiBaseUrl: string } } }>('/api/v1/messages/realtime-token', { method: 'POST' }).then((result) => result.data);
+  },
+
+  getPartnerFinance() {
+    return request<{ data: { balance: MoneyRow; unsettled: StatementLine[]; payouts: Payout[] } }>('/api/v1/vendor/finance').then((result) => result.data);
+  },
+
+  getPartnerStatement(payoutId: string) {
+    return request<{ data: PayoutStatement }>(`/api/v1/vendor/finance/payouts/${encodeURIComponent(payoutId)}`).then((result) => result.data);
+  },
+
+  answerChangeProposal(bookingId: string, decision: 'accept' | 'decline') {
+    return request<{ data: Booking }>(`/api/v1/bookings/${encodeURIComponent(bookingId)}/change-proposal`, { method: 'POST', body: JSON.stringify({ decision }) }).then((result) => result.data);
+  },
+
+  changeVendorBooking(bookingId: string, input: { checkIn: string; checkOut: string; roomTypeId: string; rooms: number; reason: string }) {
     return request<{ data: Booking }>(`/api/v1/vendor/bookings/${encodeURIComponent(bookingId)}/change`, {
       method: 'POST', body: JSON.stringify(input),
     }).then((result) => result.data);
@@ -915,6 +985,33 @@ export const api = {
       return request<{ data: Booking }>(`/api/v1/admin/bookings/${encodeURIComponent(bookingId)}/cancel`, {
         method: 'POST', body: JSON.stringify({ reason }),
       }).then((result) => result.data);
+    },
+    getRefunds(filter: 'open' | 'sent') {
+      return request<{ data: AdminRefund[]; autoRefunds: boolean }>(`/api/v1/admin/finance/refunds${queryString({ filter })}`);
+    },
+    retryRefund(refund: AdminRefund) {
+      return request<unknown>(`/api/v1/admin/finance/refunds/${refund.bookingId}/${refund.id}/retry`, { method: 'POST' });
+    },
+    markRefundSent(refund: AdminRefund, note: string) {
+      return request<unknown>(`/api/v1/admin/finance/refunds/${refund.bookingId}/${refund.id}/mark-sent`, { method: 'POST', body: JSON.stringify({ note }) });
+    },
+    getBalances() {
+      return request<{ data: PartnerBalance[] }>('/api/v1/admin/finance/balances').then((result) => result.data);
+    },
+    getPayouts() {
+      return request<{ data: Payout[] }>('/api/v1/admin/finance/payouts').then((result) => result.data);
+    },
+    getPayout(payoutId: string) {
+      return request<{ data: PayoutStatement }>(`/api/v1/admin/finance/payouts/${encodeURIComponent(payoutId)}`).then((result) => result.data);
+    },
+    createPayout(vendorId: string) {
+      return request<{ data: PayoutStatement }>('/api/v1/admin/finance/payouts', { method: 'POST', body: JSON.stringify({ vendorId }) }).then((result) => result.data);
+    },
+    settlePayout(payoutId: string, bankReference: string) {
+      return request<{ data: Payout }>(`/api/v1/admin/finance/payouts/${encodeURIComponent(payoutId)}/settle`, { method: 'POST', body: JSON.stringify({ bankReference }) }).then((result) => result.data);
+    },
+    getReconciliation(from: string, to: string) {
+      return request<{ data: Reconciliation }>(`/api/v1/admin/finance/reconciliation${queryString({ from, to })}`).then((result) => result.data);
     },
     getSettings() {
       return request<{ data: PlatformSettings }>('/api/v1/admin/settings').then((result) => result.data);

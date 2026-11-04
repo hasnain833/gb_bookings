@@ -51,5 +51,13 @@ export async function trackerPaid(tracker: string) {
   return (result?.data?.tracker?.state ?? result?.data?.state) === 'TRACKER_ENDED';
 }
 
+/**
+ * Sends a refund on a paid tracker, in paisa. Throws on any failure. The path is from Safepay's SDK; the SDK leaves the
+ * body undocumented, so `amount` must be proven in the sandbox before SAFEPAY_AUTO_REFUNDS is turned on (see .env.example).
+ */
+export async function refundTracker(tracker: string, amountMinor: number) {
+  await call(`/order/payments/v3/${encodeURIComponent(tracker)}/refund`, { amount: amountMinor });
+}
+
 /** Tracker tokens mentioned anywhere in a webhook body; each is re-checked with Safepay before use. */
 export const trackersIn = (body: unknown) => [...new Set(JSON.stringify(body ?? {}).match(/track_[0-9a-zA-Z-]+/g) ?? [])].slice(0, 5);

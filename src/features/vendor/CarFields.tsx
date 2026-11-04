@@ -3,6 +3,7 @@ import type { CarSpecsInput } from '../../shared/api/api';
 import type { CarCategory, CarSpecs, DriverMode, StayInfo } from '../../types';
 import { PAYMENT_LABELS } from '../../shared/utils/stayInfo';
 import ChipInput from './ChipInput';
+import Select from '../../shared/components/Select';
 
 export const CAR_CATEGORIES: CarCategory[] = ['Sedan', 'Hatchback', 'SUV', '4x4 Jeep', 'Van', 'Coaster'];
 export const CAR_FEATURES = ['Air conditioning', 'Heater', '4x4', 'Roof carrier', 'Child seat', 'Bluetooth / USB', 'First-aid kit', 'Snow chains'];
@@ -81,9 +82,9 @@ export function CarBasicsFields({ value, onChange }: { value: CarDraft; onChange
       <Field label="Make"><input required maxLength={60} className={fieldClass} placeholder="Toyota" value={value.make} onChange={(event) => set('make', event.target.value)} /></Field>
       <Field label="Model"><input required maxLength={60} className={fieldClass} placeholder="Prado TX" value={value.model} onChange={(event) => set('model', event.target.value)} /></Field>
       <Field label="Model year"><input type="number" required min={1980} max={new Date().getFullYear() + 1} className={fieldClass} value={value.year} onChange={(event) => set('year', Number(event.target.value))} /></Field>
-      <Field label="Type"><select className={fieldClass} value={value.category} onChange={(event) => set('category', event.target.value as CarCategory)}>{CAR_CATEGORIES.map((category) => <option key={category}>{category}</option>)}</select></Field>
-      <Field label="Transmission"><select className={fieldClass} value={value.transmission} onChange={(event) => set('transmission', event.target.value as CarDraft['transmission'])}><option>Automatic</option><option>Manual</option></select></Field>
-      <Field label="Fuel"><select className={fieldClass} value={value.fuelType} onChange={(event) => set('fuelType', event.target.value as CarDraft['fuelType'])}>{['Petrol', 'Diesel', 'Hybrid', 'Electric'].map((fuel) => <option key={fuel}>{fuel}</option>)}</select></Field>
+      <Field label="Type"><Select className={fieldClass} value={value.category} onChange={(event) => set('category', event.target.value as CarCategory)}>{CAR_CATEGORIES.map((category) => <option key={category}>{category}</option>)}</Select></Field>
+      <Field label="Transmission"><Select className={fieldClass} value={value.transmission} onChange={(event) => set('transmission', event.target.value as CarDraft['transmission'])}><option>Automatic</option><option>Manual</option></Select></Field>
+      <Field label="Fuel"><Select className={fieldClass} value={value.fuelType} onChange={(event) => set('fuelType', event.target.value as CarDraft['fuelType'])}>{['Petrol', 'Diesel', 'Hybrid', 'Electric'].map((fuel) => <option key={fuel}>{fuel}</option>)}</Select></Field>
       <Field label="Passenger seats" hint="Not counting the driver."><input type="number" required min={1} max={40} className={fieldClass} value={value.seats} onChange={(event) => set('seats', Number(event.target.value))} /></Field>
       <Field label="Large bags"><input type="number" min={0} max={40} className={fieldClass} value={value.luggage} onChange={(event) => set('luggage', Number(event.target.value))} /></Field>
       <div className="sm:col-span-2"><ChipInput label="Features" value={value.features} onChange={(features) => set('features', features)} suggestions={CAR_FEATURES} /></div>
@@ -109,14 +110,14 @@ export function CarTermsFields({ value, onChange }: { value: CarDraft; onChange:
       </fieldset>
       <div className="grid gap-4 sm:grid-cols-2">
         {value.driverMode !== 'self_drive' && <Money label="Driver charge per day" hint="Added to the daily rate when the guest takes a driver. Use 0 if the rate already includes the driver." value={value.driverPerDay} onChange={(next) => set('driverPerDay', next)} />}
-        <Field label="Fuel"><select className={fieldClass} value={value.fuelIncluded ? 'yes' : 'no'} onChange={(event) => set('fuelIncluded', event.target.value === 'yes')}><option value="no">Paid by the guest</option><option value="yes">Included in the price</option></select></Field>
+        <Field label="Fuel"><Select className={fieldClass} value={value.fuelIncluded ? 'yes' : 'no'} onChange={(event) => set('fuelIncluded', event.target.value === 'yes')}><option value="no">Paid by the guest</option><option value="yes">Included in the price</option></Select></Field>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="flex items-start gap-3 text-sm text-slate-700 sm:col-span-2"><input type="checkbox" checked={value.chargesOutside} onChange={(event) => set('chargesOutside', event.target.checked)} className="mt-0.5 size-4 accent-[#006F3C]" /><span><span className="font-semibold">Charge extra for trips outside the base city</span><span className="block text-xs text-slate-500">e.g. a car based in Skardu that goes to Hunza. Guests say so when booking.</span></span></label>
         {value.chargesOutside && <Money label="Extra per day outside the base city" value={value.outsideCityPerDay} onChange={(next) => set('outsideCityPerDay', next)} />}
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="One-way drop-off" hint="Returning the car in another city."><select className={fieldClass} value={value.oneWay} onChange={(event) => set('oneWay', event.target.value as CarDraft['oneWay'])}><option value="not_offered">Not offered</option><option value="flat">Flat fee</option><option value="on_request">Offered, price on request</option></select></Field>
+        <Field label="One-way drop-off" hint="Returning the car in another city."><Select className={fieldClass} value={value.oneWay} onChange={(event) => set('oneWay', event.target.value as CarDraft['oneWay'])}><option value="not_offered">Not offered</option><option value="flat">Flat fee</option><option value="on_request">Offered, price on request</option></Select></Field>
         {value.oneWay === 'flat' && <Money label="One-way fee per car" value={value.oneWayFee} onChange={(next) => set('oneWayFee', next)} />}
       </div>
       {value.driverMode !== 'with_driver' && <div className="grid gap-4 rounded-xl border border-slate-200 p-4 sm:grid-cols-2">

@@ -1,13 +1,13 @@
 import { useState, type ReactNode } from 'react';
-import { ArrowLeft, BarChart3, Briefcase, Building2, CalendarCheck, Car, House, LayoutDashboard, LogOut, Mountain, PanelLeftClose, PanelLeftOpen, Plus, ShieldCheck, Star, TicketPercent, Users } from 'lucide-react';
+import { ArrowLeft, Banknote, BarChart3, Briefcase, Building2, CalendarCheck, Car, House, LayoutDashboard, LogOut, Mountain, PanelLeftClose, PanelLeftOpen, Plus, ShieldCheck, Star, TicketPercent, Users } from 'lucide-react';
 
-export type VendorTab = 'overview' | 'properties' | 'new-property' | 'reservations' | 'reviews' | 'promo-codes' | 'reports' | 'team' | 'business' | 'security';
+export type VendorTab = 'overview' | 'properties' | 'new-property' | 'reservations' | 'reviews' | 'promo-codes' | 'reports' | 'payouts' | 'team' | 'business' | 'security';
 export type PartnerKind = 'hotel' | 'homestay' | 'car' | 'tour';
 
 /** Areas the server grants this team member (GET /vendors/me → membership.access). */
 export type MemberArea = 'listings' | 'reservations' | 'reports' | 'team' | 'business';
 const TAB_AREA: Partial<Record<VendorTab, MemberArea>> = {
-  overview: 'listings', properties: 'listings', 'new-property': 'listings', reservations: 'reservations', reviews: 'listings', 'promo-codes': 'listings', reports: 'reports', team: 'team', business: 'business',
+  overview: 'listings', properties: 'listings', 'new-property': 'listings', reservations: 'reservations', reviews: 'listings', 'promo-codes': 'listings', reports: 'reports', payouts: 'reports', team: 'team', business: 'business',
 };
 // Before the account loads, show the owner's layout; security is open to everyone.
 export const canOpen = (access: MemberArea[] | undefined, tab: VendorTab) => !TAB_AREA[tab] || !access || access.includes(TAB_AREA[tab]!);
@@ -34,6 +34,7 @@ const navGroups = (kind: PartnerKind): Array<{ title?: string; items: Array<{ id
       { id: 'reports', label: 'Reports', icon: BarChart3 },
     ] },
     { title: 'Business', items: [
+      { id: 'payouts', label: 'Payouts', icon: Banknote },
       { id: 'team', label: 'Team', icon: Users },
       { id: 'business', label: 'Business profile', icon: Briefcase },
       { id: 'security', label: 'Account security', icon: ShieldCheck },
@@ -50,6 +51,7 @@ const titles = (kind: PartnerKind): Record<VendorTab, [string, string]> => {
     reservations: [bookings, kind === 'car' ? 'Answer rental requests and manage pickups and returns.' : kind === 'tour' ? 'Answer booking requests and manage who starts a tour today.' : 'Answer booking requests and manage arrivals and stays.'],
     reviews: ['Guest reviews', 'Read what guests say, reply publicly, or report a review that breaks the rules.'],
     'promo-codes': ['Promo codes', `Give guests a discount code. Guests enter it at checkout and pay the reduced total at ${kind === 'car' ? 'pickup' : kind === 'tour' ? 'the start of the tour' : 'your property'}.`],
+    payouts: ['Payouts', 'What GBBookings owes you and what you owe it, booking by booking. Each statement doubles as the commission invoice.'],
     reports: ['Reports', `Occupancy and money per ${one} for any dates.`],
     team: ['Team', 'Give managers and reception staff their own sign-in.'],
     business: ['Business profile', 'Your verified business details. Changes are approved by GBBookings before they apply.'],

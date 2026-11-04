@@ -19,7 +19,7 @@ import { recordAuditEvent } from '../audit/audit.service.js';
 import type { SessionMetadata } from '../auth/auth.service.js';
 import { hasPermission } from '../auth/rbac.js';
 import { notifyBooking } from './booking-notifications.js';
-import { availableRoomCounts, prepareRoomNights, releaseRooms, reserveRooms } from './availability.service.js';
+import { availableRoomCounts, fullyBookedDates, prepareRoomNights, releaseRooms, reserveRooms } from './availability.service.js';
 import type { CreateBookingInput, ListBookingsQuery } from './booking.schemas.js';
 import { stayNights, todayInPakistan } from './stay-dates.js';
 import { rentalExtrasMinor, rentalTerms, shownEnd, storedEnd, type RentalChoice } from './rental.js';
@@ -27,6 +27,10 @@ import { assertSeats, assertTourDate, tourSubtotalMinor, tourTerms } from './tou
 import { nightPriceMinor, nightsPriceMinor, type PricedUnit } from './room-price.js';
 import { getPlatformSettings, guestRefundPercent, percentOfMinor } from '../settings/settings.service.js';
 import { ONLINE_HOLD_MINUTES, onlinePaymentsEnabled, startSafepayCheckout, trackerPaid, trackersIn } from '../payments/safepay.js';
+import { DEFAULT_CANCELLATION_POLICY, daysBetween, fullRefundUntil, refundPercentFor } from '../../../src/shared/utils/cancellation.js';
+import { applyCharges, chargeRulesFor, commissionOn, type ChargeRule } from './charges.js';
+import { heldMinor } from '../finance/settlement.js';
+import { sendDueRefunds } from '../finance/refunds.service.js';
 
 export const BOOKABLE_LISTING_TYPES = ['hotel', 'homestay', 'car', 'tour'];
 
@@ -107,7 +111,13 @@ export function serializeBooking(booking: any) {
     ...(booking.rental ? { rental: serializeRental(booking.rental), extrasTotal: (booking.pricing.extrasMinor ?? 0) / 100 } : {}),
     ...(booking.tour ? { tour: serializeTour(booking.tour) } : {}),
     ...(booking.coupon ? { couponCode: booking.coupon.code, couponLabel: couponLabel(booking.coupon), discount: (booking.pricing.discountMinor ?? 0) / 100 } : {}),
+    ...(booking.pricing.charges?.length ? { charges: booking.pricing.charges.map((line: any) => ({ name: line.name, type: line.type, amount: line.amountMinor / 100 })) } : {}),
     totalPrice: booking.pricing.totalMinor / 100,
+    ...(booking.pricing.balanceDueMinor ? { balanceDue: booking.pricing.balanceDueMinor / 100, balanceCollectedAt: booking.balanceCollectedAt } : {}),
+    ...(booking.cancellationPolicy ? { cancellationPolicy: booking.cancellationPolicy } : {}),
+    ...(booking.refunds?.length ? { refunds: booking.refunds.map((refund: any) => ({ kind: refund.kind, channel: refund.channel, amount: refund.amountMinor / 100, status: refund.status, sentAt: refund.sentAt })) } : {}),
+    ...(booking.changeRequest ? { changeRequest: { ...(booking.changeRequest.toObject?.() ?? booking.changeRequest) } } : {}),
+    ...(booking.lastChange ? { lastChange: { at: booking.lastChange.at, askedByGuest: booking.lastChange.askedByGuest, reason: booking.lastChange.reason, from: { checkIn: booking.lastChange.from?.checkIn, checkOut: booking.lastChange.from?.checkOut, roomName: booking.lastChange.from?.roomName, rooms: booking.lastChange.from?.rooms, total: (booking.lastChange.from?.totalMinor ?? 0) / 100 } } } : {}),
     platformFee: (booking.pricing.commissionMinor ?? 0) / 100,
     platformFeePercent: booking.pricing.commissionPercent ?? 0,
     ...(booking.refund ? { refund: { percent: booking.refund.percent, amount: booking.refund.amountMinor / 100 } } : {}),
@@ -180,17 +190,16 @@ function chosenMeals(listing: any, types: string[] = []) {
 export const mealsCostMinor = (meals: Array<{ priceMinor: number }> = [], guests: number, nights: number) =>
   meals.reduce((total, meal) => total + meal.priceMinor, 0) * guests * nights;
 
-const dayBefore = (date: string) => new Date(Date.parse(`${date}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
-
-export type VendorAction = 'confirm' | 'cancel' | 'complete' | 'no_show' | 'mark_paid' | 'check_in' | 'change';
+export type VendorAction = 'confirm' | 'cancel' | 'complete' | 'no_show' | 'mark_paid' | 'check_in' | 'change' | 'collect_balance';
 
 /** What the hotel team can do with a booking right now; the reservations screen shows exactly these. Same rules as the actions below. */
-export function vendorActions(booking: { status: string; startDate: string; checkedInAt?: Date; paymentMethod: string; paymentStatus: string }): VendorAction[] {
+export function vendorActions(booking: { status: string; startDate: string; checkedInAt?: Date; paymentMethod: string; paymentStatus: string; balanceDue?: number; balanceCollectedAt?: Date }): VendorAction[] {
   // An unpaid Pay now booking waits for the guest, not the partner.
   if (booking.status === 'pending' && booking.paymentMethod === 'online') return [];
   const started = todayInPakistan() >= booking.startDate;
-  const payable: VendorAction[] = booking.paymentMethod === 'pay_at_hotel' && booking.paymentStatus === 'pending' ? ['mark_paid'] : [];
-  const changeable: VendorAction[] = ['pending', 'confirmed'].includes(booking.status) && !booking.checkedInAt && booking.paymentStatus !== 'paid' ? ['change'] : [];
+  const balance: VendorAction[] = booking.balanceDue && !booking.balanceCollectedAt && booking.checkedInAt ? ['collect_balance'] : [];
+  const payable: VendorAction[] = [...(booking.paymentMethod === 'pay_at_hotel' && booking.paymentStatus === 'pending' ? ['mark_paid' as const] : []), ...balance];
+  const changeable: VendorAction[] = ['pending', 'confirmed'].includes(booking.status) && !booking.checkedInAt ? ['change'] : [];
   if (booking.status === 'pending') return ['confirm', 'cancel', ...changeable];
   if (booking.status === 'confirmed') {
     if (!started) return [...payable, 'cancel', ...changeable];
@@ -204,6 +213,17 @@ export const withVendorActions = <T extends Parameters<typeof vendorActions>[0]>
 
 export function partyFits(room: { maxAdults: number; maxChildren: number }, adults: number, children: number, rooms: number) {
   return adults <= room.maxAdults * rooms && children <= room.maxChildren * rooms;
+}
+
+/** What the guest calendar greys out for the next year. */
+export async function getUnavailableDates(listingId: string) {
+  await requireDatabase();
+  const listing = await findBookableListing(listingId);
+  const rooms = await HotelRoomTypeModel.find({ listingId: listing._id, status: 'active', deletedAt: null }).select('totalRooms').lean() as any[];
+  const from = todayInPakistan();
+  const end = new Date(`${from}T00:00:00Z`);
+  end.setUTCFullYear(end.getUTCFullYear() + 1);
+  return rooms.length ? fullyBookedDates(rooms, from, end.toISOString().slice(0, 10)) : [];
 }
 
 export async function getListingAvailability(
@@ -224,6 +244,8 @@ export async function getListingAvailability(
   // Quoted exactly as createBooking will charge: meals per guest per night on top of the room price.
   const mealsMinor = mealsCostMinor(chosenMeals(listing, query.meals), query.adults + query.children, nights.length);
   const coupon = query.coupon ? await findUsableCoupon(listing.ownerId, query.coupon) : undefined;
+  const chargeRules = chargeRulesFor(listing, (await getPlatformSettings()).taxes);
+  const policy = listing.cancellationPolicy ?? DEFAULT_CANCELLATION_POLICY;
   const roomTypes = await HotelRoomTypeModel.find({ listingId: listing._id, status: 'active', deletedAt: null })
     .sort({ basePriceMinor: 1 })
     .lean() as any[];
@@ -237,8 +259,9 @@ export async function getListingAvailability(
     currency: 'PKR',
     // Whether checkout can offer Pay now.
     onlinePayment: onlinePaymentsEnabled(),
-    // Guests may cancel until the day before check-in (see cancelOwnBooking); none when the stay starts today.
-    freeCancellationUntil: query.checkIn > todayInPakistan() ? dayBefore(query.checkIn) : undefined,
+    // Pay now refunds follow the listing's policy; Pay on arrival has nothing to refund.
+    cancellationPolicy: policy,
+    freeCancellationUntil: fullRefundUntil(policy, query.checkIn, todayInPakistan()),
     mealsTotal: mealsMinor / 100,
     // Car rentals: what the driver, out-of-city and one-way choices resolved to (per car per day, PKR).
     ...(rental ? { rental: serializeRental(rental) } : {}),
@@ -250,6 +273,7 @@ export async function getListingAvailability(
       const unitMinor = unitSubtotalMinor(room, nights, query.rooms, query.adults, query.children, tour);
       const grossMinor = unitMinor + mealsMinor + extrasMinor;
       const offMinor = discountMinor(coupon, grossMinor);
+      const charged = applyCharges(grossMinor - offMinor, chargeRules);
       return {
         id: room.publicId,
         name: room.name,
@@ -266,7 +290,8 @@ export async function getListingAvailability(
         roomTotal: unitMinor / 100,
         ...(rental ? { extrasTotal: extrasMinor / 100 } : {}),
         ...(coupon ? { discount: offMinor / 100 } : {}),
-        totalPrice: (grossMinor - offMinor) / 100,
+        ...(charged.lines.length ? { charges: charged.lines.map((line) => ({ name: line.name, type: line.type, amount: line.amountMinor / 100 })) } : {}),
+        totalPrice: charged.totalMinor / 100,
       };
     }),
   };
@@ -316,7 +341,7 @@ export async function createBooking(
   if (input.paymentMethod === 'online' && !onlinePaymentsEnabled()) {
     throw new AppError(503, 'ONLINE_PAYMENT_UNAVAILABLE', 'Online payment is not available right now. Choose Pay on arrival.');
   }
-  const { commissionPercent } = await getPlatformSettings();
+  const { commissionPercent, taxes } = await getPlatformSettings();
 
   try {
     const result = await inTransaction(async (session) => {
@@ -340,7 +365,8 @@ export async function createBooking(
       const extrasMinor = rentalExtrasMinor(rental, nights.length, input.rooms);
       const coupon = input.couponCode ? await claimCoupon(listing.ownerId, input.couponCode, session) : undefined;
       const couponMinor = discountMinor(coupon, subtotalMinor + mealsMinor + extrasMinor);
-      const totalMinor = subtotalMinor + mealsMinor + extrasMinor - couponMinor;
+      const charged = applyCharges(subtotalMinor + mealsMinor + extrasMinor - couponMinor, chargeRulesFor(listing, taxes));
+      const totalMinor = charged.totalMinor;
       if (input.expectedTotalMinor !== undefined && input.expectedTotalMinor !== totalMinor) {
         throw new AppError(409, 'PRICE_CHANGED', 'The room price changed. Edit traveler details and review the latest price before reserving.');
       }
@@ -372,8 +398,10 @@ export async function createBooking(
       meals: meals.length ? meals : undefined,
       pricing: {
         currency: 'PKR', nightlyRateMinor: averageRateMinor(subtotalMinor, nights, input.rooms, room, tour), subtotalMinor, mealsMinor, extrasMinor, discountMinor: couponMinor, totalMinor,
-        commissionPercent, commissionMinor: percentOfMinor(totalMinor, commissionPercent),
+        charges: charged.lines.length ? charged.lines : undefined, feesMinor: charged.feesMinor, taxesMinor: charged.taxesMinor,
+        commissionPercent, commissionMinor: commissionOn({ totalMinor, taxesMinor: charged.taxesMinor, commissionPercent }),
       },
+      cancellationPolicy: listing.cancellationPolicy ?? DEFAULT_CANCELLATION_POLICY,
       coupon,
       rental,
       tour,
@@ -455,9 +483,12 @@ async function markPaidOnline(booking: any, tracker: string) {
         paymentStatus: 'paid', paidAt: at, 'onlinePayment.paidTracker': tracker,
         ...(late ? { refund: { percent: 100, amountMinor: booking.pricing.totalMinor } } : { status: 'confirmed' }),
       },
-      $push: { statusHistory: late
-        ? { status: 'cancelled', at, reason: 'Payment arrived after the booking was released; the full amount is owed back to the guest.' }
-        : { status: 'confirmed', at, reason: 'Paid online.' } },
+      $push: {
+        statusHistory: late
+          ? { status: 'cancelled', at, reason: 'Payment arrived after the booking was released; the full amount is owed back to the guest.' }
+          : { status: 'confirmed', at, reason: 'Paid online.' },
+        ...(late ? { refunds: { kind: 'late_payment', channel: 'safepay', amountMinor: booking.pricing.totalMinor } } : {}),
+      },
     },
     { returnDocument: 'after' },
   );
@@ -467,7 +498,8 @@ async function markPaidOnline(booking: any, tracker: string) {
     actorType: 'system', action: late ? 'booking.paid_after_release' : 'booking.paid_online',
     resourceType: 'booking', resourceId: booking.publicId, metadata: { tracker, totalMinor: booking.pricing.totalMinor },
   });
-  if (!late) await notifyBooking(updated, 'paid');
+  if (late) await sendDueRefunds(updated);
+  else await notifyBooking(updated, 'paid');
 }
 
 /** The guest's return from Safepay: checks the payment with Safepay and returns the booking. */
@@ -593,13 +625,20 @@ export type BookingAction = keyof typeof transitions;
  * cancelled, see cancelOwnBooking), and the commission is taken only from what the partner keeps.
  */
 function cancellationMoney(booking: any, refundPercent = 100) {
-  if (booking.paymentStatus !== 'paid') return { 'pricing.commissionMinor': 0 };
-  const refundMinor = percentOfMinor(booking.pricing.totalMinor, refundPercent);
+  if (booking.paymentStatus !== 'paid') return { set: { 'pricing.commissionMinor': 0 } };
+  // Refunds cover money actually paid: a balance still to collect was never paid.
+  const paidMinor = heldMinor(booking);
+  const refundMinor = percentOfMinor(paidMinor, refundPercent);
   return {
-    refund: { percent: refundPercent, amountMinor: refundMinor },
-    'pricing.commissionMinor': percentOfMinor(booking.pricing.totalMinor - refundMinor, booking.pricing.commissionPercent ?? 0),
+    set: {
+      refund: { percent: refundPercent, amountMinor: refundMinor },
+      'pricing.commissionMinor': commissionOn(booking.pricing, paidMinor - refundMinor),
+    },
+    refunds: refundMinor > 0 ? { kind: 'cancellation', channel: refundChannel(booking), amountMinor: refundMinor } : undefined,
   };
 }
+
+const refundChannel = (booking: any) => booking.paymentMethod === 'online' ? 'safepay' : 'partner';
 
 async function applyTransition(actor: { userId?: string }, booking: any, action: BookingAction, reason: string | undefined, metadata: SessionMetadata, refundPercent?: number) {
   const rule = transitions[action];
@@ -607,13 +646,14 @@ async function applyTransition(actor: { userId?: string }, booking: any, action:
     throw new AppError(409, 'INVALID_BOOKING_STATUS', 'This action is only available from the check-in date.');
   }
   // Conditional update so two concurrent actions cannot both succeed (e.g. a double inventory release).
+  const money = rule.to === 'cancelled' ? cancellationMoney(booking, refundPercent) : undefined;
   const updated = await inTransaction(async (session) => {
     const updated = await BookingModel.findOneAndUpdate(
     // A cancellation's refund depends on the payment state it read, so that must not change underneath it.
     { _id: booking._id, status: { $in: rule.from }, ...(rule.to === 'cancelled' ? { paymentStatus: booking.paymentStatus } : {}) },
     {
-      $set: { status: rule.to, ...(rule.to === 'cancelled' ? cancellationMoney(booking, refundPercent) : {}) },
-      $push: { statusHistory: { status: rule.to, by: actor.userId, reason, at: new Date() } },
+      $set: { status: rule.to, ...money?.set },
+      $push: { statusHistory: { status: rule.to, by: actor.userId, reason, at: new Date() }, ...(money?.refunds ? { refunds: money.refunds } : {}) },
     },
     { returnDocument: 'after', session },
   );
@@ -633,7 +673,8 @@ async function applyTransition(actor: { userId?: string }, booking: any, action:
     metadata: reason ? { reason } : undefined,
   });
   if (rule.to === 'confirmed' || rule.to === 'cancelled') await notifyBooking(updated, rule.to, reason);
-  return serializeBooking(updated);
+  await sendDueRefunds(updated);
+  return serializeBooking(await BookingModel.findById(updated._id) ?? updated);
 }
 
 export async function cancelOwnBooking(actor: Actor, bookingId: string, reason: string, metadata: SessionMetadata) {
@@ -644,18 +685,35 @@ export async function cancelOwnBooking(actor: Actor, bookingId: string, reason: 
     throw new AppError(409, 'CANCELLATION_WINDOW_CLOSED', 'Bookings can only be cancelled before the check-in date. Please contact the property.');
   }
   const hoursSinceBooking = (Date.now() - new Date(booking.createdAt).getTime()) / 3_600_000;
-  return applyTransition(actor, booking, 'cancel', reason, metadata, guestRefundPercent(await getPlatformSettings(), hoursSinceBooking));
+  // Older bookings keep the tiers they were sold under.
+  const percent = booking.cancellationPolicy
+    ? refundPercentFor(booking.cancellationPolicy, daysBetween(todayInPakistan(), booking.checkIn))
+    : guestRefundPercent(await getPlatformSettings(), hoursSinceBooking);
+  return applyTransition(actor, booking, 'cancel', reason, metadata, percent);
 }
 
-export async function actOnVendorBooking(actor: Actor, bookingId: string, action: BookingAction | 'mark_paid' | 'check_in', reason: string | undefined, metadata: SessionMetadata) {
+export async function actOnVendorBooking(actor: Actor, bookingId: string, action: BookingAction | 'mark_paid' | 'check_in' | 'collect_balance', reason: string | undefined, metadata: SessionMetadata) {
   await requireDatabase();
   // Hotel operations belong to the hotel's own team; the platform admin can only cancel (see adminCancelBooking).
   const { booking, isVendor } = await accessibleBooking(actor, bookingId);
   if (!isVendor) throw new AppError(404, 'BOOKING_NOT_FOUND', 'Booking not found.');
   if (action === 'mark_paid') return markPaidAtProperty(actor, booking, metadata);
   if (action === 'check_in') return checkInGuest(actor, booking, metadata);
+  if (action === 'collect_balance') return collectBalance(actor, booking, metadata);
   if (action === 'no_show' && booking.checkedInAt) throw new AppError(409, 'GUEST_CHECKED_IN', 'This guest has checked in, so the booking cannot be a no-show.');
   return applyTransition(actor, booking, action, reason, metadata);
+}
+
+/** The difference on a stay changed after paying, collected by the partner once the guest has arrived. */
+async function collectBalance(actor: Actor, booking: any, metadata: SessionMetadata) {
+  const updated = await BookingModel.findOneAndUpdate(
+    { _id: booking._id, status: { $in: ['confirmed', 'completed'] }, checkedInAt: { $ne: null }, 'pricing.balanceDueMinor': { $gt: 0 }, balanceCollectedAt: null },
+    { $set: { balanceCollectedAt: new Date() } },
+    { returnDocument: 'after' },
+  );
+  if (!updated) throw new AppError(409, 'INVALID_PAYMENT_STATUS', 'There is no balance to record on this booking.');
+  await recordAuditEvent({ actorId: actor.userId, actorType: 'user', action: 'booking.balance_collected', resourceType: 'booking', resourceId: booking.publicId, ...metadata, metadata: { amountMinor: booking.pricing.balanceDueMinor } });
+  return serializeBooking(updated);
 }
 
 /** Marks a confirmed guest as arrived. Conditional, so a double click records one arrival. */
@@ -679,15 +737,12 @@ const pkr = (minor: number) => `PKR ${(minor / 100).toLocaleString('en-PK')}`;
  * Moves an upcoming booking to new dates, room category or room count in one transaction:
  * the old nights are released, the new ones reserved, and the price re-quoted at the room's current rate.
  */
-export async function changeVendorBooking(actor: Actor, bookingId: string, input: { checkIn: string; checkOut: string; roomTypeId: string; rooms: number }, metadata: SessionMetadata) {
-  await requireDatabase();
-  const { booking, isVendor } = await accessibleBooking(actor, bookingId);
-  if (!isVendor) throw new AppError(404, 'BOOKING_NOT_FOUND', 'Booking not found.');
+async function applyBookingChange(actor: Actor, booking: any, input: { checkIn: string; checkOut: string; roomTypeId: string; rooms: number; reason?: string; agreedTotalMinor?: number }, metadata: SessionMetadata) {
   if (!['pending', 'confirmed'].includes(booking.status) || booking.checkedInAt) {
     throw new AppError(409, 'INVALID_BOOKING_STATUS', 'Only pending or confirmed bookings whose guest has not checked in can be changed.');
   }
-  // ponytail: no refund rules yet (Phase 2), so a re-quote must not leave recorded money out of step with the total.
-  if (booking.paymentStatus === 'paid') throw new AppError(409, 'BOOKING_ALREADY_PAID', 'Payment is already recorded for this booking. Cancel it and make a new one instead.');
+  // The Safepay page was opened for the old total, so an unpaid Pay now booking cannot move until it is paid or released.
+  if (booking.paymentMethod === 'online' && booking.paymentStatus !== 'paid') throw new AppError(409, 'AWAITING_PAYMENT', 'This booking is waiting for the guest to pay.');
   // Cars: input.checkOut is the return date. Tours: the start date, and the party keeps its seats.
   const isTour = booking.listingSnapshot.type === 'tour';
   if (isTour) {
@@ -720,21 +775,36 @@ export async function changeVendorBooking(actor: Actor, bookingId: string, input
     // Car extras and the promo code keep the terms fixed at booking and apply to the new days.
     const extrasMinor = rentalExtrasMinor(booking.rental, nights.length, input.rooms);
     const couponMinor = discountMinor(booking.coupon, subtotalMinor + mealsMinor + extrasMinor);
-    const totalMinor = subtotalMinor + mealsMinor + extrasMinor - couponMinor;
+    // Fees and taxes keep the rates this booking was made under.
+    const charged = applyCharges(subtotalMinor + mealsMinor + extrasMinor - couponMinor, (booking.pricing.charges ?? []) as ChargeRule[]);
+    const totalMinor = charged.totalMinor;
+    if (input.agreedTotalMinor !== undefined && input.agreedTotalMinor !== totalMinor) {
+      throw new AppError(409, 'PRICE_CHANGED', 'The price of this change has changed since the partner proposed it, so your booking stays as it is. Ask the partner to send it again.');
+    }
+    // Paid already: a cheaper stay refunds the difference, a dearer one leaves a balance the partner collects on arrival.
+    const paidMinor = booking.paymentStatus === 'paid' ? heldMinor(booking) : 0;
+    const balanceDueMinor = booking.paymentStatus === 'paid' ? Math.max(0, totalMinor - paidMinor) : 0;
+    const refundMinor = booking.paymentStatus === 'paid' ? Math.max(0, paidMinor - totalMinor) : 0;
     // Matching the loaded stay makes a concurrent change or cancellation fail instead of double-moving inventory.
     const changed = await BookingModel.findOneAndUpdate(
-      { _id: booking._id, status: booking.status, checkedInAt: null, paymentStatus: { $ne: 'paid' }, checkIn: booking.checkIn, checkOut: booking.checkOut, roomTypeId: booking.roomTypeId, rooms: booking.rooms },
+      { _id: booking._id, status: booking.status, checkedInAt: null, paymentStatus: booking.paymentStatus, 'pricing.totalMinor': booking.pricing.totalMinor, checkIn: booking.checkIn, checkOut: booking.checkOut, roomTypeId: booking.roomTypeId, rooms: booking.rooms },
       {
         $set: {
+          lastChange: { at: new Date(), askedByGuest: !input.reason, reason: input.reason, from: { checkIn: booking.checkIn, checkOut: booking.checkOut, roomName: booking.roomSnapshot?.name, rooms: booking.rooms, totalMinor: booking.pricing.totalMinor } },
           checkIn: input.checkIn, checkOut, nights: nights.length, rooms: input.rooms, roomTypeId: room._id,
           roomSnapshot: { publicId: room.publicId, name: room.name, bedType: room.bedType },
           pricing: {
             currency: 'PKR', nightlyRateMinor: averageRateMinor(subtotalMinor, nights, input.rooms, room, booking.tour ?? undefined), subtotalMinor, mealsMinor, extrasMinor, discountMinor: couponMinor, totalMinor,
+            charges: charged.lines.length ? charged.lines : undefined, feesMinor: charged.feesMinor, taxesMinor: charged.taxesMinor, balanceDueMinor,
             // The commission percent stays as agreed at booking.
-            commissionPercent: booking.pricing.commissionPercent ?? 0, commissionMinor: percentOfMinor(totalMinor, booking.pricing.commissionPercent ?? 0),
+            commissionPercent: booking.pricing.commissionPercent ?? 0, commissionMinor: commissionOn({ totalMinor, taxesMinor: charged.taxesMinor, commissionPercent: booking.pricing.commissionPercent ?? 0 }),
           },
         },
-        $push: { statusHistory: { status: booking.status, by: actor.userId, at: new Date(), reason: `Changed from ${before} to ${input.checkIn} → ${input.checkOut}, ${input.rooms} × ${room.name}, ${pkr(totalMinor)}.` } },
+        $unset: { changeRequest: 1 },
+        $push: {
+          statusHistory: { status: booking.status, by: actor.userId, at: new Date(), reason: `Changed from ${before} to ${input.checkIn} → ${input.checkOut}, ${input.rooms} × ${room.name}, ${pkr(totalMinor)}.${refundMinor ? ` ${pkr(refundMinor)} goes back to the guest.` : balanceDueMinor ? ` ${pkr(balanceDueMinor)} is to collect on arrival.` : ''}` },
+          ...(refundMinor ? { refunds: { kind: 'change', channel: refundChannel(booking), amountMinor: refundMinor } } : {}),
+        },
       },
       { session, returnDocument: 'after' },
     );
@@ -747,7 +817,120 @@ export async function changeVendorBooking(actor: Actor, bookingId: string, input
     actorId: actor.userId, actorType: 'user', action: 'booking.changed', resourceType: 'booking', resourceId: booking.publicId, ...metadata,
     metadata: { ...input, previous: { checkIn: booking.checkIn, checkOut: booking.checkOut, roomTypeId: booking.roomSnapshot.publicId, rooms: booking.rooms, totalMinor: booking.pricing.totalMinor } },
   });
-  await notifyBooking(updated, 'changed');
+  await notifyBooking(updated, 'changed', input.reason);
+  await sendDueRefunds(updated);
+  return serializeBooking(await BookingModel.findById(updated._id) ?? updated);
+}
+
+/** What a move would cost, worked out as changeVendorBooking will charge it. Current room prices; nothing is held. */
+async function quoteChange(booking: any, input: { checkIn: string; checkOut: string; roomTypeId: string; rooms: number }) {
+  const isTour = booking.listingSnapshot.type === 'tour';
+  if (isTour) {
+    assertSeats(booking.adults, booking.children, input.rooms);
+    assertTourDate(await ListingModel.findById(booking.listingId).select('tourSpecs departures').lean(), input.checkIn);
+  }
+  const checkOut = storedEnd(booking.listingSnapshot.type, isTour ? input.checkIn : input.checkOut);
+  const nights = stayNights(input.checkIn, checkOut);
+  const room = await HotelRoomTypeModel.findOne({ publicId: input.roomTypeId, listingId: booking.listingId, status: 'active', deletedAt: null }).lean() as any;
+  if (!room) throw new AppError(404, 'ROOM_NOT_FOUND', 'That room category is not bookable at this property.');
+  if (!partyFits(room, booking.adults, booking.children, input.rooms)) throw new AppError(422, 'OCCUPANCY_EXCEEDED', `${input.rooms} × ${room.name} cannot hold this party.`);
+  const free = (await availableRoomCounts([room], nights)).get(String(room._id)) ?? 0;
+  // The booking's own rooms count as free on the nights it already holds.
+  const held = String(room._id) === String(booking.roomTypeId) && nights.every((night) => stayNights(booking.checkIn, booking.checkOut, booking.checkIn).includes(night)) ? booking.rooms : 0;
+  if (free + held < input.rooms) throw new AppError(409, 'ROOM_UNAVAILABLE', 'Those dates are not available.');
+  const subtotalMinor = unitSubtotalMinor(room, nights, input.rooms, booking.adults, booking.children, booking.tour ?? undefined);
+  const mealsMinor = mealsCostMinor(booking.meals, booking.adults + booking.children, nights.length);
+  const extrasMinor = rentalExtrasMinor(booking.rental, nights.length, input.rooms);
+  const couponMinor = discountMinor(booking.coupon, subtotalMinor + mealsMinor + extrasMinor);
+  const { totalMinor } = applyCharges(subtotalMinor + mealsMinor + extrasMinor - couponMinor, (booking.pricing.charges ?? []) as ChargeRule[]);
+  const paidMinor = booking.paymentStatus === 'paid' ? heldMinor(booking) : 0;
+  return {
+    roomName: room.name, currentTotal: booking.pricing.totalMinor / 100, newTotal: totalMinor / 100,
+    ...(booking.paymentStatus === 'paid' ? { refund: Math.max(0, paidMinor - totalMinor) / 100, balanceDue: Math.max(0, totalMinor - paidMinor) / 100 } : {}),
+  };
+}
+
+/** A guest asks to move their booking. With `preview`, only returns the price. A new request replaces an unanswered one. */
+export async function requestBookingChange(actor: Actor, bookingId: string, input: { checkIn: string; checkOut: string; roomTypeId: string; rooms: number; note?: string; preview?: boolean }, metadata: SessionMetadata) {
+  await requireDatabase();
+  const { booking, isCustomer } = await accessibleBooking(actor, bookingId);
+  if (!isCustomer) throw new AppError(404, 'BOOKING_NOT_FOUND', 'Booking not found.');
+  if (!['pending', 'confirmed'].includes(booking.status) || booking.checkedInAt || todayInPakistan() >= booking.checkIn) {
+    throw new AppError(409, 'INVALID_BOOKING_STATUS', 'Only upcoming bookings can be changed. Please contact the partner.');
+  }
+  if (booking.paymentMethod === 'online' && booking.paymentStatus !== 'paid') throw new AppError(409, 'AWAITING_PAYMENT', 'Complete the payment before asking for a change.');
+  const quote = await quoteChange(booking, input);
+  if (input.preview) return { quote };
+  const updated = await BookingModel.findOneAndUpdate(
+    { _id: booking._id, status: booking.status },
+    { $set: { changeRequest: { checkIn: input.checkIn, checkOut: input.checkOut, roomTypeId: input.roomTypeId, roomName: quote.roomName, rooms: input.rooms, note: input.note, status: 'pending', requestedAt: new Date() } } },
+    { returnDocument: 'after' },
+  );
+  if (!updated) throw new AppError(409, 'BOOKING_CHANGED', 'This booking was updated meanwhile. Reload it and try again.');
+  await recordAuditEvent({ actorId: actor.userId, actorType: 'user', action: 'booking.change_requested', resourceType: 'booking', resourceId: booking.publicId, ...metadata, metadata: { checkIn: input.checkIn, checkOut: input.checkOut, roomTypeId: input.roomTypeId, rooms: input.rooms } });
+  await notifyBooking(updated, 'change_requested', input.note);
+  return { quote, booking: serializeBooking(updated) };
+}
+
+/** A partner asks to move a booking. Nothing changes until the guest accepts; a new proposal replaces an unanswered one. */
+export async function proposeBookingChange(actor: Actor, bookingId: string, input: { checkIn: string; checkOut: string; roomTypeId: string; rooms: number; reason: string }, metadata: SessionMetadata) {
+  await requireDatabase();
+  const { booking, isVendor } = await accessibleBooking(actor, bookingId);
+  if (!isVendor) throw new AppError(404, 'BOOKING_NOT_FOUND', 'Booking not found.');
+  if (!['pending', 'confirmed'].includes(booking.status) || booking.checkedInAt) {
+    throw new AppError(409, 'INVALID_BOOKING_STATUS', 'Only pending or confirmed bookings whose guest has not checked in can be changed.');
+  }
+  if (booking.paymentMethod === 'online' && booking.paymentStatus !== 'paid') throw new AppError(409, 'AWAITING_PAYMENT', 'This booking is waiting for the guest to pay.');
+  const quote = await quoteChange(booking, input);
+  const updated = await BookingModel.findOneAndUpdate(
+    { _id: booking._id, status: booking.status },
+    { $set: { changeRequest: { checkIn: input.checkIn, checkOut: input.checkOut, roomTypeId: input.roomTypeId, roomName: quote.roomName, rooms: input.rooms, status: 'pending', requestedAt: new Date(), proposedBy: 'partner', reason: input.reason, newTotalMinor: Math.round(quote.newTotal * 100) } } },
+    { returnDocument: 'after' },
+  );
+  if (!updated) throw new AppError(409, 'BOOKING_CHANGED', 'This booking was updated meanwhile. Reload it and try again.');
+  await recordAuditEvent({ actorId: actor.userId, actorType: 'user', action: 'booking.change_proposed', resourceType: 'booking', resourceId: booking.publicId, ...metadata, metadata: { checkIn: input.checkIn, checkOut: input.checkOut, roomTypeId: input.roomTypeId, rooms: input.rooms } });
+  await notifyBooking(updated, 'change_proposed', `${input.reason} Proposed: ${input.checkIn} to ${input.checkOut}, ${input.rooms} × ${quote.roomName}, PKR ${quote.newTotal.toLocaleString()} in total.`);
+  return serializeBooking(updated);
+}
+
+/** The guest's answer to a partner's proposal. Accepting applies it at today's price; declining leaves the booking as it was. */
+export async function answerBookingProposal(actor: Actor, bookingId: string, decision: 'accept' | 'decline', metadata: SessionMetadata) {
+  await requireDatabase();
+  const { booking, isCustomer } = await accessibleBooking(actor, bookingId);
+  if (!isCustomer) throw new AppError(404, 'BOOKING_NOT_FOUND', 'Booking not found.');
+  const proposal = booking.changeRequest;
+  if (proposal?.status !== 'pending' || proposal.proposedBy !== 'partner') throw new AppError(409, 'NO_CHANGE_PROPOSAL', 'This booking has no change waiting for your answer.');
+  if (decision === 'accept') return applyBookingChange(actor, booking, { checkIn: proposal.checkIn, checkOut: proposal.checkOut, roomTypeId: proposal.roomTypeId, rooms: proposal.rooms, reason: proposal.reason, agreedTotalMinor: proposal.newTotalMinor }, metadata);
+  const updated = await BookingModel.findOneAndUpdate({ _id: booking._id, 'changeRequest.proposedBy': 'partner' }, { $unset: { changeRequest: 1 } }, { returnDocument: 'after' });
+  if (!updated) throw new AppError(409, 'NO_CHANGE_PROPOSAL', 'This booking has no change waiting for your answer.');
+  await recordAuditEvent({ actorId: actor.userId, actorType: 'user', action: 'booking.change_proposal_declined', resourceType: 'booking', resourceId: booking.publicId, ...metadata });
+  await notifyBooking(updated, 'proposal_declined');
+  return serializeBooking(updated);
+}
+
+/** The partner's answer to a guest's request. Accepting applies it through the normal change, at today's price. */
+export async function decideBookingChange(actor: Actor, bookingId: string, input: { decision: 'accept' | 'decline'; reason?: string }, metadata: SessionMetadata) {
+  await requireDatabase();
+  const { booking, isVendor } = await accessibleBooking(actor, bookingId);
+  if (!isVendor) throw new AppError(404, 'BOOKING_NOT_FOUND', 'Booking not found.');
+  const request = booking.changeRequest;
+  if (request?.status !== 'pending') throw new AppError(409, 'NO_CHANGE_REQUEST', 'This booking has no change request waiting.');
+  // The partner's own proposal can only be withdrawn; accepting it is the guest's call.
+  if (request.proposedBy === 'partner') {
+    if (input.decision === 'accept') throw new AppError(409, 'NO_CHANGE_REQUEST', 'This change is waiting for the guest to answer.');
+    return serializeBooking(await BookingModel.findByIdAndUpdate(booking._id, { $unset: { changeRequest: 1 } }, { returnDocument: 'after' }));
+  }
+  if (input.decision === 'accept') {
+    return applyBookingChange(actor, booking, { checkIn: request.checkIn, checkOut: request.checkOut, roomTypeId: request.roomTypeId, rooms: request.rooms }, metadata);
+  }
+  const updated = await BookingModel.findOneAndUpdate(
+    { _id: booking._id, 'changeRequest.status': 'pending' },
+    { $set: { 'changeRequest.status': 'declined', 'changeRequest.declineReason': input.reason } },
+    { returnDocument: 'after' },
+  );
+  if (!updated) throw new AppError(409, 'NO_CHANGE_REQUEST', 'This booking has no change request waiting.');
+  await recordAuditEvent({ actorId: actor.userId, actorType: 'user', action: 'booking.change_declined', resourceType: 'booking', resourceId: booking.publicId, ...metadata });
+  await notifyBooking(updated, 'change_declined', input.reason);
   return serializeBooking(updated);
 }
 

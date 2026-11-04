@@ -26,8 +26,12 @@ const SOCIALS = [
   { href: "https://tiktok.com", label: "TikTok", icon: Video },
 ];
 
-type FooterLink = { label: string; icon: typeof MapPin; view: string; params?: Record<string, string> };
-const destination = (name: string): FooterLink => ({ label: name, icon: MapPin, view: "destinations", params: { destination: name } });
+type FooterParams = { type?: "hotel" | "homestay" | "car" | "tour"; destination?: string; extra?: { category?: string; sort?: "price-low"; withDriver?: boolean }; section?: string };
+type FooterLink = { label: string; icon: typeof MapPin; view: string; params?: FooterParams };
+const destination = (name: string): FooterLink => ({ label: name, icon: MapPin, view: "search", params: { type: "hotel", destination: name } });
+const tours = (label: string, icon: typeof MapPin, params: FooterParams): FooterLink => ({ label, icon, view: "search", params: { type: "tour", ...params } });
+const stays = (label: string, icon: typeof MapPin, params: FooterParams): FooterLink => ({ label, icon, view: "search", params: { type: "hotel", ...params } });
+const cars = (label: string, icon: typeof MapPin, params: FooterParams): FooterLink => ({ label, icon, view: "search", params: { type: "car", ...params } });
 
 const COLUMNS: Array<{ title: string; more: [string, string]; links: FooterLink[] }> = [
   {
@@ -36,24 +40,34 @@ const COLUMNS: Array<{ title: string; more: [string, string]; links: FooterLink[
   },
   {
     title: "Tours & Packages", more: ["View All Packages", "tours"],
-    links: ([["Adventure Tours", Compass], ["Family Tours", Users], ["Honeymoon Packages", Heart], ["Jeep Safari Tours", Car], ["Trekking Tours", Compass],
-      ["Camping Tours", Sparkles], ["Luxury Tours", Sparkles], ["Custom Tours", Package]] as const).map(([label, icon]) => ({ label, icon, view: "tours" })),
+    links: [
+      tours("Adventure Tours", Compass, { extra: { category: "Adventure" } }), tours("Family Tours", Users, { destination: "family" }),
+      tours("Honeymoon Packages", Heart, { destination: "honeymoon" }), tours("Jeep Safari Tours", Car, { extra: { category: "Jeep safari" } }),
+      tours("Trekking Tours", Compass, { extra: { category: "Trekking" } }), tours("Camping Tours", Sparkles, { destination: "camping" }),
+      tours("Luxury Tours", Sparkles, { destination: "luxury" }), { label: "Custom Tours", icon: Package, view: "support", params: { section: "support-centre-view" } },
+    ],
   },
   {
     title: "Hotels", more: ["View All Hotels", "hotels"],
-    links: ([["Hotels in Skardu", Building2], ["Hotels in Hunza", Building2], ["Hotels in Gilgit", Building2], ["Luxury Hotels", Sparkles], ["Budget Hotels", Building2],
-      ["Resorts", Building2], ["Guest Houses", Home], ["Homestays", Home]] as const).map(([label, icon]) => ({ label, icon, view: "hotels" })),
+    links: [
+      stays("Hotels in Skardu", Building2, { destination: "Skardu" }), stays("Hotels in Hunza", Building2, { destination: "Hunza" }), stays("Hotels in Gilgit", Building2, { destination: "Gilgit" }),
+      stays("Luxury Hotels", Sparkles, { destination: "luxury" }), stays("Budget Hotels", Building2, { extra: { sort: "price-low" } }),
+      stays("Resorts", Building2, { extra: { category: "Resort" } }), stays("Guest Houses", Home, { extra: { category: "Guest House" } }), { label: "Homestays", icon: Home, view: "homestays" },
+    ],
   },
   {
     title: "Cars & More", more: ["View All Cars", "cars"],
-    links: ([["Car Rental in Skardu", "cars", Car], ["Car Rental in Hunza", "cars", Car], ["Car Rental in Gilgit", "cars", Car], ["SUVs & 4x4", "cars", Car],
-      ["With Driver", "cars", UserCheck], ["Self Drive", "cars", Key], ["Travel Guide", "support", BookOpen], ["About Us", "support", Users],
-      ["Contact Us", "support", PhoneCall], ["FAQs", "support", HelpCircle]] as const).map(([label, view, icon]) => ({ label, icon, view })),
+    links: [
+      cars("Car Rental in Skardu", Car, { destination: "Skardu" }), cars("Car Rental in Hunza", Car, { destination: "Hunza" }), cars("Car Rental in Gilgit", Car, { destination: "Gilgit" }),
+      cars("SUVs & 4x4", Car, { destination: "4x4" }), cars("With Driver", UserCheck, { extra: { withDriver: true } }), cars("Self Drive", Key, { extra: { withDriver: false } }),
+      { label: "Travel Guide", icon: BookOpen, view: "destinations" }, { label: "About Us", icon: Users, view: "support" },
+      { label: "Contact Us", icon: PhoneCall, view: "support", params: { section: "support-centre-view" } }, { label: "FAQs", icon: HelpCircle, view: "support", params: { section: "support-faqs" } },
+    ],
   },
 ];
 
 interface FooterProps {
-  onNavigate?: (view: string, params?: any) => void;
+  onNavigate?: (view: string, params?: FooterParams) => void;
 }
 
 export default function Footer({ onNavigate }: FooterProps) {
@@ -74,7 +88,7 @@ export default function Footer({ onNavigate }: FooterProps) {
     }
   };
 
-  const handleNav = (view: string, params?: any) => {
+  const handleNav = (view: string, params?: FooterParams) => {
     if (onNavigate) {
       onNavigate(view, params);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -179,7 +193,7 @@ export default function Footer({ onNavigate }: FooterProps) {
             <div className="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-white/10">
               <div className="flex flex-col space-y-2 text-xs pb-6 lg:pb-0 lg:pr-6">
                 <h5 className="text-white font-semibold text-xs uppercase tracking-wider">Payment</h5>
-                <p className="text-slate-300">Pay on arrival: you pay the partner when you check in, pick up the car or start the tour. Online payment is coming soon.</p>
+                <p className="text-slate-300">Pay now by card or mobile wallet on Safepay's secure page, or pay the partner on arrival: when you check in, pick up the car or start the tour.</p>
               </div>
 
               <div className="flex flex-col space-y-2 text-xs py-6 lg:py-0 lg:px-6">

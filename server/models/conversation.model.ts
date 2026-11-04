@@ -15,9 +15,12 @@ const conversationSchema = new Schema({
   lastMessage: { body: String, sender: { type: String, enum: ['guest', 'partner'] }, at: Date },
   guestUnread: { type: Number, default: 0, min: 0 },
   partnerUnread: { type: Number, default: 0, min: 0 },
+  // Set by each new message, cleared when its email alert goes out (see sendOfflineMessageAlerts).
+  alertPending: { type: Boolean, default: false },
 }, { timestamps: true });
 
 conversationSchema.index({ guestId: 1, listingId: 1 }, { unique: true });
+conversationSchema.index({ alertPending: 1, 'lastMessage.at': 1 }, { partialFilterExpression: { alertPending: true } });
 conversationSchema.index({ guestId: 1, 'lastMessage.at': -1 });
 conversationSchema.index({ vendorId: 1, 'lastMessage.at': -1 });
 

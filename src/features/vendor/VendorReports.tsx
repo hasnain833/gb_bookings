@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { BarChart3, LoaderCircle } from 'lucide-react';
 import { api, type VendorReport } from '../../shared/api/api';
+import DateInput from '../../shared/components/DateInput';
 
 const fieldClass = 'min-h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[#006F3C] focus:ring-2 focus:ring-[#006F3C]/15';
 const pkDate = (date: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Karachi' }).format(date);
@@ -40,8 +41,8 @@ export default function VendorReports() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3"><BarChart3 className="size-5 text-[#006F3C]" /><h2 id="vendor-reports-heading" className="font-bold text-slate-900">Reports</h2></div>
         <div className="flex flex-wrap gap-3">
-          <label className="flex items-center gap-2 text-xs font-semibold text-slate-600">From<input type="date" value={from} max={to} onChange={(event) => setFrom(event.target.value)} className={fieldClass} /></label>
-          <label className="flex items-center gap-2 text-xs font-semibold text-slate-600">to<input type="date" value={to} min={from} onChange={(event) => setTo(event.target.value)} className={fieldClass} /></label>
+          <label className="flex items-center gap-2 text-xs font-semibold text-slate-600">From<DateInput value={from} max={to} onChange={(event) => setFrom(event.target.value)} className={fieldClass} /></label>
+          <label className="flex items-center gap-2 text-xs font-semibold text-slate-600">to<DateInput value={to} min={from} onChange={(event) => setTo(event.target.value)} className={fieldClass} /></label>
         </div>
       </div>
       {error && <p role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}

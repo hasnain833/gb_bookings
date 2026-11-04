@@ -1,3 +1,4 @@
+import { PARTNER_AGREEMENT_VERSION } from '../../shared/utils/partner-agreement';
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { ArrowLeft, Check, CheckCircle2, FileText, LoaderCircle, MailCheck, Upload } from 'lucide-react';
 import { api, type VendorProfile } from '../../shared/api/api';
@@ -65,6 +66,7 @@ export default function HotelRegistration({ kind = 'hotel', vendor, emailVerifie
   });
   const [uploading, setUploading] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState(false);
+  const [agreed, setAgreed] = useState(false);
   const attached = new Set((vendor?.verificationDocuments ?? []).map((document) => document.type));
   const homestay = kind === 'homestay';
   const car = kind === 'car';
@@ -106,7 +108,7 @@ export default function HotelRegistration({ kind = 'hotel', vendor, emailVerifie
     }).finally(() => setUploading(null));
   };
 
-  const submit = () => run(async () => { onVendorChange((await api.submitVendorApplication()).data); });
+  const submit = () => run(async () => { await api.acceptPartnerAgreement(PARTNER_AGREEMENT_VERSION); onVendorChange((await api.submitVendorApplication()).data); });
 
   return (
     <div className={embedded ? 'space-y-6' : 'mx-auto max-w-3xl space-y-6'}>
@@ -159,7 +161,7 @@ export default function HotelRegistration({ kind = 'hotel', vendor, emailVerifie
             {!individual && <Field label="Registration number"><input required minLength={2} maxLength={100} className={inputClass} value={business.registrationNumber} onChange={(e) => setBusiness({ ...business, registrationNumber: e.target.value })} /></Field>}
             <Field label={individual ? 'Your CNIC number' : 'Owner’s CNIC number'} hint="Must match the CNIC you upload in the next step."><input required inputMode="numeric" pattern="\d{5}-?\d{7}-?\d" title="13 digits, e.g. 12345-1234567-1" placeholder="12345-1234567-1" maxLength={15} className={inputClass} value={business.cnicNumber} onChange={(e) => setBusiness({ ...business, cnicNumber: e.target.value })} /></Field>
             <Field label={individual ? 'Email' : 'Business email'} hint="Booking requests are sent here."><input required type="email" className={inputClass} value={business.email} onChange={(e) => setBusiness({ ...business, email: e.target.value })} /></Field>
-            <Field label={individual ? 'Phone' : 'Business phone'}><input required type="tel" minLength={7} maxLength={30} placeholder="03XX XXXXXXX" className={inputClass} value={business.phone} onChange={(e) => setBusiness({ ...business, phone: e.target.value })} /></Field>
+            <Field label={individual ? 'Phone' : 'Business phone'}><input required type="tel" pattern="[+]?[0-9][0-9 ()\-]{6,19}" title="Enter a phone number, like 0300 1234567." minLength={7} maxLength={30} placeholder="03XX XXXXXXX" className={inputClass} value={business.phone} onChange={(e) => setBusiness({ ...business, phone: e.target.value })} /></Field>
             <Field label={homestay ? 'Home address' : ownerDriver ? 'Your address' : 'Street address'} wide><input required className={inputClass} value={business.line1} onChange={(e) => setBusiness({ ...business, line1: e.target.value })} /></Field>
             <Field label="City"><input required className={inputClass} value={business.city} onChange={(e) => setBusiness({ ...business, city: e.target.value })} /></Field>
             <Field label="Region"><input required className={inputClass} value={business.region} onChange={(e) => setBusiness({ ...business, region: e.target.value })} /></Field>
@@ -201,9 +203,10 @@ export default function HotelRegistration({ kind = 'hotel', vendor, emailVerifie
         </dl>
         <div className="mt-4 flex gap-4 text-sm"><button type="button" onClick={() => go('business')} className="font-semibold text-[#006F3C] underline">Edit details</button><button type="button" onClick={() => go('documents')} className="font-semibold text-[#006F3C] underline">Edit documents</button></div>
         <label className="mt-6 flex items-start gap-3 rounded-lg bg-slate-50 p-4 text-sm text-slate-700"><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} className="mt-0.5 size-4 accent-[#006F3C]" />I confirm these details are accurate and I am authorised to list this {homestay ? 'home' : car ? 'car' : tour ? 'tour business' : 'business'} on GBBookings.</label>
+        <label className="mt-3 flex items-start gap-3 rounded-lg bg-slate-50 p-4 text-sm text-slate-700"><input type="checkbox" checked={agreed} onChange={(event) => setAgreed(event.target.checked)} className="mt-0.5 size-4 accent-[#006F3C]" /><span>I accept the <a href="/partner-agreement" target="_blank" rel="noopener noreferrer" className="font-semibold text-[#006F3C] underline">Partner Agreement</a>, including GBBookings' commission on each booking.</span></label>
         <div className="mt-6 flex flex-wrap justify-between gap-3">
           <button type="button" onClick={() => go('documents')} className={secondaryButton}>Back</button>
-          <button type="button" disabled={busy || !confirmed || requiredMissing.length > 0} onClick={submit} className={primaryButton}>{busy && <LoaderCircle className="size-4 animate-spin" />}Submit for review</button>
+          <button type="button" disabled={busy || !confirmed || !agreed || requiredMissing.length > 0} onClick={submit} className={primaryButton}>{busy && <LoaderCircle className="size-4 animate-spin" />}Submit for review</button>
         </div>
       </Card>}
     </div>

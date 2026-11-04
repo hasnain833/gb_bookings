@@ -2,6 +2,7 @@ import { EXPERIENCE_TYPES, MEAL_TYPES, mealLabel, type HomestaySpecs, type Homes
 import type { MealType } from '../../types';
 import ChipInput from './ChipInput';
 import PhotoManager, { toPhotoInput, type EditablePhoto } from './PhotoManager';
+import Select from '../../shared/components/Select';
 
 /** Editor state: every meal has a row; `offered` decides whether it is saved. */
 export type HomestayDraft = Omit<HomestaySpecs, 'hostImage' | 'meals'> & { hostPhoto: EditablePhoto[]; meals: Array<MealOption & { offered: boolean }> };
@@ -49,9 +50,9 @@ export default function HomestayHostFields({ value, onChange, onUploadingChange 
           <div key={meal.type} className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 p-3">
             <label className="flex min-w-28 items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={meal.offered} onChange={(e) => setMeal(meal.type, { offered: e.target.checked })} className="size-4 accent-[#006F3C]" />{mealLabel(meal.type)}</label>
             {meal.offered && <>
-              <select aria-label={`${mealLabel(meal.type)} pricing`} value={meal.included ? 'included' : 'extra'} onChange={(e) => setMeal(meal.type, { included: e.target.value === 'included' })} className="min-h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm">
+              <Select aria-label={`${mealLabel(meal.type)} pricing`} value={meal.included ? 'included' : 'extra'} onChange={(e) => setMeal(meal.type, { included: e.target.value === 'included' })} className="min-h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm">
                 <option value="included">Included</option><option value="extra">Extra charge</option>
-              </select>
+              </Select>
               {!meal.included && <label className="flex items-center gap-2 text-sm">PKR<input type="number" min={0} max={100000} required value={meal.price} onChange={(e) => setMeal(meal.type, { price: Number(e.target.value) })} className="min-h-11 w-28 rounded-lg border border-slate-300 px-3" /><span className="text-xs text-slate-500">per guest / night</span></label>}
             </>}
           </div>

@@ -6,7 +6,7 @@ import { validate } from '../../middleware/validate.js';
 import { AppError } from '../../shared/app-error.js';
 import { asyncHandler } from '../../shared/async-handler.js';
 import { sessionMetadata } from '../auth/auth.service.js';
-import { deleteOwnedMedia, listOwnedMedia, uploadOwnedMedia } from './media.service.js';
+import { assertUploadAllowed, deleteOwnedMedia, listOwnedMedia, uploadOwnedMedia } from './media.service.js';
 import { listMediaQuerySchema, mediaIdParamsSchema, mediaKindParamsSchema } from './media.schemas.js';
 
 const imageTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
@@ -44,7 +44,12 @@ const parseUpload: RequestHandler = (request, response, next) => {
 export const mediaRouter = Router();
 mediaRouter.use(authenticate);
 
-mediaRouter.post('/:kind', validate('params', mediaKindParamsSchema), parseUpload, asyncHandler(async (request, response) => {
+const withinUploadLimit: RequestHandler = asyncHandler(async (request, _response, next) => {
+  await assertUploadAllowed(request.auth!.userId, request.params.kind === 'images' ? 'image' : 'document');
+  next();
+});
+
+mediaRouter.post('/:kind', validate('params', mediaKindParamsSchema), withinUploadLimit, parseUpload, asyncHandler(async (request, response) => {
   const kind = request.params.kind === 'images' ? 'image' : 'document';
   const media = await uploadOwnedMedia(request.auth!.userId, request.file!, kind, sessionMetadata(request));
   response.status(201).json({ data: media });

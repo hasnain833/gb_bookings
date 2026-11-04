@@ -6,6 +6,7 @@ import PhotoManager, { toPhotoInput, type EditablePhoto } from './PhotoManager';
 import StayInfoFields, { defaultStayInfo, stayInfoProblem } from './StayInfoFields';
 import { defaultExtras, ExtrasFields, extrasInput, extrasProblem, FacilityChecklist, type Extras } from './PropertyExtrasFields';
 import { addressLine, HOME_TYPES, HOTEL_TYPES, type PropertyAddress } from '../../shared/utils/rooms';
+import Select from '../../shared/components/Select';
 
 const input = 'mt-1 min-h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-sm';
 const split = (value: string) => value.split(',').map((item) => item.trim()).filter(Boolean);
@@ -76,12 +77,12 @@ export default function PropertyEditor({ listing, onSaved, onCancel }: {
       {error && <p role="alert" className="text-sm text-rose-700 sm:col-span-2">{error}</p>}
       {textField('title', 'Property name')}
       <label className="text-xs font-semibold text-slate-600 sm:col-span-2">Description<textarea required minLength={20} maxLength={10000} className={`${input} min-h-28 py-3`} value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} /></label>
-      <label className="text-xs font-semibold text-slate-600">Type of property<select className={input} value={draft.hotelType} onChange={(event) => setDraft({ ...draft, hotelType: event.target.value })}>
+      <label className="text-xs font-semibold text-slate-600">Type of property<Select className={input} value={draft.hotelType} onChange={(event) => setDraft({ ...draft, hotelType: event.target.value })}>
         {/* An older listing keeps its own value as an option until it is changed. */}
         {[...new Set([...(listing.type === 'homestay' ? HOME_TYPES : HOTEL_TYPES), draft.hotelType])].map((value) => <option key={value}>{value}</option>)}
-      </select></label>
+      </Select></label>
       {listing.type === 'homestay' && <>
-        <label className="text-xs font-semibold text-slate-600">Experience<select className={input} value={draft.experienceType} onChange={(event) => setDraft({ ...draft, experienceType: event.target.value as typeof draft.experienceType })}>{EXPERIENCE_TYPES.map((value) => <option key={value}>{value}</option>)}</select></label>
+        <label className="text-xs font-semibold text-slate-600">Experience<Select className={input} value={draft.experienceType} onChange={(event) => setDraft({ ...draft, experienceType: event.target.value as typeof draft.experienceType })}>{EXPERIENCE_TYPES.map((value) => <option key={value}>{value}</option>)}</Select></label>
       </>}
       <div className="sm:col-span-2"><AddressFields value={address} onChange={setAddress} onPin={setPin} /></div>
       <div className="sm:col-span-2"><LocationPinField value={pin} onChange={setPin} location={addressLine(address)} /></div>

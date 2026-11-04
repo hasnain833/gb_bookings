@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { LoaderCircle, UserPlus, Users } from 'lucide-react';
 import { api, type TeamMember } from '../../shared/api/api';
 import { useReasonDialog } from '../../shared/components/ReasonDialog';
+import Select from '../../shared/components/Select';
 
 const fieldClass = 'min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[#006F3C] focus:ring-2 focus:ring-[#006F3C]/15';
 const roleLabels: Record<TeamMember['role'], string> = { owner: 'Owner', manager: 'Manager', listings: 'Listings', reservations: 'Reception', finance: 'Finance' };
@@ -58,7 +59,7 @@ export default function HotelTeam() {
       <form onSubmit={add} className="grid gap-3 sm:grid-cols-[1fr_1fr_auto_auto] sm:items-end">
         <label className="text-xs font-semibold text-slate-600">Name<input required minLength={2} value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} className={`${fieldClass} mt-1`} /></label>
         <label className="text-xs font-semibold text-slate-600">Email<input required type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} className={`${fieldClass} mt-1`} /></label>
-        <label className="text-xs font-semibold text-slate-600">Role<select value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value as typeof form.role })} className={`${fieldClass} mt-1`}><option value="reservations">Reception</option><option value="manager">Manager</option></select></label>
+        <label className="text-xs font-semibold text-slate-600">Role<Select value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value as typeof form.role })} className={`${fieldClass} mt-1`}><option value="reservations">Reception</option><option value="manager">Manager</option></Select></label>
         <button disabled={busy} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#006F3C] px-4 text-sm font-semibold text-white hover:bg-[#005c32] disabled:opacity-50"><UserPlus className="size-4" />{busy ? 'Adding…' : 'Add'}</button>
       </form>
     </section>

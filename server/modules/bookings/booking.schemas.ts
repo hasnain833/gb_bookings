@@ -67,7 +67,7 @@ export const cancelBookingSchema = z.object({
 }).strict();
 
 export const vendorBookingActionSchema = z.object({
-  action: z.enum(['confirm', 'cancel', 'complete', 'no_show', 'mark_paid', 'check_in']),
+  action: z.enum(['confirm', 'cancel', 'complete', 'no_show', 'mark_paid', 'check_in', 'collect_balance']),
   reason: z.string().trim().max(1_000).optional(),
 }).strict().refine((input) => input.action !== 'cancel' || (input.reason?.length ?? 0) >= 3, {
   message: 'A reason is required to cancel a booking.',
@@ -98,6 +98,24 @@ export const changeBookingSchema = z.object({
   checkOut: isoDate,
   roomTypeId: z.string().regex(/^rom_[0-9a-f-]{36}$/i, 'Invalid room identifier.'),
   rooms: z.number().int().min(1).max(20),
+}).strict();
+
+/** A partner changing a booking directly must tell the guest why. */
+export const vendorChangeSchema = changeBookingSchema.extend({
+  reason: z.string().trim().min(5, 'Tell the guest why you are changing this booking.').max(300),
+}).strict();
+
+export const changeRequestSchema = changeBookingSchema.extend({
+  note: z.string().trim().max(500).optional(),
+  // Only work out the price; nothing is sent to the partner.
+  preview: z.boolean().optional(),
+}).strict();
+
+export const proposalAnswerSchema = z.object({ decision: z.enum(['accept', 'decline']) }).strict();
+
+export const changeDecisionSchema = z.object({
+  decision: z.enum(['accept', 'decline']),
+  reason: z.string().trim().max(500).optional(),
 }).strict();
 
 export const bookingReferenceQuerySchema = z.object({

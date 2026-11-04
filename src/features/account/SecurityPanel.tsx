@@ -1,9 +1,15 @@
-import { useEffect, useState } from 'react';
-import { KeyRound, LoaderCircle, LogOut, MonitorSmartphone, ShieldCheck, Trash2 } from 'lucide-react';
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { CheckCircle2, Eye, EyeOff, KeyRound, LoaderCircle, LogOut, Mail, MonitorSmartphone, ShieldCheck, Trash2, X } from 'lucide-react';
 import { api, type AuthSession, type AuthUser } from '../../shared/api/api';
-import { PASSWORD_PATTERN, PASSWORD_REQUIREMENTS } from '../../shared/utils/password';
+import { isValidPassword, passwordChecks, PASSWORD_REQUIREMENTS } from '../../shared/utils/password';
+import { toast } from '../../shared/components/Toaster';
 
 const SESSIONS_SHOWN = 3;
+const primary = 'inline-flex min-h-11 items-center justify-center rounded-lg bg-[#006F3C] px-4 text-sm font-semibold text-white hover:bg-[#005c32] disabled:opacity-50';
+const secondary = 'inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50';
+const danger = 'inline-flex min-h-11 items-center justify-center rounded-lg border border-rose-300 bg-white px-4 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50';
+const input = 'mt-1 h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-normal outline-none focus:border-[#006F3C] focus:ring-2 focus:ring-[#006F3C]/20';
+const codeInput = `${input} max-w-44 font-mono text-lg tracking-[0.3em]`;
 
 /** "Chrome on Windows" from a user-agent string; scripts and tools read as such. */
 export function deviceName(userAgent: string) {
@@ -13,6 +19,76 @@ export function deviceName(userAgent: string) {
   if (browser) return os ? `${browser} on ${os}` : browser;
   if (/^(node|curl|axios|python|postman|undici)/i.test(ua)) return 'App or script (not a browser)';
   return ua ? ua.slice(0, 40) : 'Unknown device';
+}
+
+const errorText = (reason: unknown, fallback: string) => reason instanceof Error ? reason.message : fallback;
+
+function Row({ icon, title, text, action, children, tone }: { icon: ReactNode; title: string; text: string; action?: ReactNode; children?: ReactNode; tone?: 'danger' }) {
+  return <section className="py-5 first:pt-0 last:pb-0">
+    <div className="flex flex-wrap items-center gap-4">
+      <span className={`flex size-10 shrink-0 items-center justify-center rounded-full ${tone === 'danger' ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-[#006F3C]'}`}>{icon}</span>
+      <div className="min-w-48 flex-1"><h3 className="font-semibold text-slate-900">{title}</h3><p className="mt-0.5 text-sm leading-5 text-slate-500">{text}</p></div>
+      {action}
+    </div>
+    {children && <div className="mt-4 sm:pl-14">{children}</div>}
+  </section>;
+}
+
+/** Email code, then the new password. This device stays signed in; the other ones are signed out. */
+function ChangePasswordDialog({ email, challengeId, onResend, onClose }: { email: string; challengeId: string; onResend: () => Promise<void>; onClose: () => void }) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const [code, setCode] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmation, setConfirmation] = useState('');
+  const [show, setShow] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  useEffect(() => { const element = dialog.current; element?.showModal(); return () => element?.close(); }, []);
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!isValidPassword(password)) { setError(PASSWORD_REQUIREMENTS); return; }
+    if (password !== confirmation) { setError('The passwords do not match.'); return; }
+    setBusy(true); setError('');
+    try {
+      await api.changePassword(challengeId, code, password);
+      toast('Your password has been changed. Other devices were signed out.');
+      onClose();
+    } catch (reason) { setError(errorText(reason, 'Unable to change your password.')); setBusy(false); }
+  };
+
+  return <dialog ref={dialog} onCancel={onClose} aria-labelledby="change-password-title" className="m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl p-0 backdrop:bg-slate-950/60">
+    <form onSubmit={submit} className="space-y-4 p-6">
+      <div className="flex items-start justify-between gap-4">
+        <h2 id="change-password-title" className="text-lg font-bold text-slate-900">Change your password</h2>
+        <button type="button" aria-label="Close" onClick={onClose} className="-m-1 rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"><X className="size-5" /></button>
+      </div>
+      <p className="flex gap-2 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-900"><Mail className="mt-0.5 size-4 shrink-0" /><span>We sent a 6-digit code to <strong>{email}</strong>.</span></p>
+      {error && <p role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
+      <div>
+        <label className="block text-sm font-medium text-slate-700">Code from your email
+          <input required autoFocus inputMode="numeric" autoComplete="one-time-code" pattern="\d{6}" title="Enter the 6-digit code from your email." maxLength={6} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, ''))} className={codeInput} />
+        </label>
+        <button type="button" disabled={busy} onClick={() => void onResend().then(() => setError('')).catch((reason) => setError(errorText(reason, 'Unable to send a new code.')))} className="mt-1 min-h-9 text-sm font-semibold text-[#006F3C]">Send a new code</button>
+      </div>
+      <div>
+        <label htmlFor="security-new-password" className="block text-sm font-medium text-slate-700">New password</label>
+        <div className="relative">
+          <input id="security-new-password" required type={show ? 'text' : 'password'} autoComplete="new-password" maxLength={72} value={password} onChange={(event) => setPassword(event.target.value)} className={`${input} pr-10`} />
+          <button type="button" onClick={() => setShow(!show)} aria-label={show ? 'Hide password' : 'Show password'} className="absolute right-1 top-1/2 mt-0.5 -translate-y-1/2 p-2 text-slate-400 hover:text-slate-600">{show ? <EyeOff className="size-4" /> : <Eye className="size-4" />}</button>
+        </div>
+        <ul className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">{passwordChecks(password).map((check) => <li key={check.label} className={`flex items-center gap-1.5 ${check.valid ? 'text-emerald-700' : 'text-slate-500'}`}><CheckCircle2 className="size-3 shrink-0" />{check.label}</li>)}</ul>
+      </div>
+      <label className="block text-sm font-medium text-slate-700">Confirm new password
+        <input required type={show ? 'text' : 'password'} autoComplete="new-password" maxLength={72} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} className={input} />
+      </label>
+      {confirmation && password !== confirmation && <p className="text-xs text-rose-700">The passwords do not match.</p>}
+      <div className="flex justify-end gap-2 pt-1">
+        <button type="button" className={secondary} disabled={busy} onClick={onClose}>Cancel</button>
+        <button className={primary} disabled={busy}>{busy ? 'Saving…' : 'Change password'}</button>
+      </div>
+    </form>
+  </dialog>;
 }
 
 export default function SecurityPanel() {
@@ -26,164 +102,72 @@ export default function SecurityPanel() {
   const [challengeId, setChallengeId] = useState('');
   const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
-  const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
+  const [passwordChallenge, setPasswordChallenge] = useState('');
   const [deleteChallenge, setDeleteChallenge] = useState('');
   const [deleteCode, setDeleteCode] = useState('');
+  const [disabling, setDisabling] = useState(false);
   // Partner and admin accounts are closed by support (the server enforces this too).
   const customerOnly = (user?.roles ?? [user?.role ?? 'customer']).every((role) => role === 'customer');
 
-  const load = async () => {
-    setLoading(true);
-    try {
-      const [userResult, sessionResult] = await Promise.all([api.getCurrentUser(), api.getSessions()]);
-      setUser(userResult.user);
-      setSessions(sessionResult);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Unable to load account security.');
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => {
+    Promise.all([api.getCurrentUser(), api.getSessions()])
+      .then(([userResult, sessionResult]) => { setUser(userResult.user); setSessions(sessionResult); })
+      .catch((reason) => toast(errorText(reason, 'Unable to load account security.'), 'error'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  /** Runs an action with the buttons locked; failures show as a toast. */
+  const act = async (action: () => Promise<void>, fallback: string) => {
+    setBusy(true);
+    try { await action(); } catch (reason) { toast(errorText(reason, fallback), 'error'); } finally { setBusy(false); }
   };
 
-  useEffect(() => { void load(); }, []);
-
-  const beginSetup = async () => {
-    setBusy(true); setMessage('');
-    try {
-      const result = await api.beginTwoFactorSetup('email');
-      setChallengeId(result.challengeId);
-      setMessage('A security code was sent to your verified email address.');
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Unable to start two-factor setup.');
-    } finally { setBusy(false); }
-  };
-
-  const confirmSetup = async () => {
-    setBusy(true); setMessage('');
-    try {
-      const result = await api.enableTwoFactor(challengeId, code);
-      setUser(result.user); setChallengeId(''); setCode('');
-      setMessage('Two-factor authentication is enabled.');
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Unable to enable two-factor authentication.');
-    } finally { setBusy(false); }
-  };
-
-  const disable = async () => {
-    setBusy(true); setMessage('');
-    try {
-      await api.disableTwoFactor(password);
-      window.location.reload();
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Unable to disable two-factor authentication.');
-      setBusy(false);
-    }
-  };
-
-  const revoke = async (session: AuthSession) => {
-    setBusy(true); setMessage('');
-    try {
-      await api.revokeSession(session.id);
-      if (session.current) window.location.reload();
-      else setSessions((items) => items.filter((item) => item.id !== session.id));
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Unable to revoke the session.');
-    } finally { setBusy(false); }
-  };
+  const sendPasswordCode = async () => setPasswordChallenge((await api.requestPasswordChangeCode()).challengeId);
 
   if (loading) return <div className="flex min-h-40 items-center justify-center"><LoaderCircle className="size-6 animate-spin text-[#006F3C]" /></div>;
 
-  return (
-    <div className="space-y-8 animate-fadeIn">
-      {message && <p className="border-l-4 border-[#006F3C] bg-emerald-50 p-3 text-sm text-slate-700">{message}</p>}
+  return <div className="divide-y divide-slate-200 animate-fadeIn">
+    {!user?.emailVerified && <Row icon={<Mail className="size-5" />} title="Verify your email" text="Needed for partner registration and security codes."
+      action={<button type="button" disabled={busy} className={primary} onClick={() => void act(async () => { await api.requestEmailVerification(); toast('Verification email sent. Open the link in your inbox.'); }, 'Unable to send verification email.')}>Send verification email</button>} />}
 
-      {!user?.emailVerified && <section className="space-y-3 border-y border-slate-200 py-4">
-        <h3 className="font-bold">Verify your email</h3>
-        <p className="text-sm text-slate-600">Email verification is required for vendor registration and email security codes.</p>
-        <button type="button" disabled={busy} className="min-h-11 rounded-md bg-[#006F3C] px-4 text-sm font-bold text-white" onClick={async () => {
-          setBusy(true); setMessage('');
-          try { await api.requestEmailVerification(); setMessage('Verification email requested. Open the link in your inbox, then reload this page.'); }
-          catch (reason) { setMessage(reason instanceof Error ? reason.message : 'Unable to send verification email.'); }
-          finally { setBusy(false); }
-        }}>Send verification email</button>
-      </section>}
+    <Row icon={<KeyRound className="size-5" />} title="Password" text="We email you a code first, to make sure it's really you. You stay signed in on this device."
+      action={<button type="button" disabled={busy || !user?.emailVerified} className={secondary} onClick={() => void act(sendPasswordCode, 'Unable to send the code.')}>{busy ? 'Sending…' : 'Change password'}</button>} />
+    {passwordChallenge && user && <ChangePasswordDialog email={user.email} challengeId={passwordChallenge} onResend={sendPasswordCode} onClose={() => setPasswordChallenge('')} />}
 
-      <form className="grid gap-3 border-y border-slate-200 py-4 sm:grid-cols-2" onSubmit={async (event) => {
-        event.preventDefault(); setBusy(true); setMessage('');
-        try { await api.changePassword(currentPassword, newPassword); window.location.reload(); }
-        catch (reason) { setMessage(reason instanceof Error ? reason.message : 'Unable to change password.'); setBusy(false); }
-      }}>
-        <h3 className="font-bold sm:col-span-2">Change password</h3>
-        <p className="text-xs leading-5 text-slate-500 sm:col-span-2">{PASSWORD_REQUIREMENTS}</p>
-        <label className="text-xs font-semibold">Current password<input required type="password" autoComplete="current-password" className="mt-1 min-h-11 w-full rounded-md border border-slate-300 px-3" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} /></label>
-        <label className="text-xs font-semibold">New password<input required type="password" autoComplete="new-password" minLength={8} maxLength={72} pattern={PASSWORD_PATTERN} title={PASSWORD_REQUIREMENTS} className="mt-1 min-h-11 w-full rounded-md border border-slate-300 px-3" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} /></label>
-        <button disabled={busy} className="min-h-11 rounded-md bg-[#006F3C] px-4 text-sm font-bold text-white sm:col-span-2">Change password and sign out all devices</button>
-      </form>
+    <Row icon={<ShieldCheck className="size-5" />} title="Two-step sign-in" text={user?.twoFactorEnabled ? `On. We ask for a code from your ${user.twoFactorChannel} when you sign in on a new device.` : 'Ask for an emailed code when signing in on a new device.'}
+      action={user?.twoFactorEnabled
+        ? <button type="button" className={danger} disabled={busy} onClick={() => setDisabling(!disabling)}>{disabling ? 'Keep it on' : 'Turn off'}</button>
+        : !challengeId && <button type="button" className={secondary} disabled={busy || !user?.emailVerified} onClick={() => void act(async () => { setChallengeId((await api.beginTwoFactorSetup('email')).challengeId); toast('We emailed you a security code.'); }, 'Unable to start two-step sign-in.')}>Turn on</button>}>
+      {user?.twoFactorEnabled && disabling && <form className="flex flex-wrap items-end gap-3" onSubmit={(event) => { event.preventDefault(); void act(async () => { await api.disableTwoFactor(password); window.location.reload(); }, 'Unable to turn off two-step sign-in.'); }}>
+        <label className="min-w-56 flex-1 text-sm font-medium text-slate-700">Your password<input required type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} className={input} /></label>
+        <button className={danger} disabled={busy}>Turn off two-step sign-in</button>
+      </form>}
+      {!user?.twoFactorEnabled && challengeId && <form className="flex flex-wrap items-end gap-3" onSubmit={(event) => { event.preventDefault(); void act(async () => { setUser((await api.enableTwoFactor(challengeId, code)).user); setChallengeId(''); setCode(''); toast('Two-step sign-in is on.'); }, 'Unable to turn on two-step sign-in.'); }}>
+        <label className="text-sm font-medium text-slate-700">Code from your email<input required autoFocus inputMode="numeric" autoComplete="one-time-code" pattern="\d{6}" title="Enter the 6-digit code from your email." maxLength={6} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, ''))} className={codeInput} /></label>
+        <button className={primary} disabled={busy}>Confirm</button>
+        <button type="button" className={secondary} disabled={busy} onClick={() => { setChallengeId(''); setCode(''); }}>Cancel</button>
+      </form>}
+    </Row>
 
-      <section>
-        <div className="mb-4 flex items-center gap-3">
-          <ShieldCheck className="size-5 text-[#006F3C]" />
-          <div><h3 className="font-bold text-slate-900">Two-factor authentication</h3><p className="text-xs text-slate-500">Require an emailed security code when signing in.</p></div>
-        </div>
-        {user?.twoFactorEnabled ? (
-          <div className="flex flex-col gap-3 border-y border-slate-200 py-4 sm:flex-row sm:items-end">
-            <div className="flex-1"><p className="text-sm font-semibold text-emerald-700">Enabled via {user.twoFactorChannel}</p><label className="mt-3 block text-xs font-semibold text-slate-600">Current password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} className="mt-1 min-h-11 w-full max-w-sm rounded-md border border-slate-300 px-3" /></label></div>
-            <button type="button" disabled={busy || !password} onClick={disable} className="min-h-11 rounded-md border border-rose-300 px-4 text-sm font-bold text-rose-700 disabled:opacity-50">Disable</button>
-          </div>
-        ) : challengeId ? (
-          <div className="flex flex-col gap-3 border-y border-slate-200 py-4 sm:flex-row sm:items-end">
-            <label className="flex-1 text-xs font-semibold text-slate-600">Six-digit code<input inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, ''))} className="mt-1 min-h-11 w-full max-w-xs rounded-md border border-slate-300 px-3 font-mono text-lg" /></label>
-            <button type="button" disabled={busy || code.length !== 6} onClick={confirmSetup} className="min-h-11 rounded-md bg-[#006F3C] px-4 text-sm font-bold text-white disabled:opacity-50">Confirm and enable</button>
-          </div>
-        ) : (
-          <button type="button" disabled={busy || !user?.emailVerified} onClick={beginSetup} className="min-h-11 rounded-md bg-[#006F3C] px-4 text-sm font-bold text-white disabled:opacity-50">
-            {user?.emailVerified ? 'Enable email verification codes' : 'Verify email before enabling'}
-          </button>
-        )}
-      </section>
+    <Row icon={<MonitorSmartphone className="size-5" />} title="Signed-in devices" text="Sign out of any device you don't recognise.">
+      <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200">
+        {visibleSessions.map((session) => <li key={session.id} className="flex items-center gap-3 px-4 py-3">
+          <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-800" title={session.userAgent}>{deviceName(session.userAgent)}{session.current && <span className="ml-2 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-800">This device</span>}</p><p className="text-xs text-slate-500">{session.ipAddress || 'Unknown IP'} · Last used {new Date(session.lastUsedAt).toLocaleString()}</p></div>
+          <button type="button" disabled={busy} aria-label={`Sign out ${deviceName(session.userAgent)}`} title="Sign out" onClick={() => void act(async () => { await api.revokeSession(session.id); if (session.current) window.location.reload(); else { setSessions((items) => items.filter((item) => item.id !== session.id)); toast('That device has been signed out.'); } }, 'Unable to sign out that device.')} className="flex size-10 shrink-0 items-center justify-center rounded-lg text-rose-600 hover:bg-rose-50"><LogOut className="size-4" /></button>
+        </li>)}
+        {sessions.length === 0 && <li className="p-4 text-sm text-slate-500">No signed-in devices were found.</li>}
+      </ul>
+      {sessions.length > SESSIONS_SHOWN && <button type="button" aria-expanded={showAllSessions} onClick={() => setShowAllSessions(!showAllSessions)} className="mt-2 min-h-11 text-sm font-semibold text-[#006F3C]">{showAllSessions ? 'Show fewer' : `Show all ${sessions.length} devices`}</button>}
+    </Row>
 
-      <section>
-        <div className="mb-4 flex items-center gap-3"><MonitorSmartphone className="size-5 text-indigo-600" /><div><h3 className="font-bold text-slate-900">Active sessions</h3><p className="text-xs text-slate-500">Devices currently signed in to your account.</p></div></div>
-        <div className="divide-y divide-slate-200 border-y border-slate-200">
-          {visibleSessions.map((session) => (
-            <div key={session.id} className="flex items-center gap-3 py-3.5">
-              <KeyRound className="size-5 shrink-0 text-slate-400" aria-hidden="true" />
-              <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-800" title={session.userAgent}>{deviceName(session.userAgent)}</p><p className="text-xs text-slate-500">{session.ipAddress || 'Unknown IP'} · Last used {new Date(session.lastUsedAt).toLocaleString()}</p></div>
-              {session.current && <span className="text-xs font-bold text-emerald-700">This device</span>}
-              <button type="button" disabled={busy} onClick={() => revoke(session)} aria-label={`Sign out ${deviceName(session.userAgent)}`} title="Sign out session" className="flex size-10 shrink-0 items-center justify-center rounded-lg text-rose-600 hover:bg-rose-50"><LogOut className="size-4" /></button>
-            </div>
-          ))}
-          {sessions.length === 0 && <p className="py-6 text-sm text-slate-500">No active sessions were found.</p>}
-        </div>
-        {sessions.length > SESSIONS_SHOWN && <button type="button" aria-expanded={showAllSessions} onClick={() => setShowAllSessions(!showAllSessions)} className="mt-2 min-h-11 text-sm font-bold text-[#006F3C] underline">
-          {showAllSessions ? 'Show fewer' : `Show all ${sessions.length} devices`}</button>}
-      </section>
-
-      <section className="border-t border-rose-200 pt-6">
-        <div className="mb-4 flex items-center gap-3"><Trash2 className="size-5 text-rose-600" /><div><h3 className="font-bold text-slate-900">Delete account</h3><p className="text-xs leading-5 text-slate-500">Removes your name, email, phone, saved stays and sign-in for good. Past bookings stay with the property under the details you booked with. This cannot be undone.</p></div></div>
-        {!customerOnly ? <p className="text-sm text-slate-600">Partner and admin accounts are closed by GBBookings support. Email info@gbbookings.com.</p>
-          : deleteChallenge ? (
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-              <label className="flex-1 text-xs font-semibold text-slate-600">Six-digit code from your email<input inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={deleteCode} onChange={(event) => setDeleteCode(event.target.value.replace(/\D/g, ''))} className="mt-1 min-h-11 w-full max-w-xs rounded-md border border-slate-300 px-3 font-mono text-lg" /></label>
-              <button type="button" disabled={busy} onClick={() => { setDeleteChallenge(''); setDeleteCode(''); }} className="min-h-11 rounded-md border border-slate-300 px-4 text-sm font-bold text-slate-700">Keep my account</button>
-              <button type="button" disabled={busy || deleteCode.length !== 6} onClick={async () => {
-                setBusy(true); setMessage('');
-                try { await api.deleteAccount(deleteChallenge, deleteCode); window.location.assign('/'); }
-                catch (reason) { setMessage(reason instanceof Error ? reason.message : 'Unable to delete the account.'); setBusy(false); }
-              }} className="min-h-11 rounded-md bg-rose-600 px-4 text-sm font-bold text-white disabled:opacity-50">Delete my account</button>
-            </div>
-          ) : (
-            <button type="button" disabled={busy} onClick={async () => {
-              setBusy(true); setMessage('');
-              try { setDeleteChallenge((await api.requestAccountDeletion()).challengeId); setMessage('We emailed you a code. Enter it below to delete your account.'); }
-              catch (reason) { setMessage(reason instanceof Error ? reason.message : 'Unable to start account deletion.'); }
-              finally { setBusy(false); }
-            }} className="min-h-11 rounded-md border border-rose-300 px-4 text-sm font-bold text-rose-700 disabled:opacity-50">Delete my account…</button>
-          )}
-      </section>
-    </div>
-  );
+    <Row tone="danger" icon={<Trash2 className="size-5" />} title="Delete account" text={customerOnly ? 'Removes your name, email, phone, saved stays and sign-in for good. Past bookings stay with the property under the details you booked with.' : 'Partner and admin accounts are closed by GBBookings support. Email info@gbbookings.com.'}
+      action={customerOnly && !deleteChallenge ? <button type="button" disabled={busy} className={danger} onClick={() => void act(async () => { setDeleteChallenge((await api.requestAccountDeletion()).challengeId); toast('We emailed you a code to confirm.'); }, 'Unable to start account deletion.')}>Delete my account</button> : undefined}>
+      {customerOnly && deleteChallenge && <form className="flex flex-wrap items-end gap-3" onSubmit={(event) => { event.preventDefault(); void act(async () => { await api.deleteAccount(deleteChallenge, deleteCode); window.location.assign('/'); }, 'Unable to delete the account.'); }}>
+        <label className="text-sm font-medium text-slate-700">Code from your email<input required autoFocus inputMode="numeric" autoComplete="one-time-code" pattern="\d{6}" title="Enter the 6-digit code from your email." maxLength={6} value={deleteCode} onChange={(event) => setDeleteCode(event.target.value.replace(/\D/g, ''))} className={codeInput} /></label>
+        <button className="inline-flex min-h-11 items-center rounded-lg bg-rose-600 px-4 text-sm font-semibold text-white disabled:opacity-50" disabled={busy}>Delete my account for good</button>
+        <button type="button" className={secondary} disabled={busy} onClick={() => { setDeleteChallenge(''); setDeleteCode(''); }}>Keep my account</button>
+      </form>}
+    </Row>
+  </div>;
 }

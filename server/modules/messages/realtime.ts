@@ -1,43 +1,39 @@
-import type { Server as HttpServer } from 'node:http';
-import { Server } from 'socket.io';
-import { isAllowedOrigin } from '../../shared/origin.js';
-import { sessionFromToken } from '../../middleware/authenticate.js';
-import { ACCESS_COOKIE } from '../auth/auth.tokens.js';
-import { reservationVendorIds } from '../bookings/booking.service.js';
+import { getClientSubscriptionToken } from 'inngest/react';
+import { VendorMemberModel } from '../../models/vendor-member.model.js';
+import { AppError } from '../../shared/app-error.js';
+import { inngest, inngestEnabled, userChannel } from '../jobs/inngest.js';
+import { MEMBER_ACCESS } from '../vendors/member-access.js';
 
-/**
- * Socket.IO on the long-running server (server/start.ts). Each user joins `user:<id>`; partner staff also join
- * `vendor:<id>` for every business whose reservations they handle. On serverless hosts (Vercel) there is no
- * socket server: `io` stays null and the inbox falls back to polling the REST API.
- */
-let io: Server | null = null;
+/** Works on serverless hosts: Inngest holds the browser connections, the API only publishes. Without keys the inbox polls. */
+const PUBLISH_WAIT_MS = 1500;
 
-const cookieValue = (header: string | undefined, name: string) =>
-  header?.split(';').map((part) => part.trim()).find((part) => part.startsWith(`${name}=`))?.slice(name.length + 1);
-
-export function attachRealtime(server: HttpServer) {
-  io = new Server(server, {
-    path: '/api/v1/realtime',
-    serveClient: false,
-    // Sockets authenticate with the session cookie, so refuse connections opened from other sites.
-    allowRequest: (request, callback) => callback(null, !request.headers.origin || isAllowedOrigin(request.headers.origin, request.headers.host)),
-  });
-  io.use(async (socket, next) => {
-    try {
-      const session = await sessionFromToken(cookieValue(socket.handshake.headers.cookie, ACCESS_COOKIE));
-      socket.data.userId = session.userId;
-      next();
-    } catch {
-      next(new Error('AUTHENTICATION_REQUIRED'));
-    }
-  });
-  io.on('connection', async (socket) => {
-    const userId = String(socket.data.userId);
-    await socket.join(`user:${userId}`);
-    for (const vendorId of await reservationVendorIds(userId)) await socket.join(`vendor:${vendorId}`);
-  });
+export async function publishToUser(userId: string, payload: Record<string, unknown>) {
+  if (!inngestEnabled()) return;
+  // Awaited because a serverless function freezes after the response, but capped so a slow push never delays sending.
+  // A failed push must not fail the message: the inbox also polls.
+  const published = inngest.realtime.publish(userChannel({ userId }).message, payload).catch((error: Error) => console.warn(`Realtime push failed: ${error.message}`));
+  await Promise.race([published, new Promise((resolve) => setTimeout(resolve, PUBLISH_WAIT_MS))]);
 }
 
-export function emitToRooms(rooms: string[], event: string, payload: unknown) {
-  io?.to(rooms).emit(event, payload);
+export async function publishToVendorTeam(vendorId: unknown, payload: Record<string, unknown>) {
+  const members = await VendorMemberModel.find({ vendorId, status: 'active', deletedAt: null, role: { $in: MEMBER_ACCESS.reservations } }).select('userId').lean() as any[];
+  await Promise.all(members.map((member) => publishToUser(String(member.userId), payload)));
+}
+
+/** The signed-in user's own channel, nobody else's: the id comes from the session, never from the request. */
+export async function realtimeToken(userId: string) {
+  if (!inngestEnabled()) throw new AppError(503, 'REALTIME_OFF', 'Realtime is not configured.');
+  try {
+    try {
+    return { channel: `user:${userId}`, token: await getClientSubscriptionToken(inngest, { channel: userChannel({ userId }), topics: ['message'] }) };
+  } catch (error) {
+    // Locally this means the Inngest dev server is not running (npm run dev:inngest).
+    console.warn(`Realtime is off, the inbox will poll instead: ${(error as Error).message}`);
+    throw new AppError(503, 'REALTIME_OFF', 'Realtime is not reachable.');
+  }
+  } catch (error) {
+    // Locally this means the Inngest dev server is not running (npm run dev:inngest).
+    console.warn(`Realtime is off, the inbox will poll instead: ${(error as Error).message}`);
+    throw new AppError(503, 'REALTIME_OFF', 'Realtime is not reachable.');
+  }
 }

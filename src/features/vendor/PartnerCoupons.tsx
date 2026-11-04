@@ -2,6 +2,8 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { LoaderCircle, TicketPercent } from 'lucide-react';
 import { api, type PartnerCoupon } from '../../shared/api/api';
 import { formatDateForDisplay } from '../../shared/utils/date';
+import Select from '../../shared/components/Select';
+import DateInput from '../../shared/components/DateInput';
 
 const fieldClass = 'mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-normal outline-none focus:border-[#006F3C] focus:ring-2 focus:ring-[#006F3C]/15';
 const emptyForm = { code: '', kind: 'percent' as PartnerCoupon['kind'], value: '', validUntil: '', maxUses: '' };
@@ -40,10 +42,10 @@ export default function PartnerCoupons() {
         <label className="block text-sm font-semibold text-slate-800">Discount
           <span className="mt-1.5 flex gap-2">
             <input required type="number" min={1} max={form.kind === 'percent' ? 90 : 1_000_000} value={form.value} onChange={(event) => setForm({ ...form, value: event.target.value })} className={fieldClass.replace('mt-1.5 ', '')} aria-label="Discount amount" />
-            <select value={form.kind} onChange={(event) => setForm({ ...form, kind: event.target.value as PartnerCoupon['kind'] })} className={fieldClass.replace('mt-1.5 w-full ', 'w-24 ')} aria-label="Discount type"><option value="percent">%</option><option value="amount">PKR</option></select>
+            <Select value={form.kind} onChange={(event) => setForm({ ...form, kind: event.target.value as PartnerCoupon['kind'] })} className={fieldClass.replace('mt-1.5 w-full ', 'w-24 ')} aria-label="Discount type"><option value="percent">%</option><option value="amount">PKR</option></Select>
           </span>
         </label>
-        <label className="block text-sm font-semibold text-slate-800">Book by <span className="font-normal text-slate-500">(optional)</span><input type="date" value={form.validUntil} onChange={(event) => setForm({ ...form, validUntil: event.target.value })} className={fieldClass} /></label>
+        <label className="block text-sm font-semibold text-slate-800">Book by <span className="font-normal text-slate-500">(optional)</span><DateInput value={form.validUntil} onChange={(event) => setForm({ ...form, validUntil: event.target.value })} className={fieldClass} /></label>
         <label className="block text-sm font-semibold text-slate-800">Max uses <span className="font-normal text-slate-500">(optional)</span><input type="number" min={1} max={100000} value={form.maxUses} onChange={(event) => setForm({ ...form, maxUses: event.target.value })} className={fieldClass} /></label>
         <button disabled={busy} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#006F3C] px-4 text-sm font-semibold text-white hover:bg-[#005C32] disabled:opacity-50">{busy && <LoaderCircle className="size-4 animate-spin" />}Create code</button>
       </form>

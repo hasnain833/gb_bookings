@@ -3,20 +3,28 @@ import { escapeHtml } from '../email/auth-email.templates.js';
 import { isEmailConfigured, sendTransactionalEmail } from '../email/resend.service.js';
 import { shownEnd } from './rental.js';
 
-export type BookingEvent = 'created' | 'confirmed' | 'paid' | 'cancelled' | 'changed';
+export type BookingEvent = 'created' | 'confirmed' | 'paid' | 'cancelled' | 'changed' | 'change_requested' | 'change_declined' | 'change_proposed' | 'proposal_declined' | 'reminder' | 'review_invite' | 'refund_sent';
 
-const guestCopy: Record<BookingEvent, { subject: string; message: string }> = {
+const guestCopy: Partial<Record<BookingEvent, { subject: string; message: string }>> = {
   created: { subject: 'Booking request received', message: 'We have received your booking request. The property will confirm it shortly.' },
   confirmed: { subject: 'Booking confirmed', message: 'Your booking has been confirmed. Pay on arrival: you pay the partner directly.' },
   paid: { subject: 'Payment received · booking confirmed', message: 'Thank you, we have received your payment and your booking is confirmed. There is nothing more to pay.' },
   cancelled: { subject: 'Booking cancelled', message: 'Your booking has been cancelled.' },
-  changed: { subject: 'Booking changed', message: 'The property has changed your booking. The updated details and price are below.' },
+  changed: { subject: 'Booking changed', message: 'Your booking has been changed as agreed. The updated details and price are below.' },
+  change_proposed: { subject: 'The partner proposed a change', message: 'The partner would like to change your booking. Nothing changes unless you accept. Open My Bookings to accept or decline; if you decline, your booking stays as it was.' },
+  change_declined: { subject: 'Change request declined', message: 'The property could not make the change you asked for, so your booking stays as it was.' },
+  reminder: { subject: 'Your trip is coming up', message: 'Your booking starts soon. Keep this email handy; your voucher is always in My Bookings.' },
+  review_invite: { subject: 'How was it?', message: 'Thank you for booking with GBBookings. A short review helps other travellers and the partner. Open My Bookings and choose Write a review; you have 30 days.' },
+  refund_sent: { subject: 'Your refund has been sent', message: 'We have sent your refund. It usually reaches your card or wallet within 7 to 14 working days, depending on your bank or wallet provider.' },
 };
 
 const vendorCopy: Partial<Record<BookingEvent, { subject: string; message: string }>> = {
   created: { subject: 'New booking request', message: 'A guest has requested a booking. Please confirm or decline it from your vendor console.' },
   paid: { subject: 'New paid booking', message: 'A guest has booked and paid online, so the booking is confirmed. Do not collect payment from this guest.' },
   cancelled: { subject: 'Booking cancelled', message: 'A booking at your property has been cancelled and the rooms have been released.' },
+  changed: { subject: 'Booking changed', message: 'This booking has been changed. The updated details and price are below.' },
+  proposal_declined: { subject: 'Guest declined your change', message: 'The guest declined the change you proposed, so the booking stays as it was.' },
+  change_requested: { subject: 'Guest asked for a change', message: 'A guest would like to change this booking. Open your reservations to accept or decline; the new price is shown there.' },
 };
 
 /** The same emails for car rentals, in car words. */
@@ -52,6 +60,7 @@ function bookingEmail(title: string, name: string, message: string, booking: any
     ...(booking.meals?.length ? [['Meals', booking.meals.map((meal: any) => meal.type).join(', ')] as [string, string]] : []),
     ...(booking.status === 'confirmed' && booking.listingSnapshot.phone ? [[booking.tour ? 'Tour partner phone / WhatsApp' : 'Property phone / WhatsApp', booking.listingSnapshot.phone] as [string, string]] : []),
     ...(booking.coupon ? [['Promo code', `${booking.coupon.code} (−${booking.pricing.currency} ${((booking.pricing.discountMinor ?? 0) / 100).toLocaleString('en-PK')})`] as [string, string]] : []),
+    ...(booking.pricing.charges ?? []).map((line: any) => [line.name, `${booking.pricing.currency} ${(line.amountMinor / 100).toLocaleString('en-PK')}`] as [string, string]),
     ['Total', `${booking.pricing.currency} ${(booking.pricing.totalMinor / 100).toLocaleString('en-PK')}`],
     ['Payment', booking.paymentStatus === 'paid' ? 'Paid' : 'Pay on arrival'],
     ...(reason ? [['Reason', reason] as [string, string]] : []),
@@ -82,7 +91,7 @@ export async function notifyBooking(booking: any, event: BookingEvent, reason?: 
   if (!isEmailConfigured()) return;
   const sends: Promise<unknown>[] = [];
   const guest = guestCopy[event];
-  sends.push(sendTransactionalEmail({
+  if (guest) sends.push(sendTransactionalEmail({
     to: { email: booking.guest.email, name: booking.guest.name },
     subject: `${guest.subject} · ${booking.reference}`,
     htmlContent: bookingEmail(guest.subject, booking.guest.name, guest.message, booking, reason),

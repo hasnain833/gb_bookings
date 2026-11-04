@@ -1,3 +1,4 @@
+import { CANCELLATION_POLICY_KEYS } from '../../../src/shared/utils/cancellation.js';
 import { z } from 'zod';
 import { BATHROOM_ITEMS, BED_KINDS, BREAKFAST_KINDS, ROOM_TYPES, type BedKind, type RoomTypeKey } from '../../../src/shared/utils/rooms.js';
 
@@ -144,6 +145,13 @@ const listingFields = z.object({
   homestaySpecs: homestaySpecs.optional(),
   // Cars and tours only say how guests can pay at pickup or the start; hotels and homestays fill in the full policies.
   stayInfo: z.union([stayInfoSchema, stayInfoSchema.pick({ paymentMethods: true }).strict()]).optional(),
+  cancellationPolicy: z.enum(CANCELLATION_POLICY_KEYS).optional(),
+  // Service charge, cleaning fee and the like; taxes are set by the admin.
+  fees: z.array(z.object({
+    name: z.string().trim().min(2).max(60),
+    kind: z.enum(['percent', 'amount']),
+    value: z.number().positive().max(100_000),
+  }).strict().refine((fee) => fee.kind === 'amount' ? Number.isInteger(fee.value) : fee.value <= 50, 'A percent fee can be at most 50%; a fixed fee is whole rupees.')).max(5).optional(),
   // Map pin, e.g. from a pasted Google Maps link. Pakistan sits well inside these bounds.
   coordinates: z.object({ lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180) }).strict().optional(),
 }).strict();

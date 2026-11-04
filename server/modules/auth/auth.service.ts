@@ -376,16 +376,29 @@ export async function updateUserProfile(userId: string, input: { name?: string; 
   return publicUser(user);
 }
 
-export async function changeUserPassword(userId: string, currentPassword: string, newPassword: string) {
+/** Step 1 of changing a password: proves the person at this session also holds the email. Also lets Google accounts set a first password. */
+export async function requestPasswordChange(userId: string, metadata: SessionMetadata) {
   await requireDatabase();
+  const user = await UserModel.findOne({ _id: userId, status: 'active', deletedAt: null });
+  if (!user) throw new AppError(404, 'USER_NOT_FOUND', 'User account was not found.');
+  return createOtpChallenge({
+    userId, channel: 'email', destination: user.email, recipientName: user.name, purpose: 'password_change',
+    requestedIp: metadata.ipAddress,
+  });
+}
+
+/** Step 2: this device stays signed in; every other session and trusted device is ended, in case the old password leaked. */
+export async function changeUserPassword(userId: string, sessionId: string, challengeId: string, code: string, newPassword: string, metadata: SessionMetadata) {
+  await requireDatabase();
+  await consumeOtpChallenge(challengeId, code, 'password_change', userId);
   const user = await UserModel.findOne({ _id: userId, status: 'active', deletedAt: null }).select('+passwordHash');
-  if (!user || !await bcrypt.compare(currentPassword, user.passwordHash)) {
-    throw new AppError(400, 'CURRENT_PASSWORD_INCORRECT', 'Current password is incorrect.');
-  }
+  if (!user) throw new AppError(404, 'USER_NOT_FOUND', 'User account was not found.');
   user.passwordHash = await bcrypt.hash(newPassword, PASSWORD_COST);
   user.passwordChangedAt = new Date();
   await user.save();
-  await revokeAllSessions(String(user._id));
+  await SessionModel.updateMany({ userId, revokedAt: null, publicId: { $ne: sessionId } }, { $set: { revokedAt: new Date() } });
+  await TrustedDeviceModel.deleteMany({ userId });
+  await recordAuditEvent({ actorId: userId, actorType: 'user', action: 'auth.password_changed', resourceType: 'user', resourceId: user.publicId, ...metadata });
 }
 
 export async function resetUserPassword(userId: string, newPassword: string) {

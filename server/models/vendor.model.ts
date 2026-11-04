@@ -48,6 +48,11 @@ const vendorSchema = new Schema({
     bankName: { type: String, trim: true, maxlength: 120 },
     iban: { type: String, trim: true, maxlength: 34 },
   },
+  // Who accepted which version of the partner agreement, and from where.
+  agreement: {
+    type: new Schema({ version: String, acceptedAt: Date, acceptedBy: { type: Schema.Types.ObjectId, ref: 'User' }, ipAddress: String, userAgent: String }, { _id: false }),
+    default: undefined,
+  },
   verificationDocuments: [{
     _id: false,
     type: { type: String, enum: ['identity', 'business_registration', 'tax', 'bank', 'property_authorization', 'vehicle_registration', 'driving_licence', 'guide_licence'], required: true },
@@ -71,6 +76,7 @@ const vendorSchema = new Schema({
     type: new Schema({
       name: String, email: String, phone: String, registrationNumber: String, taxNumber: String,
       address: { line1: String, city: String, region: String },
+      payoutProfile: { accountTitle: String, bankName: String, iban: String },
       requestedAt: { type: Date, required: true },
     }, { _id: false }),
     default: undefined,

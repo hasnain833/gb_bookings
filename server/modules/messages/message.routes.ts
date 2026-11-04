@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { authenticate } from '../../middleware/authenticate.js';
 import { validate } from '../../middleware/validate.js';
 import { asyncHandler } from '../../shared/async-handler.js';
+import { realtimeToken } from './realtime.js';
 import { getConversation, listConversations, sendMessage, startConversation, unreadCounts } from './message.service.js';
 
 const body = z.string().trim().min(1, 'Write a message first.').max(2_000);
@@ -10,6 +11,10 @@ const conversationParams = z.object({ id: z.string().regex(/^cnv_[0-9a-f-]{36}$/
 
 export const messageRouter = Router();
 messageRouter.use(authenticate);
+
+messageRouter.post('/realtime-token', asyncHandler(async (request, response) => {
+  response.json({ data: await realtimeToken(request.auth!.userId) });
+}));
 
 messageRouter.get('/unread', asyncHandler(async (request, response) => {
   response.json({ data: await unreadCounts(request.auth!.userId) });

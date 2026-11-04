@@ -8,6 +8,7 @@ const inputClass = 'mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 bg
 const detailsOf = (vendor: VendorProfile): VendorChangeRequest => ({
   name: vendor.name, email: vendor.email, phone: vendor.phone, registrationNumber: vendor.registrationNumber ?? '', taxNumber: vendor.taxNumber ?? '',
   address: { line1: vendor.address?.line1 ?? '', city: vendor.address?.city ?? '', region: vendor.address?.region ?? '' },
+  payoutProfile: vendor.payoutProfile ?? { accountTitle: '', bankName: '', iban: '' },
 });
 
 /** Approved business details; changes are sent to the platform admin for approval before they apply. */
@@ -22,11 +23,14 @@ export default function BusinessProfile({ vendor, onChange }: { vendor: VendorPr
   // Homestay hosts and car owner-drivers are individuals: no registration or tax number.
   const homestay = vendor.businessType === 'homestay' || (vendor.businessType === 'vehicle' && !vendor.registrationNumber);
 
+  const bank = form.payoutProfile ?? { accountTitle: '', bankName: '', iban: '' };
+  const setBank = (patch: Partial<typeof bank>) => setForm({ ...form, payoutProfile: { ...bank, ...patch } });
+
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setBusy(true); setError('');
     try {
-      onChange(await api.requestVendorChanges({ ...form, registrationNumber: form.registrationNumber?.trim() || undefined, taxNumber: form.taxNumber?.trim() || undefined }));
+      onChange(await api.requestVendorChanges({ ...form, registrationNumber: form.registrationNumber?.trim() || undefined, taxNumber: form.taxNumber?.trim() || undefined, payoutProfile: form.payoutProfile?.iban.trim() ? form.payoutProfile : undefined }));
       setEditing(false);
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Unable to send the change request.'); }
     finally { setBusy(false); }
@@ -48,12 +52,21 @@ export default function BusinessProfile({ vendor, onChange }: { vendor: VendorPr
           <Field label={homestay ? 'Host or family name' : 'Business name'}><input required minLength={2} maxLength={160} className={inputClass} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
           {!homestay && <Field label="Registration number"><input required minLength={2} maxLength={100} className={inputClass} value={form.registrationNumber} onChange={(e) => setForm({ ...form, registrationNumber: e.target.value })} /></Field>}
           <Field label="Business email"><input required type="email" className={inputClass} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Field>
-          <Field label="Business phone"><input required type="tel" minLength={7} maxLength={30} className={inputClass} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></Field>
+          <Field label="Business phone"><input required type="tel" pattern="[+]?[0-9][0-9 ()\-]{6,19}" title="Enter a phone number, like 0300 1234567." minLength={7} maxLength={30} className={inputClass} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></Field>
           <Field label="Street address" wide><input required minLength={2} className={inputClass} value={form.address.line1} onChange={(e) => setForm({ ...form, address: { ...form.address, line1: e.target.value } })} /></Field>
           <Field label="City"><input required minLength={2} className={inputClass} value={form.address.city} onChange={(e) => setForm({ ...form, address: { ...form.address, city: e.target.value } })} /></Field>
           <Field label="Region"><input required minLength={2} className={inputClass} value={form.address.region} onChange={(e) => setForm({ ...form, address: { ...form.address, region: e.target.value } })} /></Field>
           {!homestay && <Field label="NTN / tax number (optional)"><input maxLength={100} className={inputClass} value={form.taxNumber ?? ''} onChange={(e) => setForm({ ...form, taxNumber: e.target.value })} /></Field>}
         </div>
+        <fieldset className="space-y-3">
+          <legend className="font-semibold text-slate-900">Bank account for payouts</legend>
+          <p className="text-sm text-slate-500">GBBookings sends what it owes you here. To protect you, a new account applies only after our team approves it.</p>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Field label="Account title"><input maxLength={160} required={Boolean(bank.iban)} className={inputClass} value={bank.accountTitle} onChange={(e) => setBank({ accountTitle: e.target.value })} /></Field>
+            <Field label="Bank name"><input maxLength={120} required={Boolean(bank.iban)} className={inputClass} value={bank.bankName} onChange={(e) => setBank({ bankName: e.target.value })} /></Field>
+            <Field label="IBAN" wide><input maxLength={34} autoComplete="off" placeholder="PK36SCBL0000001123456702" className={inputClass} value={bank.iban} onChange={(e) => setBank({ iban: e.target.value.toUpperCase() })} /></Field>
+          </div>
+        </fieldset>
         <div className="flex flex-wrap gap-3">
           <button disabled={busy} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#006F3C] px-5 text-sm font-semibold text-white hover:bg-[#005c32] disabled:opacity-50">{busy && <LoaderCircle className="size-4 animate-spin" />}Send for approval</button>
           <button type="button" onClick={() => setEditing(false)} className="min-h-11 rounded-lg border border-slate-300 px-5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancel</button>
@@ -63,6 +76,7 @@ export default function BusinessProfile({ vendor, onChange }: { vendor: VendorPr
           {([[homestay ? 'Host' : 'Business name', shown.name, current.name], ...(homestay ? [] : [['Registration number', shown.registrationNumber, current.registrationNumber]]), ['Email', shown.email, current.email], ['Phone', shown.phone, current.phone],
             ['Address', [shown.address.line1, shown.address.city, shown.address.region].filter(Boolean).join(', '), [current.address.line1, current.address.city, current.address.region].filter(Boolean).join(', ')],
             ...(homestay ? [] : [['NTN', shown.taxNumber || '—', current.taxNumber || '—']]),
+            ['Bank account for payouts', shown.payoutProfile?.iban ? `${shown.payoutProfile.accountTitle}, ${shown.payoutProfile.bankName}, ${shown.payoutProfile.iban}` : 'Not added yet', current.payoutProfile?.iban ? `${current.payoutProfile.accountTitle}, ${current.payoutProfile.bankName}, ${current.payoutProfile.iban}` : 'Not added yet'],
           ] as Array<[string, string | undefined, string | undefined]>).map(([term, value, before]) => <div key={term}><dt className="text-slate-500">{term}</dt><dd className="font-medium text-slate-900">{value}{pending && value !== before && <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-semibold text-amber-900">changed</span>}</dd></div>)}
         </dl>}
     </section>

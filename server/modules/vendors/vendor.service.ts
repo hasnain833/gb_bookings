@@ -1,3 +1,4 @@
+import { PARTNER_AGREEMENT_VERSION } from '../../../src/shared/utils/partner-agreement.js';
 import bcrypt from 'bcryptjs';
 import { randomBytes } from 'node:crypto';
 import { connectDatabase } from '../../database/connection.js';
@@ -38,8 +39,12 @@ function slugify(value: string) {
   return `${base || 'vendor'}-${randomBytes(3).toString('hex')}`;
 }
 
-function serializeVendor(vendor: any) {
+/** Bank details and pending changes (which can hold them) reach only the owner and the admin. */
+function serializeVendor(vendor: any, audience: 'owner' | 'team' = 'owner') {
+  const { payoutProfile: _bank, ...pendingWithoutBank } = vendor.pendingChanges?.toObject?.() ?? vendor.pendingChanges ?? {};
   return {
+    ...(audience === 'owner' && vendor.payoutProfile?.iban ? { payoutProfile: { accountTitle: vendor.payoutProfile.accountTitle, bankName: vendor.payoutProfile.bankName, iban: vendor.payoutProfile.iban } } : {}),
+    agreement: vendor.agreement?.version ? { version: vendor.agreement.version, acceptedAt: vendor.agreement.acceptedAt } : undefined,
     id: vendor.publicId,
     name: vendor.name,
     slug: vendor.slug,
@@ -54,7 +59,7 @@ function serializeVendor(vendor: any) {
     verificationDocuments: vendor.verificationDocuments ?? [],
     verificationNotes: vendor.verificationNotes,
     rejectionReason: vendor.rejectionReason,
-    pendingChanges: vendor.pendingChanges ?? undefined,
+    pendingChanges: !vendor.pendingChanges ? undefined : audience === 'owner' ? vendor.pendingChanges : pendingWithoutBank,
     changeRejectionReason: vendor.changeRejectionReason,
     submittedAt: vendor.submittedAt,
     reviewedAt: vendor.reviewedAt,
@@ -93,7 +98,7 @@ export async function getOwnVendor(userId: string) {
   if (!membership) throw new AppError(404, 'VENDOR_NOT_FOUND', 'No vendor organization is linked to this account.');
   const vendor = await VendorModel.findOne({ _id: membership.vendorId, deletedAt: null });
   if (!vendor) throw new AppError(404, 'VENDOR_NOT_FOUND', 'Vendor organization was not found.');
-  return { vendor, membership, public: serializeVendor(vendor) };
+  return { vendor, membership, public: serializeVendor(vendor, membership.role === 'owner' ? 'owner' : 'team') };
 }
 
 export async function updateOwnVendor(userId: string, input: any, metadata: SessionMetadata) {
@@ -139,6 +144,7 @@ export async function submitOwnVendor(userId: string, metadata: SessionMetadata)
     vendor.businessType === 'tour_operator' && !vendor.registrationNumber && !attached.has('guide_licence') && 'guide_licence',
     !vendor.address?.line1 && 'address',
     !vendor.cnicNumber && 'cnicNumber',
+    vendor.agreement?.version !== PARTNER_AGREEMENT_VERSION && 'partnerAgreement',
     vendor.verificationDocuments.length === 0 && 'verificationDocuments',
     ...(REQUIRED_DOCUMENTS[vendor.businessType] ?? []).filter((type) => !attached.has(type)),
   ].filter(Boolean);
@@ -153,6 +159,17 @@ export async function submitOwnVendor(userId: string, metadata: SessionMetadata)
   });
   // ponytail: runs inside the request (up to ~40 s with AI reading); move to a queue if submissions time out on Vercel.
   await runIdentityCheck(vendor).catch((error) => console.error(`CNIC check for ${vendor.publicId} failed:`, error));
+  return serializeVendor(vendor);
+}
+
+/** The owner accepts the partner agreement: stored with who, when and from where, and audited. */
+export async function acceptPartnerAgreement(userId: string, version: string, metadata: SessionMetadata) {
+  const { vendor, membership } = await getOwnVendor(userId);
+  if (membership.role !== 'owner') throw new AppError(403, 'PERMISSION_DENIED', 'Only the business owner can accept the partner agreement.');
+  if (version !== PARTNER_AGREEMENT_VERSION) throw new AppError(409, 'AGREEMENT_OUTDATED', 'The partner agreement has been updated. Reload the page and read the latest version.');
+  vendor.agreement = { version, acceptedAt: new Date(), acceptedBy: userId, ipAddress: metadata.ipAddress, userAgent: metadata.userAgent };
+  await vendor.save();
+  await recordAuditEvent({ actorId: userId, actorType: 'user', action: 'vendor.agreement_accepted', resourceType: 'vendor', resourceId: vendor.publicId, ...metadata, metadata: { version } });
   return serializeVendor(vendor);
 }
 
@@ -173,7 +190,7 @@ export async function requestVendorChanges(userId: string, input: any, metadata:
   vendor.pendingChanges = { ...input, requestedAt: new Date() };
   vendor.changeRejectionReason = null;
   await vendor.save();
-  await recordAuditEvent({ actorId: userId, actorType: 'user', action: 'vendor.changes_requested', resourceType: 'vendor', resourceId: vendor.publicId, ...metadata, metadata: input });
+  await recordAuditEvent({ actorId: userId, actorType: 'user', action: 'vendor.changes_requested', resourceType: 'vendor', resourceId: vendor.publicId, ...metadata, metadata: { ...input, payoutProfile: input.payoutProfile ? 'changed' : undefined } });
   return serializeVendor(vendor);
 }
 
@@ -183,8 +200,9 @@ export async function decideVendorChanges(adminUserId: string, vendorId: string,
   if (!vendor?.pendingChanges?.requestedAt) throw new AppError(404, 'CHANGE_REQUEST_NOT_FOUND', 'This business has no pending change request.');
   const changes = vendor.pendingChanges.toObject ? vendor.pendingChanges.toObject() : vendor.pendingChanges;
   if (input.decision === 'approved') {
-    const { requestedAt, address, ...fields } = changes;
+    const { requestedAt, address, payoutProfile, ...fields } = changes;
     Object.assign(vendor, fields);
+    if (payoutProfile?.iban) vendor.payoutProfile = payoutProfile;
     vendor.address = { ...(vendor.address?.toObject?.() ?? vendor.address ?? {}), ...address };
     vendor.changeRejectionReason = null;
   } else {
@@ -194,7 +212,8 @@ export async function decideVendorChanges(adminUserId: string, vendorId: string,
   await vendor.save();
   await recordAuditEvent({
     actorId: adminUserId, actorType: 'user', action: `vendor.changes_${input.decision}`, resourceType: 'vendor', resourceId: vendor.publicId, ...metadata,
-    metadata: { notes: input.notes, changes },
+    // Bank details stay out of the audit log.
+    metadata: { notes: input.notes, changes: { ...changes, payoutProfile: changes.payoutProfile?.iban ? 'changed' : undefined } },
   });
   await notifyVendorDecision(vendor, `vendor.changes_${input.decision}`, { reason: input.decision === 'rejected' ? input.notes : undefined });
   return serializeVendor(vendor);

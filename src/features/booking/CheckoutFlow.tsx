@@ -1,8 +1,9 @@
-import { useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { ArrowLeft, BedDouble, CalendarDays, Check, CheckCircle, Clock, Copy, LoaderCircle, MapPin, Printer, ShieldCheck, Users } from 'lucide-react';
 import { handleImageError, type Booking, type Listing } from '../../types';
 import { api, mealLabel } from '../../shared/api/api';
 import { whatsappNumber } from '../../shared/utils/stayInfo';
+import { policyLines } from '../../shared/utils/cancellation';
 import type { MealType } from '../../types';
 import { formatDateForDisplay } from '../../shared/utils/date';
 
@@ -41,6 +42,7 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
   const [specialRequests, setSpecialRequests] = useState('');
   const [quote, setQuote] = useState(params.totalPrice);
   const [mealCost, setMealCost] = useState(params.mealsTotal ?? 0);
+  const [alreadyBooked, setAlreadyBooked] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [booking, setBooking] = useState<Booking | null>(existingBooking ?? null);
@@ -48,6 +50,8 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
   const [coupon, setCoupon] = useState<{ code: string; label: string; discount: number } | null>(null);
   const [promoError, setPromoError] = useState('');
   const [extras, setExtras] = useState(params.extrasTotal ?? 0);
+  const [charges, setCharges] = useState<NonNullable<Booking['charges']>>([]);
+  const [policy, setPolicy] = useState<string>();
   const [licenceNumber, setLicenceNumber] = useState('');
   // Pay now is offered only when online payment is set up on the server.
   const [onlineAvailable, setOnlineAvailable] = useState(false);
@@ -70,7 +74,7 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
     });
     const room = result.rooms.find((item) => item.id === params.roomTypeId);
     if (!room?.bookable) throw new Error('This room is no longer available. Return to the property to choose another room or dates.');
-    setQuote(room.totalPrice); setMealCost(result.mealsTotal); setExtras(room.extrasTotal ?? 0);
+    setQuote(room.totalPrice); setMealCost(result.mealsTotal); setExtras(room.extrasTotal ?? 0); setCharges(room.charges ?? []); setPolicy(result.cancellationPolicy);
     setOnlineAvailable(Boolean(result.onlinePayment)); if (!result.onlinePayment) setPayNow(false);
     setCoupon(result.coupon ? { ...result.coupon, discount: room.discount ?? 0 } : null);
   };
@@ -89,6 +93,14 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
     catch (reason) { setPromoError(reason instanceof Error ? reason.message : 'This promo code could not be applied.'); }
     finally { setBusy(false); }
   };
+  useEffect(() => {
+    let active = true;
+    api.getBookingsPage(1, 'upcoming').then((page) => {
+      const same = page.data.find((item) => item.listingId === params.listingId && item.startDate < params.endDate && params.startDate < item.endDate);
+      if (active && same) setAlreadyBooked(same.reference ?? same.id);
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, [params.listingId, params.startDate, params.endDate]);
   const reserve = async () => {
     if (submitting.current || booking || !params.roomTypeId) return;
     submitting.current = true; setBusy(true); setError('');
@@ -103,7 +115,7 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
       }, checkoutKey.current);
       if (payNow) {
         setBooking(created);
-        try { window.location.assign(await api.startPayment(created.id)); return; }
+        try { window.location.replace(await api.startPayment(created.id)); return; }
         catch (reason) { throw new Error(`${reason instanceof Error ? reason.message : 'The payment page did not open.'} Your booking ${created.reference} is held for an hour: open My Bookings to pay.`); }
       }
       setBooking(created); setStep('receipt');
@@ -116,8 +128,10 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
 
   const rooms = params.rooms ?? 1;
   const nights = params.duration;
-  const quoteChanged = quote + (coupon?.discount ?? 0) !== params.totalPrice;
-  const roomQuote = quote + (coupon?.discount ?? 0) - mealCost - extras;
+  // A promo code also lowers percent fees and taxes, so the comparison only holds without one.
+  const quoteChanged = !coupon && quote !== params.totalPrice;
+  const chargesTotal = charges.reduce((total, line) => total + line.amount, 0);
+  const roomQuote = quote + (coupon?.discount ?? 0) - chargesTotal - mealCost - extras;
   const dayWord = car || tour ? 'day' : 'night';
   const unitWord = car ? 'car' : 'room';
   const cancellationNote = tour ? TOUR_CANCELLATION_NOTE : car ? CAR_CANCELLATION_NOTE : CANCELLATION_NOTE;
@@ -139,7 +153,7 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
             <label className="block text-sm font-semibold text-slate-800">Full name<input id="checkout-name" required minLength={2} maxLength={120} autoComplete="name" className={inputClass} value={contact.name} onChange={(event) => setContact({ ...contact, name: event.target.value })} /></label>
             <div className="grid gap-5 sm:grid-cols-2">
               <label className="block text-sm font-semibold text-slate-800">Email address<input id="checkout-email" required type="email" autoComplete="email" className={inputClass} value={contact.email} onChange={(event) => setContact({ ...contact, email: event.target.value })} /><span className="mt-1 block text-xs font-normal text-slate-500">Your confirmation is sent here.</span></label>
-              <label className="block text-sm font-semibold text-slate-800">Phone number<input id="checkout-phone" required type="tel" minLength={7} maxLength={30} autoComplete="tel" placeholder="03XX XXXXXXX" className={inputClass} value={contact.phone} onChange={(event) => setContact({ ...contact, phone: event.target.value })} /><span className="mt-1 block text-xs font-normal text-slate-500">For the property to reach you about arrival.</span></label>
+              <label className="block text-sm font-semibold text-slate-800">Phone number<input id="checkout-phone" required type="tel" pattern="[+]?[0-9][0-9 ()\-]{6,19}" title="Enter a phone number, like 0300 1234567." minLength={7} maxLength={30} autoComplete="tel" placeholder="03XX XXXXXXX" className={inputClass} value={contact.phone} onChange={(event) => setContact({ ...contact, phone: event.target.value })} /><span className="mt-1 block text-xs font-normal text-slate-500">For the property to reach you about arrival.</span></label>
             </div>
             {selfDrive && <label className="block text-sm font-semibold text-slate-800">Driving licence number<input id="checkout-licence" required minLength={5} maxLength={30} autoComplete="off" className={inputClass} value={licenceNumber} onChange={(event) => setLicenceNumber(event.target.value)} /><span className="mt-1 block text-xs font-normal text-slate-500">Self-drive only. Bring the licence at pickup; the partner checks it.</span></label>}
             <label className="block text-sm font-semibold text-slate-800">Special requests <span className="font-normal text-slate-500">(optional)</span><textarea maxLength={1000} placeholder={tour ? 'Hotel for pickup, dietary needs, fitness or health notes…' : car ? 'Flight number, child seat, route plans…' : 'Arrival time, bed preference, accessibility needs…'} className={inputClass + ' min-h-24 py-3'} value={specialRequests} onChange={(event) => setSpecialRequests(event.target.value)} /><span className="mt-1 block text-xs font-normal text-slate-500">Requests depend on availability and aren’t guaranteed.</span></label>
@@ -147,6 +161,7 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
           </form>}
 
           {step === 'review' && <section className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
+            {alreadyBooked && <p role="status" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-950">You already have booking {alreadyBooked} here on overlapping dates. Continue only if you want another one.</p>}
             <div><h1 className="text-xl font-bold text-slate-950">Review and request</h1><p className="mt-1 text-sm text-slate-500">Check everything before you send the request.</p></div>
             {quoteChanged && <p role="status" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">The price was updated by the property since you selected the room. The total below is the current price.</p>}
             <dl className="divide-y divide-slate-100 rounded-xl border border-slate-200 text-sm">
@@ -178,7 +193,7 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
             </fieldset>}
             <ol className="space-y-3 text-sm text-slate-700">
               {(payNow
-                ? [`You pay PKR ${quote.toLocaleString()} now on Safepay’s secure page.`, 'Your booking is confirmed as soon as the payment goes through, and we email you.', 'If you cancel before the start date, you get money back under our refund policy.']
+                ? [`You pay PKR ${quote.toLocaleString()} now on Safepay’s secure page.`, 'Your booking is confirmed as soon as the payment goes through, and we email you.', `If you cancel: ${policyLines(policy).join('; ')}.`]
                 : ['You send a reservation request — no payment is taken today.', 'The property confirms it, and we email you.', `You pay PKR ${quote.toLocaleString()} ${payWhere}. ${cancellationNote}`]).map((text, index) => (
                 <li key={text} className="flex gap-3"><span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-xs font-bold text-[#006F3C]">{index + 1}</span><span className="pt-0.5">{text}</span></li>
               ))}
@@ -206,6 +221,7 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
                 {extras > 0 && <div className="flex justify-between text-slate-600"><span>Driver &amp; trip charges</span><span>PKR {extras.toLocaleString()}</span></div>}
                 {mealCost > 0 && <div className="flex justify-between text-slate-600"><span>Meals ({params.meals!.map(mealLabel).join(', ')})</span><span>PKR {mealCost.toLocaleString()}</span></div>}
                 {coupon && <div className="flex justify-between text-emerald-700"><span>Promo {coupon.code}</span><span>−PKR {coupon.discount.toLocaleString()}</span></div>}
+                {charges.map((line) => <div key={line.name} className="flex justify-between text-slate-600"><span>{line.name}</span><span>PKR {line.amount.toLocaleString()}</span></div>)}
                 <div className="flex justify-between border-t border-slate-100 pt-3 text-base font-bold text-slate-950"><span>Total</span><span>PKR {quote.toLocaleString()}</span></div>
                 <p className="text-xs text-slate-500">{payNow ? 'Paid now, online.' : tour ? 'Paid at the start of the tour.' : car ? 'Paid at pickup.' : 'Paid at the property on arrival.'}</p>
               </div>
@@ -249,7 +265,8 @@ function Receipt({ booking, onDone }: { booking: Booking; onDone: () => void }) 
   const print = () => { const title = document.title; document.title = `GBBookings ${paid ? 'receipt' : 'voucher'} ${reference}`; window.print(); document.title = title; };
   const rental = booking.rental;
   const tour = booking.tour;
-  const payment = booking.refund ? `Paid · refund of PKR ${booking.refund.amount.toLocaleString()} (${booking.refund.percent}%) due after cancellation` : booking.paymentStatus === 'paid' ? 'Paid' : booking.status === 'cancelled' ? 'Nothing to pay — reservation cancelled' : `Pay on arrival: PKR ${booking.totalPrice.toLocaleString()} ${tour ? 'at the start of the tour' : rental ? 'at pickup' : 'at check-in'}`;
+  const refundSent = booking.refunds?.some((refund) => refund.status === 'sent');
+  const payment = booking.refund ? `Paid · refund of PKR ${booking.refund.amount.toLocaleString()} (${booking.refund.percent}%) ${refundSent ? 'sent' : 'on its way'}` : booking.paymentStatus === 'paid' ? 'Paid' : booking.status === 'cancelled' ? 'Nothing to pay — reservation cancelled' : `Pay on arrival: PKR ${booking.totalPrice.toLocaleString()} ${tour ? 'at the start of the tour' : rental ? 'at pickup' : 'at check-in'}`;
 
   return (
     <div id="checkout-flow-component" className="mx-auto max-w-2xl space-y-6 px-4 pb-24">
@@ -291,7 +308,9 @@ function Receipt({ booking, onDone }: { booking: Booking; onDone: () => void }) 
           {rental?.oneWayOnRequest && <><dt className="text-slate-500">One-way fee</dt><dd className="font-medium text-slate-900">Agreed with the partner, not included above</dd></>}
           {booking.meals?.length ? <><dt className="text-slate-500">Meals</dt><dd className="font-medium text-slate-900">{booking.meals.map((meal) => mealLabel(meal.type)).join(', ')} · PKR {(booking.mealsTotal ?? 0).toLocaleString()}</dd></> : null}
           {booking.couponCode && <><dt className="text-slate-500">Promo code</dt><dd className="font-medium text-slate-900">{booking.couponCode} · {booking.couponLabel} (−PKR {(booking.discount ?? 0).toLocaleString()})</dd></>}
+          {booking.charges?.map((line) => <div key={line.name} className="contents"><dt className="text-slate-500">{line.name}</dt><dd className="font-medium text-slate-900">PKR {line.amount.toLocaleString()}</dd></div>)}
           <dt className="text-slate-500">Total</dt><dd className="text-base font-bold text-slate-950">PKR {booking.totalPrice.toLocaleString()}</dd>
+          {booking.balanceDue ? <><dt className="text-slate-500">Still to pay</dt><dd className="font-medium text-slate-900">PKR {booking.balanceDue.toLocaleString()} {booking.balanceCollectedAt ? '(paid)' : 'on arrival'}</dd></> : null}
           <dt className="text-slate-500">Payment</dt><dd className="font-medium text-slate-900">{payment}</dd>
           {booking.propertyPhone && <><dt className="text-slate-500">Property contact</dt><dd className="font-medium text-slate-900">
             <a href={`tel:${booking.propertyPhone.replace(/\s/g, '')}`} className="text-[#006F3C] underline">{booking.propertyPhone}</a>
@@ -299,7 +318,7 @@ function Receipt({ booking, onDone }: { booking: Booking; onDone: () => void }) 
           </dd></>}
           {booking.specialRequests && <><dt className="text-slate-500">Requests</dt><dd className="italic text-slate-700">“{booking.specialRequests}”</dd></>}
         </dl>
-        {booking.status !== 'cancelled' && <p className="border-t border-slate-100 bg-slate-50 px-6 py-4 text-xs leading-5 text-slate-600">{tour ? TOUR_CANCELLATION_NOTE : rental ? CAR_CANCELLATION_NOTE : CANCELLATION_NOTE} Cancel from My Bookings. Show this reference {tour ? 'when you meet your guide' : rental ? 'at pickup' : 'at the property on arrival'}.</p>}
+        {booking.status !== 'cancelled' && <p className="border-t border-slate-100 bg-slate-50 px-6 py-4 text-xs leading-5 text-slate-600">{booking.paymentMethod === 'online' && booking.cancellationPolicy ? `If you cancel: ${policyLines(booking.cancellationPolicy).join('; ')}.` : tour ? TOUR_CANCELLATION_NOTE : rental ? CAR_CANCELLATION_NOTE : CANCELLATION_NOTE} Cancel from My Bookings. Show this reference {tour ? 'when you meet your guide' : rental ? 'at pickup' : 'at the property on arrival'}.</p>}
       </section>
 
       <div className="flex flex-wrap justify-center gap-3 print:hidden">

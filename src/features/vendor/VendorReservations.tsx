@@ -14,6 +14,8 @@ import { useReasonDialog } from "../../shared/components/ReasonDialog";
 import { useDebouncedValue } from "../../shared/hooks/useDebouncedValue";
 import { formatDateForDisplay } from "../../shared/utils/date";
 import type { Booking } from "../../types";
+import Select from '../../shared/components/Select';
+import DateInput from '../../shared/components/DateInput';
 
 type Tab = Booking["status"] | "all" | "arriving" | "in_house";
 const statusFilters: Tab[] = [
@@ -48,7 +50,7 @@ const fieldClass =
   "min-h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[#006F3C] focus:ring-2 focus:ring-[#006F3C]/15";
 
 const ACTION_LABELS: Record<VendorBookingAction, string> = {
-  confirm: "Confirm", cancel: "Cancel", complete: "Check out", no_show: "No-show", mark_paid: "Mark paid", check_in: "Check in",
+  confirm: "Confirm", cancel: "Cancel", complete: "Check out", no_show: "No-show", mark_paid: "Mark paid", check_in: "Check in", collect_balance: "Balance collected",
 };
 // Car rentals use the same steps: the car is handed over (check in) and returned (complete).
 const CAR_ACTION_LABELS: Partial<Record<VendorBookingAction, string>> = { complete: "Car returned", check_in: "Car handed over" };
@@ -58,8 +60,8 @@ const TOUR_ACTION_LABELS: Partial<Record<VendorBookingAction, string>> = { compl
 // The server decides which actions a booking allows (vendorActions); this only labels them.
 const actionsFor = (booking: Booking) =>
   (booking.vendorActions ?? [])
-    .filter((action): action is VendorBookingAction => action !== "change")
-    .map((action) => ({ action, label: action === "cancel" && booking.status === "pending" ? "Decline" : (booking.rental && CAR_ACTION_LABELS[action]) || (booking.tour && TOUR_ACTION_LABELS[action]) || ACTION_LABELS[action] }));
+    .filter((action) => action !== "change")
+    .map((action) => ({ action: action as VendorBookingAction, label: action === "cancel" && booking.status === "pending" ? "Decline" : (booking.rental && CAR_ACTION_LABELS[action]) || (booking.tour && TOUR_ACTION_LABELS[action]) || ACTION_LABELS[action] }));
 const changeable = (booking: Booking) => Boolean(booking.vendorActions?.includes("change"));
 // Mirrors server/modules/bookings/room-price.ts: a season wins, then Friday/Saturday, then the base price.
 const priceOn = (room: VendorRoom, date: string) => {
@@ -94,6 +96,7 @@ function ChangeBookingForm({
     roomTypeId: booking.roomTypeId ?? "",
     rooms: booking.rooms ?? 1,
   });
+  const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   useEffect(() => {
@@ -129,7 +132,7 @@ function ChangeBookingForm({
     setError("");
     try {
       // Tours keep their party and seats; only the start date moves.
-      onChanged(await api.changeVendorBooking(booking.id, tour ? { ...form, checkOut: form.checkIn } : form));
+      onChanged(await api.changeVendorBooking(booking.id, { ...(tour ? { ...form, checkOut: form.checkIn } : form), reason: reason.trim() }));
     } catch (reason) {
       setError(
         reason instanceof Error
@@ -145,20 +148,15 @@ function ChangeBookingForm({
       onSubmit={save}
       className="space-y-3 border-t border-slate-100 bg-slate-50/60 p-4">
       <p className="text-sm text-slate-600">
-        {tour
-          ? "The seats on the old start date are released and the new ones reserved together. The adult price is re-quoted at today's rate; the child price keeps the booked terms. The guest is emailed."
-          : car
-          ? "The car's old days are released and the new ones reserved together. The daily price is re-quoted at today's rate; driver and trip charges keep the booked terms. The guest is emailed."
-          : "Rooms on the old dates are released and the new ones reserved together. The price is re-quoted at today's rate and the guest is emailed."}
+        The guest is asked to accept this first, and the booking stays as it is until they do. The price is worked out at today's rates.
       </p>
       {tour ? <label className="block text-xs font-semibold text-slate-600">
           New start date
-          <input type="date" required min={todayPk()} value={form.checkIn} onChange={(event) => setForm({ ...form, checkIn: event.target.value })} className={`${fieldClass} mt-1 w-full sm:w-60`} />
+          <DateInput required min={todayPk()} value={form.checkIn} onChange={(event) => setForm({ ...form, checkIn: event.target.value })} className={`${fieldClass} mt-1 w-full sm:w-60`} />
         </label> : <div className="grid gap-3 sm:grid-cols-4">
         <label className="text-xs font-semibold text-slate-600">
           {car ? "Pickup" : "Check-in"}
-          <input
-            type="date"
+          <DateInput
             required
             min={todayPk()}
             value={form.checkIn}
@@ -170,8 +168,7 @@ function ChangeBookingForm({
         </label>
         <label className="text-xs font-semibold text-slate-600">
           {car ? "Return" : "Check-out"}
-          <input
-            type="date"
+          <DateInput
             required
             min={form.checkIn}
             value={form.checkOut}
@@ -183,7 +180,7 @@ function ChangeBookingForm({
         </label>
         <label className="text-xs font-semibold text-slate-600">
           {car ? "Car" : "Room"}
-          <select
+          <Select
             required
             value={form.roomTypeId}
             onChange={(event) =>
@@ -196,7 +193,7 @@ function ChangeBookingForm({
                 {item.name} · PKR {item.basePrice.toLocaleString()}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         <label className="text-xs font-semibold text-slate-600">
           {car ? "Cars" : "Rooms"}
@@ -213,6 +210,10 @@ function ChangeBookingForm({
           />
         </label>
       </div>}
+      <label className="block text-xs font-semibold text-slate-600">
+        Why are you changing it? The guest sees this.
+        <input required minLength={5} maxLength={300} value={reason} onChange={(event) => setReason(event.target.value)} placeholder="For example: the guest asked by message to arrive a day later" className={`${fieldClass} mt-1 w-full`} />
+      </label>
       {total !== null && (
         <p className="text-sm">
           {car ? "New car price" : "New total"} <strong>PKR {total.toLocaleString()}</strong>{" "}
@@ -232,7 +233,7 @@ function ChangeBookingForm({
         <button
           disabled={busy || !room || (!tour && nights < 1)}
           className="min-h-11 rounded-lg bg-[#006F3C] px-4 text-sm font-semibold text-white disabled:opacity-50">
-          {busy ? "Saving…" : "Save change"}
+          {busy ? "Sending…" : "Send to the guest"}
         </button>
         <button
           type="button"
@@ -357,6 +358,15 @@ export default function VendorReservations({
         })) === null
       )
         return;
+    } else if (action === "collect_balance") {
+      if (
+        (await askReason({
+          title: "Record the balance as collected?",
+          confirmLabel: `Record PKR ${(booking.balanceDue ?? 0).toLocaleString()} collected`,
+          description: `${booking.customerName} paid the remaining PKR ${(booking.balanceDue ?? 0).toLocaleString()} for ${ref}. This is logged and cannot be undone here.`,
+        })) === null
+      )
+        return;
     } else if (action === "no_show") {
       if (
         (await askReason({
@@ -412,19 +422,19 @@ export default function VendorReservations({
         {properties.length > 1 && (
           <label>
             <span className="sr-only">Property</span>
-            <select value={listingId} onChange={(event) => setListingId(event.target.value)} className={fieldClass}>
+            <Select value={listingId} onChange={(event) => setListingId(event.target.value)} className={fieldClass}>
               <option value="">All {car ? "cars" : tour ? "tours" : "properties"}</option>
               {properties.map((property) => <option key={property.id} value={property.id}>{property.title}</option>)}
-            </select>
+            </Select>
           </label>
         )}
         <label className="flex items-center gap-2 text-xs font-semibold text-slate-600">
           {car ? "Pickup from" : tour ? "Starts from" : "Check-in from"}
-          <input type="date" value={from} max={to || undefined} onChange={(event) => setFrom(event.target.value)} className={fieldClass} />
+          <DateInput value={from} max={to || undefined} onChange={(event) => setFrom(event.target.value)} className={fieldClass} />
         </label>
         <label className="flex items-center gap-2 text-xs font-semibold text-slate-600">
           to
-          <input type="date" value={to} min={from || undefined} onChange={(event) => setTo(event.target.value)} className={fieldClass} />
+          <DateInput value={to} min={from || undefined} onChange={(event) => setTo(event.target.value)} className={fieldClass} />
         </label>
         {filtered && (
           <button type="button" onClick={clearFilters} className="inline-flex min-h-9 items-center gap-1 text-sm font-semibold text-[#006F3C]"><X className="size-4" />Clear</button>
@@ -516,6 +526,35 @@ export default function VendorReservations({
                 {selected.customerPhone && <a href={whatsapp(selected.customerPhone)} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 px-4 text-sm font-bold text-slate-700 hover:bg-slate-50">WhatsApp guest</a>}
               </div>
             </div>
+            {selected.changeRequest?.status === "pending" && selected.changeRequest.proposedBy === "partner" && (
+              <div className="space-y-2 border-b border-[#EEF1ED] bg-sky-50 p-5 text-sm">
+                <p className="font-bold text-sky-950">Waiting for the guest to answer your change</p>
+                <p>{formatDateForDisplay(selected.changeRequest.checkIn)} → {formatDateForDisplay(selected.changeRequest.checkOut)} · {selected.changeRequest.rooms} × {selected.changeRequest.roomName}</p>
+                <p className="text-xs text-slate-600">The booking stays as it is until the guest accepts.</p>
+                <button type="button" disabled={busyId === selected.id} className="min-h-11 rounded-lg border border-slate-300 bg-white px-4 font-bold text-slate-700 disabled:opacity-50" onClick={async () => {
+                  setBusyId(selected.id); setError(null);
+                  try { const updated = await api.decideBookingChange(selected.id, "decline", "Withdrawn by the partner"); setBookings((items) => items.map((item) => (item.id === updated.id ? updated : item))); }
+                  catch (reasonError) { setError(reasonError instanceof Error ? reasonError.message : "The change could not be withdrawn."); }
+                  finally { setBusyId(null); }
+                }}>Withdraw</button>
+              </div>
+            )}
+            {selected.changeRequest?.status === "pending" && !selected.changeRequest.proposedBy && (
+              <ChangeRequestBox booking={selected} busy={busyId === selected.id} onDecide={async (decision) => {
+                let reason: string | undefined;
+                if (decision === "decline") {
+                  reason = (await askReason({ title: "Decline this change?", destructive: true, confirmLabel: "Decline", noteLabel: "Reason for the guest", description: "The booking stays as it is and the guest is emailed." }))?.trim();
+                  if (!reason) return;
+                }
+                setBusyId(selected.id); setError(null);
+                try {
+                  const updated = await api.decideBookingChange(selected.id, decision, reason);
+                  setBookings((items) => items.map((item) => (item.id === updated.id ? updated : item)));
+                } catch (reasonError) {
+                  setError(reasonError instanceof Error ? reasonError.message : "The request could not be answered.");
+                } finally { setBusyId(null); }
+              }} />
+            )}
             {changingId === selected.id && (
               <ChangeBookingForm booking={selected} onCancel={() => setChangingId(null)}
                 onChanged={(updated) => { setBookings((items) => items.map((item) => (item.id === updated.id ? updated : item))); setChangingId(null); }} />
@@ -528,10 +567,29 @@ export default function VendorReservations({
   );
 }
 
+/** A guest's request to move the booking. Accepting applies it at today's price, as a normal change. */
+function ChangeRequestBox({ booking, busy, onDecide }: { booking: Booking; busy: boolean; onDecide: (decision: "accept" | "decline") => void }) {
+  const request = booking.changeRequest!;
+  return (
+    <div className="space-y-2 border-b border-[#EEF1ED] bg-[#FFF8EB] p-5 text-sm">
+      <p className="font-bold text-[#7A4A00]">The guest asked for a change</p>
+      <p>{formatDateForDisplay(request.checkIn)} → {formatDateForDisplay(request.checkOut)} · {request.rooms} × {request.roomName}</p>
+      {request.note && <p className="italic text-slate-700">“{request.note}”</p>}
+      <p className="text-xs text-slate-600">Accepting re-quotes it at today's price. If the guest already paid, a lower total is refunded and a higher one is collected on arrival.</p>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" disabled={busy} onClick={() => onDecide("accept")} className="min-h-11 rounded-lg bg-[#006F3C] px-4 font-bold text-white disabled:opacity-50">Accept</button>
+        <button type="button" disabled={busy} onClick={() => onDecide("decline")} className="min-h-11 rounded-lg border border-[#F1C4C4] px-4 font-bold text-[#B91C1C] disabled:opacity-50">Decline</button>
+      </div>
+    </div>
+  );
+}
+
 /** GBBookings' fee on this booking, and any refund owed to the guest after a paid booking was cancelled. */
 const moneyRows = (booking: Booking): Array<[string, string | undefined]> => [
+  ...(booking.charges ?? []).map((line): [string, string] => [line.name, `PKR ${line.amount.toLocaleString()}`]),
+  ["Balance to collect", booking.balanceDue ? `PKR ${booking.balanceDue.toLocaleString()}${booking.balanceCollectedAt ? " · collected" : " · on arrival, changed after paying"}` : undefined],
   ["GBBookings fee", booking.platformFeePercent ? `PKR ${(booking.platformFee ?? 0).toLocaleString()} (${booking.platformFeePercent}%)${booking.status === "cancelled" && !booking.platformFee ? " · none, cancelled" : ""}` : undefined],
-  ["Refund to guest", booking.refund ? `PKR ${booking.refund.amount.toLocaleString()} (${booking.refund.percent}% of the total)` : undefined],
+  ["Refund to guest", booking.refunds?.length ? booking.refunds.map((refund) => `PKR ${refund.amount.toLocaleString()} · ${refund.channel === "partner" ? "you return this to the guest" : refund.status === "sent" ? "sent" : "being sent by GBBookings"}`).join("; ") : booking.refund ? `PKR ${booking.refund.amount.toLocaleString()} (${booking.refund.percent}% of the total)` : undefined],
 ];
 
 function ReservationDetails({ booking }: { booking: Booking }) {

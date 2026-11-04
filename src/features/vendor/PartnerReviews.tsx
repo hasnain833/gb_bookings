@@ -4,6 +4,7 @@ import { api, type Paginated } from '../../shared/api/api';
 import { useReasonDialog } from '../../shared/components/ReasonDialog';
 import type { Review } from '../../types';
 import { ReviewCard } from '../reviews/ReviewParts';
+import Select from '../../shared/components/Select';
 
 const fieldClass = 'min-h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[#006F3C] focus:ring-2 focus:ring-[#006F3C]/15';
 
@@ -62,10 +63,10 @@ export default function PartnerReviews({ properties }: { properties: Array<{ id:
       {dialog}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3"><Star className="size-5 text-[#006F3C]" /><h2 id="partner-reviews-heading" className="font-bold text-slate-900">Guest reviews</h2>{result && <span className="text-sm text-slate-500">{result.pagination.total} found</span>}</div>
-        {properties.length > 1 && <label><span className="sr-only">Property</span><select value={listingId} onChange={(event) => setListingId(event.target.value)} className={fieldClass}>
+        {properties.length > 1 && <label><span className="sr-only">Property</span><Select value={listingId} onChange={(event) => setListingId(event.target.value)} className={fieldClass}>
           <option value="">All properties</option>
           {properties.map((property) => <option key={property.id} value={property.id}>{property.title}</option>)}
-        </select></label>}
+        </Select></label>}
       </div>
       {error && <p role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
       {!result && !error && <div className="flex justify-center py-8"><LoaderCircle className="size-6 animate-spin text-[#006F3C]" aria-label="Loading reviews" /></div>}

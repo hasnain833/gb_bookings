@@ -1,5 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { AlertTriangle, Building2, CalendarX, CheckCircle2, XCircle, Car, Percent, Hotel, House, Inbox, LayoutDashboard, Mountain, PanelLeftClose, PanelLeftOpen, Search, FileText, LoaderCircle, LogOut, ShieldCheck, Star, Users } from 'lucide-react';
+import { toast } from '../../shared/components/Toaster';
+import { Banknote, Undo2, AlertTriangle, Building2, CalendarX, CheckCircle2, XCircle, Car, Percent, Hotel, House, Inbox, LayoutDashboard, Mountain, PanelLeftClose, PanelLeftOpen, Search, FileText, LoaderCircle, LogOut, ShieldCheck, Star, Users } from 'lucide-react';
+import { RefundsPanel, PayoutsPanel } from './FinancePanels';
 import { api, type AdminBookingLookup, type AdminUser, type AdminVendor, type IdentityCheck, type Paginated, type PlatformSettings, type UserStatusAction, type VendorListing } from '../../shared/api/api';
 import SecurityPanel from '../account/SecurityPanel';
 import ListingReviewDetails from './ListingReviewDetails';
@@ -7,9 +9,10 @@ import { ReviewCard } from '../reviews/ReviewParts';
 import type { Review } from '../../types';
 import { useReasonDialog, type ReasonRequest } from '../../shared/components/ReasonDialog';
 import { useDebouncedValue } from '../../shared/hooks/useDebouncedValue';
+import Select from '../../shared/components/Select';
 
 type Product = VendorListing['type'];
-type Tab = 'overview' | 'inbox' | Product | 'vendors' | 'reviews' | 'users' | 'cancellations' | 'settings' | 'security';
+type Tab = 'overview' | 'inbox' | Product | 'vendors' | 'reviews' | 'users' | 'refunds' | 'payouts' | 'cancellations' | 'settings' | 'security';
 type NavItem = { id: Tab; label: string; icon: typeof Users };
 
 const navGroups: Array<{ title?: string; items: NavItem[] }> = [
@@ -19,6 +22,7 @@ const navGroups: Array<{ title?: string; items: NavItem[] }> = [
     { id: 'car', label: 'Cars', icon: Car }, { id: 'tour', label: 'Tours', icon: Mountain },
   ] },
   { title: 'People', items: [{ id: 'vendors', label: 'Partners', icon: Building2 }, { id: 'users', label: 'Users', icon: Users }, { id: 'reviews', label: 'Guest reviews', icon: Star }] },
+  { title: 'Money', items: [{ id: 'refunds', label: 'Refunds', icon: Undo2 }, { id: 'payouts', label: 'Payouts', icon: Banknote }] },
   { title: 'Tools', items: [{ id: 'cancellations', label: 'Cancel a booking', icon: CalendarX }, { id: 'settings', label: 'Fees & refunds', icon: Percent }, { id: 'security', label: 'Account security', icon: ShieldCheck }] },
 ];
 const productNames: Record<Product, [string, string]> = { hotel: ['Hotels', 'hotel'], homestay: ['Homestays', 'homestay'], car: ['Cars', 'car'], tour: ['Tours', 'tour'] };
@@ -175,11 +179,11 @@ function VendorsPanel() {
     <Panel title="Vendor applications" icon={Building2} error={error ?? loadError} loading={loading}
       empty={result?.data.length === 0 ? (changeRequests ? 'No change requests.' : `No ${status ? label(status) : ''} vendors.`) : null}
       filter={
-        <select aria-label="Filter vendors by status" value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }} className={selectClass}>
+        <Select aria-label="Filter vendors by status" value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }} className={selectClass}>
           <option value="">All</option>
           {['submitted', 'approved', 'rejected', 'suspended', 'draft'].map((value) => <option key={value} value={value}>{value}</option>)}
           <option value="changes">Change requests</option>
-        </select>
+        </Select>
       }>
       {result?.data.map((vendor) => (
         <div key={vendor.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-start">
@@ -280,9 +284,9 @@ function ListingsPanel({ type }: { type: Product }) {
       filter={
         <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
           <input type="search" aria-label="Search listings by name or location" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search name or location" className={`${selectClass} normal-case sm:w-56`} />
-          <select aria-label="Filter listings by status" value={status} onChange={(event) => setStatus(event.target.value as typeof status)} className={selectClass}>
+          <Select aria-label="Filter listings by status" value={status} onChange={(event) => setStatus(event.target.value as typeof status)} className={selectClass}>
             {listingStatusTabs.map(([value, text]) => <option key={value} value={value}>{text}</option>)}
-          </select>
+          </Select>
         </div>
       }>
       {result?.pagination && <p className="pt-3 text-xs text-slate-500">{result.pagination.total} listing{result.pagination.total === 1 ? '' : 's'}</p>}
@@ -341,9 +345,9 @@ function ReviewsPanel() {
   return (
     <Panel title="Guest reviews" icon={Star} error={error ?? loadError} loading={loading}
       empty={result?.data.length === 0 ? (status === 'reported' ? 'No reported reviews.' : status === 'hidden' ? 'No hidden reviews.' : 'No reviews yet.') : null}
-      filter={<select aria-label="Filter reviews" value={status} onChange={(event) => setStatus(event.target.value as typeof status)} className={selectClass}>
+      filter={<Select aria-label="Filter reviews" value={status} onChange={(event) => setStatus(event.target.value as typeof status)} className={selectClass}>
         <option value="reported">Reported by partners</option><option value="hidden">Hidden</option><option value="all">All reviews</option>
-      </select>}>
+      </Select>}>
       <div className="space-y-3 py-3">
         {result?.data.map((review) => (
           <ReviewCard key={review.id} review={review}
@@ -391,14 +395,14 @@ function UsersPanel() {
         <form className="flex flex-wrap gap-2" onSubmit={(event) => { event.preventDefault(); setQuery(search.trim()); setPage(1); }}>
           <input type="search" aria-label="Search by name or email" placeholder="Name or email" value={search} onChange={(event) => setSearch(event.target.value)}
             className="min-h-11 rounded-md border border-slate-300 px-3 text-sm" />
-          <select aria-label="Filter users by role" value={role} onChange={(event) => { setRole(event.target.value); setPage(1); }} className={selectClass}>
+          <Select aria-label="Filter users by role" value={role} onChange={(event) => { setRole(event.target.value); setPage(1); }} className={selectClass}>
             <option value="">All roles</option>
             {['customer', 'vendor_owner', 'vendor_staff', 'admin'].map((value) => <option key={value} value={value}>{roleLabel(value)}</option>)}
-          </select>
-          <select aria-label="Filter users by status" value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }} className={selectClass}>
+          </Select>
+          <Select aria-label="Filter users by status" value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }} className={selectClass}>
             <option value="">All statuses</option>
             {['active', 'suspended', 'archived'].map((value) => <option key={value} value={value}>{value}</option>)}
-          </select>
+          </Select>
         </form>
       }>
       <form className="grid gap-3 bg-slate-50 p-4 sm:grid-cols-3" onSubmit={(event) => {
@@ -519,32 +523,55 @@ function CancelBookingPanel() {
 /** Commission and guest refund rules. Tiers count hours from when the booking was made. */
 function SettingsPanel() {
   const [settings, setSettings] = useState<PlatformSettings | null>(null);
-  const [notice, setNotice] = useState('');
+  const [lastSaved, setLastSaved] = useState<PlatformSettings | null>(null);
+  const [editing, setEditing] = useState(false);
   const { busyId, error, setError, run } = useAction();
   useEffect(() => { run('load', async () => setSettings(await api.admin.getSettings())); }, []);
   if (!settings) return error ? <p role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{error}</p> : <p className="text-sm text-slate-500">Loading…</p>;
 
-  const set = (patch: Partial<PlatformSettings>) => { setSettings({ ...settings, ...patch }); setNotice(''); setError(null); };
+  const set = (patch: Partial<PlatformSettings>) => { setSettings({ ...settings, ...patch }); setError(null); };
   const setTier = (index: number, patch: Partial<PlatformSettings['refundTiers'][number]>) =>
     set({ refundTiers: settings.refundTiers.map((tier, at) => at === index ? { ...tier, ...patch } : tier) });
   const lastHours = settings.refundTiers.at(-1)?.withinHours;
   const save = (event: React.FormEvent) => {
     event.preventDefault();
-    run('save', async () => { setSettings(await api.admin.saveSettings(settings)); setNotice('Saved. New bookings and cancellations use these rules.'); });
+    run('save', async () => { const saved = await api.admin.saveSettings(settings); setSettings(saved); setLastSaved(saved); setEditing(false); toast('Saved. New bookings and cancellations use these rules.'); });
   };
   const percentInput = (value: number, onChange: (value: number) => void, max = 100) =>
     <input required type="number" min={0} max={max} step={0.01} value={value} onChange={(event) => onChange(Number(event.target.value))} className={`${selectClass} mt-1.5 w-28`} />;
 
   return (
     <form onSubmit={save} className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4">
+        <p className="text-sm text-slate-600">{editing ? 'Editing. Nothing changes until you save.' : 'These are the rules in use now.'}</p>
+        {editing
+          ? <div className="flex gap-2">
+              <button type="button" className={secondaryButton} disabled={busyId === 'save'} onClick={() => { setSettings(lastSaved); setEditing(false); setError(''); }}>Cancel</button>
+              <button className={primaryButton} disabled={busyId === 'save'}>{busyId === 'save' ? 'Saving…' : 'Save changes'}</button>
+            </div>
+          : <button type="button" className={secondaryButton} onClick={() => { setLastSaved(settings); setEditing(true); }}>Edit</button>}
+      </div>
+      <fieldset disabled={!editing} className="space-y-6 disabled:[&_input]:bg-slate-50 disabled:[&_input]:text-slate-600">
       <fieldset className="space-y-2">
         <legend className="text-base font-bold text-slate-900">Commission</legend>
-        <label className="block text-sm font-semibold text-slate-800">Percent of every booking's total{percentInput(settings.commissionPercent, (commissionPercent) => set({ commissionPercent }), 50)}</label>
+        <label className="block text-sm font-semibold text-slate-800">Percent of every booking's total, excluding taxes{percentInput(settings.commissionPercent, (commissionPercent) => set({ commissionPercent }), 50)}</label>
         <p className="text-sm text-slate-500">Each booking keeps the percent it was made with. A cancelled unpaid booking owes nothing; on a paid one it is charged only on what the partner keeps.</p>
       </fieldset>
       <fieldset className="space-y-3">
-        <legend className="text-base font-bold text-slate-900">Refunds when a guest cancels a paid booking</legend>
-        <p className="text-sm text-slate-500">Counted from when the booking was made. Partner or GBBookings cancellations always refund in full. Guests still cannot cancel on or after the start date.</p>
+        <legend className="text-base font-bold text-slate-900">Taxes</legend>
+        <p className="text-sm text-slate-500">Added to every new booking, each as its own line at checkout, on the price plus any partner fees. No commission is taken on them. Confirm the names and rates with your accountant first.</p>
+        {settings.taxes.map((tax, index) => (
+          <div key={index} className="flex flex-wrap items-end gap-3">
+            <label className="text-sm font-semibold text-slate-800">Name<input required minLength={2} maxLength={60} value={tax.name} onChange={(event) => set({ taxes: settings.taxes.map((item, at) => at === index ? { ...item, name: event.target.value } : item) })} className={`${selectClass} mt-1.5 block w-56`} /></label>
+            <label className="text-sm font-semibold text-slate-800">Percent{percentInput(tax.percent, (percent) => set({ taxes: settings.taxes.map((item, at) => at === index ? { ...item, percent } : item) }), 50)}</label>
+            <button type="button" className={`${secondaryButton} text-rose-700`} onClick={() => set({ taxes: settings.taxes.filter((_, at) => at !== index) })}>Remove</button>
+          </div>
+        ))}
+        {settings.taxes.length < 5 && <button type="button" className={secondaryButton} onClick={() => set({ taxes: [...settings.taxes, { name: '', percent: 0 }] })}>Add a tax</button>}
+      </fieldset>
+      <fieldset className="space-y-3">
+        <legend className="text-base font-bold text-slate-900">Refunds on older bookings</legend>
+        <p className="text-sm text-slate-500">Only for bookings made before per-listing cancellation policies; new bookings follow the listing's policy. Counted from when the booking was made. Partner or GBBookings cancellations always refund in full.</p>
         {settings.refundTiers.map((tier, index) => (
           <div key={index} className="flex flex-wrap items-end gap-3">
             <label className="text-sm font-semibold text-slate-800">Cancelled within (hours)<input required type="number" min={1} step={1} value={tier.withinHours} onChange={(event) => setTier(index, { withinHours: Number(event.target.value) })} className={`${selectClass} mt-1.5 block w-28`} /></label>
@@ -555,15 +582,14 @@ function SettingsPanel() {
         {settings.refundTiers.length < 10 && <button type="button" className={secondaryButton} onClick={() => set({ refundTiers: [...settings.refundTiers, { withinHours: (lastHours ?? 0) + 24, refundPercent: 50 }] })}>Add a time limit</button>}
         <label className="block text-sm font-semibold text-slate-800">{lastHours ? `Cancelled after ${lastHours} hours: refund %` : 'Refund %'}{percentInput(settings.laterRefundPercent, (laterRefundPercent) => set({ laterRefundPercent }))}</label>
       </fieldset>
+      </fieldset>
       {error && <p role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
-      {notice && <p role="status" className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">{notice}</p>}
-      <button className={primaryButton} disabled={busyId === 'save'}>Save</button>
     </form>
   );
 }
 
 type InboxKind = 'partner' | 'business' | 'hotel' | 'changes';
-type InboxItem = { key: string; kind: InboxKind; title: string; subtitle: string; at?: string; image?: string; vendor?: AdminVendor; listing?: VendorListing };
+type InboxItem = { key: string; kind: InboxKind; title: string; subtitle: string; at?: string; image?: string; vendor?: AdminVendor; listing?: VendorListing; listings?: VendorListing[] };
 const kindLabel: Record<InboxKind, [string, string]> = {
   partner: ['New partner', 'text-[#6B3FA0]'], business: ['Business change', 'text-[#6B3FA0]'],
   hotel: ['New listing', 'text-[#1E5BA8]'], changes: ['Listing changes', 'text-[#8A4B10]'],
@@ -582,10 +608,14 @@ async function loadQueue(): Promise<InboxItem[]> {
     api.admin.listVendors({ status: 'submitted', limit: 100 }), api.admin.listVendors({ changes: 'pending', limit: 100 }),
     api.admin.listListings({ status: 'submitted', limit: 100 }), api.admin.listListings({ status: 'revisions', limit: 100 }),
   ]);
+  // A new partner and the listing they applied with are decided together.
+  const applying = new Set(partners.data.map((vendor) => vendor.id));
+  const withApplication = (vendorId: string) => listings.data.filter((listing) => listing.vendorId === vendorId);
+  const countListings = (count: number) => count ? ` · ${count} listing${count > 1 ? 's' : ''}` : '';
   return [
-    ...partners.data.map((vendor) => ({ key: `p-${vendor.id}`, kind: 'partner' as const, title: vendor.name, subtitle: `${label(vendor.businessType)} · ${address(vendor) || vendor.email} · ${vendor.verificationDocuments.length} document(s)`, at: vendor.submittedAt ?? vendor.createdAt, vendor })),
+    ...partners.data.map((vendor) => ({ key: `p-${vendor.id}`, kind: 'partner' as const, listings: withApplication(vendor.id), title: vendor.name, subtitle: `${label(vendor.businessType)} · ${address(vendor) || vendor.email} · ${vendor.verificationDocuments.length} document(s)${countListings(withApplication(vendor.id).length)}`, at: vendor.submittedAt ?? vendor.createdAt, vendor })),
     ...business.data.map((vendor) => ({ key: `b-${vendor.id}`, kind: 'business' as const, title: vendor.name, subtitle: 'Wants to change business details', at: vendor.pendingChanges?.requestedAt, vendor })),
-    ...listings.data.map((listing) => ({ key: `h-${listing.id}`, kind: 'hotel' as const, title: listing.title, subtitle: `${listing.vendorName ?? 'Partner'} · ${listing.photos?.length || listing.images.length} photo(s)`, at: listing.updatedAt, image: listing.image, listing })),
+    ...listings.data.filter((listing) => !listing.vendorId || !applying.has(listing.vendorId)).map((listing) => ({ key: `h-${listing.id}`, kind: 'hotel' as const, title: listing.title, subtitle: `${listing.vendorName ?? 'Partner'} · ${listing.photos?.length || listing.images.length} photo(s)`, at: listing.updatedAt, image: listing.image, listing })),
     ...changes.data.map((listing) => ({ key: `c-${listing.id}`, kind: 'changes' as const, title: listing.title, subtitle: `${listing.vendorName ?? 'Partner'} · ${Object.keys(listing.pendingRevision?.changes ?? {}).length || 'room'} change(s)`, at: listing.pendingRevision?.submittedAt, image: listing.image, listing })),
   ].sort((a, b) => Date.parse(a.at ?? '') - Date.parse(b.at ?? ''));
 }
@@ -631,7 +661,8 @@ function InboxPanel({ onOpen, initialKey, onChanged }: { onOpen: (tab: Tab) => v
       partner: ['Approve partner', 'Reject partner'], business: ['Apply changes', 'Reject changes'],
       hotel: ['Publish listing', 'Reject listing'], changes: ['Approve and publish', 'Reject changes'],
     };
-    const confirmLabel = verbs[item.kind][approve ? 0 : 1];
+    const attached = item.listings ?? [];
+    const confirmLabel = approve && attached.length ? `Approve partner and publish ${attached.length > 1 ? `${attached.length} listings` : 'the listing'}` : verbs[item.kind][approve ? 0 : 1];
     const notes = await askReason({
       title: `${confirmLabel}: ${item.title}`, confirmLabel, destructive: !approve,
       description: approve ? 'Add a short note to complete your review. The partner is emailed about the decision.'
@@ -639,7 +670,12 @@ function InboxPanel({ onOpen, initialKey, onChanged }: { onOpen: (tab: Tab) => v
     });
     if (!notes) return;
     run(item.key, async () => {
-      if (item.kind === 'partner') await api.admin.decideVendor(item.vendor!.id, approve ? 'approved' : 'rejected', notes);
+      if (item.kind === 'partner') {
+        await api.admin.decideVendor(item.vendor!.id, approve ? 'approved' : 'rejected', notes);
+        // Rejected: the listing waits with the application until the partner resubmits.
+        if (approve) for (const listing of attached) await api.admin.moderateListing(listing.id, 'published', notes);
+        if (approve && attached.length) setLiveHotels((value) => (value ?? 0) + attached.length);
+      }
       if (item.kind === 'business') await api.admin.decideVendorChanges(item.vendor!.id, approve ? 'approved' : 'rejected', notes);
       if (item.kind === 'hotel') await api.admin.moderateListing(item.listing!.id, approve ? 'published' : 'rejected', notes);
       if (item.kind === 'changes') await api.admin.decideListingRevision(item.listing!.id, approve ? 'approved' : 'rejected', notes);
@@ -721,7 +757,7 @@ function InboxPanel({ onOpen, initialKey, onChanged }: { onOpen: (tab: Tab) => v
             </div>
             <div className="flex flex-wrap items-start gap-2">
               <button type="button" className={`${secondaryButton} border-[#E9C3BC] text-[#A12A1C]`} disabled={busyId === selected.key} onClick={() => decide(selected, false)}>{selected.kind === 'partner' || selected.kind === 'hotel' ? 'Reject' : 'Reject changes'}</button>
-              <button type="button" className={primaryButton} disabled={busyId === selected.key} onClick={() => decide(selected, true)}>{{ partner: 'Approve partner', business: 'Apply changes', hotel: 'Publish listing', changes: 'Approve and publish' }[selected.kind]}</button>
+              <button type="button" className={primaryButton} disabled={busyId === selected.key} onClick={() => decide(selected, true)}>{selected.listings?.length ? 'Approve partner and publish' : { partner: 'Approve partner', business: 'Apply changes', hotel: 'Publish listing', changes: 'Approve and publish' }[selected.kind]}</button>
             </div>
           </div>
           <div className="space-y-5 p-6">
@@ -744,6 +780,11 @@ function InboxPanel({ onOpen, initialKey, onChanged }: { onOpen: (tab: Tab) => v
               {selected.kind === 'business' && <ChangeRequestDiff vendor={selected.vendor} />}
             </>}
             {selected.listing && <ListingReviewDetails key={selected.key} listing={selected.listing} />}
+            {selected.listings?.map((listing) => <div key={listing.id} className="space-y-3 border-t border-[#ECEFE9] pt-5">
+              <h3 className="text-lg font-extrabold">Listing in this application: {listing.title}</h3>
+              <p className="text-sm text-[#5A6B61]">{listing.location}</p>
+              <ListingReviewDetails listing={listing} />
+            </div>)}
           </div>
         </section>}
       </div>}
@@ -855,8 +896,10 @@ const sectionDetails: Record<Tab, { title: string; description: string }> = {
   vendors: { title: 'Partner reviews', description: 'Review vendor applications, verify documents and manage partner access.' },
   reviews: { title: 'Guest reviews', description: 'Reviews partners reported, and reviews you have hidden. Remove only abusive, fake or off-topic reviews and personal data; honest criticism stays.' },
   users: { title: 'People & access', description: 'Manage customer and partner accounts, invite administrators and control platform access.' },
+  refunds: { title: 'Refunds', description: 'Money owed back to guests. Payments on Safepay go back through Safepay; money a partner collected on arrival is returned by that partner.' },
+  payouts: { title: 'Payouts', description: 'What each partner is owed or owes, the statements you have issued, and the totals to check against Safepay and the bank.' },
   cancellations: { title: 'Cancel a booking', description: 'For disputes or fraud only. Hotels run their own reservations; find a booking by its reference to cancel it on the guest’s behalf.' },
-  settings: { title: 'Fees & refunds', description: 'GBBookings’ commission on every booking, and how much a guest gets back when they cancel a paid booking. Changes apply to bookings made or cancelled from now on.' },
+  settings: { title: 'Fees & refunds', description: 'GBBookings’ commission and the taxes on every booking. Changes apply to bookings made from now on. Partners pick each listing’s cancellation policy.' },
   security: { title: 'Account security', description: 'Manage your password, active sessions and two-factor authentication.' },
 };
 
@@ -952,6 +995,8 @@ export default function AdminDashboard({ roles, userName = 'Staff member', userE
           {tab === 'reviews' && <ReviewsPanel />}
           {tab === 'users' && <UsersPanel />}
           {tab === 'cancellations' && <CancelBookingPanel />}
+          {tab === 'refunds' && <RefundsPanel />}
+          {tab === 'payouts' && <PayoutsPanel />}
           {tab === 'settings' && <SettingsPanel />}
           {tab === 'security' && <section className="rounded-2xl border border-[#E1E5DE] bg-white p-4 sm:p-6"><SecurityPanel /></section>}
         </>}

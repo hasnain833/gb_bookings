@@ -1,3 +1,4 @@
+import { DEFAULT_CANCELLATION_POLICY } from '../../../src/shared/utils/cancellation.js';
 import { isValidObjectId } from 'mongoose';
 import type { Listing } from '../../../src/types.js';
 import { connectDatabase } from '../../database/connection.js';
@@ -33,6 +34,8 @@ function toPublicListing(record: ListingRecord): Listing {
     featured: record.featured,
     ...(latLng(record.coordinates) ? { coordinates: latLng(record.coordinates) } : {}),
     ...(record.stayInfo?.paymentMethods?.length ? { stayInfo: record.stayInfo } : {}),
+    cancellationPolicy: record.cancellationPolicy ?? DEFAULT_CANCELLATION_POLICY,
+    ...(record.fees?.length ? { fees: record.fees } : {}),
     breakfastIncluded: (record.homestaySpecs?.meals ?? []).some((meal: any) => meal.type === 'breakfast' && meal.included)
       || Boolean(record.hotelSpecs?.breakfast?.included)
       || (record.hotelSpecs?.amenities ?? []).some((item: string) => BREAKFAST_AMENITY.test(item)),
@@ -65,12 +68,15 @@ const sortOptions: Record<ListListingsQuery['sort'], Record<string, 1 | -1>> = {
   newest: { createdAt: -1 },
 };
 
+const UNBOOKABLE_WITHOUT_PARTNER = ['car', 'tour'];
+
 /** Guests only see published listings of approved partners (or platform-owned ones). */
 async function visibleFilter(type?: string) {
   const approvedVendors = await VendorModel.find({ status: 'approved', deletedAt: null }).distinct('_id');
   return {
     status: 'published', deletedAt: null,
-    $and: [{ $or: [{ ownerId: null }, { ownerId: { $in: approvedVendors } }] }] as unknown[],
+    // Cars and tours are run by partners; one without a partner could never be booked.
+    $and: [{ $or: [{ ownerId: null, type: { $nin: UNBOOKABLE_WITHOUT_PARTNER } }, { ownerId: { $in: approvedVendors } }] }] as unknown[],
     ...(type && type !== 'all' ? { type } : {}),
   } as Record<string, unknown>;
 }
@@ -125,7 +131,9 @@ export async function listPublishedListings(query: ListListingsQuery) {
     filter._id = { $in: await listingsWithAvailability(query.checkIn, storedEnd('tour', query.checkIn), 1, query.guests ?? 1) };
     (filter.$and as unknown[]).push({ $or: [{ 'tourSpecs.schedule': { $ne: 'fixed' } }, { departures: query.checkIn }] });
   } else if (query.checkIn && query.checkOut) {
-    filter._id = { $in: await listingsWithAvailability(query.checkIn, storedEnd(query.type ?? '', query.checkOut), query.guests ?? 1, query.rooms ?? 1) };
+    filter._id = { $in: await listingsWithAvailability(query.checkIn, storedEnd(query.type ?? '', query.checkOut), query.guests ?? 1, query.rooms) };
+  } else if (query.guests) {
+    filter._id = { $in: await listingsThatFit(query.guests) };
   }
 
   const skip = (query.page - 1) * query.limit;
@@ -175,19 +183,33 @@ export async function placeCounts(type: string, places: string[]) {
  * Listing _ids with at least one active room type that fits the party and is free every night.
  * ponytail: scans all active room types per dated search; add a per-date availability index once the catalog is large.
  */
-async function listingsWithAvailability(checkIn: string, checkOut: string, guests: number, rooms: number) {
+/** Listings whose rooms, all together, sleep this many: a hotel with 14 double rooms can host a party of 9. */
+function listingsWithCapacity(rooms: Array<{ listingId: unknown; maxAdults: number }>, free: (room: any) => number, guests: number) {
+  const capacity = new Map<string, { id: unknown; beds: number }>();
+  for (const room of rooms) {
+    const entry = capacity.get(String(room.listingId)) ?? { id: room.listingId, beds: 0 };
+    entry.beds += free(room) * room.maxAdults;
+    capacity.set(String(room.listingId), entry);
+  }
+  return [...capacity.values()].filter((entry) => entry.beds >= guests).map((entry) => entry.id);
+}
+
+async function listingsThatFit(guests: number) {
+  const rooms = await HotelRoomTypeModel.find({ status: 'active', deletedAt: null }).select('listingId totalRooms maxAdults').lean() as any[];
+  return listingsWithCapacity(rooms, (room) => room.totalRooms, guests);
+}
+
+async function listingsWithAvailability(checkIn: string, checkOut: string, guests: number, rooms?: number) {
   const nights = stayNights(checkIn, checkOut);
-  const guestsPerRoom = Math.ceil(guests / rooms);
   const roomTypes = await HotelRoomTypeModel.find({
     status: 'active',
     deletedAt: null,
-    totalRooms: { $gte: rooms },
-    maxAdults: { $gte: guestsPerRoom },
-  }).select('listingId totalRooms').lean() as any[];
+    ...(rooms ? { totalRooms: { $gte: rooms }, maxAdults: { $gte: Math.ceil(guests / rooms) } } : {}),
+  }).select('listingId totalRooms maxAdults').lean() as any[];
   const available = await availableRoomCounts(roomTypes, nights);
-  return roomTypes
-    .filter((room) => (available.get(String(room._id)) ?? 0) >= rooms)
-    .map((room) => room.listingId);
+  const free = (room: any) => available.get(String(room._id)) ?? 0;
+  if (rooms) return roomTypes.filter((room) => free(room) >= rooms).map((room) => room.listingId);
+  return listingsWithCapacity(roomTypes, free, guests);
 }
 
 /** Published listings among the given public IDs, in the given order; unpublished or deleted ones drop out. */
@@ -196,7 +218,7 @@ export async function listPublishedListingsByIds(ids: string[]) {
   await requireDatabase();
   const records = await ListingModel.find({ publicId: { $in: ids }, status: 'published', deletedAt: null }).lean();
   const vendors = new Set((await VendorModel.find({ status: 'approved', deletedAt: null }).distinct('_id')).map(String));
-  const byId = new Map(records.filter((record) => !record.ownerId || vendors.has(String(record.ownerId))).map((record) => [record.publicId, toPublicListing(record)]));
+  const byId = new Map(records.filter((record) => record.ownerId ? vendors.has(String(record.ownerId)) : !UNBOOKABLE_WITHOUT_PARTNER.includes(record.type)).map((record) => [record.publicId, toPublicListing(record)]));
   return ids.flatMap((id) => byId.get(id) ?? []);
 }
 
@@ -214,5 +236,6 @@ export async function getPublishedListing(id: string) {
 
   if (!record) throw new NotFoundError('Listing not found.');
   if (record.ownerId && !await VendorModel.exists({ _id: record.ownerId, status: 'approved', deletedAt: null })) throw new NotFoundError('Listing not found.');
+  if (!record.ownerId && UNBOOKABLE_WITHOUT_PARTNER.includes(record.type)) throw new NotFoundError('Listing not found.');
   return toPublicListing(record);
 }

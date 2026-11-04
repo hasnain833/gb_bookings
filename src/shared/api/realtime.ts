@@ -1,23 +1,19 @@
-import { io, type Socket } from 'socket.io-client';
 import type { ChatMessage, Conversation } from './api';
 
 export type MessageEvent = { conversation: Conversation; message: ChatMessage };
 
 /**
- * One shared Socket.IO connection, opened on first use. The server pushes `message` events to the guest and to the
- * partner's team. Where the API runs serverless (no socket server) it never connects, and callers poll instead.
+ * Pushed messages. RealtimeBridge holds the one Inngest connection and hands each message here. When it is not
+ * connected (Inngest not configured, or a network problem) callers poll instead.
  */
-let socket: Socket | null = null;
-
-function connect() {
-  socket ??= io({ path: '/api/v1/realtime', withCredentials: true, transports: ['websocket'], reconnectionDelayMax: 30_000 });
-  return socket;
-}
+const handlers = new Set<(event: MessageEvent) => void>();
+let connected = false;
 
 export function onMessage(handler: (event: MessageEvent) => void) {
-  const live = connect();
-  live.on('message', handler);
-  return () => { live.off('message', handler); };
+  handlers.add(handler);
+  return () => { handlers.delete(handler); };
 }
 
-export const realtimeConnected = () => Boolean(socket?.connected);
+export const realtimeConnected = () => connected;
+export const setRealtimeConnected = (value: boolean) => { connected = value; };
+export const deliverMessage = (event: MessageEvent) => { for (const handler of handlers) handler(event); };

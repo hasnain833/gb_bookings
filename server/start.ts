@@ -4,16 +4,17 @@ import express, { type Express } from 'express';
 import { env } from './config/env.js';
 import { connectDatabase, disconnectDatabase } from './database/connection.js';
 import { finalizeApp } from './app.js';
-import { expireStalePendingBookings } from './modules/bookings/booking.service.js';
-import { attachRealtime } from './modules/messages/realtime.js';
+import { inngestEnabled } from './modules/jobs/inngest.js';
+import { runDailyJobs, runFrequentJobs } from './modules/jobs/scheduled.js';
+import { seoRouter } from './modules/seo/seo.routes.js';
 
 export async function startServer(app: Express) {
   const server = createServer(app);
-  attachRealtime(server);
 
   if (env.NODE_ENV === 'production') {
     // Single-process deploys serve the built frontend; in development Vite serves it on port 3000.
     const distPath = path.join(process.cwd(), 'dist');
+    app.use(seoRouter);
     app.use(express.static(distPath));
     app.get(/^(?!\/api\/).*/, (_request, response) => response.sendFile(path.join(distPath, 'index.html')));
   }
@@ -52,7 +53,16 @@ export async function startServer(app: Express) {
   }
 
   console.log(`GBBookings API ready at http://localhost:${env.PORT}`);
-  setInterval(() => void expireStalePendingBookings(), 5 * 60_000).unref();
+  // Inngest schedules these when it is configured. Otherwise a long-running server runs them itself.
+  if (!inngestEnabled()) {
+    const safely = (job: () => Promise<unknown>) => () => void job().catch((error) => console.error('Scheduled job failed:', error));
+    setInterval(safely(runFrequentJobs), 5 * 60_000).unref();
+    setInterval(() => {
+      // Sends are flagged per booking, so checking hourly sends each email once, during the day.
+      const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Karachi', hour: 'numeric', hourCycle: 'h23' }).format(new Date()));
+      if (hour >= 10 && hour < 20) safely(runDailyJobs)();
+    }, 60 * 60_000).unref();
+  }
 
   server.on('error', (error) => {
     console.error('HTTP server error:', error);

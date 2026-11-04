@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { ChevronLeft, ChevronRight, LoaderCircle } from 'lucide-react';
 import { api, type RoomCalendar as Calendar, type VendorRoom } from '../../shared/api/api';
 import { formatDateForDisplay } from '../../shared/utils/date';
+import DateInput from '../../shared/components/DateInput';
 
 const todayPk = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Karachi' }).format(new Date());
 const iso = (date: Date) => date.toISOString().slice(0, 10);
@@ -103,8 +104,8 @@ export default function RoomCalendar({ listingId, room }: { listingId: string; r
       </p>
 
       <form onSubmit={apply} className="grid gap-3 border-t border-slate-100 pt-4 sm:grid-cols-[1fr_1fr_auto_auto] sm:items-end">
-        <label className="text-xs font-semibold text-slate-600">From<input type="date" required min={today} value={range.from} onChange={(event) => setRange({ from: event.target.value, to: range.to && range.to < event.target.value ? '' : range.to })} className="mt-1 min-h-11 w-full rounded-md border border-slate-300 px-3 text-sm" /></label>
-        <label className="text-xs font-semibold text-slate-600">To<input type="date" min={range.from || today} value={range.to} onChange={(event) => setRange({ ...range, to: event.target.value })} className="mt-1 min-h-11 w-full rounded-md border border-slate-300 px-3 text-sm" /></label>
+        <label className="text-xs font-semibold text-slate-600">From<DateInput required min={today} value={range.from} onChange={(event) => setRange({ from: event.target.value, to: range.to && range.to < event.target.value ? '' : range.to })} className="mt-1 min-h-11 w-full rounded-md border border-slate-300 px-3 text-sm" /></label>
+        <label className="text-xs font-semibold text-slate-600">To<DateInput min={range.from || today} value={range.to} onChange={(event) => setRange({ ...range, to: event.target.value })} className="mt-1 min-h-11 w-full rounded-md border border-slate-300 px-3 text-sm" /></label>
         <label className="text-xs font-semibold text-slate-600">Rooms closed per night<input type="number" min={0} max={room.totalRooms} required value={closed} onChange={(event) => setClosed(Number(event.target.value))} className="mt-1 min-h-11 w-full rounded-md border border-slate-300 px-3 text-sm sm:w-28" /></label>
         <button disabled={busy || !range.from} className="min-h-11 rounded-md bg-[#006F3C] px-4 text-sm font-bold text-white disabled:opacity-50">{busy ? 'Saving…' : closed === 0 ? 'Reopen rooms' : 'Close rooms'}</button>
       </form>

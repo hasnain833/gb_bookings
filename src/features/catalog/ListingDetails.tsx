@@ -1,3 +1,4 @@
+import { policyLines } from '../../shared/utils/cancellation';
 import { useState, useEffect } from 'react';
 import { Listing, handleImageError } from '../../types';
 import { ListingReviews } from '../reviews/ReviewParts';
@@ -20,9 +21,11 @@ interface ListingDetailsProps {
   onProceedToCheckout: (bookingParams: CheckoutParams) => void;
   /** Opens the inbox with this listing's partner (sign-in first if needed). */
   onMessage?: (start: { listingId: string; title: string; image?: string }) => void;
+  /** Search places to stay around a location (for offers, which are not booked themselves). */
+  onBrowse?: (destination: string) => void;
 }
 
-export default function ListingDetails({ listingId, onBack, onProceedToCheckout, onMessage }: ListingDetailsProps) {
+export default function ListingDetails({ listingId, onBack, onProceedToCheckout, onMessage, onBrowse }: ListingDetailsProps) {
   const [rawListing, setRawListing] = useState<Listing | null>(null);
   const listing = rawListing;
   const [loading, setLoading] = useState(true);
@@ -149,6 +152,15 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout,
   const statLabel = 'block text-xs text-slate-500';
   const statValue = 'mt-0.5 block text-sm font-semibold text-slate-900';
   const amenities = listing.hotelSpecs?.amenities ?? listing.homestaySpecs?.amenities ?? [];
+  const breakfast = listing.hotelSpecs?.breakfast;
+  const quickFacts = bookable ? [
+    ...(specs?.checkInTime ? [{ icon: Clock, label: 'Check-in', value: `From ${specs.checkInTime}` }] : []),
+    ...(specs?.checkOutTime ? [{ icon: Clock, label: 'Check-out', value: `By ${specs.checkOutTime}` }] : []),
+    ...(listing.breakfastIncluded || breakfast?.included ? [{ icon: Utensils, label: 'Breakfast', value: 'Included' }] : breakfast?.offered ? [{ icon: Utensils, label: 'Breakfast', value: breakfast.price ? `PKR ${breakfast.price.toLocaleString()} per person` : 'Available' }] : []),
+    ...(specs?.parking && specs.parking.available !== 'none' ? [{ icon: Car, label: 'Parking', value: specs.parking.available === 'free' ? 'Free' : specs.parking.price ? `PKR ${specs.parking.price.toLocaleString()}` : 'Paid' }] : []),
+    ...(info?.mobileNetworks?.length ? [{ icon: Signal, label: 'Mobile signal', value: info.mobileNetworks.map((item) => NETWORK_LABELS[item]).join(', ') }] : []),
+    ...(info?.heating?.length ? [{ icon: Flame, label: 'Heating', value: info.heating.map((item) => HEATING_LABELS[item]).join(', ') }] : []),
+  ] : [];
 
   return (
     <div id="listing-details-view" className="space-y-6 animate-fadeIn max-w-6xl mx-auto">
@@ -233,6 +245,15 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout,
             <p className="text-slate-600 text-[15px] leading-relaxed">{listing.description}</p>
           </section>
 
+          {quickFacts.length > 0 && (
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3" id="details-quick-facts">
+              {quickFacts.map(({ icon: Icon, label, value }) => <li key={label} className={statClass}>
+                <span className="flex items-center gap-1.5 text-xs text-slate-500"><Icon className="size-4 text-[#006F3C]" aria-hidden="true" />{label}</span>
+                <span className="mt-0.5 block text-sm font-semibold capitalize text-slate-900">{value}</span>
+              </li>)}
+            </ul>
+          )}
+
           {amenities.length > 0 && (
             <section className={sectionClass} id="details-specifications">
               <h2 className={headingClass}>What this place offers</h2>
@@ -262,7 +283,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout,
                 {listing.carSpecs.oneWay === 'on_request' && <li>One-way drop-off: price on request</li>}
                 {listing.carSpecs.driverMode && listing.carSpecs.driverMode !== 'with_driver' && <li>Self-drive: minimum age {listing.carSpecs.minDriverAge}{listing.carSpecs.deposit ? `, refundable deposit PKR ${listing.carSpecs.deposit.toLocaleString()} at pickup` : ''}. Bring your driving licence.</li>}
                 {info?.paymentMethods?.length ? <li>Pay on arrival, at pickup: {info.paymentMethods.map((method) => PAYMENT_LABELS[method]).join(', ')}</li> : null}
-                {listing.carSpecs.driverMode && <li>Free cancellation until the day before pickup.</li>}
+                {listing.carSpecs.driverMode && <li>Pay on arrival: free cancellation until the day before pickup. Pay now: {policyLines(listing.cancellationPolicy).join('; ')}.</li>}
               </ul>
             </section>
           )}
@@ -287,7 +308,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout,
                 {listing.tourSpecs.childPrice !== undefined && <li>Children: PKR {listing.tourSpecs.childPrice.toLocaleString()} each{listing.tourSpecs.minAge ? ` (minimum age ${listing.tourSpecs.minAge})` : ''}</li>}
                 {listing.tourSpecs.childPrice === undefined && listing.tourSpecs.minAge ? <li>Minimum age {listing.tourSpecs.minAge}</li> : null}
                 {tourSpecs && info?.paymentMethods?.length ? <li>Pay on arrival, at the start: {info.paymentMethods.map((method) => PAYMENT_LABELS[method]).join(', ')}</li> : null}
-                {tourSpecs && <li>Free cancellation until the day before the tour starts.</li>}
+                {tourSpecs && <li>Pay on arrival: free cancellation until the day before the tour starts. Pay now: {policyLines(listing.cancellationPolicy).join('; ')}.</li>}
               </ul>
               <h3 className="pt-2 text-sm font-semibold text-slate-900">Itinerary</h3>
               <ol className="relative ml-2 space-y-5 border-l border-slate-200 pl-5">
@@ -315,7 +336,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout,
             <section className={sectionClass} id="house-rules-section">
               <h2 className={headingClass}>{listing.type === 'homestay' ? 'House rules' : 'Policies'}</h2>
               <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5 text-sm text-slate-700">
-                {[...rules, ...policyRules, ...(bookable ? ['Free cancellation until the day before check-in'] : [])].map((rule) => <li key={rule} className="flex items-center gap-2"><Clock className="w-4 h-4 text-slate-400 shrink-0" /> {rule}</li>)}
+                {[...rules, ...policyRules, ...(bookable ? ['Pay on arrival: free cancellation until the day before check-in', `Pay now: ${policyLines(listing.cancellationPolicy).join('; ')}`] : []), ...(listing.fees ?? []).map((fee) => `${fee.name}: ${fee.kind === 'percent' ? `${fee.value}%` : `PKR ${fee.value.toLocaleString()} per booking`}, added at checkout`)].map((rule) => <li key={rule} className="flex items-center gap-2"><Clock className="w-4 h-4 text-slate-400 shrink-0" /> {rule}</li>)}
               </ul>
             </section>
           )}
@@ -398,12 +419,15 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout,
             ) : tourSpecs ? (
               <TourBookingPanel listingId={listingId} specs={tourSpecs} departures={listing.departures} paymentMethods={info?.paymentMethods} onProceed={onProceedToCheckout} />
             ) : (
-              <p className="flex items-start gap-2 rounded-lg bg-slate-50 p-4 text-sm text-slate-600" id="booking-coming-soon">
-                <Info className="w-4 h-4 text-[#006F3C] shrink-0 mt-0.5" />
-                Online booking for {listing.type === 'car' ? 'vehicles' : 'tours'} is coming soon. Contact support to arrange this {listing.type === 'car' ? 'rental' : 'trip'}.
-              </p>
+              <div className="space-y-3" id="offer-next-step">
+                <p className="flex items-start gap-2 rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
+                  <Info className="w-4 h-4 text-[#006F3C] shrink-0 mt-0.5" />
+                  This is a seasonal offer. Choose a place to stay nearby and book it directly.
+                </p>
+                <button type="button" onClick={() => onBrowse?.(listing.location.split(',').at(-1)!.trim())} className="min-h-11 w-full rounded-lg bg-[#006F3C] text-sm font-semibold text-white hover:bg-[#005C32]">See places to stay</button>
+              </div>
             )}
-            {onMessage && <button type="button" onClick={() => onMessage({ listingId, title: listing.title, image: listing.image })}
+            {onMessage && (bookable || carSpecs?.driverMode || tourSpecs) && <button type="button" onClick={() => onMessage({ listingId, title: listing.title, image: listing.image })}
               className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white text-sm font-semibold text-slate-800 hover:bg-slate-50">
               <MessageSquare className="size-4" aria-hidden="true" />{listing.type === 'homestay' ? 'Message the host' : 'Message the partner'}</button>}
           </div>

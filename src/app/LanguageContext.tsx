@@ -52,6 +52,14 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [language, isRtl]);
 
+  useEffect(() => {
+    if (!isRtl) return undefined;
+    let stop: (() => void) | undefined;
+    let active = true;
+    import('./urdu').then(({ startUrdu }) => { if (active) stop = startUrdu(); });
+    return () => { active = false; stop?.(); };
+  }, [isRtl]);
+
   return (
     <LanguageContext.Provider value={{ language, setLanguage, isRtl, requestLanguageChange }}>
       <div className={isRtl ? 'rtl-layout' : 'ltr-layout'}>

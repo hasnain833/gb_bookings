@@ -66,6 +66,12 @@ const envSchema = z.object({
   SAFEPAY_ENV: z.enum(["sandbox", "production"]).default("sandbox"),
   SAFEPAY_API_KEY: optionalString(z.string().min(1)),
   SAFEPAY_SECRET_KEY: optionalString(z.string().min(1)),
+  // false until a partial refund has been tried with a paid sandbox booking; refunds then wait in the admin queue to be sent by hand.
+  SAFEPAY_AUTO_REFUNDS: booleanFromString.default(false),
+  // Inngest runs the scheduled jobs and carries realtime messages. Without keys: a timer on a long-running server, polling in the inbox.
+  INNGEST_DEV: optionalString(z.string().min(1)),
+  INNGEST_EVENT_KEY: optionalString(z.string().min(1)),
+  INNGEST_SIGNING_KEY: optionalString(z.string().min(1)),
   VERCEL: z.string().optional(),
 });
 

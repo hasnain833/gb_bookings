@@ -7,6 +7,8 @@ import { Booking, Listing } from '../types';
 import type { CheckoutParams } from '../features/booking/CheckoutFlow';
 import { api, AUTH_EXPIRED_EVENT, resetApiSession, markApiSession, type AuthUser } from '../shared/api/api';
 import { OPEN_SIGN_IN_EVENT } from '../shared/hooks/useWishlist';
+import { flashToast } from '../shared/components/Toaster';
+import AccountActionPage, { isAccountActionPath } from '../features/auth/AccountActionPage';
 
 const ExploreSection = lazy(() => import('../features/catalog/ExploreSection'));
 const ListingsSearch = lazy(() => import('../features/catalog/ListingsSearch'));
@@ -22,17 +24,18 @@ const UserDashboard = lazy(() => import('../features/account/UserDashboard'));
 const VendorDashboard = lazy(() => import('../features/vendor/VendorDashboard'));
 const BecomePartner = lazy(() => import('../features/partner/BecomePartner'));
 const AdminDashboard = lazy(() => import('../features/admin/AdminDashboard'));
-const AiPlannerWidget = lazy(() => import('../features/planner/AiPlannerWidget'));
+const AiChat = lazy(() => import('../features/planner/AiChat'));
 const LegalPage = lazy(() => import('../features/support/LegalPage'));
 const Inbox = lazy(() => import('../features/messages/Inbox'));
+// A separate chunk: only signed-in guests and partners hold a realtime connection.
+const RealtimeBridge = lazy(() => import('../shared/api/RealtimeBridge'));
 const SupportCentre = lazy(() => import('../features/support/SupportCentre'));
 const AuthModal = lazy(() => import('../features/auth/AuthModal'));
-const AccountActionModal = lazy(() => import('../features/auth/AccountActionModal'));
 const Footer = lazy(() => import('../shared/components/Footer'));
 const MobileInstallPrompt = lazy(() => import('../shared/components/MobileInstallPrompt'));
 
 // Views that need a signed-in user. Every navigation path (navbar, dashboards, deep flows) is gated at render time.
-const PROTECTED_VIEWS = new Set(['bookings', 'profile', 'inbox', 'vendor-dashboard', 'admin-dashboard', 'checkout']);
+const PROTECTED_VIEWS = new Set(['bookings', 'profile', 'saved', 'inbox', 'vendor-dashboard', 'admin-dashboard', 'checkout']);
 const STAFF_ROLES = ['admin'];
 // Granted only when an admin approves the business; applicants are customers until then.
 const VENDOR_ROLES = ['vendor_owner', 'vendor_staff'];
@@ -45,7 +48,7 @@ const homeDashboard = (roles: string[]) =>
 
 // URL <-> view sync so refresh, deep links and the browser Back button work.
 // ponytail: hand-rolled History API routing; move to a router library if routes need more params than a listing id.
-const PATH_VIEWS = new Set(['homestays', 'hotels', 'cars', 'tours', 'destinations', 'offers', 'bookings', 'profile', 'inbox', 'vendor-dashboard', 'become-partner', 'admin-dashboard', 'ai-planner', 'support', 'terms', 'privacy', 'refunds', 'service']);
+const PATH_VIEWS = new Set(['homestays', 'hotels', 'cars', 'tours', 'destinations', 'offers', 'bookings', 'profile', 'saved', 'inbox', 'vendor-dashboard', 'become-partner', 'admin-dashboard', 'ai-planner', 'support', 'terms', 'privacy', 'refunds', 'service', 'partner-agreement']);
 const SEARCH_TYPES = ['hotel', 'car', 'tour', 'homestay', 'destination', 'offer'] as const;
 type SearchType = typeof SEARCH_TYPES[number];
 
@@ -84,6 +87,9 @@ function readLocation() {
   return { view: PATH_VIEWS.has(first) ? first : 'explore' };
 }
 
+export type SearchExtra = { category?: string; sort?: 'price-low'; withDriver?: boolean };
+const PAYMENT_FLOOR = 'gb-payment-floor';
+
 function urlForView(view: string, listingId: string | null, search: { type: string; destination: string }) {
   if (view === 'details' && listingId) return `/listing/${encodeURIComponent(listingId)}`;
   if (view === 'checkout' && listingId) return `/listing/${encodeURIComponent(listingId)}/checkout`;
@@ -104,13 +110,14 @@ export default function App() {
     guests: 2,
     type: (initialLocation.type ?? 'hotel') as SearchType,
     experience: undefined as string | undefined,
+    extra: undefined as SearchExtra | undefined,
   });
 
   // Push a history entry whenever the visible page changes; the first sync only normalizes the URL.
   const isFirstUrlSync = useRef(true);
   useEffect(() => {
     // Email actions must retain their token until the lazy action dialog reads it.
-    if (/^\/(verify-email|reset-password)\/?$/.test(window.location.pathname)) return;
+    if (isAccountActionPath()) return;
     const url = urlForView(view, selectedListingId, searchParams);
     if (url !== window.location.pathname + window.location.search) {
       window.history[isFirstUrlSync.current ? 'replaceState' : 'pushState'](null, '', url);
@@ -118,9 +125,19 @@ export default function App() {
     isFirstUrlSync.current = false;
   }, [view, selectedListingId, searchParams.type, searchParams.destination]);
 
+  // Back from Safepay: Back must not return to its payment page. The entry under this one is a floor that bounces forward again.
+  const paymentFloorSet = useRef(false);
+  useEffect(() => {
+    if (!initialLocation.payment || paymentFloorSet.current) return;
+    paymentFloorSet.current = true;
+    window.history.replaceState(PAYMENT_FLOOR, '', '/bookings');
+    window.history.pushState(null, '', '/bookings');
+  }, [initialLocation.payment]);
+
   // Browser Back/Forward: restore the page from the URL.
   useEffect(() => {
-    const handlePopState = () => {
+    const handlePopState = (event: PopStateEvent) => {
+      if (event.state === PAYMENT_FLOOR) { window.history.pushState(null, '', '/bookings'); setView('bookings'); return; }
       const next = readLocation();
       if (next.listingId) setSelectedListingId(next.listingId);
       if (next.view === 'checkout') setBookingParams((current) => current ?? savedCheckout(next.listingId!));
@@ -256,6 +273,7 @@ export default function App() {
       setUserId(''); setIsLoggedIn(false); setUserEmail(''); setUserName(''); setUserRoles([]);
       setReceiptBooking(null); setBookingParams(null); setSelectedListing(null); setSelectedListingId(null);
       setShowAuthModal(false); setShowPlanner(false);
+      flashToast('You have signed out. See you soon!');
       window.location.replace(destination);
     }).finally(() => { if (logoutInFlight.current === pending) logoutInFlight.current = null; });
     logoutInFlight.current = pending;
@@ -311,6 +329,13 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Footer links: a search with the filter already applied, or a page and the part of it to scroll to.
+  const handleFooterLink = (v: string, params?: { type?: SearchType; destination?: string; extra?: SearchExtra; section?: string }) => {
+    if (params?.type) { handleTriggerSearch({ ...searchParams, type: params.type, destination: params.destination ?? '', dates: '', guests: 0, experience: undefined, extra: params.extra }); return; }
+    handleNavigation(v);
+    if (params?.section) window.setTimeout(() => document.getElementById(params.section!)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
+  };
+
   const handleNavigation = (v: string) => {
     if (v === 'hotels' || v === 'browse-hotels') {
       setView('hotels');
@@ -345,6 +370,9 @@ export default function App() {
   const partnerDashboardBlocked = authChecked && isLoggedIn && view === 'vendor-dashboard' && !isVendor;
   useEffect(() => { if (partnerDashboardBlocked) setView('become-partner'); }, [partnerDashboardBlocked]);
 
+  // Links from account emails open on their own, without the site around them.
+  if (isAccountActionPath()) return <AccountActionPage />;
+
   // Staff have a separate application shell, including on refresh and after session expiry.
   if (isStaff || (authChecked && view === 'admin-dashboard')) {
     return (
@@ -358,7 +386,6 @@ export default function App() {
                 <button type="button" onClick={isLoggedIn ? () => setView(homeDashboard(userRoles)) : () => handleOpenAuthModal('signin')} className="mt-6 min-h-11 w-full rounded-lg bg-slate-900 px-5 text-sm font-semibold text-white hover:bg-slate-800">{isLoggedIn ? 'Return to your dashboard' : 'Admin sign in'}</button>
               </section></main>}
           {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} initialMode={authModalMode} onSuccessLogin={handleSuccessLogin} />}
-          <AccountActionModal />
         </Suspense>
       </div>
     );
@@ -377,7 +404,6 @@ export default function App() {
               <button type="button" onClick={() => handleNavigation('become-partner')} className="mt-3 min-h-11 w-full text-sm font-medium text-slate-600">Not a partner yet? Become a partner</button>
             </section></main>}
           {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} initialMode={authModalMode} onSuccessLogin={handleSuccessLogin} />}
-          <AccountActionModal />
         </Suspense>
       </div>
     );
@@ -387,6 +413,7 @@ export default function App() {
     <div className="min-h-screen bg-[#FAFAFA] text-[#1A1A1A] flex flex-col font-sans selection:bg-[#006F3C] selection:text-white overflow-x-clip w-full relative">
       
       {/* Top Navigation Bar */}
+      {isLoggedIn && <Suspense fallback={null}><RealtimeBridge key={userId} /></Suspense>}
       <Navbar 
         currentView={
           view === 'vendor-dashboard' ? 'dashboard-vendor' :
@@ -440,7 +467,7 @@ export default function App() {
             )}
           </section>
         ) : (<>
-        {(view === 'terms' || view === 'privacy' || view === 'refunds' || view === 'service') && <LegalPage policy={view} />}
+        {(view === 'terms' || view === 'privacy' || view === 'refunds' || view === 'service' || view === 'partner-agreement') && <LegalPage policy={view} />}
         {view === 'explore' && (
           <ExploreSection 
             setView={handleNavigation}
@@ -501,12 +528,13 @@ export default function App() {
 
         {view === 'search' && (
           <ListingsSearch 
+            key={`${searchParams.type}|${searchParams.destination}|${JSON.stringify(searchParams.extra ?? {})}`}
             type={searchParams.type}
             initialFilters={{
               destination: searchParams.destination,
               startDate: searchParams.dates,
               endDate: '',
-              extra: { guestCount: searchParams.guests, experience: searchParams.experience, withDriver: (searchParams as { extra?: { withDriver?: boolean } }).extra?.withDriver }
+              extra: { guestCount: searchParams.guests, experience: searchParams.experience, ...searchParams.extra }
             }}
             onSelectListing={handleSelectListing}
           />
@@ -517,6 +545,7 @@ export default function App() {
             listingId={selectedListingId}
             onMessage={openInbox}
             onBack={() => setView('search')}
+            onBrowse={(destination) => handleFooterLink('search', { type: 'hotel', destination })}
             onProceedToCheckout={handleProceedToCheckout}
           />
         )}
@@ -539,7 +568,7 @@ export default function App() {
 
         {view === 'inbox' && <Inbox key={`${userId}-${inboxStart?.listingId ?? ''}`} start={inboxStart} />}
 
-        {(view === 'bookings' || view === 'profile') && (
+        {(view === 'bookings' || view === 'profile' || view === 'saved') && (
           <UserDashboard key={`${userId}-${view}`}
             onMessage={(booking) => openInbox({ listingId: booking.listingId, title: booking.listingTitle, image: booking.listingImage })}
             section={view}
@@ -596,9 +625,9 @@ export default function App() {
       </main>
 
       <Suspense fallback={null}>
-        <Footer onNavigate={handleNavigation} />
+        <Footer onNavigate={handleFooterLink} />
 
-        {showPlanner && <AiPlannerWidget onClose={() => setShowPlanner(false)} onNavigate={handleNavigation} onSelectListing={handleSelectListing} />}
+        {showPlanner && <AiChat onClose={() => setShowPlanner(false)} onSelectListing={handleSelectListing} />}
 
         {showAuthModal && (
           <AuthModal
@@ -608,12 +637,11 @@ export default function App() {
           />
         )}
 
-        <AccountActionModal />
 
         <MobileInstallPrompt />
       </Suspense>
 
-      <button type="button" aria-label="Open AI trip planner" aria-haspopup="dialog" onClick={() => setShowPlanner(true)} className="fixed right-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] z-40 flex min-h-12 items-center gap-2 rounded-full bg-[#006F3C] px-4 text-sm font-semibold text-white shadow-lg hover:bg-[#005c32] sm:right-6 lg:bottom-6"><Sparkles className="size-5" /><span className="hidden sm:inline">AI Planner</span></button>
+      <button type="button" aria-label="Open the trip assistant" aria-haspopup="dialog" onClick={() => setShowPlanner(true)} className="fixed right-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] z-40 flex min-h-12 items-center gap-2 rounded-full bg-[#006F3C] px-4 text-sm font-semibold text-white shadow-lg hover:bg-[#005c32] sm:right-6 lg:bottom-6"><Sparkles className="size-5" /><span className="hidden sm:inline">Plan my trip</span></button>
 
       {/* Native-grade Mobile App Bottom Tab Navigation */}
       <MobileAppBottomNav 

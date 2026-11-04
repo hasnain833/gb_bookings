@@ -7,6 +7,7 @@ import { asyncHandler } from '../../shared/async-handler.js';
 import { MongoRateLimitStore } from '../../shared/rate-limit-store.js';
 import {
   requestPasswordReset,
+  resetLinkOwner,
   resetPassword,
   sendEmailVerification,
   verifyEmail,
@@ -29,6 +30,7 @@ import {
 } from './auth.schemas.js';
 import {
   changeUserPassword,
+  requestPasswordChange,
   completeTwoFactorLogin,
   beginTwoFactorSetup,
   disableTwoFactor,
@@ -173,10 +175,13 @@ authRouter.post('/me/delete', authenticationLimiter, authenticate, validate('bod
   response.status(204).send();
 }));
 
-authRouter.post('/change-password', authenticate, validate('body', changePasswordSchema), asyncHandler(async (request, response) => {
-  await changeUserPassword(request.auth!.userId, request.body.currentPassword, request.body.newPassword);
-  clearAuthCookies(response);
-  clearTrustedDeviceCookie(response);
+authRouter.post('/change-password/code', authenticationLimiter, authenticate, asyncHandler(async (request, response) => {
+  response.json(await requestPasswordChange(request.auth!.userId, sessionMetadata(request)));
+}));
+
+authRouter.post('/change-password', authenticationLimiter, authenticate, validate('body', changePasswordSchema), asyncHandler(async (request, response) => {
+  const { challengeId, code, newPassword } = request.body;
+  await changeUserPassword(request.auth!.userId, request.auth!.sessionId, challengeId, code, newPassword, sessionMetadata(request));
   response.status(204).send();
 }));
 
@@ -215,6 +220,11 @@ authRouter.post('/forgot-password', authenticationLimiter, validate('body', forg
   response.status(202).json({
     message: 'If an active account exists for that email, password reset instructions will be sent.',
   });
+}));
+
+// Who the emailed reset link belongs to. Only the holder of the link can ask; a used or expired link gets an error.
+authRouter.post('/reset-password/check', authenticationLimiter, validate('body', tokenSchema), asyncHandler(async (request, response) => {
+  response.json(await resetLinkOwner(request.body.token));
 }));
 
 authRouter.post('/reset-password', authenticationLimiter, validate('body', resetPasswordSchema), asyncHandler(async (request, response) => {

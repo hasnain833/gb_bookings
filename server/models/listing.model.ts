@@ -1,3 +1,4 @@
+import { CANCELLATION_POLICY_KEYS } from '../../src/shared/utils/cancellation.js';
 import { randomUUID } from 'node:crypto';
 import mongoose, { type Model } from 'mongoose';
 
@@ -72,6 +73,13 @@ const listingSchema = new Schema({
     roadNote: { type: String, trim: true, maxlength: 300 },
     // Months (1-12) the property normally receives guests.
     openMonths: { type: [Number], default: undefined },
+  },
+  // How much a Pay now guest gets back; see src/shared/utils/cancellation.ts. Absent means the default policy.
+  cancellationPolicy: { type: String, enum: CANCELLATION_POLICY_KEYS },
+  // Charges on top of the price, shown separately at checkout. `value` is a percent, or PKR per booking.
+  fees: {
+    type: [new Schema({ name: { type: String, trim: true, maxlength: 60 }, kind: { type: String, enum: ['percent', 'amount'] }, value: { type: Number, min: 0 } }, { _id: false })],
+    default: undefined,
   },
   price: { type: Number, required: true, min: 0 },
   priceMinor: { type: Number, min: 0 },

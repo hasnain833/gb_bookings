@@ -7,13 +7,15 @@ const platformSettingSchema = new Schema({
   key: { type: String, required: true, unique: true, immutable: true },
   // GBBookings' cut of every booking, in percent.
   commissionPercent: { type: Number, required: true, min: 0, max: 50 },
-  // When a guest cancels a paid booking: the refund for cancelling within N hours of booking, first match wins.
+  // Bookings made before per-listing cancellation policies: the refund for cancelling within N hours of booking, first match wins.
   refundTiers: {
     type: [new Schema({ withinHours: { type: Number, min: 1 }, refundPercent: { type: Number, min: 0, max: 100 } }, { _id: false })],
     default: [],
   },
   // Refund for cancelling later than every tier.
   laterRefundPercent: { type: Number, required: true, min: 0, max: 100 },
+  // Taxes added to every booking, shown as their own lines. Partners keep and remit them; no commission applies.
+  taxes: { type: [new Schema({ name: { type: String, trim: true, maxlength: 60 }, percent: { type: Number, min: 0, max: 50 } }, { _id: false })], default: [] },
   updatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });
 

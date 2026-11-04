@@ -3,9 +3,12 @@ import { BedDouble, Calendar, ShieldCheck, Users } from 'lucide-react';
 import { api, mealLabel, type ListingAvailability, type MealOption } from '../../shared/api/api';
 import type { MealType, StayInfo } from '../../types';
 import { openSeason, PAYMENT_LABELS } from '../../shared/utils/stayInfo';
-import { formatDateForDisplay } from '../../shared/utils/date';
+import { formatDateForDisplay, nextDay } from '../../shared/utils/date';
+import { useUnavailableDates, firstBlockedAfter } from './useUnavailableDates';
 import { roomFacts } from '../../shared/utils/rooms';
 import type { CheckoutParams } from './CheckoutFlow';
+import Select from '../../shared/components/Select';
+import DateInput from '../../shared/components/DateInput';
 
 interface RoomBookingPanelProps {
   listingId: string;
@@ -41,6 +44,9 @@ export default function RoomBookingPanel({ listingId, meals = [], entireHome = f
   const [error, setError] = useState<string | null>(null);
 
   const datesReady = Boolean(checkIn && checkOut && checkOut > checkIn);
+  const unavailable = useUnavailableDates(listingId);
+  // The morning you leave needs no room, so check-out may fall on the first fully booked night.
+  const lastCheckOut = checkIn ? firstBlockedAfter(unavailable, checkIn) : undefined;
   // The server quotes the free-cancellation date and the meal cost with the availability.
   const choices = [
     ...(availability?.freeCancellationUntil ? [`Free cancellation until ${formatDateForDisplay(availability.freeCancellationUntil)}`] : []),
@@ -97,12 +103,12 @@ export default function RoomBookingPanel({ listingId, meals = [], entireHome = f
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1.5">
           <label htmlFor="booking-check-in" className={labelClass}><Calendar className="w-3.5 h-3.5 text-slate-400" /> Check-in</label>
-          <input id="booking-check-in" type="date" min={today()} value={checkIn}
-            onChange={(event) => setCheckIn(event.target.value)} className={inputClass} />
+          <DateInput id="booking-check-in" min={today()} value={checkIn} unavailable={unavailable}
+            onChange={(event) => { const day = event.target.value; setCheckIn(day); if (checkOut && (checkOut <= day || checkOut > (firstBlockedAfter(unavailable, day) ?? checkOut))) setCheckOut(''); }} className={inputClass} />
         </div>
         <div className="space-y-1.5">
           <label htmlFor="booking-check-out" className={labelClass}><Calendar className="w-3.5 h-3.5 text-slate-400" /> Check-out</label>
-          <input id="booking-check-out" type="date" min={checkIn || today()} value={checkOut}
+          <DateInput id="booking-check-out" min={nextDay(checkIn || today())} max={lastCheckOut} value={checkOut}
             onChange={(event) => setCheckOut(event.target.value)} className={inputClass} />
         </div>
       </div>
@@ -115,11 +121,11 @@ export default function RoomBookingPanel({ listingId, meals = [], entireHome = f
         ] as const).map(([id, label, value, setValue, min]) => (
           <div key={id} className="space-y-1.5">
             <label htmlFor={id} className={labelClass}><Users className="w-3.5 h-3.5 text-slate-400" /> {label}</label>
-            <select id={id} value={value} onChange={(event) => setValue(Number(event.target.value))} className={inputClass}>
+            <Select id={id} value={value} onChange={(event) => setValue(Number(event.target.value))} className={inputClass}>
               {Array.from({ length: 10 - min + 1 }, (_, index) => index + min).map((count) => (
                 <option key={count} value={count}>{count}</option>
               ))}
-            </select>
+            </Select>
           </div>
         ))}
       </div>
@@ -188,7 +194,7 @@ export default function RoomBookingPanel({ listingId, meals = [], entireHome = f
             <span className="text-slate-800">PKR {mealCost.toLocaleString()}</span>
           </div>}
           <div className="flex justify-between font-semibold text-slate-900">
-            <span>Due at check-in</span>
+            <span>Total before any fees and taxes</span>
             <span>PKR {selectedRoom.totalPrice.toLocaleString()}</span>
           </div>
         </div>
@@ -206,7 +212,7 @@ export default function RoomBookingPanel({ listingId, meals = [], entireHome = f
 
       <div className="flex items-start gap-2 text-xs text-slate-500 leading-normal">
         <ShieldCheck className="w-4 h-4 text-[#006F3C] shrink-0 mt-0.5" />
-        <span>No payment today. You pay at the property. Free cancellation until the day before check-in.</span>
+        <span>Choose at checkout: pay now by card or wallet, or pay at the property with free cancellation until the day before check-in.</span>
       </div>
     </div>
   );

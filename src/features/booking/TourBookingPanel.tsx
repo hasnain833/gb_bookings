@@ -5,6 +5,9 @@ import type { StayInfo, TourSpecs } from '../../types';
 import { PAYMENT_LABELS } from '../../shared/utils/stayInfo';
 import { formatDateForDisplay } from '../../shared/utils/date';
 import type { CheckoutParams } from './CheckoutFlow';
+import Select from '../../shared/components/Select';
+import DateInput from '../../shared/components/DateInput';
+import { useUnavailableDates } from './useUnavailableDates';
 
 const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Karachi' }).format(new Date());
 const addDays = (date: string, days: number) => new Date(Date.parse(`${date}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
@@ -17,6 +20,7 @@ export default function TourBookingPanel({ listingId, specs, departures = [], pa
   listingId: string; specs: TourSpecs; departures?: string[]; paymentMethods?: StayInfo['paymentMethods']; onProceed: (params: CheckoutParams) => void;
 }) {
   const fixed = specs.schedule === 'fixed';
+  const unavailable = useUnavailableDates(listingId);
   const [date, setDate] = useState(fixed ? departures[0] ?? '' : '');
   const [adults, setAdults] = useState(2);
   const [children, setChildren] = useState(0);
@@ -57,25 +61,25 @@ export default function TourBookingPanel({ listingId, specs, departures = [], pa
         <label htmlFor="tour-date" className={labelClass}><Calendar className="w-3.5 h-3.5 text-slate-400" /> {fixed ? 'Departure' : 'Start date'}</label>
         {fixed
           ? departures.length
-            ? <select id="tour-date" value={date} onChange={(event) => setDate(event.target.value)} className={inputClass}>
+            ? <Select id="tour-date" value={date} onChange={(event) => setDate(event.target.value)} className={inputClass}>
                 {departures.map((item) => <option key={item} value={item}>{formatDateForDisplay(item)}{days > 1 ? ` – ${formatDateForDisplay(addDays(item, days - 1))}` : ''}</option>)}
-              </select>
+              </Select>
             : <p className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">No upcoming departures right now. Check back soon.</p>
-          : <input id="tour-date" type="date" min={today()} value={date} onChange={(event) => setDate(event.target.value)} className={inputClass} />}
+          : <DateInput id="tour-date" min={today()} unavailable={unavailable} value={date} onChange={(event) => setDate(event.target.value)} className={inputClass} />}
         {date && days > 1 && <p className="text-xs text-slate-500">Ends {formatDateForDisplay(endDate)} · {days} days</p>}
       </div>
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1.5">
           <label htmlFor="tour-adults" className={labelClass}><Users className="w-3.5 h-3.5 text-slate-400" /> Adults</label>
-          <select id="tour-adults" value={adults} onChange={(event) => setAdults(Number(event.target.value))} className={inputClass}>
+          <Select id="tour-adults" value={adults} onChange={(event) => setAdults(Number(event.target.value))} className={inputClass}>
             {Array.from({ length: 20 }, (_, index) => index + 1).map((count) => <option key={count} value={count}>{count}</option>)}
-          </select>
+          </Select>
         </div>
         {childrenAllowed && <div className="space-y-1.5">
           <label htmlFor="tour-children" className={labelClass}><Users className="w-3.5 h-3.5 text-slate-400" /> Children</label>
-          <select id="tour-children" value={children} onChange={(event) => setChildren(Number(event.target.value))} className={inputClass}>
+          <Select id="tour-children" value={children} onChange={(event) => setChildren(Number(event.target.value))} className={inputClass}>
             {Array.from({ length: 11 }, (_, index) => index).map((count) => <option key={count} value={count}>{count}</option>)}
-          </select>
+          </Select>
         </div>}
       </div>
       {specs.minAge ? <p className="text-xs text-slate-500">Minimum age {specs.minAge}.</p> : null}
@@ -89,7 +93,7 @@ export default function TourBookingPanel({ listingId, specs, departures = [], pa
         {unit?.bookable && <div className="space-y-2 border-t border-slate-200 pt-4 text-sm" id="tour-price-breakdown">
           <div className="flex justify-between text-slate-500"><span>{pkr(unit.nightlyRate)} × {adults} adult{adults > 1 ? 's' : ''}</span><span className="text-slate-800">{pkr(unit.nightlyRate * adults)}</span></div>
           {children > 0 && <div className="flex justify-between text-slate-500"><span>{pkr(specs.childPrice ?? unit.nightlyRate)} × {children} child{children > 1 ? 'ren' : ''}</span><span className="text-slate-800">{pkr((specs.childPrice ?? unit.nightlyRate) * children)}</span></div>}
-          <div className="flex justify-between font-semibold text-slate-900"><span>Due at the start</span><span>{pkr(unit.totalPrice)}</span></div>
+          <div className="flex justify-between font-semibold text-slate-900"><span>Total before any fees and taxes</span><span>{pkr(unit.totalPrice)}</span></div>
           <ul className="space-y-1 text-xs text-slate-500">
             <li>{unit.available} seat{unit.available === 1 ? '' : 's'} left on this date</li>
             {quote?.freeCancellationUntil && <li>Free cancellation until {formatDateForDisplay(quote.freeCancellationUntil)}</li>}
@@ -104,7 +108,7 @@ export default function TourBookingPanel({ listingId, specs, departures = [], pa
       </button>
       <div className="flex items-start gap-2 text-xs text-slate-500 leading-normal">
         <ShieldCheck className="w-4 h-4 text-[#006F3C] shrink-0 mt-0.5" />
-        <span>No payment today. You pay at the start of the tour.</span>
+        <span>Choose at checkout: pay now by card or wallet, or pay at the start of the tour.</span>
       </div>
     </div>
   );

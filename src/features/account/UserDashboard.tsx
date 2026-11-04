@@ -1,3 +1,6 @@
+import { toast } from '../../shared/components/Toaster';
+import { CANCELLATION_POLICIES, daysBetween, refundPercentFor } from '../../shared/utils/cancellation';
+import ChangeBookingDialog from './ChangeBookingDialog';
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { ArrowRight, Building2, CalendarDays, Check, ChevronLeft, ChevronRight, Circle, Heart, LoaderCircle, MapPin, MessageSquare, RefreshCw, Star, Trash2, X } from 'lucide-react';
 import type { Booking, Listing } from '../../types';
@@ -13,8 +16,8 @@ interface UserDashboardProps {
   onSelectBooking: (booking: Booking) => void; onSelectListing: (listing: Listing) => void;
   /** Opens the inbox thread with this booking's partner. */
   onMessage: (booking: Booking) => void;
-  /** Bookings: the guest's trips. Profile: identity, details, security and saved stays (plus the business card for partners). */
-  section: 'bookings' | 'profile';
+  /** Bookings: the guest's trips. Saved: the wishlist. Profile: identity, details and security (plus the business card for partners). */
+  section: 'bookings' | 'profile' | 'saved';
   /** Set when the guest comes back from Safepay's payment page. */
   paymentReturn?: { bookingId: string; cancelled: boolean };
 }
@@ -35,7 +38,7 @@ const awaitingPayment = (booking: Booking) => booking.status === 'pending' && bo
 const BUSINESS_LABEL: Record<string, string> = { hotel: 'Hotel business', homestay: 'Homestay host', vehicle: 'Car rental partner', tour_operator: 'Tour partner', multi_service: 'Partner business' };
 
 export default function UserDashboard(props: UserDashboardProps) {
-  return props.section === 'bookings' ? <BookingsPage {...props} /> : <ProfilePage {...props} />;
+  return props.section === 'bookings' ? <BookingsPage {...props} /> : props.section === 'saved' ? <SavedPage {...props} /> : <ProfilePage {...props} />;
 }
 
 /* ───────────────────────── Bookings & trips ───────────────────────── */
@@ -49,6 +52,7 @@ function BookingsPage({ setView, onSelectBooking, onMessage, paymentReturn, user
   const [error, setError] = useState('');
   const [reload, setReload] = useState(0);
   const [cancelBooking, setCancelBooking] = useState<Booking | null>(null);
+  const [changeBooking, setChangeBooking] = useState<Booking | null>(null);
   const [reviewBooking, setReviewBooking] = useState<Booking | null>(null);
   const [cancelBusy, setCancelBusy] = useState(false);
   const [cancelError, setCancelError] = useState('');
@@ -88,7 +92,7 @@ function BookingsPage({ setView, onSelectBooking, onMessage, paymentReturn, user
 
   const completePayment = async (booking: Booking) => {
     setPayingId(booking.id); setPaymentNotice(null);
-    try { window.location.assign(await api.startPayment(booking.id)); }
+    try { window.location.replace(await api.startPayment(booking.id)); }
     catch (reason) { setPaymentNotice({ tone: 'warn', text: reason instanceof Error ? reason.message : 'The payment page did not open. Please try again.' }); setPayingId(null); }
   };
   const confirmCancellation = async (reason: string) => {
@@ -126,11 +130,16 @@ function BookingsPage({ setView, onSelectBooking, onMessage, paymentReturn, user
         : bookings.map((booking) => trip === 'upcoming'
           ? <UpcomingCard key={booking.id} booking={booking} today={today} paying={payingId === booking.id}
               canCancel={today < booking.startDate} onView={() => onSelectBooking(booking)} onMessage={() => onMessage(booking)} onPay={() => void completePayment(booking)}
-              onCancel={() => { setCancelError(''); setCancelBooking(booking); }} />
+              onCancel={() => { setCancelError(''); setCancelBooking(booking); }} onChange={() => setChangeBooking(booking)}
+              onAnswer={async (decision) => {
+                try { await api.answerChangeProposal(booking.id, decision); toast(decision === 'accept' ? 'Change accepted. Your booking has been updated.' : 'Change declined. Your booking stays as it was.'); setReload((value) => value + 1); }
+                catch (reason) { toast(reason instanceof Error ? reason.message : 'That could not be saved. Please try again.', 'error'); }
+              }} />
           : <CompactCard key={booking.id} booking={booking} onView={() => onSelectBooking(booking)} onReview={() => setReviewBooking(booking)} />)}
       {!loading && !error && pagination && pagination.pages > 1 && <nav aria-label="Booking pages" className="flex flex-wrap items-center justify-between gap-3 pt-2"><p className="text-xs text-slate-500">Page {page} of {pagination.pages}</p><div className="flex gap-2"><button type="button" disabled={page <= 1} onClick={() => setPage((value) => value - 1)} className={secondaryButton}><ChevronLeft className="size-4" />Previous</button><button type="button" disabled={page >= pagination.pages} onClick={() => setPage((value) => value + 1)} className={secondaryButton}>Next<ChevronRight className="size-4" /></button></div></nav>}
     </section>
     {reviewBooking && <ReviewDialog booking={reviewBooking} onClose={() => setReviewBooking(null)} onSaved={(review) => { setBookings((items) => items.map((item) => item.id === reviewBooking.id ? { ...item, review, reviewableUntil: undefined } : item)); setReviewBooking(null); }} />}
+    {changeBooking && <ChangeBookingDialog booking={changeBooking} onClose={() => setChangeBooking(null)} onSent={(updated) => { setBookings((items) => items.map((item) => item.id === updated.id ? updated : item)); setChangeBooking(null); }} />}
     {cancelBooking && <CancelReservationDialog booking={cancelBooking} busy={cancelBusy} error={cancelError} onClose={() => setCancelBooking(null)} onConfirm={confirmCancellation} />}
   </div>;
 }
@@ -140,8 +149,9 @@ const partySummary = (booking: Booking) => booking.tour
   ? `${booking.guests || 1} traveller(s) · ${booking.tour.days} day(s)`
   : `${booking.duration ?? 1} ${booking.rental ? 'day' : 'night'}(s) · ${booking.rooms || 1} ${booking.rental ? 'car' : 'room'}(s) · ${booking.guests || booking.adults || 1} ${booking.rental ? 'passenger' : 'guest'}(s)`;
 
-function UpcomingCard({ booking, today, canCancel, paying, onView, onMessage, onPay, onCancel }: {
-  booking: Booking; today: string; canCancel: boolean; paying: boolean; onView: () => void; onMessage: () => void; onPay: () => void; onCancel: () => void;
+function UpcomingCard({ booking, today, canCancel, paying, onView, onMessage, onPay, onCancel, onChange, onAnswer }: {
+  onAnswer: (decision: 'accept' | 'decline') => Promise<void>;
+  booking: Booking; today: string; canCancel: boolean; paying: boolean; onView: () => void; onMessage: () => void; onPay: () => void; onCancel: () => void; onChange: () => void;
 }) {
   const unpaid = awaitingPayment(booking);
   const days = daysUntil(today, booking.startDate);
@@ -170,10 +180,29 @@ function UpcomingCard({ booking, today, canCancel, paying, onView, onMessage, on
         <div><dt className="text-slate-500">{booking.paymentStatus === 'paid' ? 'Total paid' : unpaid ? 'To pay now' : 'Pay on arrival'}</dt><dd className="font-semibold text-slate-900">{money(booking.totalPrice)}</dd></div>
       </dl>
       {unpaid && <p className="text-sm font-semibold text-amber-800">Not paid yet · held until {clock(booking.respondBy)}</p>}
+      {booking.lastChange && !booking.changeRequest && <p role="status" className="rounded-lg bg-sky-50 p-3 text-sm text-sky-950">
+        <strong className="font-semibold">{booking.lastChange.askedByGuest ? 'The partner accepted your change' : 'You accepted the partner’s change'}</strong> on {formatDateForDisplay(booking.lastChange.at)}.
+        {booking.lastChange.reason && <> Reason: “{booking.lastChange.reason}”.</>} It was {formatDateForDisplay(booking.lastChange.from.checkIn)} to {formatDateForDisplay(booking.lastChange.from.checkOut)}{booking.lastChange.from.roomName ? `, ${booking.lastChange.from.rooms} × ${booking.lastChange.from.roomName}` : ''}, {money(booking.lastChange.from.total)}.
+      </p>}
+      {booking.changeRequest?.status === 'pending' && booking.changeRequest.proposedBy === 'partner' && <div role="status" className="space-y-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-950">
+        <p className="font-semibold">The partner would like to change this booking</p>
+        <p>New: {formatDateForDisplay(booking.changeRequest.checkIn)} to {formatDateForDisplay(booking.changeRequest.checkOut)}, {booking.changeRequest.rooms} × {booking.changeRequest.roomName}{booking.changeRequest.newTotalMinor !== undefined ? `, ${money(booking.changeRequest.newTotalMinor / 100)} in total (now ${money(booking.totalPrice)})` : ''}.</p>
+        {booking.changeRequest.reason && <p>Their reason: “{booking.changeRequest.reason}”</p>}
+        <p className="text-xs">Nothing changes unless you accept. If you decline, your booking stays as it is.{booking.paymentStatus === 'paid' ? ' You already paid: a lower total is refunded, and a higher one is paid on arrival.' : ''}</p>
+        <div className="flex flex-wrap gap-2 pt-1">
+          <button type="button" onClick={() => void onAnswer('accept')} className={primaryButton}>Accept change</button>
+          <button type="button" onClick={() => void onAnswer('decline')} className={secondaryButton}>Keep my booking</button>
+        </div>
+      </div>}
+      {booking.changeRequest?.status === 'pending' && !booking.changeRequest.proposedBy && <p role="status" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">You asked to change this to {formatDateForDisplay(booking.changeRequest.checkIn)} – {formatDateForDisplay(booking.changeRequest.checkOut)}. Waiting for the partner.</p>}
+      {booking.changeRequest?.status === 'declined' && <p role="status" className="rounded-lg bg-slate-100 p-3 text-sm text-slate-700">The partner declined your change request{booking.changeRequest.declineReason ? `: ${booking.changeRequest.declineReason}` : ''}. Your booking stays as it was.</p>}
+      {booking.balanceDue && !booking.balanceCollectedAt ? <p className="text-sm font-semibold text-slate-800">{money(booking.balanceDue)} still to pay on arrival</p> : null}
+      {booking.refunds?.map((refund, index) => <p key={index} className="text-sm font-semibold text-[#00552E]">{money(refund.amount)} refund {refund.status === 'sent' ? 'sent' : 'on its way'}</p>)}
       <div className="flex flex-wrap gap-2 pt-1">
         {unpaid && <button type="button" disabled={paying} onClick={onPay} className={primaryButton}>{paying && <LoaderCircle className="size-4 animate-spin" />}Complete payment</button>}
         <button type="button" onClick={onView} className={unpaid ? secondaryButton : primaryButton}>View voucher</button>
         <button type="button" onClick={onMessage} className={secondaryButton}><MessageSquare className="size-4" aria-hidden="true" />Message partner</button>
+        {canCancel && !unpaid && <button type="button" onClick={onChange} className={secondaryButton}>Request a change</button>}
         {canCancel && <button type="button" onClick={onCancel} className="min-h-11 rounded-lg px-3 text-sm font-semibold text-rose-700 hover:bg-rose-50">Cancel booking</button>}
       </div>
     </div>
@@ -182,7 +211,7 @@ function UpcomingCard({ booking, today, canCancel, paying, onView, onMessage, on
 
 function CompactCard({ booking, onView, onReview }: { booking: Booking; onView: () => void; onReview: () => void }) {
   const note = booking.status === 'cancelled'
-    ? (booking.refund ? <span className="font-semibold text-[#00552E]">Refund {money(booking.refund.amount)} ({booking.refund.percent}%)</span> : <span>Nothing was charged</span>)
+    ? (booking.refund ? <span className="font-semibold text-[#00552E]">Refund {money(booking.refund.amount)} ({booking.refund.percent}%) · {booking.refund.amount === 0 ? 'none due' : booking.refunds?.every((refund) => refund.status === 'sent') ? 'sent' : 'on its way'}</span> : <span>Nothing was charged</span>)
     : booking.review ? <span className="flex items-center gap-1"><Star className="size-3.5 fill-amber-400 text-amber-400" />You rated it {booking.review.overall}/5</span>
     : booking.reviewableUntil ? <span>Review open until {formatDateForDisplay(booking.reviewableUntil)}</span>
     : <span>{statusLabels[booking.status]}</span>;
@@ -208,11 +237,7 @@ function ProfilePage({ userEmail, userName, setView, onSelectListing }: UserDash
   const [user, setUser] = useState<AuthUser | null>(null);
   const [vendor, setVendor] = useState<VendorProfile | null>(null);
   const [counts, setCounts] = useState<{ trips: number; upcoming: number } | null>(null);
-  const [saved, setSaved] = useState<Listing[]>([]);
-  const [savedLoading, setSavedLoading] = useState(true);
-  const [savedError, setSavedError] = useState('');
-  const [removingId, setRemovingId] = useState<string | null>(null);
-  const [reload, setReload] = useState(0);
+  const [savedCount, setSavedCount] = useState<number | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -233,19 +258,9 @@ function ProfilePage({ userEmail, userName, setView, onSelectListing }: UserDash
 
   useEffect(() => {
     let active = true;
-    setSavedLoading(true); setSavedError('');
-    api.getWishlist().then((items) => { if (active) setSaved(items); })
-      .catch((reason) => { if (active) setSavedError(reason instanceof Error ? reason.message : 'We couldn’t load your saved stays. Please try again.'); })
-      .finally(() => { if (active) setSavedLoading(false); });
+    api.getWishlist().then((items) => { if (active) setSavedCount(items.length); }).catch(() => undefined);
     return () => { active = false; };
-  }, [reload, userEmail]);
-
-  const removeSaved = async (id: string) => {
-    setRemovingId(id); setSavedError('');
-    try { await api.removeWishlistItem(id); setSaved((items) => items.filter((item) => item.id !== id)); }
-    catch (reason) { setSavedError(reason instanceof Error ? reason.message : 'Unable to remove this saved stay.'); }
-    finally { setRemovingId(null); }
-  };
+  }, [userEmail]);
 
   const name = user?.name || userName || userEmail.split('@')[0] || 'Traveller';
   const initials = name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
@@ -260,7 +275,7 @@ function ProfilePage({ userEmail, userName, setView, onSelectListing }: UserDash
         <h1 className="text-2xl font-extrabold text-slate-950">{name}</h1>
         <p className="text-sm text-slate-500">{isPartner ? 'Partner' : 'Guest'}{memberSince ? ` · member since ${memberSince}` : ''}</p>
         <dl className="mt-1 grid w-full grid-cols-3 border-t border-slate-200 pt-4">
-          {([['Trips', counts?.trips], ['Upcoming', counts?.upcoming], ['Saved', savedLoading ? undefined : saved.length]] as const).map(([label, value], index) => (
+          {([['Trips', counts?.trips], ['Upcoming', counts?.upcoming], ['Saved', savedCount ?? undefined]] as const).map(([label, value], index) => (
             <div key={label} className={index === 1 ? 'border-x border-slate-200' : ''}><dd className="text-xl font-extrabold text-slate-950">{value ?? '—'}</dd><dt className="text-xs text-slate-500">{label}</dt></div>
           ))}
         </dl>
@@ -302,13 +317,46 @@ function ProfilePage({ userEmail, userName, setView, onSelectListing }: UserDash
         <div className={`${card} p-5 sm:p-7`}><SecurityPanel /></div>
       </section>
 
-      <section aria-labelledby="profile-saved" className="space-y-3">
-        <h2 id="profile-saved" className="border-b border-slate-200 pb-2 text-2xl font-extrabold text-slate-950">Saved stays</h2>
+      <section aria-labelledby="profile-saved">
+        <button type="button" onClick={() => setView('saved')} className={`${card} flex w-full items-center gap-4 p-5 text-start hover:border-[#006F3C]`}>
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-rose-50 text-rose-600"><Heart className="size-5" aria-hidden="true" /></span>
+          <span className="min-w-0 flex-1"><span id="profile-saved" className="block font-semibold text-slate-900">Saved stays</span><span className="block text-sm text-slate-500">{savedCount === null ? 'The places you tapped the heart on.' : `${savedCount} saved ${savedCount === 1 ? 'place' : 'places'}.`}</span></span>
+          <ArrowRight className="size-5 shrink-0 text-slate-400 rtl:rotate-180" aria-hidden="true" />
+        </button>
+      </section>
+    </main>
+  </div>;
+}
+
+/** The guest's saved stays, on a page of their own. */
+function SavedPage({ setView, onSelectListing }: UserDashboardProps) {
+  const [saved, setSaved] = useState<Listing[]>([]);
+  const [savedLoading, setSavedLoading] = useState(true);
+  const [savedError, setSavedError] = useState('');
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  const [reload, setReload] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    setSavedLoading(true); setSavedError('');
+    api.getWishlist().then((items) => { if (active) setSaved(items); })
+      .catch((reason) => { if (active) setSavedError(reason instanceof Error ? reason.message : 'We couldn’t load your saved stays. Please try again.'); })
+      .finally(() => { if (active) setSavedLoading(false); });
+    return () => { active = false; };
+  }, [reload]);
+
+  const removeSaved = async (id: string) => {
+    setRemovingId(id); setSavedError('');
+    try { await api.removeWishlistItem(id); setSaved((items) => items.filter((item) => item.id !== id)); toast('Removed from your saved stays.'); }
+    catch (reason) { setSavedError(reason instanceof Error ? reason.message : 'Unable to remove this saved stay.'); }
+    finally { setRemovingId(null); }
+  };
+
+  return <div className="mx-auto max-w-6xl space-y-5 pb-10">
+    <header><h1 className="text-3xl font-extrabold tracking-tight text-slate-950">Saved stays</h1>{!savedLoading && saved.length > 0 && <p className="mt-1 text-sm text-slate-500">{saved.length} saved {saved.length === 1 ? 'place' : 'places'}</p>}</header>
         {savedError && <ErrorNotice message={savedError} onRetry={() => setReload((value) => value + 1)} />}
         {savedLoading ? <LoadingCards /> : !savedError && saved.length === 0 ? <EmptyState icon={<Heart className="size-6" />} title="Keep your favourite places close" text="Tap the heart on a stay, car or tour to save it here while you plan your trip." action={<button type="button" onClick={() => setView('hotels')} className={primaryButton}>Discover stays<ArrowRight className="size-4" /></button>} />
           : <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{saved.map((listing) => <article key={listing.id} className="overflow-hidden rounded-xl border border-slate-200 bg-white"><div className="relative"><button type="button" onClick={() => onSelectListing(listing)} aria-label={'View ' + listing.title} className="block w-full"><img src={listing.image} alt={listing.title} onError={handleImageError} className="aspect-[4/3] w-full object-cover" /></button><button type="button" disabled={removingId !== null} onClick={() => void removeSaved(listing.id)} aria-label={'Remove ' + listing.title + ' from saved stays'} className="absolute right-3 top-3 flex size-10 items-center justify-center rounded-full bg-white text-rose-700 shadow-sm hover:bg-rose-50 disabled:opacity-50">{removingId === listing.id ? <LoaderCircle className="size-4 animate-spin" /> : <Trash2 className="size-4" />}</button></div><div className="space-y-2 p-4"><p className="flex items-center gap-1 text-xs text-slate-500"><MapPin className="size-3.5" />{listing.location}</p><button type="button" onClick={() => onSelectListing(listing)} className="text-left text-base font-semibold text-slate-900 hover:text-emerald-700">{listing.title}</button><div className="flex items-center justify-between gap-2"><p className="text-sm font-semibold text-slate-900">{money(listing.price)}<span className="font-normal text-slate-400">{['hotel', 'homestay'].includes(listing.type) ? ' / night' : listing.type === 'car' ? ' / day' : listing.type === 'tour' ? ' / person' : ''}</span></p>{listing.reviewsCount > 0 && <span className="flex items-center gap-1 text-xs text-slate-600"><Star className="size-3 fill-amber-400 text-amber-400" />{listing.rating}</span>}</div></div></article>)}</div>}
-      </section>
-    </main>
   </div>;
 }
 
@@ -366,9 +414,16 @@ function CancelReservationDialog({ booking, busy, error, onClose, onConfirm }: {
   const [refund, setRefund] = useState('');
   useBodyScrollLock(true);
   useEffect(() => { const element = dialog.current; element?.showModal(); return () => element?.close(); }, []);
-  // Same rule as the server (guestRefundPercent): the tier is picked by hours since the booking was made.
+  // Same rule as the server (cancelOwnBooking). Older bookings have no policy and keep the tiers counted from booking.
   useEffect(() => {
     if (booking.paymentStatus !== 'paid') return;
+    const paid = booking.totalPrice - (booking.balanceDue ?? 0);
+    if (booking.cancellationPolicy) {
+      const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Karachi' }).format(new Date());
+      const percent = refundPercentFor(booking.cancellationPolicy, daysBetween(today, booking.startDate));
+      setRefund(percent ? ` If you cancel now you get ${percent}% back: ${money(Math.round(paid * percent) / 100)} of ${money(paid)}.` : ` If you cancel now you get nothing back, under this booking's ${CANCELLATION_POLICIES[booking.cancellationPolicy as keyof typeof CANCELLATION_POLICIES]?.label ?? ''} policy.`);
+      return;
+    }
     api.getRefundRules().then((rules) => {
       const hours = (Date.now() - new Date(booking.createdAt).getTime()) / 3_600_000;
       const percent = rules.refundTiers.find((tier) => hours <= tier.withinHours)?.refundPercent ?? rules.laterRefundPercent;

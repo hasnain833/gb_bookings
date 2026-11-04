@@ -13,6 +13,10 @@ import {
   bookingIdParamsSchema,
   cancelBookingSchema,
   changeBookingSchema,
+  changeDecisionSchema,
+  changeRequestSchema,
+  vendorChangeSchema,
+  proposalAnswerSchema,
   createBookingSchema,
   listBookingsQuerySchema,
   vendorBookingActionSchema,
@@ -26,12 +30,16 @@ import {
   createBooking,
   getBooking,
   getListingAvailability,
+  getUnavailableDates,
   handleSafepayWebhook,
   listCustomerBookings,
   startOnlinePayment,
   verifyOnlinePayment,
   listVendorBookings,
-  changeVendorBooking,
+  proposeBookingChange,
+  answerBookingProposal,
+  decideBookingChange,
+  requestBookingChange,
   vendorReport,
   withVendorActions,
 } from './booking.service.js';
@@ -43,6 +51,13 @@ export const availabilityHandlers: RequestHandler[] = [
   validate('query', availabilityQuerySchema),
   asyncHandler(async (request, response) => {
     response.json(await getListingAvailability(request.params.id, request.query as any));
+  }),
+];
+
+export const unavailableDatesHandlers: RequestHandler[] = [
+  validate('params', listingIdParamsSchema),
+  asyncHandler(async (request, response) => {
+    response.json({ dates: await getUnavailableDates(request.params.id) });
   }),
 ];
 
@@ -87,6 +102,14 @@ bookingRouter.post('/:id/cancel', validate('params', bookingIdParamsSchema), val
   response.json({ data: await cancelOwnBooking(actor(request), request.params.id, request.body.reason, sessionMetadata(request)) });
 }));
 
+bookingRouter.post('/:id/change-request', validate('params', bookingIdParamsSchema), validate('body', changeRequestSchema), asyncHandler(async (request, response) => {
+  response.json({ data: await requestBookingChange(actor(request), request.params.id, request.body, sessionMetadata(request)) });
+}));
+
+bookingRouter.post('/:id/change-proposal', validate('params', bookingIdParamsSchema), validate('body', proposalAnswerSchema), asyncHandler(async (request, response) => {
+  response.json({ data: await answerBookingProposal(actor(request), request.params.id, request.body.decision, sessionMetadata(request)) });
+}));
+
 const bookingActionHandler = asyncHandler(async (request, response) => {
   const booking = await actOnVendorBooking(actor(request), request.params.id, request.body.action, request.body.reason, sessionMetadata(request));
   response.json({ data: withVendorActions(booking) });
@@ -105,8 +128,12 @@ vendorBookingRouter.get('/report', validate('query', vendorReportQuerySchema), a
 
 vendorBookingRouter.post('/:id/actions', authorizePermission('booking:manage:own'), validate('params', bookingIdParamsSchema), validate('body', vendorBookingActionSchema), bookingActionHandler);
 
-vendorBookingRouter.post('/:id/change', authorizePermission('booking:manage:own'), validate('params', bookingIdParamsSchema), validate('body', changeBookingSchema), asyncHandler(async (request, response) => {
-  response.json({ data: withVendorActions(await changeVendorBooking(actor(request), request.params.id, request.body, sessionMetadata(request))) });
+vendorBookingRouter.post('/:id/change', authorizePermission('booking:manage:own'), validate('params', bookingIdParamsSchema), validate('body', vendorChangeSchema), asyncHandler(async (request, response) => {
+  response.json({ data: withVendorActions(await proposeBookingChange(actor(request), request.params.id, request.body, sessionMetadata(request))) });
+}));
+
+vendorBookingRouter.post('/:id/change-request', authorizePermission('booking:manage:own'), validate('params', bookingIdParamsSchema), validate('body', changeDecisionSchema), asyncHandler(async (request, response) => {
+  response.json({ data: withVendorActions(await decideBookingChange(actor(request), request.params.id, request.body, sessionMetadata(request))) });
 }));
 
 export const adminBookingRouter = Router();

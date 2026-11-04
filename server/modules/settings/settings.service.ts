@@ -10,6 +10,7 @@ export const DEFAULT_SETTINGS = {
   commissionPercent: 2.5,
   refundTiers: [{ withinHours: 24, refundPercent: 100 }, { withinHours: 48, refundPercent: 75 }],
   laterRefundPercent: 50,
+  taxes: [] as Array<{ name: string; percent: number }>,
 };
 export type PlatformSettings = typeof DEFAULT_SETTINGS;
 
@@ -20,6 +21,7 @@ export const platformSettingsSchema = z.object({
     .refine((tiers) => tiers.every((tier, index) => index === 0 || tiers[index - 1].withinHours < tier.withinHours),
       { message: 'List the time limits from shortest to longest, each one longer than the last.' }),
   laterRefundPercent: percent,
+  taxes: z.array(z.object({ name: z.string().trim().min(2).max(60), percent: percent.max(50) }).strict()).max(5).default([]),
 }).strict();
 
 export async function requireSettingsDatabase() {
@@ -33,6 +35,7 @@ export async function getPlatformSettings(): Promise<PlatformSettings> {
     commissionPercent: saved.commissionPercent,
     refundTiers: (saved.refundTiers ?? []).map(({ withinHours, refundPercent }: any) => ({ withinHours, refundPercent })),
     laterRefundPercent: saved.laterRefundPercent,
+    taxes: (saved.taxes ?? []).map(({ name, percent }: any) => ({ name, percent })),
   };
 }
 

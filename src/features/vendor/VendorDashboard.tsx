@@ -10,11 +10,13 @@ import SecurityPanel from '../account/SecurityPanel';
 import VendorWorkspace, { canOpen, partnerWords, type MemberArea, type VendorTab } from './VendorWorkspace';
 import PartnerHome from './PartnerHome';
 import VendorReports from './VendorReports';
+import PartnerPayouts from './PartnerPayouts';
 import HotelTeam from './HotelTeam';
 import PartnerReviews from './PartnerReviews';
 import PartnerCoupons from './PartnerCoupons';
 import BusinessProfile from './BusinessProfile';
 import { useReasonDialog } from '../../shared/components/ReasonDialog';
+import { PARTNER_AGREEMENT_VERSION } from '../../shared/utils/partner-agreement';
 
 interface VendorDashboardProps { setView: (view: string) => void; userName: string; userEmail: string; onSignOut: () => Promise<void> }
 const toolButton = 'inline-flex min-h-10 items-center gap-2 rounded-lg border border-[#D9DED8] bg-white px-3 text-sm font-semibold text-[#3D4A42] hover:bg-slate-50 disabled:opacity-50';
@@ -99,6 +101,11 @@ export default function VendorDashboard({ setView, userName, userEmail, onSignOu
 
       {vendor && vendor.status !== 'approved' && <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900">Your partner account is {vendor.status}. {words.many} tools are unavailable until GBBookings approves it. <button type="button" className="font-semibold underline" onClick={() => setView('become-partner')}>View partner status</button></div>}
 
+      {vendor?.status === 'approved' && canOpen(access, 'team') && vendor.agreement?.version !== PARTNER_AGREEMENT_VERSION && <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        <span>Please read and accept the updated <a href="/partner-agreement" target="_blank" rel="noopener noreferrer" className="font-semibold underline">Partner Agreement</a>.</span>
+        <button type="button" onClick={() => void api.acceptPartnerAgreement(PARTNER_AGREEMENT_VERSION).then(setVendor).catch((error: Error) => setMessage(error.message))} className="min-h-11 rounded-lg bg-[#006F3C] px-4 font-semibold text-white">I accept</button>
+      </div>}
+
       {tab === 'overview' && vendor?.status === 'approved' && <PartnerHome kind={word} listings={listings} access={access} userName={userName} onTab={navigate}
         onOpenListing={(id) => { navigate('properties'); setWorkspaceId(id); }} onPending={setPendingCount} />}
 
@@ -111,6 +118,7 @@ export default function VendorDashboard({ setView, userName, userEmail, onSignOu
         {tab === 'reviews' && canOpen(access, 'reviews') && <PartnerReviews properties={listings} />}
         {tab === 'promo-codes' && canOpen(access, 'promo-codes') && <PartnerCoupons />}
         {tab === 'reports' && canOpen(access, 'reports') && <VendorReports />}
+        {tab === 'payouts' && canOpen(access, 'payouts') && <PartnerPayouts onBankDetails={canOpen(access, 'business') ? () => navigate('business') : undefined} />}
         {tab === 'team' && canOpen(access, 'team') && <HotelTeam />}
         {tab === 'new-property' && (() => {
           const done = (created: VendorListing, note: string) => {

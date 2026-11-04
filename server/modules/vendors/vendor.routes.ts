@@ -7,6 +7,7 @@ import { asyncHandler } from '../../shared/async-handler.js';
 import { sessionMetadata } from '../auth/auth.service.js';
 import { accessFor } from './member-access.js';
 import {
+  acceptPartnerAgreement,
   addTeamMember,
   listTeam,
   removeTeamMember,
@@ -23,6 +24,7 @@ import {
   updateOwnVendor,
 } from './vendor.service.js';
 import {
+  acceptAgreementSchema,
   addTeamMemberSchema,
   teamMemberParamsSchema,
   attachVendorDocumentSchema,
@@ -63,6 +65,10 @@ vendorRouter.post('/me/documents', validate('body', attachVendorDocumentSchema),
 
 vendorRouter.post('/me/change-request', validate('body', vendorChangeRequestSchema), asyncHandler(async (request, response) => {
   response.json({ data: await requestVendorChanges(request.auth!.userId, request.body, sessionMetadata(request)) });
+}));
+
+vendorRouter.post('/me/agreement', validate('body', acceptAgreementSchema), asyncHandler(async (request, response) => {
+  response.json({ data: await acceptPartnerAgreement(request.auth!.userId, request.body.version, sessionMetadata(request)) });
 }));
 
 vendorRouter.post('/me/submit', asyncHandler(async (request, response) => {

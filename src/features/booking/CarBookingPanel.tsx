@@ -4,7 +4,10 @@ import { api, type ListingAvailability } from '../../shared/api/api';
 import type { CarSpecs, StayInfo } from '../../types';
 import { PAYMENT_LABELS } from '../../shared/utils/stayInfo';
 import { formatDateForDisplay } from '../../shared/utils/date';
+import { useUnavailableDates, firstBlockedAfter } from './useUnavailableDates';
 import type { CheckoutParams } from './CheckoutFlow';
+import Select, { TimeInput } from '../../shared/components/Select';
+import DateInput from '../../shared/components/DateInput';
 
 const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Karachi' }).format(new Date());
 const inputClass = 'w-full h-10 bg-white border border-slate-300 rounded-lg px-3 text-sm text-slate-800 focus:outline-none focus:border-[#006F3C] focus:ring-2 focus:ring-[#006F3C]/15';
@@ -30,6 +33,9 @@ export default function CarBookingPanel({ listingId, baseCity, specs, paymentMet
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const datesReady = Boolean(pickup && returnDate && returnDate >= pickup);
+  const unavailable = useUnavailableDates(listingId);
+  // The return date is a rented day too, so the car must be free right through it.
+  const nextBooked = pickup ? firstBlockedAfter(unavailable, pickup) : undefined;
   const oneWayOffered = (specs.oneWay ?? 'not_offered') !== 'not_offered';
 
   useEffect(() => {
@@ -64,28 +70,28 @@ export default function CarBookingPanel({ listingId, baseCity, specs, paymentMet
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1.5">
           <label htmlFor="car-pickup" className={labelClass}><Calendar className="w-3.5 h-3.5 text-slate-400" /> Pickup</label>
-          <input id="car-pickup" type="date" min={today()} value={pickup} onChange={(event) => setPickup(event.target.value)} className={inputClass} />
+          <DateInput id="car-pickup" min={today()} value={pickup} unavailable={unavailable} onChange={(event) => { const day = event.target.value; setPickup(day); const limit = firstBlockedAfter(unavailable, day); if (returnDate && (returnDate < day || (limit && returnDate >= limit))) setReturnDate(''); }} className={inputClass} />
         </div>
         <div className="space-y-1.5">
           <label htmlFor="car-return" className={labelClass}><Calendar className="w-3.5 h-3.5 text-slate-400" /> Return</label>
-          <input id="car-return" type="date" min={pickup || today()} value={returnDate} onChange={(event) => setReturnDate(event.target.value)} className={inputClass} />
+          <DateInput id="car-return" min={pickup || today()} unavailable={nextBooked ? new Set([...unavailable].filter((day) => day >= nextBooked)) : unavailable} max={nextBooked} value={returnDate} onChange={(event) => setReturnDate(event.target.value)} className={inputClass} />
         </div>
         <div className="space-y-1.5">
           <label htmlFor="car-time" className={labelClass}><Clock className="w-3.5 h-3.5 text-slate-400" /> Pickup time</label>
-          <input id="car-time" type="time" value={pickupTime} onChange={(event) => setPickupTime(event.target.value)} className={inputClass} />
+          <TimeInput id="car-time" value={pickupTime} onChange={(event) => setPickupTime(event.target.value)} className={inputClass} />
         </div>
         <div className="space-y-1.5">
           <label htmlFor="car-passengers" className={labelClass}><Users className="w-3.5 h-3.5 text-slate-400" /> Passengers</label>
-          <select id="car-passengers" value={passengers} onChange={(event) => setPassengers(Number(event.target.value))} className={inputClass}>
+          <Select id="car-passengers" value={passengers} onChange={(event) => setPassengers(Number(event.target.value))} className={inputClass}>
             {Array.from({ length: specs.seats * cars }, (_, index) => index + 1).map((count) => <option key={count} value={count}>{count}</option>)}
-          </select>
+          </Select>
         </div>
       </div>
       <div className="space-y-1.5">
         <label htmlFor="car-count" className={labelClass}><Car className="w-3.5 h-3.5 text-slate-400" /> Cars</label>
-        <select id="car-count" value={cars} onChange={(event) => setCars(Number(event.target.value))} className={inputClass}>
+        <Select id="car-count" value={cars} onChange={(event) => setCars(Number(event.target.value))} className={inputClass}>
           {[1, 2, 3, 4, 5].map((count) => <option key={count} value={count}>{count}</option>)}
-        </select>
+        </Select>
       </div>
 
       {mode === 'both' && <fieldset className="grid grid-cols-2 gap-2">
@@ -124,7 +130,7 @@ export default function CarBookingPanel({ listingId, baseCity, specs, paymentMet
           {rental.driver && rental.driverPerDay > 0 && <div className="flex justify-between text-slate-500"><span>Driver {pkr(rental.driverPerDay)} × {days} day{days > 1 ? 's' : ''}</span><span className="text-slate-800">{pkr(rental.driverPerDay * days * cars)}</span></div>}
           {rental.outsidePerDay > 0 && <div className="flex justify-between text-slate-500"><span>Outside {baseCity.split(',')[0]} × {days} day{days > 1 ? 's' : ''}</span><span className="text-slate-800">{pkr(rental.outsidePerDay * days * cars)}</span></div>}
           {rental.oneWayFee > 0 && <div className="flex justify-between text-slate-500"><span>One-way drop-off</span><span className="text-slate-800">{pkr(rental.oneWayFee * cars)}</span></div>}
-          <div className="flex justify-between font-semibold text-slate-900"><span>Due at pickup</span><span>{pkr(unit.totalPrice)}</span></div>
+          <div className="flex justify-between font-semibold text-slate-900"><span>Total before any fees and taxes</span><span>{pkr(unit.totalPrice)}</span></div>
           <ul className="space-y-1 text-xs text-slate-500">
             <li>{rental.fuelIncluded ? '✓ Fuel included' : 'Fuel is paid by you'}</li>
             {rental.oneWayOnRequest && <li>One-way fee is quoted by the partner when they confirm.</li>}
@@ -141,7 +147,7 @@ export default function CarBookingPanel({ listingId, baseCity, specs, paymentMet
       </button>
       <div className="flex items-start gap-2 text-xs text-slate-500 leading-normal">
         <ShieldCheck className="w-4 h-4 text-[#006F3C] shrink-0 mt-0.5" />
-        <span>No payment today. You pay at pickup. Days include the pickup and return days.</span>
+        <span>Choose at checkout: pay now by card or wallet, or pay at pickup. Days include the pickup and return days.</span>
       </div>
     </div>
   );

@@ -14,7 +14,7 @@ import { mediaRouter } from './modules/media/media.routes.js';
 import { createListingRouter } from './modules/listings/listing.routes.js';
 import { adminVendorRouter, vendorRouter } from './modules/vendors/vendor.routes.js';
 import { adminListingRouter, listingDraftRouter, vendorListingRouter } from './modules/vendor-listings/vendor-listing.routes.js';
-import { adminBookingRouter, availabilityHandlers, bookingRouter, paymentWebhookRouter, vendorBookingRouter } from './modules/bookings/booking.routes.js';
+import { adminBookingRouter, availabilityHandlers, unavailableDatesHandlers, bookingRouter, paymentWebhookRouter, vendorBookingRouter } from './modules/bookings/booking.routes.js';
 import { adminUserRouter } from './modules/users/user-admin.routes.js';
 import { wishlistRouter } from './modules/wishlist/wishlist.routes.js';
 import { adminSettingsRouter, publicSettingsRouter } from './modules/settings/settings.routes.js';
@@ -22,6 +22,10 @@ import { messageRouter } from './modules/messages/message.routes.js';
 import { newsletterRouter } from './modules/newsletter/newsletter.routes.js';
 import { adminReviewRouter, listingReviewHandlers, partnerReviewRouter } from './modules/reviews/review.routes.js';
 import { partnerCouponRouter } from './modules/coupons/coupon.routes.js';
+import { adminFinanceRouter, partnerFinanceRouter } from './modules/finance/finance.routes.js';
+import { inngest, inngestEnabled, inngestFunctions } from './modules/jobs/inngest.js';
+import { seoRouter } from './modules/seo/seo.routes.js';
+import { serve } from 'inngest/express';
 import { AppError } from './shared/app-error.js';
 import { isAllowedOrigin } from './shared/origin.js';
 import { MongoRateLimitStore } from './shared/rate-limit-store.js';
@@ -48,7 +52,7 @@ export function createApp(): Express {
         'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://accounts.google.com/gsi/style'],
         'font-src': ["'self'", 'data:', 'https://fonts.gstatic.com'],
         'script-src': ["'self'", 'https://accounts.google.com/gsi/client'],
-        'connect-src': ["'self'", 'https://accounts.google.com/gsi/', 'https://photon.komoot.io'],
+        'connect-src': ["'self'", 'https://accounts.google.com/gsi/', 'https://photon.komoot.io', 'https://*.inngest.com', 'wss://*.inngest.com'],
         'frame-src': ["'self'", 'https://www.google.com', 'https://maps.google.com', 'https://accounts.google.com/gsi/'],
       },
     },
@@ -76,12 +80,19 @@ export function createApp(): Express {
     legacyHeaders: false,
     store: new MongoRateLimitStore('api:'),
     passOnStoreError: true,
-    skip: (request) => request.path.startsWith('/health'),
+    skip: (request) => request.path.startsWith('/health') || request.path.startsWith('/inngest'),
   }));
+
+  // Inngest signs its calls; the SDK rejects anything else. Off without keys.
+  if (inngestEnabled()) {
+    const inngestHandler = inngestFunctions().then((functions) => serve({ client: inngest, functions }));
+    app.use('/api/inngest', (request, response, next) => { void inngestHandler.then((handler) => handler(request, response, next)).catch(next); });
+  }
 
   app.use('/api/v1/health', healthRouter);
   app.use('/api/v1/auth', authRouter);
   app.get(['/api/v1/listings/:id/availability', '/api/listings/:id/availability'], ...availabilityHandlers);
+  app.get('/api/v1/listings/:id/unavailable-dates', ...unavailableDatesHandlers);
   app.get('/api/v1/listings/:id/reviews', ...listingReviewHandlers);
   app.use('/api/v1/listings', createListingRouter());
   app.use('/api/v1/vendors', vendorRouter);
@@ -96,6 +107,8 @@ export function createApp(): Express {
   app.use('/api/v1/vendor/bookings', vendorBookingRouter);
   app.use('/api/v1/admin/bookings', adminBookingRouter);
   app.use('/api/v1/admin/settings', adminSettingsRouter);
+  app.use('/api/v1/admin/finance', adminFinanceRouter);
+  app.use('/api/v1/vendor/finance', partnerFinanceRouter);
   app.use('/api/v1/settings', publicSettingsRouter);
   app.use('/api/v1/vendor/reviews', partnerReviewRouter);
   app.use('/api/v1/admin/reviews', adminReviewRouter);
@@ -104,6 +117,7 @@ export function createApp(): Express {
   app.use('/api/v1/wishlist', wishlistRouter);
   app.use('/api/v1/newsletter', newsletterRouter);
   app.use('/api/v1/ai', aiRouter);
+  if (env.VERCEL) app.use(seoRouter);
 
   return app;
 }

@@ -1,3 +1,4 @@
+import { DEFAULT_CANCELLATION_POLICY } from "../../../src/shared/utils/cancellation.js";
 import { connectDatabase } from "../../database/connection.js";
 import { inTransaction } from "../../database/transaction.js";
 import { HotelRoomTypeModel } from "../../models/hotel-room-type.model.js";
@@ -79,6 +80,8 @@ function listingView(listing: any) {
     departures: listing.departures,
     coordinates: latLng(listing.coordinates),
     stayInfo: listing.stayInfo,
+    cancellationPolicy: listing.cancellationPolicy ?? DEFAULT_CANCELLATION_POLICY,
+    fees: plainValue(listing.fees) ?? [],
     status: listing.status,
     rejectionReason: listing.rejectionReason,
     pendingRevision: revisionView(listing.pendingRevision),
@@ -376,6 +379,8 @@ const listingContent = (listing: any) => ({
   tourSpecs: listing.type === "tour" ? (listing.tourSpecs?.toObject?.() ?? listing.tourSpecs) : undefined,
   coordinates: listing.coordinates?.toObject?.() ?? listing.coordinates,
   stayInfo: listing.stayInfo?.toObject?.() ?? listing.stayInfo,
+  cancellationPolicy: listing.cancellationPolicy,
+  fees: plainValue(listing.fees),
   photos: photosOf(listing),
 });
 const roomContent = (room: any) => ({
@@ -495,6 +500,8 @@ export async function createHotelListing(
     departures: departuresFor(input.type, input.departures),
     coordinates: toGeoPoint(input.coordinates),
     stayInfo: input.stayInfo,
+    cancellationPolicy: input.cancellationPolicy ?? DEFAULT_CANCELLATION_POLICY,
+    fees: input.fees,
     status: "draft",
     featured: false,
   });
@@ -1205,15 +1212,19 @@ export async function listListingsForModeration(query: {
   const vendors = (await VendorModel.find({
     _id: { $in: records.map((record: any) => record.ownerId) },
   })
-    .select("name")
+    .select("name publicId")
     .lean()) as any[];
   const vendorNames = new Map(
     vendors.map((vendor) => [String(vendor._id), vendor.name]),
+  );
+  const vendorIds = new Map(
+    vendors.map((vendor) => [String(vendor._id), vendor.publicId]),
   );
   return {
     data: records.map((record: any) => ({
       ...listingView(record),
       vendorName: vendorNames.get(String(record.ownerId)),
+      vendorId: vendorIds.get(String(record.ownerId)),
     })),
     pagination: {
       page: query.page,

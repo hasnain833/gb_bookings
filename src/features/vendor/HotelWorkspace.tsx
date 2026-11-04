@@ -1,3 +1,4 @@
+import PoliciesFeesPanel from './PoliciesFeesPanel';
 import { useEffect, useState } from 'react';
 import { ChevronRight, Pause, Play } from 'lucide-react';
 import { api, type VendorListing, type VendorRoom } from '../../shared/api/api';
@@ -9,7 +10,7 @@ import RoomCalendar from './RoomCalendar';
 import RoomManager, { secondaryButton } from './RoomManager';
 import VendorReservations from './VendorReservations';
 
-type HotelTab = 'rooms' | 'details' | 'availability' | 'reservations';
+type HotelTab = 'rooms' | 'details' | 'policies' | 'availability' | 'reservations';
 
 export const LISTING_STATUS: Record<VendorListing['status'], [string, string]> = {
   draft: ['Draft', 'bg-slate-100 text-slate-700'],
@@ -79,7 +80,7 @@ export default function HotelWorkspace({ listing, onBack, onChange, onAvailabili
   const tour = listing.type === 'tour';
   const fixedTour = tour && listing.tourSpecs?.schedule === 'fixed';
   const noun = car ? 'car' : tour ? 'tour' : listing.type === 'homestay' ? 'homestay' : 'hotel';
-  const tabs: Array<[HotelTab, string]> = [['rooms', car ? 'Price & fleet' : tour ? 'Price & seats' : 'Rooms'], ['details', 'Details & photos'], ['availability', fixedTour ? 'Dates & seats' : tour ? 'Closed days' : 'Availability'], ['reservations', car ? 'Rentals' : tour ? 'Bookings' : 'Reservations']];
+  const tabs: Array<[HotelTab, string]> = [['rooms', car ? 'Price & fleet' : tour ? 'Price & seats' : 'Rooms'], ['details', 'Details & photos'], ['policies', 'Cancellation & fees'], ['availability', fixedTour ? 'Dates & seats' : tour ? 'Closed days' : 'Availability'], ['reservations', car ? 'Rentals' : tour ? 'Bookings' : 'Reservations']];
   const Editor = car ? CarEditor : tour ? TourEditor : PropertyEditor;
   const editable = ['draft', 'rejected', 'published', 'paused'].includes(listing.status);
 
@@ -119,6 +120,7 @@ export default function HotelWorkspace({ listing, onBack, onChange, onAvailabili
             setTab('rooms');
           }} />
         : <p className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600">Details can be edited again once the review is finished.</p>)}
+      {tab === 'policies' && <PoliciesFeesPanel key={listing.id + (listing.pendingRevision?.submittedAt ?? '')} listing={listing} onChange={onChange} />}
       {tab === 'availability' && fixedTour && <DeparturesTab key={(listing.departures ?? []).join()} listing={listing} onChange={onChange} />}
       {tab === 'availability' && <AvailabilityTab listing={listing} />}
       {tab === 'reservations' && <VendorReservations listingId={listing.id} car={car} tour={tour} />}
