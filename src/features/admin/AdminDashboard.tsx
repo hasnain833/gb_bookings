@@ -1,6 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { toast } from '../../shared/components/Toaster';
-import { Banknote, Undo2, AlertTriangle, Building2, CalendarX, CheckCircle2, XCircle, Car, Percent, Hotel, House, Inbox, LayoutDashboard, Mountain, PanelLeftClose, PanelLeftOpen, Search, FileText, LoaderCircle, LogOut, ShieldCheck, Star, Users } from 'lucide-react';
+import BookingsPanel from './BookingsPanel';
+import SupportPanel from './SupportPanel';
+import { BookOpenCheck, LifeBuoy, Banknote, Undo2, AlertTriangle, Building2, CalendarX, CheckCircle2, XCircle, Car, Percent, Hotel, House, Inbox, LayoutDashboard, Mountain, PanelLeftClose, PanelLeftOpen, Search, FileText, LoaderCircle, LogOut, ShieldCheck, Star, Users } from 'lucide-react';
 import { RefundsPanel, PayoutsPanel } from './FinancePanels';
 import { api, type AdminBookingLookup, type AdminUser, type AdminVendor, type IdentityCheck, type Paginated, type PlatformSettings, type UserStatusAction, type VendorListing } from '../../shared/api/api';
 import SecurityPanel from '../account/SecurityPanel';
@@ -12,7 +14,7 @@ import { useDebouncedValue } from '../../shared/hooks/useDebouncedValue';
 import Select from '../../shared/components/Select';
 
 type Product = VendorListing['type'];
-type Tab = 'overview' | 'inbox' | Product | 'vendors' | 'reviews' | 'users' | 'refunds' | 'payouts' | 'cancellations' | 'settings' | 'security';
+type Tab = 'overview' | 'inbox' | Product | 'bookings' | 'support' | 'vendors' | 'reviews' | 'users' | 'refunds' | 'payouts' | 'cancellations' | 'settings' | 'security';
 type NavItem = { id: Tab; label: string; icon: typeof Users };
 
 const navGroups: Array<{ title?: string; items: NavItem[] }> = [
@@ -21,6 +23,7 @@ const navGroups: Array<{ title?: string; items: NavItem[] }> = [
     { id: 'hotel', label: 'Hotels', icon: Hotel }, { id: 'homestay', label: 'Homestays', icon: House },
     { id: 'car', label: 'Cars', icon: Car }, { id: 'tour', label: 'Tours', icon: Mountain },
   ] },
+  { title: 'Bookings', items: [{ id: 'bookings', label: 'All bookings', icon: BookOpenCheck }, { id: 'support', label: 'Support', icon: LifeBuoy }] },
   { title: 'People', items: [{ id: 'vendors', label: 'Partners', icon: Building2 }, { id: 'users', label: 'Users', icon: Users }, { id: 'reviews', label: 'Guest reviews', icon: Star }] },
   { title: 'Money', items: [{ id: 'refunds', label: 'Refunds', icon: Undo2 }, { id: 'payouts', label: 'Payouts', icon: Banknote }] },
   { title: 'Tools', items: [{ id: 'cancellations', label: 'Cancel a booking', icon: CalendarX }, { id: 'settings', label: 'Fees & refunds', icon: Percent }, { id: 'security', label: 'Account security', icon: ShieldCheck }] },
@@ -792,11 +795,12 @@ function InboxPanel({ onOpen, initialKey, onChanged }: { onOpen: (tab: Tab) => v
   );
 }
 
-type Summary = { queue: InboxItem[]; live: Record<Product, number>; waiting: Record<Product, number>; paused: number; partners: number; reported: number };
+type Summary = { support: number; disputes: number; queue: InboxItem[]; live: Record<Product, number>; waiting: Record<Product, number>; paused: number; partners: number; reported: number };
 
 async function loadSummary(): Promise<Summary> {
   const total = (result: Promise<Paginated<unknown>>) => result.then((page) => page.pagination.total);
-  const [queue, hotel, homestay, car, tour, paused, partners, reported] = await Promise.all([
+  const [disputes, queue, hotel, homestay, car, tour, paused, partners, reported] = await Promise.all([
+    api.admin.listBookings({ dispute: 'open', page: 1 }).then((result) => result.openDisputes),
     loadQueue(),
     ...PRODUCTS.map((type) => total(api.admin.listListings({ status: 'published', type, limit: 1 }))),
     total(api.admin.listListings({ status: 'paused', limit: 1 })), total(api.admin.listVendors({ status: 'approved', limit: 1 })),
@@ -804,7 +808,8 @@ async function loadSummary(): Promise<Summary> {
   ]);
   const waiting = { hotel: 0, homestay: 0, car: 0, tour: 0 };
   queue.forEach((item) => { waiting[itemProduct(item)] += 1; });
-  return { queue, live: { hotel, homestay, car, tour }, waiting, paused, partners, reported };
+  const help = await api.admin.supportCounts().catch(() => ({ cases: 0, reports: 0 }));
+  return { support: help.cases + help.reports, disputes, queue, live: { hotel, homestay, car, tour }, waiting, paused, partners, reported };
 }
 
 const kindText: Record<InboxKind, string> = { partner: 'New partner', business: 'Business details change', hotel: 'New listing', changes: 'Changes to a live listing' };
@@ -819,6 +824,7 @@ function OverviewPanel({ summary, error, onOpen, onReview }: { summary: Summary 
   const shown = queue.filter((item) => filter === 'all' || itemProduct(item) === filter);
   const changeRequests = queue.filter((item) => item.kind === 'business').length;
   const watch = [
+    summary.support > 0 && [`${summary.support} support case${summary.support === 1 ? '' : 's'} or reported chat${summary.support === 1 ? '' : 's'} waiting`, 'support'],
     summary.reported > 0 && [`${summary.reported} guest review${summary.reported === 1 ? '' : 's'} reported by partners`, 'reviews'],
     changeRequests > 0 && [`${changeRequests} partner${changeRequests === 1 ? '' : 's'} asked to change business details`, 'inbox'],
     summary.paused > 0 && [`${summary.paused} listing${summary.paused === 1 ? ' is' : 's are'} paused by their partner`, 'hotel'],
@@ -892,6 +898,8 @@ const sectionDetails: Record<Tab, { title: string; description: string }> = {
   homestay: { title: 'Homestays', description: 'Every homestay on the platform, from family rooms to entire homes.' },
   car: { title: 'Cars', description: 'Every car listing, from rental companies and owner-drivers.' },
   tour: { title: 'Tours', description: 'Every tour, from tour companies and independent guides.' },
+  support: { title: 'Support', description: 'Guests asking for help with a booking, and chats people have reported. Other chats stay private: you can only read one that someone reported.' },
+  bookings: { title: 'All bookings', description: 'Every booking on the platform. Search, filter, export, and decide no-show disputes. Partners run their own reservations.' },
   inbox: { title: 'Review inbox', description: 'Partners, hotels and edits waiting for a decision.' },
   vendors: { title: 'Partner reviews', description: 'Review vendor applications, verify documents and manage partner access.' },
   reviews: { title: 'Guest reviews', description: 'Reviews partners reported, and reviews you have hidden. Remove only abusive, fake or off-topic reviews and personal data; honest criticism stays.' },
@@ -933,7 +941,7 @@ export default function AdminDashboard({ roles, userName = 'Staff member', userE
 
   if (!isAdmin) return <main className="p-8"><h1 className="text-xl font-bold">Admin access required</h1></main>;
   const section = sectionDetails[tab];
-  const badges: Partial<Record<Tab, number>> = { inbox: summary?.queue.length, reviews: summary?.reported };
+  const badges: Partial<Record<Tab, number>> = { bookings: summary?.disputes, support: summary?.support, inbox: summary?.queue.length, reviews: summary?.reported };
   // Below md the menu is always the icon rail; the toggle only widens it on larger screens.
   const labelClass = navOpen ? 'hidden md:block' : 'hidden';
   const iconsOnly = navOpen ? 'justify-center md:justify-start' : 'justify-center';
@@ -994,6 +1002,8 @@ export default function AdminDashboard({ roles, userName = 'Staff member', userE
           {tab === 'vendors' && <VendorsPanel />}
           {tab === 'reviews' && <ReviewsPanel />}
           {tab === 'users' && <UsersPanel />}
+          {tab === 'bookings' && <BookingsPanel onChanged={() => setSummaryRevision((value) => value + 1)} />}
+          {tab === 'support' && <SupportPanel onChanged={() => setSummaryRevision((value) => value + 1)} />}
           {tab === 'cancellations' && <CancelBookingPanel />}
           {tab === 'refunds' && <RefundsPanel />}
           {tab === 'payouts' && <PayoutsPanel />}

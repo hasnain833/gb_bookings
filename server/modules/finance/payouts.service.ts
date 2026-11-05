@@ -50,7 +50,7 @@ const unsettledFor = async (vendorId: unknown, session?: any) =>
 
 /** Admin: what each partner is owed or owes right now. ponytail: loads every unsettled booking; aggregate if volumes grow. */
 export async function listBalances() {
-  const bookings = ((await BookingModel.find(UNSETTLED).select('vendorId status paymentMethod paymentStatus pricing refunds').lean()) as any[]).filter(settlementDue);
+  const bookings = ((await BookingModel.find(UNSETTLED).select('vendorId status paymentMethod paymentStatus pricing refunds noShow').lean()) as any[]).filter(settlementDue);
   const byVendor = new Map<string, any[]>();
   for (const booking of bookings) byVendor.set(String(booking.vendorId), [...(byVendor.get(String(booking.vendorId)) ?? []), settlement(booking)]);
   const vendors = await VendorModel.find({ _id: { $in: [...byVendor.keys()] } }).select('publicId name email payoutProfile').lean() as any[];
@@ -124,7 +124,9 @@ export async function reconciliation(range: { from: string; to: string }) {
   ]) as any[][];
   const refunds = refundRows.flatMap((booking) => booking.refunds).filter((refund: any) => refund.channel === 'safepay');
   const add = (rows: any[], pick: (row: any) => number) => rows.reduce((total, row) => total + pick(row), 0);
-  const collectedOnline = add(paid, (booking) => booking.pricing.totalMinor - (booking.pricing.balanceDueMinor ?? 0));
+  // A duplicate payment reached Safepay too, even though the booking only counts one.
+  const duplicates = refunds.filter((refund: any) => refund.kind === 'duplicate_payment' && refund.createdAt >= start && refund.createdAt < end);
+  const collectedOnline = add(paid, (booking) => booking.pricing.totalMinor - (booking.pricing.balanceDueMinor ?? 0)) + add(duplicates, (refund) => refund.amountMinor);
   const refundsSent = add(refunds.filter((refund: any) => refund.status === 'sent' && refund.sentAt >= start && refund.sentAt < end), (refund) => refund.amountMinor);
   const refundsOutstanding = add(refunds.filter((refund: any) => refund.status !== 'sent'), (refund) => refund.amountMinor);
   return {

@@ -16,6 +16,8 @@ import { clearAuthCookies, setAuthCookies, setTrustedDeviceCookie, clearTrustedD
 import { TRUSTED_DEVICE_COOKIE } from './trusted-device.service.js';
 import {
   changePasswordSchema,
+  emailChangeConfirmSchema,
+  emailChangeRequestSchema,
   disableTwoFactorSchema,
   forgotPasswordSchema,
   googleSignInSchema,
@@ -31,6 +33,8 @@ import {
 import {
   changeUserPassword,
   requestPasswordChange,
+  requestEmailChange,
+  confirmEmailChange,
   completeTwoFactorLogin,
   beginTwoFactorSetup,
   disableTwoFactor,
@@ -172,6 +176,15 @@ authRouter.post('/me/delete', authenticationLimiter, authenticate, validate('bod
   await deleteAccount(request.auth!.userId, request.body.challengeId, request.body.code, sessionMetadata(request));
   clearAuthCookies(response);
   clearTrustedDeviceCookie(response);
+  response.status(204).send();
+}));
+
+authRouter.post('/change-email/code', authenticationLimiter, authenticate, validate('body', emailChangeRequestSchema), asyncHandler(async (request, response) => {
+  response.json(await requestEmailChange(request.auth!.userId, request.body.newEmail, sessionMetadata(request)));
+}));
+
+authRouter.post('/change-email', authenticationLimiter, authenticate, validate('body', emailChangeConfirmSchema), asyncHandler(async (request, response) => {
+  await confirmEmailChange(request.auth!.userId, request.auth!.sessionId, request.body, sessionMetadata(request));
   response.status(204).send();
 }));
 

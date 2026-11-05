@@ -1,13 +1,13 @@
 import { useState, type ReactNode } from 'react';
-import { ArrowLeft, Banknote, BarChart3, Briefcase, Building2, CalendarCheck, Car, House, LayoutDashboard, LogOut, Mountain, PanelLeftClose, PanelLeftOpen, Plus, ShieldCheck, Star, TicketPercent, Users } from 'lucide-react';
+import { ArrowLeft, Banknote, BarChart3, Briefcase, Building2, CalendarCheck, Car, House, LayoutDashboard, LogOut, MessageSquare, Mountain, PanelLeftClose, PanelLeftOpen, Plus, ShieldCheck, Star, TicketPercent, Users } from 'lucide-react';
 
-export type VendorTab = 'overview' | 'properties' | 'new-property' | 'reservations' | 'reviews' | 'promo-codes' | 'reports' | 'payouts' | 'team' | 'business' | 'security';
+export type VendorTab = 'overview' | 'properties' | 'new-property' | 'reservations' | 'messages' | 'reviews' | 'promo-codes' | 'reports' | 'payouts' | 'team' | 'business' | 'security';
 export type PartnerKind = 'hotel' | 'homestay' | 'car' | 'tour';
 
 /** Areas the server grants this team member (GET /vendors/me → membership.access). */
 export type MemberArea = 'listings' | 'reservations' | 'reports' | 'team' | 'business';
 const TAB_AREA: Partial<Record<VendorTab, MemberArea>> = {
-  overview: 'listings', properties: 'listings', 'new-property': 'listings', reservations: 'reservations', reviews: 'listings', 'promo-codes': 'listings', reports: 'reports', payouts: 'reports', team: 'team', business: 'business',
+  overview: 'listings', properties: 'listings', 'new-property': 'listings', reservations: 'reservations', messages: 'reservations', reviews: 'listings', 'promo-codes': 'listings', reports: 'reports', payouts: 'reports', team: 'team', business: 'business',
 };
 // Before the account loads, show the owner's layout; security is open to everyone.
 export const canOpen = (access: MemberArea[] | undefined, tab: VendorTab) => !TAB_AREA[tab] || !access || access.includes(TAB_AREA[tab]!);
@@ -26,6 +26,7 @@ const navGroups = (kind: PartnerKind): Array<{ title?: string; items: Array<{ id
     { items: [
       { id: 'overview', label: 'Home', icon: LayoutDashboard },
       { id: 'reservations', label: words.bookings, icon: CalendarCheck },
+      { id: 'messages', label: 'Messages', icon: MessageSquare },
       { id: 'properties', label: words.many, icon: kind === 'car' ? Car : kind === 'tour' ? Mountain : kind === 'homestay' ? House : Building2 },
     ] },
     { title: 'Grow', items: [
@@ -49,6 +50,7 @@ const titles = (kind: PartnerKind): Record<VendorTab, [string, string]> => {
     properties: [many, kind === 'car' ? 'Your cars, daily prices, fleet counts and reviews by GBBookings.' : kind === 'tour' ? 'Your tours, prices, seats and departure dates.' : 'Your properties, room categories and reviews by GBBookings.'],
     'new-property': [`Add a ${one}`, kind === 'car' ? 'Create a car draft with its price and photos, then submit it for review.' : kind === 'tour' ? 'Create a tour draft with its itinerary, price and dates, then submit it for review.' : 'Create a property draft, add its rooms, then submit it for review.'],
     reservations: [bookings, kind === 'car' ? 'Answer rental requests and manage pickups and returns.' : kind === 'tour' ? 'Answer booking requests and manage who starts a tour today.' : 'Answer booking requests and manage arrivals and stays.'],
+    messages: ['Messages', 'Questions from guests, before and after they book.'],
     reviews: ['Guest reviews', 'Read what guests say, reply publicly, or report a review that breaks the rules.'],
     'promo-codes': ['Promo codes', `Give guests a discount code. Guests enter it at checkout and pay the reduced total at ${kind === 'car' ? 'pickup' : kind === 'tour' ? 'the start of the tour' : 'your property'}.`],
     payouts: ['Payouts', 'What GBBookings owes you and what you owe it, booking by booking. Each statement doubles as the commission invoice.'],

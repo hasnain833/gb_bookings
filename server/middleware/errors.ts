@@ -11,6 +11,9 @@ export const errorHandler: ErrorRequestHandler = (error, request, response, _nex
     ? error
     : error instanceof ZodError
       ? new AppError(400, 'VALIDATION_ERROR', 'Request validation failed.', error.flatten())
+      // Express's own 4xx errors, such as unreadable JSON or a body that is too large.
+      : error?.status >= 400 && error.status < 500 && error.expose
+        ? new AppError(error.status, 'BAD_REQUEST', 'The request could not be read.')
       : new AppError(500, 'INTERNAL_ERROR', 'An unexpected error occurred.');
 
   if (normalized.status >= 500) {

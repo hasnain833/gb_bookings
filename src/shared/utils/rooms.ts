@@ -18,7 +18,7 @@ export const BREAKFAST_KINDS = ['Desi', 'Continental', 'Local Gilgiti', 'Buffet'
 export interface PropertyExtras {
   breakfast?: { offered: boolean; included: boolean; price?: number; kinds?: Array<typeof BREAKFAST_KINDS[number]> };
   parking?: { available: 'none' | 'free' | 'paid'; price?: number; onSite?: boolean; reservation?: boolean };
-  licenceNumber?: string;
+  licenceNumber?: string; stars?: number;
 }
 
 export interface PropertyAddress { line1: string; area?: string; city: string; region?: string; postcode?: string }

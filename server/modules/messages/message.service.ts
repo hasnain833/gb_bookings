@@ -9,6 +9,8 @@ import { VendorModel } from '../../models/vendor.model.js';
 import { AppError, ServiceUnavailableError } from '../../shared/app-error.js';
 import { reservationVendorIds } from '../bookings/booking.service.js';
 import { hideContacts } from './contact-filter.js';
+import { recordAuditEvent } from '../audit/audit.service.js';
+import type { SessionMetadata } from '../auth/auth.service.js';
 import { env } from '../../config/env.js';
 import { escapeHtml } from '../email/auth-email.templates.js';
 import { isEmailConfigured, sendTransactionalEmail } from '../email/resend.service.js';
@@ -30,6 +32,8 @@ function serializeConversation(conversation: any, side: Side) {
     lastMessage: conversation.lastMessage?.at ? conversation.lastMessage : undefined,
     unread: side === 'guest' ? conversation.guestUnread : conversation.partnerUnread,
     updatedAt: conversation.lastMessage?.at ?? conversation.createdAt,
+    // Only the side that reported is told; the other side must not learn of it from here.
+    ...(conversation.report?.status === 'open' && conversation.report.by === side ? { reported: true } : {}),
   };
 }
 
@@ -125,6 +129,20 @@ async function sendInConversation(userId: string, conversation: any, side: Side,
     publishToVendorTeam(conversation.vendorId, { conversation: serializeConversation(updated, 'partner'), message: serializeMessage(message, 'partner') }),
   ]);
   return { conversation: serializeConversation(updated, side), message: serializeMessage(message, side) };
+}
+
+/** Either side reports the chat to GBBookings, which lets the admin read it. Reporting again updates the reason. */
+export async function reportConversation(userId: string, conversationId: string, reason: string, metadata: SessionMetadata) {
+  await requireDatabase();
+  const conversation = await ConversationModel.findOne({ publicId: conversationId });
+  const side = await sideOf(userId, conversation);
+  const updated = await ConversationModel.findOneAndUpdate(
+    { _id: conversation._id },
+    { $set: { report: { status: 'open', by: side, reportedBy: userId, reason, at: new Date() } } },
+    { returnDocument: 'after' },
+  );
+  await recordAuditEvent({ actorId: userId, actorType: 'user', action: 'conversation.reported', resourceType: 'conversation', resourceId: conversationId, ...metadata });
+  return serializeConversation(updated, side);
 }
 
 const ALERT_AFTER_MS = 10 * 60_000;

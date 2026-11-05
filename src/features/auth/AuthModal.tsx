@@ -4,13 +4,12 @@ import { useLanguage } from '../../app/LanguageContext';
 import { useBodyScrollLock } from '../../shared/utils/scrollLock';
 import { api, type AuthUser } from '../../shared/api/api';
 import { isValidPassword, passwordChecks, PASSWORD_REQUIREMENTS } from '../../shared/utils/password';
-import { toast } from '../../shared/components/Toaster';
+import { flashToast } from '../../shared/components/Toaster';
 import GBLogo from '../../shared/components/GBLogo';
 
 interface AuthModalProps {
   onClose: () => void;
   initialMode?: 'signin' | 'register';
-  onSuccessLogin: (user: AuthUser) => void;
 }
 
 const inputClass = 'mt-1 w-full h-11 px-3 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 focus:border-[#006F3C] focus:ring-2 focus:ring-[#006F3C]/20 outline-none aria-[invalid=true]:border-rose-400';
@@ -56,7 +55,7 @@ function GoogleButton({ onCredential }: { onCredential: (credential: string) => 
 }
 
 // Mounted only while open, so every open starts with a clean form.
-export default function AuthModal({ onClose, initialMode = 'signin', onSuccessLogin }: AuthModalProps) {
+export default function AuthModal({ onClose, initialMode = 'signin' }: AuthModalProps) {
   const { isRtl } = useLanguage();
   useBodyScrollLock(true);
   const [mode, setMode] = useState<'signin' | 'register' | 'forgot'>(initialMode);
@@ -109,9 +108,9 @@ export default function AuthModal({ onClose, initialMode = 'signin', onSuccessLo
 
   const finish = (user: AuthUser, greeting: 'new' | 'back' | 'neutral') => {
     const first = user.name.split(/\s+/)[0];
-    toast(greeting === 'new' ? `Welcome to GBBookings, ${first}! Your account is ready.` : greeting === 'back' ? `Welcome back, ${first}!` : `Welcome, ${first}!`);
-    onSuccessLogin(user);
-    onClose();
+    flashToast(greeting === 'new' ? `Welcome to GBBookings, ${first}! Your account is ready.` : greeting === 'back' ? `Welcome back, ${first}!` : `Welcome, ${first}!`);
+    // A fresh load, so every screen starts as this user. The page and any checkout in progress are kept.
+    window.location.reload();
   };
 
   const handleSubmit = (event: React.FormEvent) => {

@@ -11,6 +11,7 @@ import { RoomNightModel } from '../../models/room-night.model.js';
 import type { UserRole } from '../../models/user.model.js';
 import { VendorMemberModel } from '../../models/vendor-member.model.js';
 import { VendorModel } from '../../models/vendor.model.js';
+import { escapeRegex } from '../../shared/escape-regex.js';
 import { MEMBER_ACCESS } from '../vendors/member-access.js';
 import { reviewableUntil, reviewsForBookings } from '../reviews/review.service.js';
 import { claimCoupon, couponLabel, discountMinor, findUsableCoupon, releaseCoupon } from '../coupons/coupon.service.js';
@@ -20,11 +21,12 @@ import type { SessionMetadata } from '../auth/auth.service.js';
 import { hasPermission } from '../auth/rbac.js';
 import { notifyBooking } from './booking-notifications.js';
 import { availableRoomCounts, fullyBookedDates, prepareRoomNights, releaseRooms, reserveRooms } from './availability.service.js';
-import type { CreateBookingInput, ListBookingsQuery } from './booking.schemas.js';
+import type { AdminBookingsQuery, CreateBookingInput, ListBookingsQuery } from './booking.schemas.js';
 import { stayNights, todayInPakistan } from './stay-dates.js';
 import { rentalExtrasMinor, rentalTerms, shownEnd, storedEnd, type RentalChoice } from './rental.js';
 import { assertSeats, assertTourDate, tourSubtotalMinor, tourTerms } from './tour.js';
 import { nightPriceMinor, nightsPriceMinor, type PricedUnit } from './room-price.js';
+import { stayDealPercent, stayRuleProblem } from '../../../src/shared/utils/roomPricing.js';
 import { getPlatformSettings, guestRefundPercent, percentOfMinor } from '../settings/settings.service.js';
 import { ONLINE_HOLD_MINUTES, onlinePaymentsEnabled, startSafepayCheckout, trackerPaid, trackersIn } from '../payments/safepay.js';
 import { DEFAULT_CANCELLATION_POLICY, daysBetween, fullRefundUntil, refundPercentFor } from '../../../src/shared/utils/cancellation.js';
@@ -117,6 +119,10 @@ export function serializeBooking(booking: any) {
     ...(booking.cancellationPolicy ? { cancellationPolicy: booking.cancellationPolicy } : {}),
     ...(booking.refunds?.length ? { refunds: booking.refunds.map((refund: any) => ({ kind: refund.kind, channel: refund.channel, amount: refund.amountMinor / 100, status: refund.status, sentAt: refund.sentAt })) } : {}),
     ...(booking.changeRequest ? { changeRequest: { ...(booking.changeRequest.toObject?.() ?? booking.changeRequest) } } : {}),
+    ...(booking.noShow ? { noShow: {
+      at: booking.noShow.at, disputeUntil: booking.noShow.disputeUntil,
+      ...(booking.noShow.dispute ? { dispute: { status: booking.noShow.dispute.status, note: booking.noShow.dispute.note, at: booking.noShow.dispute.at, decisionNote: booking.noShow.dispute.decisionNote } } : {}),
+    } } : {}),
     ...(booking.lastChange ? { lastChange: { at: booking.lastChange.at, askedByGuest: booking.lastChange.askedByGuest, reason: booking.lastChange.reason, from: { checkIn: booking.lastChange.from?.checkIn, checkOut: booking.lastChange.from?.checkOut, roomName: booking.lastChange.from?.roomName, rooms: booking.lastChange.from?.rooms, total: (booking.lastChange.from?.totalMinor ?? 0) / 100 } } } : {}),
     platformFee: (booking.pricing.commissionMinor ?? 0) / 100,
     platformFeePercent: booking.pricing.commissionPercent ?? 0,
@@ -129,6 +135,8 @@ export function serializeBooking(booking: any) {
     // Pay on arrival: when the partner must answer by. Pay now: when the unpaid booking is released.
     respondBy: booking.status === 'pending' && booking.createdAt ? new Date(new Date(booking.createdAt).getTime() + (booking.paymentMethod === 'online' ? ONLINE_HOLD_MS : PENDING_TTL_MS)) : undefined,
     specialRequests: booking.specialRequests,
+    ...(booking.arrivalTime ? { arrivalTime: booking.arrivalTime } : {}),
+    ...(booking.childAges?.length ? { childAges: [...booking.childAges] } : {}),
     checkInTime: booking.listingSnapshot.checkInTime,
     // The guest gets the property's number once it has accepted the stay.
     ...(booking.listingSnapshot.phone && ['confirmed', 'completed'].includes(booking.status) ? { propertyPhone: booking.listingSnapshot.phone } : {}),
@@ -147,7 +155,10 @@ function serializeTour(tour: any) {
 
 /** Room price for the booked nights (weekend and season prices apply per night); tours charge each traveller once at the start date's price, children at the child price. */
 function unitSubtotalMinor(room: PricedUnit, nights: string[], rooms: number, adults: number, children: number, tour?: { childPriceMinor?: number }) {
-  return tour ? tourSubtotalMinor(nightPriceMinor(room, nights[0]), tour, adults, children) : nightsPriceMinor(room, nights) * rooms;
+  if (tour) return tourSubtotalMinor(nightPriceMinor(room, nights[0]), tour, adults, children);
+  const percent = stayDealPercent(room.deals, nights.length, nights[0], todayInPakistan());
+  // Whole rupees, so a discount never leaves paisa on a bill.
+  return Math.round(nightsPriceMinor(room, nights) * (100 - percent) / 10_000) * 100 * rooms;
 }
 
 /** What one unit costs per night on average for these dates (the adult price for tours). */
@@ -161,6 +172,9 @@ function serializeRental(rental: any) {
     outsideBaseCity: rental.outsideBaseCity, outsidePerDay: (rental.outsidePerDayMinor ?? 0) / 100,
     oneWay: rental.oneWay, oneWayOnRequest: rental.oneWayOnRequest, oneWayFee: (rental.oneWayFeeMinor ?? 0) / 100,
     fuelIncluded: rental.fuelIncluded, deposit: (rental.depositMinor ?? 0) / 100,
+    ...(rental.driverAge ? { driverAge: rental.driverAge } : {}),
+    ...(rental.kmPerDay ? { kmPerDay: rental.kmPerDay, extraPerKm: (rental.extraPerKmMinor ?? 0) / 100 } : {}),
+    ...(rental.extras?.length ? { extras: rental.extras.map((item: any) => ({ name: item.name, price: item.priceMinor / 100, perDay: item.perDay })) } : {}),
     ...(rental.licenceNumber ? { licenceNumber: rental.licenceNumber } : {}),
   };
 }
@@ -228,13 +242,13 @@ export async function getUnavailableDates(listingId: string) {
 
 export async function getListingAvailability(
   listingId: string,
-  query: { checkIn: string; checkOut: string; adults: number; children: number; rooms: number; meals?: string[]; coupon?: string } & RentalChoice,
+  query: { checkIn: string; checkOut: string; adults: number; children: number; rooms: number; meals?: string[]; coupon?: string; carExtras?: string[] } & RentalChoice,
 ) {
   await requireDatabase();
   const listing = await findBookableListing(listingId);
   // Tours hold seats on the start date only; any end date sent is ignored.
   const nights = stayNights(query.checkIn, storedEnd(listing.type, listing.type === 'tour' ? query.checkIn : query.checkOut));
-  const rental = listing.type === 'car' ? rentalTerms(listing, query) : undefined;
+  const rental = listing.type === 'car' ? rentalTerms(listing, { ...query, extras: query.carExtras }) : undefined;
   const tour = listing.type === 'tour' ? tourTerms(listing) : undefined;
   if (tour) {
     assertTourDate(listing, query.checkIn);
@@ -261,6 +275,7 @@ export async function getListingAvailability(
     onlinePayment: onlinePaymentsEnabled(),
     // Pay now refunds follow the listing's policy; Pay on arrival has nothing to refund.
     cancellationPolicy: policy,
+    ...(listing.instantBook ? { instantBook: true } : {}),
     freeCancellationUntil: fullRefundUntil(policy, query.checkIn, todayInPakistan()),
     mealsTotal: mealsMinor / 100,
     // Car rentals: what the driver, out-of-city and one-way choices resolved to (per car per day, PKR).
@@ -274,6 +289,8 @@ export async function getListingAvailability(
       const grossMinor = unitMinor + mealsMinor + extrasMinor;
       const offMinor = discountMinor(coupon, grossMinor);
       const charged = applyCharges(grossMinor - offMinor, chargeRules);
+      const stayRule = tour ? undefined : stayRuleProblem(room, nights.length, query.checkIn);
+      const dealPercent = tour ? 0 : stayDealPercent(room.deals, nights.length, query.checkIn, todayInPakistan());
       return {
         id: room.publicId,
         name: room.name,
@@ -285,7 +302,9 @@ export async function getListingAvailability(
         amenities: room.amenities ?? [],
         photos: (room.photos ?? []).map((photo: any) => ({ url: photo.url, ...(photo.caption ? { caption: photo.caption } : {}) })),
         available: free,
-        bookable: free >= query.rooms && partyFits(room, query.adults, query.children, query.rooms),
+        bookable: free >= query.rooms && partyFits(room, query.adults, query.children, query.rooms) && !stayRule,
+        ...(stayRule ? { stayRule } : {}),
+        ...(dealPercent ? { dealPercent } : {}),
         nightlyRate: averageRateMinor(unitSubtotalMinor(room, nights, 1, query.adults, query.children, tour), nights, 1, room, tour) / 100,
         roomTotal: unitMinor / 100,
         ...(rental ? { extrasTotal: extrasMinor / 100 } : {}),
@@ -296,6 +315,9 @@ export async function getListingAvailability(
     }),
   };
 }
+
+// Bookings on hold cost nothing, so one account cannot block a whole property for free.
+const MAX_OPEN_BOOKINGS = 5;
 
 export async function createBooking(
   customerId: string,
@@ -308,7 +330,7 @@ export async function createBooking(
     listingId: input.listingId, roomTypeId: input.roomTypeId, checkIn: input.checkIn, checkOut: input.checkOut,
     rooms: input.rooms, adults: input.adults, children: input.children,
     guest: { name: input.guest.name, email: input.guest.email.toLowerCase(), phone: input.guest.phone },
-    specialRequests: input.specialRequests ?? '', paymentMethod: input.paymentMethod, meals: [...input.meals].sort(), couponCode: input.couponCode, rental: input.rental,
+    specialRequests: input.specialRequests ?? '', arrivalTime: input.arrivalTime, childAges: input.childAges, paymentMethod: input.paymentMethod, meals: [...input.meals].sort(), couponCode: input.couponCode, rental: input.rental,
     expectedTotalMinor: input.expectedTotalMinor,
   })).digest('hex');
   const replay = (booking: any) => {
@@ -323,6 +345,13 @@ export async function createBooking(
   }
 
   const listing = await findBookableListing(input.listingId);
+  if (listing.ownerId && await VendorMemberModel.exists({ userId: customerId, vendorId: listing.ownerId, status: 'active', deletedAt: null })) {
+    throw new AppError(403, 'OWN_LISTING', 'You cannot book your own listing. To block dates, close them on your calendar.');
+  }
+  const openBookings = await BookingModel.countDocuments({ customerId, $or: [{ status: 'pending' }, { status: 'confirmed', instantConfirmed: true, paymentStatus: 'pending', checkIn: { $gte: todayInPakistan() } }] });
+  if (openBookings >= MAX_OPEN_BOOKINGS) {
+    throw new AppError(429, 'TOO_MANY_OPEN_BOOKINGS', `You have ${MAX_OPEN_BOOKINGS} bookings waiting for an answer or for payment. Please wait for those, or cancel one, before making another.`);
+  }
   const end = storedEnd(listing.type, listing.type === 'tour' ? input.checkIn : input.checkOut);
   const nights = stayNights(input.checkIn, end);
   const rental = listing.type === 'car' ? carRental(listing, input.rental) : undefined;
@@ -359,6 +388,9 @@ export async function createBooking(
       if (!partyFits(room, input.adults, input.children, input.rooms)) {
         throw new AppError(422, 'OCCUPANCY_EXCEEDED', 'The selected rooms cannot accommodate this many guests.');
       }
+      const stayRule = tour ? undefined : stayRuleProblem(room, nights.length, input.checkIn);
+      if (stayRule) throw new AppError(422, 'STAY_RULE', `${stayRule} for this room.`);
+      const instant = Boolean(listing.instantBook) && input.paymentMethod !== 'online';
       const subtotalMinor = unitSubtotalMinor(room, nights, input.rooms, input.adults, input.children, tour);
       const meals = chosenMeals(listing, input.meals);
       const mealsMinor = mealsCostMinor(meals, input.adults + input.children, nights.length);
@@ -395,6 +427,8 @@ export async function createBooking(
       children: input.children,
       guest: input.guest,
       specialRequests: input.specialRequests,
+      arrivalTime: input.arrivalTime,
+      childAges: input.childAges?.length ? input.childAges : undefined,
       meals: meals.length ? meals : undefined,
       pricing: {
         currency: 'PKR', nightlyRateMinor: averageRateMinor(subtotalMinor, nights, input.rooms, room, tour), subtotalMinor, mealsMinor, extrasMinor, discountMinor: couponMinor, totalMinor,
@@ -406,7 +440,8 @@ export async function createBooking(
       rental,
       tour,
       paymentMethod: input.paymentMethod,
-      statusHistory: [{ status: 'pending', by: customerId }],
+      ...(instant ? { status: 'confirmed', instantConfirmed: true } : {}),
+      statusHistory: [{ status: 'pending', by: customerId }, ...(instant ? [{ status: 'confirmed', by: customerId, reason: 'Instant confirmation.' }] : [])],
       idempotencyKey,
       requestHash,
       }], { session });
@@ -420,7 +455,7 @@ export async function createBooking(
       metadata: { listingId: listing.publicId, checkIn: input.checkIn, checkOut: input.checkOut, rooms: input.rooms },
     });
     // Pay now bookings are announced once paid (see markPaidOnline).
-    if (booking.paymentMethod !== 'online') await notifyBooking(booking, 'created');
+    if (booking.paymentMethod !== 'online') await notifyBooking(booking, booking.status === 'confirmed' ? 'instant_booked' : 'created');
     return { booking: serializeBooking(booking), replayed: false };
   } catch (error) {
     // A concurrent retry with the same key won the insert; return its booking.
@@ -507,7 +542,11 @@ export async function verifyOnlinePayment(actor: Actor, bookingId: string) {
   await requireDatabase();
   const { booking, isCustomer } = await accessibleBooking(actor, bookingId);
   if (!isCustomer) throw new AppError(404, 'BOOKING_NOT_FOUND', 'Booking not found.');
-  if (booking.paymentMethod === 'online') await settleOnlinePayment(booking);
+  if (booking.paymentMethod === 'online') {
+    await settleOnlinePayment(booking);
+    // The return page must still load if Safepay is unreachable; the scheduled check tries again.
+    await recordDuplicatePayments(await BookingModel.findById(booking._id)).catch((error) => console.warn(`Duplicate payment check on ${booking.reference} failed: ${error.message}`));
+  }
   return serializeBooking(await BookingModel.findById(booking._id));
 }
 
@@ -516,8 +555,171 @@ export async function handleSafepayWebhook(body: unknown) {
   if (!await connectDatabase()) throw new ServiceUnavailableError('Bookings are unavailable while the database is disconnected.');
   const trackers = trackersIn(body);
   if (!trackers.length) return;
-  const bookings = await BookingModel.find({ 'onlinePayment.trackers': { $in: trackers }, paymentStatus: 'pending' }).limit(5);
-  for (const booking of bookings) await settleOnlinePayment(booking);
+  const bookings = await BookingModel.find({ 'onlinePayment.trackers': { $in: trackers } }).limit(5);
+  for (const booking of bookings) {
+    if (booking.paymentStatus === 'pending') await settleOnlinePayment(booking);
+    else await recordDuplicatePayments(booking);
+  }
+}
+
+/**
+ * Two payment pages open at once can both be paid. The booking only counts the first, so each extra one is queued
+ * for a full refund. It stays out of the partner's statement: that money was never theirs.
+ */
+async function recordDuplicatePayments(booking: any) {
+  const { paidTracker, trackers = [], duplicateTrackers = [] } = booking.onlinePayment ?? {};
+  if (!paidTracker) return;
+  for (const tracker of trackers) {
+    if (tracker === paidTracker || duplicateTrackers.includes(tracker) || !await trackerPaid(tracker)) continue;
+    const amountMinor = heldMinor(booking);
+    const updated = await BookingModel.findOneAndUpdate(
+      { _id: booking._id, 'onlinePayment.duplicateTrackers': { $ne: tracker } },
+      { $addToSet: { 'onlinePayment.duplicateTrackers': tracker }, $push: { refunds: { kind: 'duplicate_payment', channel: 'safepay', amountMinor, tracker } } },
+      { returnDocument: 'after' },
+    );
+    if (!updated) continue;
+    await recordAuditEvent({ actorType: 'system', action: 'booking.duplicate_payment', resourceType: 'booking', resourceId: booking.publicId, metadata: { tracker, amountMinor } });
+    await sendDueRefunds(updated);
+  }
+}
+
+/** Scheduled: a second payment can land after the first was recorded, and a webhook may never arrive. */
+export async function checkRecentDuplicatePayments(now = new Date()) {
+  const recent = await BookingModel.find({ paymentStatus: 'paid', 'onlinePayment.trackers.1': { $exists: true }, paidAt: { $gte: new Date(now.getTime() - 86_400_000) } }).limit(25);
+  for (const booking of recent) await recordDuplicatePayments(booking).catch((error) => console.warn(`Duplicate payment check on ${booking.reference} failed: ${error.message}`));
+  return recent.length;
+}
+
+/**
+ * Scheduled: a stay that ended 48 hours ago is treated as finished, so commission cannot be avoided by never pressing
+ * Complete. Those 48 hours are the partner's time to report a no-show.
+ */
+export async function completeFinishedStays(now = new Date()) {
+  const cutoff = new Date(Date.parse(`${todayInPakistan(now)}T00:00:00Z`) - AUTO_COMPLETE_DAYS * 86_400_000).toISOString().slice(0, 10);
+  const due = await BookingModel.find({ status: 'confirmed', checkOut: { $lte: cutoff } }).limit(100);
+  let completed = 0;
+  for (const booking of due) {
+    try {
+      await applyTransition({}, booking, 'complete', 'Completed automatically 48 hours after the stay ended.', {});
+      await notifyBooking(booking, 'auto_completed');
+      completed += 1;
+    } catch (error) {
+      // 409: the partner acted between the query and the update.
+      if (!(error instanceof AppError && error.status === 409)) console.error(`Completing booking ${booking.reference} failed:`, error);
+    }
+  }
+  return completed;
+}
+
+/** The guest says the no-show is wrong. Holds the booking out of statements until the admin decides. */
+export async function disputeNoShow(actor: Actor, bookingId: string, note: string, metadata: SessionMetadata) {
+  await requireDatabase();
+  const { booking, isCustomer } = await accessibleBooking(actor, bookingId);
+  if (!isCustomer) throw new AppError(404, 'BOOKING_NOT_FOUND', 'Booking not found.');
+  const updated = await BookingModel.findOneAndUpdate(
+    { _id: booking._id, status: 'no_show', 'noShow.disputeUntil': { $gt: new Date() }, 'noShow.dispute': null, payoutId: null },
+    { $set: { 'noShow.dispute': { status: 'open', note, at: new Date() } } },
+    { returnDocument: 'after' },
+  );
+  if (!updated) throw new AppError(409, 'NO_SHOW_DISPUTE_CLOSED', 'This no-show can no longer be disputed. Please contact GBBookings.');
+  await recordAuditEvent({ actorId: actor.userId, actorType: 'user', action: 'booking.no_show_disputed', resourceType: 'booking', resourceId: booking.publicId, ...metadata });
+  await notifyBooking(updated, 'no_show_disputed', note);
+  return serializeBooking(updated);
+}
+
+/** The admin's decision on a dispute: it stands, the guest did stay (commission applies), or the guest is refunded in full. */
+export async function decideNoShowDispute(actor: Actor, bookingId: string, input: { decision: 'no_show_stands' | 'guest_stayed' | 'refund_guest'; note: string }, metadata: SessionMetadata) {
+  await requireDatabase();
+  const booking = await BookingModel.findOne({ publicId: bookingId, status: 'no_show', 'noShow.dispute.status': 'open' });
+  if (!booking) throw new AppError(409, 'NO_OPEN_DISPUTE', 'This booking has no open dispute.');
+  const to = { no_show_stands: 'no_show', guest_stayed: 'completed', refund_guest: 'cancelled' }[input.decision];
+  const money = input.decision === 'refund_guest' ? cancellationMoney(booking, 100) : undefined;
+  const updated = await inTransaction(async (session) => {
+    const decided = await BookingModel.findOneAndUpdate(
+      { _id: booking._id, status: 'no_show', 'noShow.dispute.status': 'open' },
+      {
+        $set: {
+          status: to, ...money?.set,
+          'noShow.dispute.status': input.decision, 'noShow.dispute.decidedAt': new Date(), 'noShow.dispute.decidedBy': actor.userId, 'noShow.dispute.decisionNote': input.note,
+        },
+        $push: { statusHistory: { status: to, by: actor.userId, reason: `No-show dispute: ${input.note}`, at: new Date() }, ...(money?.refunds ? { refunds: money.refunds } : {}) },
+      },
+      { returnDocument: 'after', session },
+    );
+    if (!decided) throw new AppError(409, 'NO_OPEN_DISPUTE', 'This booking has no open dispute.');
+    // Cancelled like any other: the room and any promo code use go back. A no-show had kept them.
+    if (input.decision === 'refund_guest') {
+      await releaseRooms(booking.roomTypeId, stayNights(booking.checkIn, booking.checkOut, booking.checkIn), booking.rooms, session);
+      if (booking.coupon) await releaseCoupon(booking.vendorId, booking.coupon.code, session);
+    }
+    return decided;
+  });
+  await recordAuditEvent({ actorId: actor.userId, actorType: 'user', action: 'booking.no_show_decided', resourceType: 'booking', resourceId: booking.publicId, ...metadata, metadata: { decision: input.decision } });
+  await notifyBooking(updated, 'no_show_decided', input.note);
+  await sendDueRefunds(updated);
+  return serializeBooking(updated);
+}
+
+async function adminBookingFilter(query: Omit<AdminBookingsQuery, 'page' | 'limit'>) {
+  const filter: Record<string, unknown> = {};
+  if (query.status) filter.status = query.status;
+  if (query.paymentStatus) filter.paymentStatus = query.paymentStatus;
+  if (query.type) filter['listingSnapshot.type'] = query.type;
+  if (query.dispute === 'open') filter['noShow.dispute.status'] = 'open';
+  if (query.from || query.to) filter.checkIn = { ...(query.from ? { $gte: query.from } : {}), ...(query.to ? { $lte: query.to } : {}) };
+  if (query.q) {
+    const pattern = new RegExp(escapeRegex(query.q), 'i');
+    const vendors = await VendorModel.find({ name: pattern }).select('_id').limit(50).lean() as any[];
+    filter.$or = [{ reference: pattern }, { 'guest.name': pattern }, { 'guest.email': pattern }, { 'listingSnapshot.title': pattern }, { vendorId: { $in: vendors.map((vendor) => vendor._id) } }];
+  }
+  return filter;
+}
+
+const vendorNamesOf = async (bookings: any[]) => {
+  const vendors = await VendorModel.find({ _id: { $in: bookings.map((booking) => booking.vendorId).filter(Boolean) } }).select('name').lean() as any[];
+  return new Map(vendors.map((vendor) => [String(vendor._id), vendor.name as string]));
+};
+
+/** Admin: every booking on the platform, newest first. */
+export async function listAdminBookings(query: AdminBookingsQuery) {
+  await requireDatabase();
+  const filter = await adminBookingFilter(query);
+  const [bookings, total, openDisputes] = await Promise.all([
+    BookingModel.find(filter).sort({ createdAt: -1 }).skip((query.page - 1) * query.limit).limit(query.limit).lean() as Promise<any[]>,
+    BookingModel.countDocuments(filter),
+    BookingModel.countDocuments({ 'noShow.dispute.status': 'open' }),
+  ]);
+  const names = await vendorNamesOf(bookings);
+  return {
+    data: bookings.map((booking) => ({ ...serializeBooking(booking), vendorName: names.get(String(booking.vendorId)) })),
+    pagination: { page: query.page, limit: query.limit, total, pages: Math.max(1, Math.ceil(total / query.limit)) },
+    openDisputes,
+  };
+}
+
+const EXPORT_LIMIT = 5_000;
+
+/** A leading = + - or @ would run as a formula in Excel, so such a value is forced to text. */
+const csvCell = (value: unknown) => {
+  const text = String(value ?? '');
+  const safe = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+  return `"${safe.replace(/"/g, '""')}"`;
+};
+
+/** Admin: the same list as a spreadsheet. ponytail: capped at the newest 5,000; add date ranges or paging if exports outgrow that. */
+export async function exportAdminBookings(actor: Actor, query: Omit<AdminBookingsQuery, 'page' | 'limit'>, metadata: SessionMetadata) {
+  await requireDatabase();
+  const bookings = await BookingModel.find(await adminBookingFilter(query)).sort({ createdAt: -1 }).limit(EXPORT_LIMIT).lean() as any[];
+  const names = await vendorNamesOf(bookings);
+  const rows = bookings.map((booking) => [
+    booking.reference, new Date(booking.createdAt).toISOString().slice(0, 10), booking.listingSnapshot.type, booking.listingSnapshot.title, names.get(String(booking.vendorId)) ?? '',
+    booking.guest.name, booking.guest.email, booking.guest.phone, booking.checkIn, shownEnd(booking), booking.status, booking.paymentMethod === 'online' ? 'Pay now' : 'Pay on arrival', booking.paymentStatus,
+    booking.pricing.totalMinor / 100, (booking.pricing.commissionMinor ?? 0) / 100, (booking.refunds ?? []).reduce((total: number, refund: any) => total + refund.amountMinor, 0) / 100,
+  ]);
+  const header = ['Reference', 'Booked on', 'Product', 'Listing', 'Partner', 'Guest', 'Email', 'Phone', 'Start', 'End', 'Status', 'Payment method', 'Payment status', 'Total PKR', 'Commission PKR', 'Refunds PKR'];
+  await recordAuditEvent({ actorId: actor.userId, actorType: 'user', action: 'booking.exported', resourceType: 'booking', ...metadata, metadata: { rows: rows.length } });
+  // The byte order mark tells Excel this is UTF-8, so Urdu names survive.
+  return `\uFEFF${[header, ...rows].map((row) => row.map(csvCell).join(',')).join('\r\n')}\r\n`;
 }
 
 /** Car checkout details plus the car's terms; self-drive renters must give a driving licence number. */
@@ -525,12 +727,15 @@ function carRental(listing: any, input: CreateBookingInput['rental']) {
   if (!input) throw new AppError(422, 'RENTAL_DETAILS_REQUIRED', 'Give the pickup place and time for this car.');
   const terms = rentalTerms(listing, input);
   if (!terms.driver && !input.licenceNumber) throw new AppError(422, 'LICENCE_REQUIRED', 'Self-drive rentals need your driving licence number.');
+  const minAge = listing.carSpecs?.minDriverAge;
+  if (!terms.driver && !input.driverAge) throw new AppError(422, 'DRIVER_AGE_REQUIRED', 'Self-drive rentals need the driver\'s age.');
+  if (!terms.driver && minAge && input.driverAge! < minAge) throw new AppError(422, 'DRIVER_TOO_YOUNG', `The driver must be at least ${minAge} to rent this car without a driver.`);
   return {
     ...terms,
     pickupPlace: input.pickupPlace,
     pickupTime: input.pickupTime,
     dropoffPlace: input.dropoffPlace ?? input.pickupPlace,
-    ...(terms.driver ? {} : { licenceNumber: input.licenceNumber }),
+    ...(terms.driver ? {} : { licenceNumber: input.licenceNumber, driverAge: input.driverAge }),
   };
 }
 
@@ -611,6 +816,9 @@ export async function getBooking(actor: Actor, bookingId: string) {
   return serializeBooking((await accessibleBooking(actor, bookingId)).booking);
 }
 
+const NO_SHOW_DISPUTE_DAYS = 3;
+const AUTO_COMPLETE_DAYS = 2;
+
 const transitions = {
   confirm: { from: ['pending'], to: 'confirmed', releases: false, notBeforeCheckIn: false },
   cancel: { from: ['pending', 'confirmed'], to: 'cancelled', releases: true, notBeforeCheckIn: false },
@@ -652,7 +860,7 @@ async function applyTransition(actor: { userId?: string }, booking: any, action:
     // A cancellation's refund depends on the payment state it read, so that must not change underneath it.
     { _id: booking._id, status: { $in: rule.from }, ...(rule.to === 'cancelled' ? { paymentStatus: booking.paymentStatus } : {}) },
     {
-      $set: { status: rule.to, ...money?.set },
+      $set: { status: rule.to, ...money?.set, ...(rule.to === 'no_show' ? { noShow: { at: new Date(), disputeUntil: new Date(Date.now() + NO_SHOW_DISPUTE_DAYS * 86_400_000) } } : {}) },
       $push: { statusHistory: { status: rule.to, by: actor.userId, reason, at: new Date() }, ...(money?.refunds ? { refunds: money.refunds } : {}) },
     },
     { returnDocument: 'after', session },
@@ -672,9 +880,29 @@ async function applyTransition(actor: { userId?: string }, booking: any, action:
     resourceType: 'booking', resourceId: booking.publicId, ...metadata,
     metadata: reason ? { reason } : undefined,
   });
-  if (rule.to === 'confirmed' || rule.to === 'cancelled') await notifyBooking(updated, rule.to, reason);
+  if (rule.to === 'confirmed' || rule.to === 'cancelled' || rule.to === 'no_show') await notifyBooking(updated, rule.to, reason);
   await sendDueRefunds(updated);
   return serializeBooking(await BookingModel.findById(updated._id) ?? updated);
+}
+
+/** The guest corrects their name, phone, arrival time or requests. Money, dates and rooms are not touched. */
+export async function updateBookingDetails(actor: Actor, bookingId: string, input: { name: string; phone: string; specialRequests: string; arrivalTime?: string | null }, metadata: SessionMetadata) {
+  await requireDatabase();
+  const { booking, isCustomer } = await accessibleBooking(actor, bookingId);
+  if (!isCustomer) throw new AppError(404, 'BOOKING_NOT_FOUND', 'Booking not found.');
+  const updated = await BookingModel.findOneAndUpdate(
+    { _id: booking._id, status: { $in: ['pending', 'confirmed'] }, checkedInAt: null, checkIn: { $gte: todayInPakistan() } },
+    {
+      $set: { 'guest.name': input.name, 'guest.phone': input.phone, specialRequests: input.specialRequests, ...(input.arrivalTime ? { arrivalTime: input.arrivalTime } : {}) },
+      ...(input.arrivalTime === null ? { $unset: { arrivalTime: 1 } } : {}),
+    },
+    { returnDocument: 'after' },
+  );
+  if (!updated) throw new AppError(409, 'DETAILS_LOCKED', 'This booking can no longer be edited. Please message the partner.');
+  await recordAuditEvent({ actorId: actor.userId, actorType: 'user', action: 'booking.details_updated', resourceType: 'booking', resourceId: booking.publicId, ...metadata });
+  // Partners don't see a Pay now booking until it is paid.
+  if (!(updated.paymentMethod === 'online' && updated.paymentStatus !== 'paid')) await notifyBooking(updated, 'details_changed');
+  return serializeBooking(updated);
 }
 
 export async function cancelOwnBooking(actor: Actor, bookingId: string, reason: string, metadata: SessionMetadata) {
@@ -823,7 +1051,7 @@ async function applyBookingChange(actor: Actor, booking: any, input: { checkIn: 
 }
 
 /** What a move would cost, worked out as changeVendorBooking will charge it. Current room prices; nothing is held. */
-async function quoteChange(booking: any, input: { checkIn: string; checkOut: string; roomTypeId: string; rooms: number }) {
+async function quoteChange(booking: any, input: { checkIn: string; checkOut: string; roomTypeId: string; rooms: number }, askedByGuest = false) {
   const isTour = booking.listingSnapshot.type === 'tour';
   if (isTour) {
     assertSeats(booking.adults, booking.children, input.rooms);
@@ -834,6 +1062,9 @@ async function quoteChange(booking: any, input: { checkIn: string; checkOut: str
   const room = await HotelRoomTypeModel.findOne({ publicId: input.roomTypeId, listingId: booking.listingId, status: 'active', deletedAt: null }).lean() as any;
   if (!room) throw new AppError(404, 'ROOM_NOT_FOUND', 'That room category is not bookable at this property.');
   if (!partyFits(room, booking.adults, booking.children, input.rooms)) throw new AppError(422, 'OCCUPANCY_EXCEEDED', `${input.rooms} × ${room.name} cannot hold this party.`);
+  // A partner may make an exception to their own stay rules; a guest may not.
+  const stayRule = askedByGuest && !isTour ? stayRuleProblem(room, nights.length, input.checkIn) : undefined;
+  if (stayRule) throw new AppError(422, 'STAY_RULE', `${stayRule} for this room.`);
   const free = (await availableRoomCounts([room], nights)).get(String(room._id)) ?? 0;
   // The booking's own rooms count as free on the nights it already holds.
   const held = String(room._id) === String(booking.roomTypeId) && nights.every((night) => stayNights(booking.checkIn, booking.checkOut, booking.checkIn).includes(night)) ? booking.rooms : 0;
@@ -859,7 +1090,7 @@ export async function requestBookingChange(actor: Actor, bookingId: string, inpu
     throw new AppError(409, 'INVALID_BOOKING_STATUS', 'Only upcoming bookings can be changed. Please contact the partner.');
   }
   if (booking.paymentMethod === 'online' && booking.paymentStatus !== 'paid') throw new AppError(409, 'AWAITING_PAYMENT', 'Complete the payment before asking for a change.');
-  const quote = await quoteChange(booking, input);
+  const quote = await quoteChange(booking, input, true);
   if (input.preview) return { quote };
   const updated = await BookingModel.findOneAndUpdate(
     { _id: booking._id, status: booking.status },
@@ -994,7 +1225,7 @@ export async function vendorReport(userId: string, range: { from: string; to: st
   const rooms = await HotelRoomTypeModel.find({ listingId: { $in: listings.map((listing) => listing._id) }, deletedAt: null, status: { $ne: 'archived' } })
     .select('listingId totalRooms').lean() as any[];
   const [closures, stays, payments] = await Promise.all([
-    RoomNightModel.find({ roomTypeId: { $in: rooms.map((room) => room._id) }, date: { $gte: range.from, $lte: range.to }, closed: { $gt: 0 } }).select('roomTypeId closed').lean(),
+    RoomNightModel.find({ roomTypeId: { $in: rooms.map((room) => room._id) }, date: { $gte: range.from, $lte: range.to }, $or: [{ closed: { $gt: 0 } }, { synced: { $gt: 0 } }] }).select('roomTypeId closed synced').lean(),
     BookingModel.find({ vendorId: { $in: vendorIds }, checkIn: { $lt: end }, checkOut: { $gt: range.from } })
       .select('listingId status checkIn checkOut rooms pricing.nightlyRateMinor').lean(),
     BookingModel.find({ vendorId: { $in: vendorIds }, paymentStatus: 'paid', paidAt: { $gte: new Date(`${range.from}T00:00:00+05:00`), $lt: new Date(`${end}T00:00:00+05:00`) } })
@@ -1009,7 +1240,7 @@ export async function vendorReport(userId: string, range: { from: string; to: st
   for (const room of rooms) rows.get(String(room.listingId))!.roomNightsAvailable += room.totalRooms * days;
   for (const night of closures) {
     const row = rows.get(roomListing.get(String(night.roomTypeId)) ?? '');
-    if (row) row.roomNightsAvailable -= night.closed;
+    if (row) row.roomNightsAvailable -= (night.closed ?? 0) + (night.synced ?? 0);
   }
   for (const booking of stays) {
     const row = rows.get(String(booking.listingId));

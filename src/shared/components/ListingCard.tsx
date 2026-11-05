@@ -20,6 +20,7 @@ export default function ListingCard({ listing, onSelect, tag, detailed = false }
           </span>
         </div>
         <h3 className={`font-semibold text-slate-950 ${detailed ? 'line-clamp-2' : 'line-clamp-1 text-sm'}`}>{listing.title}</h3>
+        {listing.hotelSpecs?.stars ? <p className="text-xs font-medium text-slate-600" aria-label={`${listing.hotelSpecs.stars} star hotel`}><span aria-hidden="true" className="text-amber-500">{'★'.repeat(listing.hotelSpecs.stars)}</span> {listing.hotelSpecs.stars}-star hotel</p> : null}
         {detailed && <p className="line-clamp-2 text-xs leading-relaxed text-slate-600">{listing.description}</p>}
         {detailed && listing.type === 'car' && listing.carSpecs && (
           <p className="flex items-center gap-2 text-xs font-medium text-slate-500"><Car className="h-4 w-4" /> {listing.carSpecs.category} · {listing.carSpecs.transmission}</p>

@@ -13,6 +13,9 @@ const sessionSchema = new Schema({
   },
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   refreshTokenHash: { type: String, required: true, unique: true, select: false },
+  // The token before the latest rotation: seeing it again later means it was copied.
+  previousRefreshTokenHash: { type: String, index: { sparse: true }, select: false },
+  rotatedAt: { type: Date, select: false },
   expiresAt: { type: Date, required: true },
   rememberMe: { type: Boolean, default: false },
   lastUsedAt: { type: Date, default: Date.now },

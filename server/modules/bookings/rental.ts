@@ -17,7 +17,7 @@ export const shownEnd = (booking: { listingSnapshot?: { type?: string }; checkIn
   booking.listingSnapshot?.type === 'tour' ? shift(booking.checkIn, (booking.tour?.days ?? 1) - 1)
     : booking.listingSnapshot?.type === 'car' ? dayBefore(booking.checkOut) : booking.checkOut;
 
-export type RentalChoice = { driver?: boolean; outsideBaseCity?: boolean; oneWay?: boolean };
+export type RentalChoice = { driver?: boolean; outsideBaseCity?: boolean; oneWay?: boolean; extras?: string[] };
 
 /** The car's terms for this rental, in minor units; snapshotted on the booking so later edits never re-price it. */
 export function rentalTerms(listing: any, choice: RentalChoice = {}) {
@@ -31,8 +31,15 @@ export function rentalTerms(listing: any, choice: RentalChoice = {}) {
   if (oneWay && (specs.oneWay ?? 'not_offered') === 'not_offered') {
     throw new AppError(422, 'ONE_WAY_UNAVAILABLE', 'This car must be returned where it was picked up.');
   }
+  const extras = (choice.extras ?? []).map((name) => {
+    const offered = (specs.extras ?? []).find((item: any) => item.name === name);
+    if (!offered) throw new AppError(422, 'EXTRA_UNAVAILABLE', `This car does not offer ${name}.`);
+    return { name, priceMinor: offered.price * 100, perDay: Boolean(offered.perDay) };
+  });
   return {
     driver,
+    ...(extras.length ? { extras } : {}),
+    ...(specs.kmPerDay ? { kmPerDay: specs.kmPerDay as number, extraPerKmMinor: (specs.extraPerKm ?? 0) * 100 } : {}),
     driverPerDayMinor: driver ? (specs.driverPerDay ?? 0) * 100 : 0,
     outsideBaseCity: Boolean(choice.outsideBaseCity),
     outsidePerDayMinor: choice.outsideBaseCity ? (specs.outsideCityPerDay ?? 0) * 100 : 0,
@@ -46,6 +53,9 @@ export function rentalTerms(listing: any, choice: RentalChoice = {}) {
 }
 export type RentalTerms = ReturnType<typeof rentalTerms>;
 
-/** Driver and out-of-city charges per car per day, plus the one-way fee per car. */
-export const rentalExtrasMinor = (terms: Pick<RentalTerms, 'driverPerDayMinor' | 'outsidePerDayMinor' | 'oneWayFeeMinor'> | undefined, days: number, cars: number) =>
-  terms ? ((terms.driverPerDayMinor + terms.outsidePerDayMinor) * days + terms.oneWayFeeMinor) * cars : 0;
+/** Per car: driver, out-of-city and per-day add-ons for each day, plus the one-way fee and one-off add-ons. */
+export function rentalExtrasMinor(terms: Pick<RentalTerms, 'driverPerDayMinor' | 'outsidePerDayMinor' | 'oneWayFeeMinor' | 'extras'> | undefined, days: number, cars: number) {
+  if (!terms) return 0;
+  const addOns = (terms.extras ?? []).reduce((total, item) => total + item.priceMinor * (item.perDay ? days : 1), 0);
+  return ((terms.driverPerDayMinor + terms.outsidePerDayMinor) * days + terms.oneWayFeeMinor + addOns) * cars;
+}

@@ -46,6 +46,10 @@ const bookingSchema = new Schema({
     phone: { type: String, required: true, trim: true, maxlength: 30 },
   },
   specialRequests: { type: String, trim: true, maxlength: 1_000 },
+  arrivalTime: { type: String, match: /^([01]\d|2[0-3]):[0-5]\d$/ },
+  childAges: { type: [Number], default: undefined },
+  // Confirmed with nothing paid and nobody at the partner having looked: counts towards the guest's open bookings.
+  instantConfirmed: { type: Boolean },
   // Homestay meals chosen at booking; price per guest per night, snapshotted.
   meals: {
     type: [new Schema({ type: { type: String, enum: ['breakfast', 'lunch', 'dinner'], required: true }, priceMinor: { type: Number, required: true, min: 0 } }, { _id: false })],
@@ -80,7 +84,9 @@ const bookingSchema = new Schema({
   // 'sending' stays in place if the result was never heard, so nobody can pay it twice by retrying blindly.
   refunds: {
     type: [new Schema({
-      kind: { type: String, enum: ['cancellation', 'change', 'late_payment'], required: true },
+      kind: { type: String, enum: ['cancellation', 'change', 'late_payment', 'duplicate_payment'], required: true },
+      // Only on a duplicate payment: the extra payment this refund returns.
+      tracker: String,
       channel: { type: String, enum: ['safepay', 'partner'], required: true },
       amountMinor: { type: Number, required: true, min: 1 },
       status: { type: String, enum: ['pending', 'sending', 'sent', 'failed'], default: 'pending' },
@@ -114,6 +120,18 @@ const bookingSchema = new Schema({
     }, { _id: false }),
     default: undefined,
   },
+  // Set when the partner marks a no-show. The partner is not settled until the guest's time to dispute has passed.
+  noShow: {
+    type: new Schema({
+      at: Date, disputeUntil: Date,
+      dispute: new Schema({
+        status: { type: String, enum: ['open', 'no_show_stands', 'guest_stayed', 'refund_guest'] },
+        note: { type: String, maxlength: 1000 }, at: Date,
+        decidedAt: Date, decidedBy: { type: Schema.Types.ObjectId, ref: 'User' }, decisionNote: { type: String, maxlength: 1000 },
+      }, { _id: false }),
+    }, { _id: false }),
+    default: undefined,
+  },
   balanceCollectedAt: { type: Date },
   // The partner statement this booking was settled on.
   payoutId: { type: Schema.Types.ObjectId, ref: 'Payout', index: true },
@@ -136,6 +154,10 @@ const bookingSchema = new Schema({
       oneWayFeeMinor: Number,
       fuelIncluded: Boolean,
       depositMinor: Number,
+      driverAge: Number,
+      kmPerDay: Number,
+      extraPerKmMinor: Number,
+      extras: { type: [new Schema({ name: String, priceMinor: Number, perDay: Boolean }, { _id: false })], default: undefined },
     }, { _id: false }),
     default: undefined,
   },
@@ -157,7 +179,7 @@ const bookingSchema = new Schema({
   paidAt: { type: Date },
   paymentCollectedBy: { type: Schema.Types.ObjectId, ref: 'User' },
   // Pay now: every Safepay tracker opened for this booking (a retry opens a new one) and the one that was paid.
-  onlinePayment: { type: new Schema({ trackers: [String], paidTracker: String }, { _id: false }), default: undefined },
+  onlinePayment: { type: new Schema({ trackers: [String], paidTracker: String, duplicateTrackers: [String] }, { _id: false }), default: undefined },
   // Arrival is a fact about a confirmed stay, not a status: the booking stays "confirmed" until completed.
   checkedInAt: { type: Date },
   checkedInBy: { type: Schema.Types.ObjectId, ref: 'User' },
@@ -170,6 +192,9 @@ const bookingSchema = new Schema({
 bookingSchema.index({ customerId: 1, createdAt: -1 });
 bookingSchema.index({ 'refunds.status': 1 }, { sparse: true });
 bookingSchema.index({ 'onlinePayment.trackers': 1 }, { sparse: true });
+bookingSchema.index({ status: 1, checkOut: 1 });
+bookingSchema.index({ 'noShow.dispute.status': 1 }, { sparse: true });
+bookingSchema.index({ createdAt: -1 });
 bookingSchema.index({ vendorId: 1, status: 1, checkIn: 1 });
 bookingSchema.index(
   { customerId: 1, idempotencyKey: 1 },

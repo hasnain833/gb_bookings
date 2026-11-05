@@ -1,4 +1,3 @@
-import { promises as dns } from 'node:dns';
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import mongoose, { type Model } from 'mongoose';
@@ -7,6 +6,7 @@ import { connectDatabase } from '../../database/connection.js';
 import { validate } from '../../middleware/validate.js';
 import { AppError, ServiceUnavailableError } from '../../shared/app-error.js';
 import { asyncHandler } from '../../shared/async-handler.js';
+import { emailAddressProblem } from '../../shared/email-domain.js';
 import { MongoRateLimitStore } from '../../shared/rate-limit-store.js';
 import { isEmailConfigured, sendTransactionalEmail } from '../email/resend.service.js';
 
@@ -19,15 +19,6 @@ const subscriberSchema = new mongoose.Schema({
 // ponytail: stored only; no admin export or sending yet. Read the `newslettersubscribers` collection, or sync to a mailing tool when campaigns start.
 export const NewsletterSubscriberModel: Model<any> = (mongoose.models.NewsletterSubscriber as Model<any> | undefined)
   ?? mongoose.model<any>('NewsletterSubscriber', subscriberSchema);
-
-/** Catches typos like gmil.cm: the domain must accept mail. A DNS outage is not the visitor's fault, so it lets them through. */
-export async function domainAcceptsMail(email: string) {
-  try {
-    return (await dns.resolveMx(email.split('@')[1])).length > 0;
-  } catch (error: any) {
-    return !['ENOTFOUND', 'ENODATA'].includes(error.code);
-  }
-}
 
 // Subscribing past this still saves the address; it just skips the welcome email, so the site cannot be used to email strangers.
 const MAX_WELCOMES_PER_DAY = 50;
@@ -43,8 +34,8 @@ newsletterRouter.post('/', validate('body', z.object({
   email: z.string().trim().toLowerCase().email().max(254),
   source: z.enum(['footer', 'homestays']),
 }).strict()), asyncHandler(async (request, response) => {
-  if (!await domainAcceptsMail(request.body.email)) throw new AppError(422, 'EMAIL_DOMAIN_INVALID', `${request.body.email.split('@')[1]} can't receive email. Please check the address.`);
-  if (!await domainAcceptsMail(request.body.email)) throw new AppError(422, 'EMAIL_DOMAIN_INVALID', `${request.body.email.split('@')[1]} can't receive email. Please check the address.`);
+  const problem = await emailAddressProblem(request.body.email);
+  if (problem) throw new AppError(422, 'EMAIL_ADDRESS_INVALID', problem);
   if (!await connectDatabase()) throw new ServiceUnavailableError('Subscriptions are unavailable right now.');
   // Idempotent and silent about existing addresses, so the form cannot be used to probe who subscribed.
   const saved = await NewsletterSubscriberModel.updateOne(

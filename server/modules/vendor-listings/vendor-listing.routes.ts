@@ -1,4 +1,6 @@
-import { Router } from 'express';
+import { Router, type Request } from 'express';
+import { AppError } from '../../shared/app-error.js';
+import { addCalendarFeed, calendarSyncStatus, removeCalendarFeed, resetCalendarLink, syncCalendarsNow } from '../calendar/calendar.service.js';
 import { authenticate, authorizePermission } from '../../middleware/authenticate.js';
 import { validate } from '../../middleware/validate.js';
 import { asyncHandler } from '../../shared/async-handler.js';
@@ -22,6 +24,7 @@ import {
   listRoomTypes,
   decideListingRevision,
   moderateListing,
+  ownedRoom,
   setListingAvailability,
   submitListing,
   updateHotelListing,
@@ -105,6 +108,34 @@ vendorListingRouter.get('/:id/rooms/:roomId/calendar', validate('params', roomPa
 
 vendorListingRouter.put('/:id/rooms/:roomId/calendar', validate('params', roomParamsSchema), validate('body', roomClosureSchema), asyncHandler(async (request, response) => {
   response.json({ data: await setRoomClosures(request.auth!.userId, request.params.id, request.params.roomId, request.body, sessionMetadata(request)) });
+}));
+
+const calendarFeedSchema = z.object({ name: z.string().trim().min(2).max(60), url: z.string().trim().min(10).max(2000) }).strict();
+const calendarFeedParams = roomParamsSchema.extend({ feedId: z.string().regex(/^fed_[0-9a-f-]{36}$/i, 'Invalid calendar.') });
+const ownedCalendarRoom = async (request: Request) => {
+  const { listing, room } = await ownedRoom(request.auth!.userId, request.params.id, request.params.roomId);
+  if (listing.type === 'tour') throw new AppError(422, 'CALENDAR_SYNC_NOT_SUPPORTED', 'Calendar sync is for rooms and cars. Tours sell seats.');
+  return room;
+};
+
+vendorListingRouter.get('/:id/rooms/:roomId/calendar-sync', validate('params', roomParamsSchema), asyncHandler(async (request, response) => {
+  response.json({ data: await calendarSyncStatus(await ownedCalendarRoom(request)) });
+}));
+
+vendorListingRouter.post('/:id/rooms/:roomId/calendar-sync/feeds', validate('params', roomParamsSchema), validate('body', calendarFeedSchema), asyncHandler(async (request, response) => {
+  response.status(201).json({ data: await addCalendarFeed(await ownedCalendarRoom(request), request.body) });
+}));
+
+vendorListingRouter.delete('/:id/rooms/:roomId/calendar-sync/feeds/:feedId', validate('params', calendarFeedParams), asyncHandler(async (request, response) => {
+  response.json({ data: await removeCalendarFeed(await ownedCalendarRoom(request), request.params.feedId) });
+}));
+
+vendorListingRouter.post('/:id/rooms/:roomId/calendar-sync/run', validate('params', roomParamsSchema), asyncHandler(async (request, response) => {
+  response.json({ data: await syncCalendarsNow(await ownedCalendarRoom(request)) });
+}));
+
+vendorListingRouter.post('/:id/rooms/:roomId/calendar-sync/link', validate('params', roomParamsSchema), asyncHandler(async (request, response) => {
+  response.json({ data: await resetCalendarLink(await ownedCalendarRoom(request)) });
 }));
 
 vendorListingRouter.delete('/:id/rooms/:roomId', validate('params', roomParamsSchema), asyncHandler(async (request, response) => {

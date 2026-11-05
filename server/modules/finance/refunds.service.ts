@@ -18,7 +18,7 @@ async function sendOne(booking: any, refund: any, by?: string) {
     { $set: { 'refunds.$.status': 'sending' } },
   );
   if (!claimed) return;
-  const tracker = booking.onlinePayment?.paidTracker;
+  const tracker = refund.tracker ?? booking.onlinePayment?.paidTracker;
   try {
     if (!tracker) throw new Error('This booking has no paid Safepay payment on record.');
     await refundTracker(tracker, refund.amountMinor);

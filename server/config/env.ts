@@ -56,9 +56,12 @@ const envSchema = z.object({
   CLOUDINARY_CLOUD_NAME: optionalString(z.string().min(1)),
   CLOUDINARY_API_KEY: optionalString(z.string().min(1)),
   CLOUDINARY_API_SECRET: optionalString(z.string().min(1)),
-  MEDIA_MAX_FILE_MB: z.coerce.number().int().min(1).max(25).default(10),
+  // Vercel refuses requests over about 4.5 MB, so the default stays under that.
+  MEDIA_MAX_FILE_MB: z.coerce.number().int().min(1).max(25).default(4),
   GEMINI_API_KEY: optionalString(z.string().min(1)),
-  // Used by the AI planner and the CNIC pre-check; change it here if Google retires the model.
+  // Sending CNIC PDFs to Gemini is off by default: free plans may use data to improve Google's products. Turn on only with a paid plan.
+  CNIC_AI_CHECK: booleanFromString.default(false),
+  // Used by the trip assistant and the CNIC pre-check; change it here if Google retires the model.
   GEMINI_MODEL: z.string().min(1).default("gemini-2.5-flash"),
   // Hours a property has to accept or decline a booking request before it expires and the rooms are released.
   PENDING_BOOKING_HOURS: z.coerce.number().int().min(1).max(168).default(24),
@@ -86,6 +89,18 @@ if (!parsed.success) {
 
 if (parsed.data.NODE_ENV === "production" && !parsed.data.MONGODB_URI) {
   throw new Error("MONGODB_URI is required when NODE_ENV=production.");
+}
+
+if (parsed.data.NODE_ENV === "production" && !parsed.data.APP_URL) {
+  throw new Error(
+    "APP_URL is required when NODE_ENV=production: reset and payment links use it.",
+  );
+}
+
+if (parsed.data.NODE_ENV === "production" && parsed.data.INNGEST_DEV) {
+  throw new Error(
+    "INNGEST_DEV must not be set when NODE_ENV=production: it can turn off Inngest's signature check.",
+  );
 }
 
 if (

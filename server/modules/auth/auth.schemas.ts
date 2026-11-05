@@ -45,6 +45,9 @@ const challengeId = z.string().regex(/^otp_[0-9a-f-]{36}$/i, 'Invalid challenge 
 
 export const verifyOtpSchema = z.object({ challengeId, code: otpCode }).strict();
 
+export const emailChangeRequestSchema = z.object({ newEmail: email }).strict();
+export const emailChangeConfirmSchema = z.object({ currentChallengeId: challengeId, currentCode: otpCode, newChallengeId: challengeId, newCode: otpCode }).strict();
+
 export const changePasswordSchema = z.object({ challengeId, code: otpCode, newPassword: password }).strict();
 
 export const twoFactorSetupSchema = z.object({

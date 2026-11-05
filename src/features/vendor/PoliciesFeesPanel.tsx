@@ -11,6 +11,7 @@ type Fee = NonNullable<VendorListing['fees']>[number];
 export default function PoliciesFeesPanel({ listing, onChange }: { listing: VendorListing; onChange: (listing: VendorListing, message?: string) => void }) {
   const [policy, setPolicy] = useState(listing.cancellationPolicy ?? DEFAULT_CANCELLATION_POLICY);
   const [fees, setFees] = useState<Fee[]>(listing.fees ?? []);
+  const [instantBook, setInstantBook] = useState(Boolean(listing.instantBook));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const setFee = (index: number, patch: Partial<Fee>) => setFees(fees.map((fee, at) => at === index ? { ...fee, ...patch } : fee));
@@ -19,8 +20,8 @@ export default function PoliciesFeesPanel({ listing, onChange }: { listing: Vend
     event.preventDefault();
     setBusy(true); setError('');
     try {
-      const updated = await api.updateHotelListing(listing.id, { cancellationPolicy: policy, fees: fees.map((fee) => ({ ...fee, name: fee.name.trim() })) });
-      onChange(updated, updated.pendingRevision ? 'Saved. Your changes go live once GBBookings approves them.' : 'Policy and fees saved.');
+      const updated = await api.updateHotelListing(listing.id, { cancellationPolicy: policy, instantBook, fees: fees.map((fee) => ({ ...fee, name: fee.name.trim() })) });
+      onChange(updated, updated.pendingRevision ? 'Saved. Policy and fee changes go live once GBBookings approves them.' : 'Saved.');
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not save.'); }
     finally { setBusy(false); }
   };
@@ -44,6 +45,14 @@ export default function PoliciesFeesPanel({ listing, onChange }: { listing: Vend
       </fieldset>
 
       <fieldset className="space-y-3">
+        <legend className="text-base font-bold text-slate-900">How bookings are confirmed</legend>
+        <label className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 ${instantBook ? 'border-[#006F3C] bg-emerald-50/50' : 'border-slate-200'}`}>
+          <input type="checkbox" checked={instantBook} onChange={(event) => setInstantBook(event.target.checked)} className="mt-1 size-4 accent-[#006F3C]" />
+          <span><span className="block font-semibold text-slate-900">Instant confirmation</span><span className="block text-sm text-slate-500">Pay on arrival bookings are confirmed right away, without you accepting each one. Guests are more likely to book, so keep your calendar up to date. This applies at once, without review. Pay now bookings are always confirmed once paid.</span></span>
+        </label>
+      </fieldset>
+
+      <fieldset className="space-y-3">
         <legend className="text-base font-bold text-slate-900">Fees</legend>
         <p className="text-sm text-slate-500">Charges you add to every booking, such as a service charge. Guests see each one as its own line. Leave this empty if your price already includes everything. GBBookings sets taxes.</p>
         {fees.map((fee, index) => (
@@ -58,7 +67,7 @@ export default function PoliciesFeesPanel({ listing, onChange }: { listing: Vend
       </fieldset>
 
       {error && <p role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
-      <button disabled={busy} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#006F3C] px-5 text-sm font-semibold text-white hover:bg-[#005c32] disabled:opacity-50">{busy && <LoaderCircle className="size-4 animate-spin" />}Save policy and fees</button>
+      <button disabled={busy} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#006F3C] px-5 text-sm font-semibold text-white hover:bg-[#005c32] disabled:opacity-50">{busy && <LoaderCircle className="size-4 animate-spin" />}Save</button>
     </form>
   );
 }

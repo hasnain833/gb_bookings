@@ -52,6 +52,7 @@ export default function RoomBookingPanel({ listingId, meals = [], entireHome = f
     ...(availability?.freeCancellationUntil ? [`Free cancellation until ${formatDateForDisplay(availability.freeCancellationUntil)}`] : []),
     paymentMethods?.length ? `Pay on arrival (${paymentMethods.map((method) => PAYMENT_LABELS[method]).join(', ')})` : 'Pay on arrival',
     ...(breakfastIncluded ? ['Breakfast included'] : []),
+    ...(availability?.instantBook ? ['Instant confirmation'] : []),
   ];
   const offSeason = Boolean(checkIn && openMonths?.length && !openMonths.includes(Number(checkIn.slice(5, 7))));
 
@@ -158,9 +159,9 @@ export default function RoomBookingPanel({ listingId, meals = [], entireHome = f
                 {[room.bedType, ...roomFacts(room)].join(' · ')} · up to {room.maxAdults} adults{room.maxChildren ? `, ${room.maxChildren} child` : ''}
               </span>
               <span className={`text-xs font-medium block mt-0.5 ${room.available ? 'text-emerald-600' : 'text-rose-600'}`}>
-                {room.available === 0 ? 'Sold out' : !room.bookable ? 'Does not fit your party' : `${room.available} left`}
+                {room.available === 0 ? 'Sold out' : !room.bookable ? room.stayRule ?? 'Does not fit your party' : `${room.available} left`}
               </span>
-              {room.bookable && <span className="mt-1.5 flex flex-wrap gap-1">{choices.map((choice) => <span key={choice} className="rounded bg-emerald-50 px-1.5 py-0.5 text-[11px] font-medium text-emerald-800">✓ {choice}</span>)}</span>}
+              {room.bookable && <span className="mt-1.5 flex flex-wrap gap-1">{room.dealPercent ? <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold text-amber-900">{room.dealPercent}% off, already in this price</span> : null}{choices.map((choice) => <span key={choice} className="rounded bg-emerald-50 px-1.5 py-0.5 text-[11px] font-medium text-emerald-800">✓ {choice}</span>)}</span>}
             </div>
             <div className="text-right shrink-0">
               <span className="text-sm font-bold text-slate-900 block">PKR {room.totalPrice.toLocaleString()}</span>

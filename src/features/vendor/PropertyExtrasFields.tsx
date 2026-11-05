@@ -1,9 +1,10 @@
 import { BREAKFAST_KINDS, FACILITIES, type PropertyExtras } from '../../shared/utils/rooms';
+import Select from '../../shared/components/Select';
 
 const inputClass = 'mt-1 min-h-11 w-full max-w-xs rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[#006F3C]';
 const checkClass = 'flex min-h-11 items-center gap-2 text-sm';
 
-export type Extras = Required<Pick<PropertyExtras, 'parking'>> & Pick<PropertyExtras, 'breakfast' | 'licenceNumber'>;
+export type Extras = Required<Pick<PropertyExtras, 'parking'>> & Pick<PropertyExtras, 'breakfast' | 'licenceNumber' | 'stars'>;
 export const defaultExtras = (hotel: boolean): Extras => ({
   parking: { available: 'free', onSite: true, reservation: false },
   ...(hotel ? { breakfast: { offered: false, included: false } } : {}),
@@ -22,7 +23,16 @@ export function extrasInput(extras: Extras): PropertyExtras {
     ...(breakfast ? { breakfast: breakfast.offered ? { offered: true, included: breakfast.included, ...(breakfast.included ? {} : { price: breakfast.price }), kinds: breakfast.kinds ?? [] } : { offered: false, included: false } } : {}),
     parking: parking.available === 'none' ? { available: 'none' } : { available: parking.available, onSite: Boolean(parking.onSite), reservation: Boolean(parking.reservation), ...(parking.available === 'paid' ? { price: parking.price } : {}) },
     ...(extras.licenceNumber?.trim() ? { licenceNumber: extras.licenceNumber.trim() } : {}),
+    ...(extras.stars ? { stars: extras.stars } : {}),
   };
+}
+
+/** Official hotel class. Left out of homestays, which aren't graded. */
+export function StarsField({ value, onChange, className }: { value?: number; onChange: (stars?: number) => void; className: string }) {
+  return <Select aria-label="Official star rating" value={value ?? ''} onChange={(event) => onChange(Number(event.target.value) || undefined)} className={className}>
+    <option value="">Not rated</option>
+    {[1, 2, 3, 4, 5].map((stars) => <option key={stars} value={stars}>{stars} star{stars > 1 ? 's' : ''}</option>)}
+  </Select>;
 }
 
 /** Facilities as one fixed checklist (so search filters match); words saved before the list existed stay listed below it. */

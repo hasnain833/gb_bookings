@@ -4,7 +4,8 @@ import { authenticate } from '../../middleware/authenticate.js';
 import { validate } from '../../middleware/validate.js';
 import { asyncHandler } from '../../shared/async-handler.js';
 import { realtimeToken } from './realtime.js';
-import { getConversation, listConversations, sendMessage, startConversation, unreadCounts } from './message.service.js';
+import { sessionMetadata } from '../auth/auth.service.js';
+import { getConversation, listConversations, reportConversation, sendMessage, startConversation, unreadCounts } from './message.service.js';
 
 const body = z.string().trim().min(1, 'Write a message first.').max(2_000);
 const conversationParams = z.object({ id: z.string().regex(/^cnv_[0-9a-f-]{36}$/i, 'Invalid conversation.') }).strict();
@@ -30,6 +31,10 @@ messageRouter.post('/conversations', validate('body', z.object({ listingId: z.st
 
 messageRouter.get('/conversations/:id', validate('params', conversationParams), asyncHandler(async (request, response) => {
   response.json({ data: await getConversation(request.auth!.userId, request.params.id) });
+}));
+
+messageRouter.post('/conversations/:id/report', validate('params', conversationParams), validate('body', z.object({ reason: z.string().trim().min(5, 'Tell us what went wrong.').max(1_000) }).strict()), asyncHandler(async (request, response) => {
+  response.json({ data: await reportConversation(request.auth!.userId, request.params.id, request.body.reason, sessionMetadata(request)) });
 }));
 
 messageRouter.post('/conversations/:id/messages', validate('params', conversationParams), validate('body', z.object({ body }).strict()), asyncHandler(async (request, response) => {

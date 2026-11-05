@@ -4,7 +4,7 @@ import { AddressFields, LocationPinField } from '../../shared/components/MapPin'
 import HomestayHostFields, { homestayDraft, homestayInput } from './HomestayHostFields';
 import PhotoManager, { toPhotoInput, type EditablePhoto } from './PhotoManager';
 import StayInfoFields, { defaultStayInfo, stayInfoProblem } from './StayInfoFields';
-import { defaultExtras, ExtrasFields, extrasInput, extrasProblem, FacilityChecklist, type Extras } from './PropertyExtrasFields';
+import { defaultExtras, ExtrasFields, extrasInput, extrasProblem, FacilityChecklist, type Extras, StarsField } from './PropertyExtrasFields';
 import { addressLine, HOME_TYPES, HOTEL_TYPES, type PropertyAddress } from '../../shared/utils/rooms';
 import Select from '../../shared/components/Select';
 
@@ -35,7 +35,7 @@ export default function PropertyEditor({ listing, onSaved, onCancel }: {
   const [extras, setExtras] = useState<Extras>(() => {
     const specs = current.hotelSpecs;
     const start = defaultExtras(listing.type === 'hotel');
-    return { ...start, ...(specs?.parking ? { parking: specs.parking } : {}), ...(specs?.breakfast && listing.type === 'hotel' ? { breakfast: specs.breakfast } : {}), licenceNumber: specs?.licenceNumber };
+    return { ...start, ...(specs?.parking ? { parking: specs.parking } : {}), ...(specs?.breakfast && listing.type === 'hotel' ? { breakfast: specs.breakfast } : {}), stars: specs?.stars, licenceNumber: specs?.licenceNumber };
   });
   // Pending pins arrive as stored GeoJSON ([lng, lat]).
   const [pin, setPin] = useState<LatLng | undefined>(pendingPin ? { lat: pendingPin.coordinates[1], lng: pendingPin.coordinates[0] } : listing.coordinates);
@@ -92,6 +92,7 @@ export default function PropertyEditor({ listing, onSaved, onCancel }: {
       <label className="text-xs font-semibold text-slate-600 sm:col-span-2">House rules (comma separated)<input className={input} value={draft.policies} onChange={(event) => setDraft({ ...draft, policies: event.target.value })} /></label>
       <div className="rounded-xl border border-slate-200 p-4 sm:col-span-2"><p className="mb-2 text-sm font-bold">Facilities</p><FacilityChecklist value={facilityList} onChange={setFacilityList} /></div>
       <div className="rounded-xl border border-slate-200 p-4 sm:col-span-2"><ExtrasFields value={extras} onChange={setExtras} /></div>
+      {listing.type === 'hotel' && <div className="text-xs font-semibold text-slate-600 sm:col-span-2">Official star rating (if you have one)<StarsField value={extras.stars} onChange={(stars) => setExtras({ ...extras, stars })} className={input} /></div>}
       <label className="text-xs font-semibold text-slate-600 sm:col-span-2">Tourism department registration number (optional)<input maxLength={60} className={input} value={extras.licenceNumber ?? ''} onChange={(event) => setExtras({ ...extras, licenceNumber: event.target.value })} /></label>
       <div className="sm:col-span-2"><PhotoManager photos={photos} onChange={setPhotos} max={20} label="Property photos" onUploadingChange={setUploading} /></div>
       <div className="flex gap-3 sm:col-span-2"><button disabled={busy || uploading} className="min-h-11 rounded-md bg-[#006F3C] px-4 text-sm font-bold text-white disabled:opacity-50">{live ? 'Send changes for review' : 'Save property'}</button><button type="button" disabled={busy} onClick={onCancel} className="min-h-11 rounded-md border border-slate-300 px-4 text-sm">Cancel</button></div>

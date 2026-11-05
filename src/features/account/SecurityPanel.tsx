@@ -3,6 +3,7 @@ import { CheckCircle2, Eye, EyeOff, KeyRound, LoaderCircle, LogOut, Mail, Monito
 import { api, type AuthSession, type AuthUser } from '../../shared/api/api';
 import { isValidPassword, passwordChecks, PASSWORD_REQUIREMENTS } from '../../shared/utils/password';
 import { toast } from '../../shared/components/Toaster';
+import { deviceName } from '../../shared/utils/device';
 
 const SESSIONS_SHOWN = 3;
 const primary = 'inline-flex min-h-11 items-center justify-center rounded-lg bg-[#006F3C] px-4 text-sm font-semibold text-white hover:bg-[#005c32] disabled:opacity-50';
@@ -10,16 +11,6 @@ const secondary = 'inline-flex min-h-11 items-center justify-center rounded-lg b
 const danger = 'inline-flex min-h-11 items-center justify-center rounded-lg border border-rose-300 bg-white px-4 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50';
 const input = 'mt-1 h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-normal outline-none focus:border-[#006F3C] focus:ring-2 focus:ring-[#006F3C]/20';
 const codeInput = `${input} max-w-44 font-mono text-lg tracking-[0.3em]`;
-
-/** "Chrome on Windows" from a user-agent string; scripts and tools read as such. */
-export function deviceName(userAgent: string) {
-  const ua = userAgent || '';
-  const browser = /Edg\//.test(ua) ? 'Edge' : /OPR\//.test(ua) ? 'Opera' : /Chrome\//.test(ua) ? 'Chrome' : /Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : null;
-  const os = /Android/.test(ua) ? 'Android' : /iPhone|iPad/.test(ua) ? 'iPhone' : /Windows/.test(ua) ? 'Windows' : /Mac OS X/.test(ua) ? 'Mac' : /Linux/.test(ua) ? 'Linux' : null;
-  if (browser) return os ? `${browser} on ${os}` : browser;
-  if (/^(node|curl|axios|python|postman|undici)/i.test(ua)) return 'App or script (not a browser)';
-  return ua ? ua.slice(0, 40) : 'Unknown device';
-}
 
 const errorText = (reason: unknown, fallback: string) => reason instanceof Error ? reason.message : fallback;
 
@@ -108,6 +99,7 @@ export default function SecurityPanel() {
   const [deleteCode, setDeleteCode] = useState('');
   const [disabling, setDisabling] = useState(false);
   // Partner and admin accounts are closed by support (the server enforces this too).
+  const isAdmin = (user?.roles ?? []).includes('admin');
   const customerOnly = (user?.roles ?? [user?.role ?? 'customer']).every((role) => role === 'customer');
 
   useEffect(() => {
@@ -135,8 +127,8 @@ export default function SecurityPanel() {
       action={<button type="button" disabled={busy || !user?.emailVerified} className={secondary} onClick={() => void act(sendPasswordCode, 'Unable to send the code.')}>{busy ? 'Sending…' : 'Change password'}</button>} />
     {passwordChallenge && user && <ChangePasswordDialog email={user.email} challengeId={passwordChallenge} onResend={sendPasswordCode} onClose={() => setPasswordChallenge('')} />}
 
-    <Row icon={<ShieldCheck className="size-5" />} title="Two-step sign-in" text={user?.twoFactorEnabled ? `On. We ask for a code from your ${user.twoFactorChannel} when you sign in on a new device.` : 'Ask for an emailed code when signing in on a new device.'}
-      action={user?.twoFactorEnabled
+    <Row icon={<ShieldCheck className="size-5" />} title="Two-step sign-in" text={isAdmin ? 'Always on for admin accounts: we email you a code when you sign in on a new device.' : user?.twoFactorEnabled ? `On. We ask for a code from your ${user.twoFactorChannel} when you sign in on a new device.` : 'Ask for an emailed code when signing in on a new device.'}
+      action={isAdmin ? undefined : user?.twoFactorEnabled
         ? <button type="button" className={danger} disabled={busy} onClick={() => setDisabling(!disabling)}>{disabling ? 'Keep it on' : 'Turn off'}</button>
         : !challengeId && <button type="button" className={secondary} disabled={busy || !user?.emailVerified} onClick={() => void act(async () => { setChallengeId((await api.beginTwoFactorSetup('email')).challengeId); toast('We emailed you a security code.'); }, 'Unable to start two-step sign-in.')}>Turn on</button>}>
       {user?.twoFactorEnabled && disabling && <form className="flex flex-wrap items-end gap-3" onSubmit={(event) => { event.preventDefault(); void act(async () => { await api.disableTwoFactor(password); window.location.reload(); }, 'Unable to turn off two-step sign-in.'); }}>

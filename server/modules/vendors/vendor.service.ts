@@ -39,7 +39,7 @@ function slugify(value: string) {
   return `${base || 'vendor'}-${randomBytes(3).toString('hex')}`;
 }
 
-/** Bank details and pending changes (which can hold them) reach only the owner and the admin. */
+/** Bank details, identity papers and pending changes (which can hold them) reach only the owner and the admin. */
 function serializeVendor(vendor: any, audience: 'owner' | 'team' = 'owner') {
   const { payoutProfile: _bank, ...pendingWithoutBank } = vendor.pendingChanges?.toObject?.() ?? vendor.pendingChanges ?? {};
   return {
@@ -52,11 +52,11 @@ function serializeVendor(vendor: any, audience: 'owner' | 'team' = 'owner') {
     phone: vendor.phone,
     businessType: vendor.businessType,
     registrationNumber: vendor.registrationNumber,
-    taxNumber: vendor.taxNumber,
-    cnicNumber: vendor.cnicNumber,
     address: vendor.address,
     status: vendor.status,
-    verificationDocuments: vendor.verificationDocuments ?? [],
+    // Identity papers reach only the owner and the admin, like bank details.
+    ...(audience === 'owner' ? { taxNumber: vendor.taxNumber, cnicNumber: vendor.cnicNumber } : {}),
+    verificationDocuments: audience === 'owner' ? vendor.verificationDocuments ?? [] : [],
     verificationNotes: vendor.verificationNotes,
     rejectionReason: vendor.rejectionReason,
     pendingChanges: !vendor.pendingChanges ? undefined : audience === 'owner' ? vendor.pendingChanges : pendingWithoutBank,

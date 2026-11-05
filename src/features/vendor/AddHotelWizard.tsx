@@ -9,7 +9,7 @@ import {
 import { AddressFields, LocationPinField } from "../../shared/components/MapPin";
 import { useReasonDialog } from "../../shared/components/ReasonDialog";
 import ChipInput from "./ChipInput";
-import { defaultExtras, ExtrasFields, extrasInput, extrasLines, extrasProblem, FacilityChecklist, type Extras } from "./PropertyExtrasFields";
+import { defaultExtras, ExtrasFields, extrasInput, extrasLines, extrasProblem, FacilityChecklist, type Extras, StarsField } from "./PropertyExtrasFields";
 import HomestayHostFields, {
   homestayDraft,
   homestayInput,
@@ -374,6 +374,9 @@ export default function AddHotelWizard({
                 placeholder={homestay ? "Your home, the village, what guests can do with your family: farm walks, cooking, local festivals." : "What makes the stay special: views, food, how far the main sights are."} />
               <span className="mt-1 block text-xs font-normal text-slate-500">{hotel.description.trim().length}/20 characters minimum</span>
             </Field>
+            {!homestay && <Field label="Official star rating (if you have one)" wide>
+              <StarsField value={extras.stars} onChange={(stars) => setExtras({ ...extras, stars })} className={inputClass} />
+            </Field>}
             <Field label="Tourism department registration number (if you have one)" wide>
               <input className={inputClass} maxLength={60} value={extras.licenceNumber ?? ""} onChange={(e) => setExtras({ ...extras, licenceNumber: e.target.value })} placeholder="e.g. GB Tourism Department registration" />
             </Field>

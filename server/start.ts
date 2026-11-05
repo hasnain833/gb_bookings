@@ -54,7 +54,8 @@ export async function startServer(app: Express) {
 
   console.log(`GBBookings API ready at http://localhost:${env.PORT}`);
   // Inngest schedules these when it is configured. Otherwise a long-running server runs them itself.
-  if (!inngestEnabled()) {
+  // Locally the Inngest dev server may not be running, and these jobs are safe to run twice.
+  if (!inngestEnabled() || env.INNGEST_DEV) {
     const safely = (job: () => Promise<unknown>) => () => void job().catch((error) => console.error('Scheduled job failed:', error));
     setInterval(safely(runFrequentJobs), 5 * 60_000).unref();
     setInterval(() => {

@@ -1,3 +1,5 @@
+import type { StayDeals } from '../../../src/shared/utils/roomPricing.js';
+
 /**
  * A unit's price on one date: a season covering the date wins, then the weekend price (Friday and Saturday
  * nights), then the base price. Hotels and homestays price each night, cars each rented day, tours the start date.
@@ -6,6 +8,7 @@ export type PricedUnit = {
   basePriceMinor: number;
   weekendPriceMinor?: number | null;
   seasons?: Array<{ from: string; to: string; priceMinor: number }>;
+  deals?: StayDeals | null;
 };
 
 export function nightPriceMinor(unit: PricedUnit, date: string) {

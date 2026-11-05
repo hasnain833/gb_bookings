@@ -7,7 +7,7 @@ const mealText = (meal: MealOption) => `${mealLabel(meal.type)} ${meal.included 
 const text = (value: unknown): string => Array.isArray(value) ? value.map((item) => item && typeof item === 'object' && 'type' in item ? mealText(item as MealOption) : item && typeof item === 'object' && 'kind' in item ? describeBeds([item as Bed]) : item && typeof item === 'object' && 'beds' in item ? `bedroom with ${describeBeds((item as { beds: Bed[] }).beds)}` : String(item)).join(', ')
   : value && typeof value === 'object' ? Object.entries(value).map(([key, item]) => `${key}: ${text(item)}`).join(', ')
   : value == null || value === '' ? '—' : String(value);
-const mapLink = (lat: number, lng: number) => `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+const mapLink = (lat: number, lng: number) => `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=16/${lat}/${lng}`;
 
 function Photos({ photos, label }: { photos: ListingPhoto[]; label: string }) {
   return <div className="flex gap-2 overflow-x-auto">{photos.map((photo, index) => <a key={`${photo.url}-${index}`} href={photo.url} target="_blank" rel="noreferrer" className="w-32 shrink-0" aria-label={`Open ${label} ${index + 1}`}>
@@ -74,6 +74,8 @@ export default function ListingReviewDetails({ listing }: { listing: VendorListi
         ['Seats / bags', `${listing.carSpecs.seats} / ${listing.carSpecs.luggage ?? '—'}`], ['Driver', `${listing.carSpecs.driverMode ?? '—'}${listing.carSpecs.driverPerDay ? ` · PKR ${listing.carSpecs.driverPerDay}/day` : ''}`],
         ['Fuel', listing.carSpecs.fuelIncluded ? 'Included' : 'Paid by guest'], ['Outside base city', listing.carSpecs.outsideCityPerDay !== undefined ? `+PKR ${listing.carSpecs.outsideCityPerDay}/day` : 'Same price'],
         ['One-way', listing.carSpecs.oneWay === 'flat' ? `PKR ${listing.carSpecs.oneWayFee}` : listing.carSpecs.oneWay ?? '—'], ['Self-drive', listing.carSpecs.driverMode === 'with_driver' ? 'No' : `age ${listing.carSpecs.minDriverAge} · deposit PKR ${listing.carSpecs.deposit ?? 0}`],
+        ['Mileage', listing.carSpecs.kmPerDay ? `${listing.carSpecs.kmPerDay} km/day, then PKR ${listing.carSpecs.extraPerKm ?? 0}/km` : 'Unlimited'], ['Pickup places', text(listing.carSpecs.pickupPlaces)],
+        ['Paid extras', listing.carSpecs.extras?.map((extra) => `${extra.name} PKR ${extra.price}${extra.perDay ? '/day' : ''}`).join(', ')],
         ['Features', text(listing.carSpecs.features)], ['Pay at pickup', text(listing.stayInfo?.paymentMethods)],
       ] as const).map(([term, value]) => <div key={term}><dt className="inline font-semibold">{term}: </dt><dd className="inline">{value || '—'}</dd></div>)}
       {listing.carSpecs.pickupNote && <p className="sm:col-span-2">{listing.carSpecs.pickupNote}</p>}

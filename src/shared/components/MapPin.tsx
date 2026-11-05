@@ -29,21 +29,36 @@ export function parseCoordinates(text: string): LatLng | null {
   return null;
 }
 
-const query = (coordinates: LatLng | undefined, location: string) => coordinates ? `${coordinates.lat},${coordinates.lng}` : encodeURIComponent(location);
-export const directionsUrl = (coordinates: LatLng | undefined, location: string) => `https://www.google.com/maps/dir/?api=1&destination=${query(coordinates, location)}`;
+const OsmMap = lazy(() => import('./OsmMap'));
 
-/**
- * Google Maps without an API key or billing: the classic embed URL plus the official directions link.
- * ponytail: the keyless `output=embed` URL is not a documented API; switch to the Maps Embed API (free, needs a key) if Google ever blocks it.
- */
+export const directionsUrl = (coordinates: LatLng | undefined, location: string) => `https://www.openstreetmap.org/directions?to=${coordinates ? `${coordinates.lat},${coordinates.lng}` : encodeURIComponent(location)}`;
+
+/** The listing's pin on OpenStreetMap. Without a pin, the address is looked up instead (Photon: free, no key). */
 export function MapEmbed({ coordinates, location, title, className = 'h-64' }: { coordinates?: LatLng; location: string; title: string; className?: string }) {
+  const [found, setFound] = useState<LatLng | undefined>();
+  const [lookedUp, setLookedUp] = useState(false);
+  useEffect(() => {
+    if (coordinates || !location) return undefined;
+    const controller = new AbortController();
+    fetch(`https://photon.komoot.io/api/?${new URLSearchParams({ q: location, limit: '1', lang: 'en', lat: '35.92', lon: '74.31' })}`, { signal: controller.signal })
+      .then((response) => response.json())
+      .then((data) => {
+        const point = data.features?.[0]?.geometry?.coordinates;
+        if (point) setFound({ lat: point[1], lng: point[0] });
+        setLookedUp(true);
+      })
+      .catch(() => { if (!controller.signal.aborted) setLookedUp(true); });
+    return () => controller.abort();
+  }, [coordinates, location]);
+  const point = coordinates ?? found;
+  const blank = `flex items-center justify-center rounded-xl border border-slate-200 bg-slate-100 text-sm text-slate-500 ${className}`;
   return (
     <div className="space-y-2">
-      <iframe title={`Map of ${title}`} loading="lazy" referrerPolicy="no-referrer-when-downgrade"
-        src={`https://maps.google.com/maps?q=${query(coordinates, location)}&z=${coordinates ? 15 : 12}&output=embed`}
-        className={`w-full rounded-xl border border-slate-200 bg-slate-100 ${className}`} />
+      {point
+        ? <Suspense fallback={<div className={`animate-pulse rounded-xl bg-slate-100 ${className}`} />}><OsmMap points={[{ id: 'place', lat: point.lat, lng: point.lng, title }]} zoom={coordinates ? 15 : 12} label={`Map of ${title}`} className={className} /></Suspense>
+        : <div className={blank}>{lookedUp ? 'Map not available for this address.' : 'Loading map…'}</div>}
       <a href={directionsUrl(coordinates, location)} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-[#006F3C] hover:underline">
-        <Navigation className="size-4" />Get directions in Google Maps
+        <Navigation className="size-4" />Get directions on OpenStreetMap
       </a>
     </div>
   );

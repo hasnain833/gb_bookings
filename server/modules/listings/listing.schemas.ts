@@ -22,6 +22,8 @@ export const listListingsQuerySchema = z.object({
   experience: z.string().trim().max(60).optional(),
   stayType: z.enum(['rooms', 'entire_home']).optional(),
   breakfast: z.literal('true').transform(() => true).optional(),
+  freeCancellation: z.literal('true').transform(() => true).optional(),
+  minStars: z.coerce.number().int().min(1).max(5).optional(),
   // Landing-page category chip: substring of the hotel type (hotels) or vehicle category (cars).
   category: z.string().trim().max(80).optional(),
   transmission: z.enum(['Automatic', 'Manual']).optional(),

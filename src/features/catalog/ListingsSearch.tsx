@@ -1,5 +1,5 @@
 import { HOME_TYPES, HOTEL_TYPES } from '../../shared/utils/rooms';
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { MapPin, RefreshCw, Search, SlidersHorizontal } from 'lucide-react';
 import type { Listing, ListingType } from '../../types';
 import { useListings } from '../../shared/hooks/useListings';
@@ -7,9 +7,13 @@ import { EXPERIENCE_TYPES } from '../../shared/api/api';
 import { useDebouncedValue } from '../../shared/hooks/useDebouncedValue';
 import { CardSkeleton } from '../../shared/components/SkeletonLoader';
 import { nextDay } from '../../shared/utils/date';
+import { api } from '../../shared/api/api';
+import type { MapPoint } from '../../shared/components/OsmMap';
 import ListingCard from '../../shared/components/ListingCard';
 import Select from '../../shared/components/Select';
 import DateInput from '../../shared/components/DateInput';
+
+const OsmMap = lazy(() => import('../../shared/components/OsmMap'));
 
 interface ListingsSearchProps {
   type: ListingType;
@@ -55,6 +59,11 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
   const [experience, setExperience] = useState(initialFilters.extra.experience ?? '');
   const [stayType, setStayType] = useState<'' | 'rooms' | 'entire_home'>('');
   const [breakfast, setBreakfast] = useState(false);
+  const [freeCancellation, setFreeCancellation] = useState(false);
+  const [minStars, setMinStars] = useState(0);
+  const [view, setView] = useState<'list' | 'map'>('list');
+  const [places, setPlaces] = useState<string[]>([]);
+  const [suggesting, setSuggesting] = useState(false);
   const homestays = type === 'homestay';
   const searchTerm = useDebouncedValue(query.trim());
   const priceLimit = useDebouncedValue(maxPrice);
@@ -80,11 +89,14 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
     amenities: facilities.trim() || undefined,
     ...(homestays ? { experience: experience || undefined, stayType: stayType || undefined } : {}),
     ...(supportsDates && !cars && breakfast ? { breakfast: 'true' as const } : {}),
+    ...(freeCancellation ? { freeCancellation: 'true' as const } : {}),
+    ...(type === 'hotel' && minStars ? { minStars } : {}),
     ...(cars && transmission !== 'all' ? { transmission } : {}),
     ...(cars && driver ? { driver } : {}),
     limit: 24, page,
   });
-  useEffect(() => { setPage(1); }, [searchTerm, priceLimit, minimumRating, sortBy, checkIn, checkOut, guests, facilities, experience, stayType, breakfast, transmission, driver, category, type]);
+  useEffect(() => { setPage(1); }, [searchTerm, priceLimit, minimumRating, sortBy, checkIn, checkOut, guests, facilities, experience, stayType, breakfast, freeCancellation, minStars, transmission, driver, category, type]);
+  useEffect(() => { api.getTopPlaces(type, 20).then((result) => setPlaces(result.map((place) => place.name))).catch(() => undefined); }, [type]);
   useEffect(() => { setExperience(initialFilters.extra.experience ?? ''); }, [initialFilters.extra.experience]);
 
   useEffect(() => {
@@ -93,6 +105,10 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
 
   // Keep the current listings on screen while a filter change refreshes them; skeletons only on first load.
   const firstLoad = loading && listings.length === 0;
+  const typed = query.trim().toLowerCase();
+  const suggestions = suggesting ? places.filter((place) => place.toLowerCase() !== typed && (!typed || place.toLowerCase().includes(typed))).slice(0, 6) : [];
+  const perUnit = type === 'car' ? 'day' : type === 'tour' ? 'person' : 'night';
+  const mapPoints: MapPoint[] = listings.flatMap((listing) => listing.coordinates ? [{ id: listing.id, lat: listing.coordinates.lat, lng: listing.coordinates.lng, title: listing.title, label: `PKR ${listing.price.toLocaleString()}`, onSelect: () => onSelectListing(listing) }] : []);
 
   const resetFilters = () => {
     setQuery('');
@@ -103,7 +119,7 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
     setMinimumRating(0);
     setSortBy('recommended');
     setTransmission('all'); setDriver('');
-    setFacilities(''); setExperience(''); setStayType(''); setBreakfast(false); setCategory(''); setPage(1);
+    setFacilities(''); setExperience(''); setStayType(''); setBreakfast(false); setFreeCancellation(false); setMinStars(0); setCategory(''); setPage(1);
   };
 
   return (
@@ -119,10 +135,17 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
             type="search"
             aria-label="Search by name, city, or area"
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => { setQuery(event.target.value); setSuggesting(true); }}
+            onFocus={() => setSuggesting(true)}
+            onBlur={() => setSuggesting(false)}
+            onKeyDown={(event) => { if (event.key === 'Escape') setSuggesting(false); }}
             placeholder="Search by name, city, or area"
+            autoComplete="off"
             className="min-h-11 w-full rounded-lg border border-slate-300 bg-white pl-10 pr-3 text-sm outline-none focus:border-[#006F3C]"
           />
+          {suggestions.length > 0 && <ul aria-label="Suggested places" className="absolute z-30 mt-1 max-h-72 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white p-1 shadow-xl">
+            {suggestions.map((place) => <li key={place}><button type="button" onMouseDown={(event) => { event.preventDefault(); setQuery(place); setSuggesting(false); }} className="flex min-h-10 w-full items-center gap-2 rounded-lg px-3 text-left text-sm text-slate-700 hover:bg-emerald-50"><MapPin className="size-4 shrink-0 text-slate-400" aria-hidden="true" />{place}</button></li>)}
+          </ul>}
         </label>
       </header>
 
@@ -199,6 +222,16 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
             </Select>
           </label>
 
+          {type === 'hotel' && <label className="block space-y-2">
+            <span className="text-xs font-bold text-slate-600">Hotel class</span>
+            <Select value={minStars} onChange={(event) => setMinStars(Number(event.target.value))} className="min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
+              <option value={0}>Any class</option>
+              {[3, 4, 5].map((stars) => <option key={stars} value={stars}>{stars} stars{stars < 5 ? ' or more' : ''}</option>)}
+            </Select>
+          </label>}
+
+          <label className="flex min-h-10 items-center gap-2 text-sm font-semibold text-slate-700"><input type="checkbox" checked={freeCancellation} onChange={(event) => setFreeCancellation(event.target.checked)} className="size-4 accent-[#006F3C]" />Free cancellation</label>
+
           {supportsDates && !cars && <label className="flex min-h-10 items-center gap-2 text-sm font-semibold text-slate-700"><input type="checkbox" checked={breakfast} onChange={(event) => setBreakfast(event.target.checked)} className="size-4 accent-[#006F3C]" />Breakfast included</label>}
 
           {supportsDates && !cars && <label className="block space-y-2"><span className="text-xs font-bold text-slate-600">Facilities and amenities</span><input value={facilities} onChange={(event) => setFacilities(event.target.value)} placeholder="WiFi, Parking" className="min-h-10 w-full rounded-lg border border-slate-300 px-3 text-sm" /><span className="block text-[11px] text-slate-500">Separate required facilities with commas.</span></label>}
@@ -245,7 +278,10 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
         </aside>
 
         <main className="space-y-4">
-          <div className="flex items-center justify-end">
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <div role="group" aria-label="Show results as" className="flex rounded-lg border border-slate-300 bg-white p-0.5 text-xs font-bold">
+              {(['list', 'map'] as const).map((option) => <button key={option} type="button" aria-pressed={view === option} onClick={() => setView(option)} className={`min-h-9 rounded-md px-3 capitalize ${view === option ? 'bg-[#006F3C] text-white' : 'text-slate-700 hover:bg-slate-50'}`}>{option}</button>)}
+            </div>
             <Select aria-label="Sort results" value={sortBy} onChange={(event) => setSortBy(event.target.value as SortOption)} className="min-h-10 rounded-lg border border-slate-300 bg-white px-3 text-xs font-bold text-slate-700">
               <option value="recommended">Recommended</option>
               <option value="price-low">Price: low to high</option>
@@ -280,6 +316,13 @@ export default function ListingsSearch({ type, initialFilters, onSelectListing }
                   <button onClick={resetFilters} className="mt-4 text-sm font-semibold text-[#006F3C] underline">Clear all filters</button>
                 </>
               )}
+            </div>
+          ) : view === 'map' ? (
+            <div className="space-y-2">
+              {mapPoints.length > 0
+                ? <Suspense fallback={<div className="h-[32rem] animate-pulse rounded-xl bg-slate-100" />}><OsmMap points={mapPoints} label={`Map of ${TYPE_LABELS[type].toLowerCase()}`} className="h-[32rem]" /></Suspense>
+                : <p className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-500">None of these have a map pin yet. Switch back to the list.</p>}
+              <p className="text-xs text-slate-500">Prices are starting prices per {perUnit}. Press a price to open it.{mapPoints.length < listings.length ? ` ${listings.length - mapPoints.length} on this page ${listings.length - mapPoints.length === 1 ? 'has' : 'have'} no pin, so ${listings.length - mapPoints.length === 1 ? 'it isn’t' : 'they aren’t'} shown.` : ''}</p>
             </div>
           ) : (
             <div className={`grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3 transition-opacity ${loading ? 'opacity-60' : ''}`} aria-busy={loading}>

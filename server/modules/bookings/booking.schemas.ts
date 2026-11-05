@@ -15,6 +15,8 @@ export const rentalInputSchema = z.object({
   outsideBaseCity: z.boolean().default(false),
   oneWay: z.boolean().default(false),
   licenceNumber: z.string().trim().min(5).max(30).optional(),
+  driverAge: z.number().int().min(16).max(100).optional(),
+  extras: z.array(z.string().trim().min(1).max(40)).max(8).optional(),
 }).strict();
 
 export const availabilityQuerySchema = z.object({
@@ -31,6 +33,8 @@ export const availabilityQuerySchema = z.object({
   driver: boolFlag,
   outsideBaseCity: boolFlag,
   oneWay: boolFlag,
+  // Comma-separated add-ons to include in the quote, by name.
+  carExtras: z.string().trim().max(400).transform((value) => value.split(',').map((item) => item.trim()).filter(Boolean)).optional(),
 }).strict();
 
 export const createBookingSchema = z.object({
@@ -51,11 +55,21 @@ export const createBookingSchema = z.object({
     .refine((method) => method === 'pay_at_hotel' || method === 'online', 'Choose Pay now or Pay on arrival.')
     .default('pay_at_hotel'),
   specialRequests: z.string().trim().max(1_000).optional(),
+  arrivalTime: clockTime.optional(),
+  childAges: z.array(z.number().int().min(0).max(17)).max(40).optional(),
   meals: z.array(z.enum(['breakfast', 'lunch', 'dinner'])).max(3).default([])
     .refine((meals) => new Set(meals).size === meals.length, 'Choose each meal once.'),
   couponCode: couponCodeSchema.optional(),
   rental: rentalInputSchema.optional(),
   expectedTotalMinor: z.number().int().nonnegative().optional(),
+}).strict().refine((input) => !input.childAges || input.childAges.length === input.children, { message: 'Give an age for each child.', path: ['childAges'] });
+
+/** What a guest can correct on an upcoming booking without asking the partner. */
+export const bookingDetailsSchema = z.object({
+  name: z.string().trim().min(2).max(120),
+  phone: z.string().trim().min(7).max(30),
+  specialRequests: z.string().trim().max(1_000),
+  arrivalTime: clockTime.nullable().optional(),
 }).strict();
 
 export const bookingIdParamsSchema = z.object({
@@ -122,7 +136,30 @@ export const bookingReferenceQuerySchema = z.object({
   reference: z.string().trim().toUpperCase().regex(/^GB-[0-9A-F]{8}$/, 'Enter a reference like GB-1A2B3C4D.'),
 }).strict();
 
+export const adminBookingFiltersSchema = z.object({
+  q: z.string().trim().min(2).max(100).optional(),
+  status: z.enum(bookingStatuses).optional(),
+  paymentStatus: z.enum(['pending', 'paid']).optional(),
+  type: z.enum(['hotel', 'homestay', 'car', 'tour']).optional(),
+  dispute: z.literal('open').optional(),
+  from: isoDate.optional(),
+  to: isoDate.optional(),
+}).strict();
+
+export const adminBookingsQuerySchema = adminBookingFiltersSchema.extend({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(25),
+}).strict();
+
+export const disputeNoShowSchema = z.object({ note: z.string().trim().min(10, 'Tell us briefly what happened.').max(1000) }).strict();
+
+export const decideNoShowSchema = z.object({
+  decision: z.enum(['no_show_stands', 'guest_stayed', 'refund_guest']),
+  note: z.string().trim().min(3).max(1000),
+}).strict();
+
 export const adminCancelBookingSchema = z.object({ reason: z.string().trim().min(3).max(900) }).strict();
 
 export type CreateBookingInput = z.infer<typeof createBookingSchema>;
 export type ListBookingsQuery = z.infer<typeof listBookingsQuerySchema>;
+export type AdminBookingsQuery = z.infer<typeof adminBookingsQuerySchema>;

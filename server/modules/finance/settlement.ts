@@ -2,17 +2,28 @@
 type SettlementBooking = {
   status: string; paymentMethod: string; paymentStatus: string;
   pricing: { totalMinor: number; balanceDueMinor?: number; commissionMinor?: number };
-  refunds?: Array<{ channel: string; amountMinor: number; status: string }>;
+  refunds?: Array<{ kind?: string; channel: string; amountMinor: number; status: string }>;
+  noShow?: { disputeUntil?: Date | string; dispute?: { status?: string } | null };
 };
+
+/** A guest paying twice is between the guest and GBBookings: the second payment was never the partner's. */
+const partnersRefunds = (booking: Pick<SettlementBooking, 'refunds'>) => (booking.refunds ?? []).filter((refund) => refund.kind !== 'duplicate_payment');
+
+/** The guest can still dispute this no-show, or has and is waiting for the admin. */
+export function noShowUnsettled(booking: Pick<SettlementBooking, 'status' | 'noShow'>, now = Date.now()) {
+  if (booking.status !== 'no_show' || !booking.noShow) return false;
+  if (booking.noShow.dispute) return booking.noShow.dispute.status === 'open';
+  return now < new Date(booking.noShow.disputeUntil ?? 0).getTime();
+}
 
 /** The money paid so far: a balance agreed on a later change is collected by the partner, not by GBBookings. */
 export const heldMinor = (booking: Pick<SettlementBooking, 'pricing'>) => booking.pricing.totalMinor - (booking.pricing.balanceDueMinor ?? 0);
 
-export const hasOpenRefund = (booking: Pick<SettlementBooking, 'refunds'>) => (booking.refunds ?? []).some((refund) => refund.status !== 'sent');
+export const hasOpenRefund = (booking: Pick<SettlementBooking, 'refunds'>) => partnersRefunds(booking).some((refund) => refund.status !== 'sent');
 
 /** The stay happened, or money stayed with the partner after a no-show or cancellation. Waits while a refund is still open. */
 export function settlementDue(booking: SettlementBooking) {
-  if (hasOpenRefund(booking)) return false;
+  if (hasOpenRefund(booking) || noShowUnsettled(booking)) return false;
   return booking.status === 'completed' || (['no_show', 'cancelled'].includes(booking.status) && booking.paymentStatus === 'paid');
 }
 
@@ -23,7 +34,7 @@ export function settlementDue(booking: SettlementBooking) {
 export function settlement(booking: SettlementBooking) {
   const online = booking.paymentMethod === 'online' && booking.paymentStatus === 'paid';
   const collectedOnlineMinor = online ? heldMinor(booking) : 0;
-  const refundedMinor = online ? (booking.refunds ?? []).reduce((total, refund) => total + refund.amountMinor, 0) : 0;
+  const refundedMinor = online ? partnersRefunds(booking).reduce((total, refund) => total + refund.amountMinor, 0) : 0;
   const commissionMinor = booking.pricing.commissionMinor ?? 0;
   return { collectedOnlineMinor, refundedMinor, commissionMinor, netMinor: collectedOnlineMinor - refundedMinor - commissionMinor };
 }

@@ -5,10 +5,12 @@ import Navbar from '../shared/components/Navbar';
 import MobileAppBottomNav from '../shared/components/MobileAppBottomNav';
 import { Booking, Listing } from '../types';
 import type { CheckoutParams } from '../features/booking/CheckoutFlow';
-import { api, AUTH_EXPIRED_EVENT, resetApiSession, markApiSession, type AuthUser } from '../shared/api/api';
+import { api, AUTH_EXPIRED_EVENT, resetApiSession, markApiSession } from '../shared/api/api';
 import { OPEN_SIGN_IN_EVENT } from '../shared/hooks/useWishlist';
 import { flashToast } from '../shared/components/Toaster';
 import AccountActionPage, { isAccountActionPath } from '../features/auth/AccountActionPage';
+import { announcePaymentReturn } from '../features/booking/paymentTab';
+import { toast } from '../shared/components/Toaster';
 
 const ExploreSection = lazy(() => import('../features/catalog/ExploreSection'));
 const ListingsSearch = lazy(() => import('../features/catalog/ListingsSearch'));
@@ -33,6 +35,7 @@ const SupportCentre = lazy(() => import('../features/support/SupportCentre'));
 const AuthModal = lazy(() => import('../features/auth/AuthModal'));
 const Footer = lazy(() => import('../shared/components/Footer'));
 const MobileInstallPrompt = lazy(() => import('../shared/components/MobileInstallPrompt'));
+const CookieNotice = lazy(() => import('../shared/components/CookieNotice'));
 
 // Views that need a signed-in user. Every navigation path (navbar, dashboards, deep flows) is gated at render time.
 const PROTECTED_VIEWS = new Set(['bookings', 'profile', 'saved', 'inbox', 'vendor-dashboard', 'admin-dashboard', 'checkout']);
@@ -82,7 +85,7 @@ function readLocation() {
     const query = new URLSearchParams(window.location.search);
     // Safepay appends its own "?tracker=…" to our link, so take just the booking id out of the value.
     const bookingId = query.get('payment')?.match(/bkg_[0-9a-f-]{36}/i)?.[0];
-    return { view: 'bookings', payment: bookingId ? { bookingId, cancelled: query.has('cancelled') } : undefined };
+    return { view: 'bookings', payment: bookingId ? { bookingId, cancelled: query.has('cancelled'), inMainTab: query.has('main') } : undefined };
   }
   return { view: PATH_VIEWS.has(first) ? first : 'explore' };
 }
@@ -125,13 +128,23 @@ export default function App() {
     isFirstUrlSync.current = false;
   }, [view, selectedListingId, searchParams.type, searchParams.destination]);
 
-  // Back from Safepay: Back must not return to its payment page. The entry under this one is a floor that bounces forward again.
-  const paymentFloorSet = useRef(false);
+  // Back from Safepay. Normally this is the payment's own tab, so the main tab takes over and this one closes.
+  // If the browser blocked that tab, Safepay is in this tab's history, so Back gets a floor that bounces forward again.
+  const paymentReturnHandled = useRef(false);
   useEffect(() => {
-    if (!initialLocation.payment || paymentFloorSet.current) return;
-    paymentFloorSet.current = true;
-    window.history.replaceState(PAYMENT_FLOOR, '', '/bookings');
-    window.history.pushState(null, '', '/bookings');
+    const payment = initialLocation.payment;
+    if (!payment || payment.inMainTab || paymentReturnHandled.current) return;
+    paymentReturnHandled.current = true;
+    void announcePaymentReturn(payment).then((mainTabWaiting) => {
+      if (mainTabWaiting) {
+        window.close();
+        // Some browsers refuse to close it.
+        toast('All done. You can close this tab.');
+        return;
+      }
+      window.history.replaceState(PAYMENT_FLOOR, '', '/bookings');
+      window.history.pushState(null, '', '/bookings');
+    });
   }, [initialLocation.payment]);
 
   // Browser Back/Forward: restore the page from the URL.
@@ -245,22 +258,6 @@ export default function App() {
     if (logoutInFlight.current) await logoutInFlight.current;
     setAuthModalMode(mode);
     setShowAuthModal(true);
-  };
-
-  const handleSuccessLogin = (user: AuthUser) => {
-    accountGeneration.current += 1;
-    resetApiSession();
-    markApiSession();
-    setUserId(user.id);
-    hasSession.current = true;
-    setUserEmail(user.email);
-    setUserName(user.name);
-    setUserRoles(user.roles ?? []);
-    setAuthChecked(true);
-    setIsLoggedIn(true);
-    setView((current) => (user.roles ?? []).some((role) => STAFF_ROLES.includes(role)) ? 'admin-dashboard'
-      : current === 'admin-dashboard' ? homeDashboard(user.roles ?? [])
-        : current === 'vendor-dashboard' && !(user.roles ?? []).some((role) => VENDOR_ROLES.includes(role)) ? 'become-partner' : current);
   };
 
   const handleSignOut = async () => {
@@ -385,7 +382,7 @@ export default function App() {
                 <p className="mt-3 text-sm leading-6 text-slate-600">{isLoggedIn ? 'This area is reserved for platform administrators.' : 'Use your administrator account to continue.'}</p>
                 <button type="button" onClick={isLoggedIn ? () => setView(homeDashboard(userRoles)) : () => handleOpenAuthModal('signin')} className="mt-6 min-h-11 w-full rounded-lg bg-slate-900 px-5 text-sm font-semibold text-white hover:bg-slate-800">{isLoggedIn ? 'Return to your dashboard' : 'Admin sign in'}</button>
               </section></main>}
-          {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} initialMode={authModalMode} onSuccessLogin={handleSuccessLogin} />}
+          {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} initialMode={authModalMode} />}
         </Suspense>
       </div>
     );
@@ -403,7 +400,7 @@ export default function App() {
               <button type="button" onClick={() => handleOpenAuthModal('signin')} className="mt-6 min-h-11 w-full rounded-lg bg-[#006F3C] px-5 text-sm font-semibold text-white">Sign in</button>
               <button type="button" onClick={() => handleNavigation('become-partner')} className="mt-3 min-h-11 w-full text-sm font-medium text-slate-600">Not a partner yet? Become a partner</button>
             </section></main>}
-          {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} initialMode={authModalMode} onSuccessLogin={handleSuccessLogin} />}
+          {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} initialMode={authModalMode} />}
         </Suspense>
       </div>
     );
@@ -633,12 +630,12 @@ export default function App() {
           <AuthModal
             onClose={() => setShowAuthModal(false)}
             initialMode={authModalMode}
-            onSuccessLogin={handleSuccessLogin}
           />
         )}
 
 
         <MobileInstallPrompt />
+        <CookieNotice />
       </Suspense>
 
       <button type="button" aria-label="Open the trip assistant" aria-haspopup="dialog" onClick={() => setShowPlanner(true)} className="fixed right-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] z-40 flex min-h-12 items-center gap-2 rounded-full bg-[#006F3C] px-4 text-sm font-semibold text-white shadow-lg hover:bg-[#005c32] sm:right-6 lg:bottom-6"><Sparkles className="size-5" /><span className="hidden sm:inline">Plan my trip</span></button>

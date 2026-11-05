@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { CarSpecsInput } from '../../shared/api/api';
-import type { CarCategory, CarSpecs, DriverMode, StayInfo } from '../../types';
+import type { CarCategory, CarExtra, CarSpecs, DriverMode, StayInfo } from '../../types';
 import { PAYMENT_LABELS } from '../../shared/utils/stayInfo';
 import ChipInput from './ChipInput';
 import Select from '../../shared/components/Select';
@@ -17,6 +17,7 @@ export type CarDraft = {
   chargesOutside: boolean; outsideCityPerDay: number;
   oneWay: 'not_offered' | 'flat' | 'on_request'; oneWayFee: number;
   deposit: number; minDriverAge: number; pickupNote: string; paymentMethods: PaymentMethod[];
+  pickupPlaces: string[]; limitedKm: boolean; kmPerDay: number; extraPerKm: number; extras: CarExtra[];
 };
 
 export const carDraft = (specs?: CarSpecs, paymentMethods: PaymentMethod[] = ['cash']): CarDraft => ({
@@ -29,6 +30,7 @@ export const carDraft = (specs?: CarSpecs, paymentMethods: PaymentMethod[] = ['c
   chargesOutside: specs?.outsideCityPerDay !== undefined, outsideCityPerDay: specs?.outsideCityPerDay ?? 0,
   oneWay: specs?.oneWay ?? 'not_offered', oneWayFee: specs?.oneWayFee ?? 0,
   deposit: specs?.deposit ?? 0, minDriverAge: specs?.minDriverAge ?? 21, pickupNote: specs?.pickupNote ?? '', paymentMethods,
+  pickupPlaces: specs?.pickupPlaces ?? [], limitedKm: Boolean(specs?.kmPerDay), kmPerDay: specs?.kmPerDay ?? 200, extraPerKm: specs?.extraPerKm ?? 0, extras: specs?.extras ?? [],
 });
 
 const selfDrive = (draft: CarDraft) => draft.driverMode !== 'with_driver';
@@ -41,6 +43,9 @@ export const carInput = (draft: CarDraft): CarSpecsInput => ({
   oneWay: draft.oneWay, ...(draft.oneWay === 'flat' ? { oneWayFee: draft.oneWayFee } : {}),
   ...(selfDrive(draft) ? { deposit: draft.deposit, minDriverAge: draft.minDriverAge } : {}),
   ...(draft.pickupNote.trim() ? { pickupNote: draft.pickupNote.trim() } : {}),
+  pickupPlaces: draft.pickupPlaces,
+  ...(draft.limitedKm ? { kmPerDay: draft.kmPerDay, extraPerKm: draft.extraPerKm } : {}),
+  extras: draft.extras.map((item) => ({ ...item, name: item.name.trim() })),
 });
 
 export function carProblem(draft: CarDraft, part: 'car' | 'terms') {
@@ -52,6 +57,9 @@ export function carProblem(draft: CarDraft, part: 'car' | 'terms') {
     return '';
   }
   if (!draft.paymentMethods.length) return 'Choose at least one way guests can pay at pickup.';
+  if (draft.limitedKm && draft.kmPerDay < 1) return 'Set the kilometres allowed per day, or choose unlimited.';
+  if (draft.extras.some((item) => item.name.trim().length < 2 || item.name.includes(',') || item.price < 1)) return 'Give each extra a name without commas, and a price.';
+  if (new Set(draft.extras.map((item) => item.name.trim().toLowerCase())).size !== draft.extras.length) return 'List each extra once.';
   if (draft.oneWay === 'flat' && draft.oneWayFee <= 0) return 'Set the one-way drop-off fee, or choose "price on request".';
   if (selfDrive(draft) && (draft.minDriverAge < 18 || draft.minDriverAge > 30)) return 'Set a minimum self-drive age between 18 and 30.';
   return '';
@@ -120,6 +128,27 @@ export function CarTermsFields({ value, onChange }: { value: CarDraft; onChange:
         <Field label="One-way drop-off" hint="Returning the car in another city."><Select className={fieldClass} value={value.oneWay} onChange={(event) => set('oneWay', event.target.value as CarDraft['oneWay'])}><option value="not_offered">Not offered</option><option value="flat">Flat fee</option><option value="on_request">Offered, price on request</option></Select></Field>
         {value.oneWay === 'flat' && <Money label="One-way fee per car" value={value.oneWayFee} onChange={(next) => set('oneWayFee', next)} />}
       </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="flex items-start gap-3 text-sm text-slate-700 sm:col-span-2"><input type="checkbox" checked={value.limitedKm} onChange={(event) => set('limitedKm', event.target.checked)} className="mt-0.5 size-4 accent-[#006F3C]" /><span><span className="font-semibold">Limit the kilometres per day</span><span className="block text-xs text-slate-500">Otherwise guests are told mileage is unlimited. You collect any extra when the car comes back.</span></span></label>
+        {value.limitedKm && <>
+          <Field label="Kilometres allowed per day"><input type="number" required min={1} max={5000} className={fieldClass} value={value.kmPerDay} onChange={(event) => set('kmPerDay', Number(event.target.value))} /></Field>
+          <Money label="Charge per extra kilometre" value={value.extraPerKm} onChange={(next) => set('extraPerKm', next)} />
+        </>}
+      </div>
+      <fieldset className="space-y-3">
+        <legend className="text-sm font-semibold text-slate-700">Paid extras (optional)</legend>
+        <p className="text-xs text-slate-500">Things a guest can add when booking, such as a child seat. Included ones go under Features instead.</p>
+        {value.extras.map((extra, index) => {
+          const change = (patch: Partial<CarExtra>) => set('extras', value.extras.map((item, at) => at === index ? { ...item, ...patch } : item));
+          return <div key={index} className="grid gap-2 sm:grid-cols-[1fr_8rem_9rem_auto] sm:items-end">
+            <label className="text-xs font-bold text-slate-600">Name<input required minLength={2} maxLength={40} placeholder="Child seat" value={extra.name} onChange={(event) => change({ name: event.target.value })} className={fieldClass} /></label>
+            <label className="text-xs font-bold text-slate-600">PKR<input required type="number" min={1} max={1000000} step={1} value={extra.price || ''} onChange={(event) => change({ price: Number(event.target.value) })} className={fieldClass} /></label>
+            <label className="text-xs font-bold text-slate-600">Charged<Select className={fieldClass} value={extra.perDay ? 'day' : 'once'} onChange={(event) => change({ perDay: event.target.value === 'day' })}><option value="day">Per day</option><option value="once">Once</option></Select></label>
+            <button type="button" onClick={() => set('extras', value.extras.filter((_, at) => at !== index))} className="min-h-11 rounded-lg border border-slate-300 px-3 text-sm font-semibold text-rose-700">Remove</button>
+          </div>;
+        })}
+        {value.extras.length < 8 && <button type="button" onClick={() => set('extras', [...value.extras, { name: '', price: 0, perDay: true }])} className="min-h-11 rounded-lg border border-slate-300 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">Add an extra</button>}
+      </fieldset>
       {value.driverMode !== 'with_driver' && <div className="grid gap-4 rounded-xl border border-slate-200 p-4 sm:grid-cols-2">
         <p className="text-sm font-semibold text-slate-700 sm:col-span-2">Self-drive rules</p>
         <Money label="Refundable deposit" hint="Paid at pickup and returned with the car. Use 0 for none." value={value.deposit} onChange={(next) => set('deposit', next)} />
@@ -135,6 +164,7 @@ export function CarTermsFields({ value, onChange }: { value: CarDraft; onChange:
           ))}
         </div>
       </fieldset>
+      <ChipInput label="Pickup places (optional). Guests find this car by searching for them." value={value.pickupPlaces} onChange={(places) => set('pickupPlaces', places.slice(0, 10))} suggestions={[]} />
       <Field label="Pickup notes (optional)" hint="Shown to guests, e.g. “Free pickup from Skardu airport and hotels in town.”" wide><textarea maxLength={500} className={`${fieldClass} min-h-20 py-3`} value={value.pickupNote} onChange={(event) => set('pickupNote', event.target.value)} /></Field>
     </div>
   );

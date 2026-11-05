@@ -7,6 +7,8 @@ import AddTourWizard from './AddTourWizard';
 import HotelWorkspace, { LISTING_STATUS } from './HotelWorkspace';
 import VendorReservations from './VendorReservations';
 import SecurityPanel from '../account/SecurityPanel';
+import Inbox from '../messages/Inbox';
+import { onMessage } from '../../shared/api/realtime';
 import VendorWorkspace, { canOpen, partnerWords, type MemberArea, type VendorTab } from './VendorWorkspace';
 import PartnerHome from './PartnerHome';
 import VendorReports from './VendorReports';
@@ -24,6 +26,14 @@ const toolButton = 'inline-flex min-h-10 items-center gap-2 rounded-lg border bo
 /** Partner dashboard for approved hotel businesses; registration lives on the Become a partner page. */
 export default function VendorDashboard({ setView, userName, userEmail, onSignOut }: VendorDashboardProps) {
   const [tab, setTab] = useState<VendorTab>('overview');
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  useEffect(() => {
+    const refresh = () => { api.unreadMessages().then((counts) => setUnreadMessages(counts.partner)).catch(() => undefined); };
+    refresh();
+    window.addEventListener('gb:messages-read', refresh);
+    const stop = onMessage(refresh);
+    return () => { window.removeEventListener('gb:messages-read', refresh); stop(); };
+  }, []);
   const [loadError, setLoadError] = useState('');
   const [reload, setReload] = useState(0);
   const [vendor, setVendor] = useState<VendorProfile | null>(null);
@@ -93,7 +103,7 @@ export default function VendorDashboard({ setView, userName, userEmail, onSignOu
   };
 
   return (
-    <VendorWorkspace tab={tab} access={access} kind={word} badges={{ reservations: pendingCount }} onTab={navigate} hideHeading={tab === 'new-property' || Boolean(workspace && tab === 'properties')} businessName={vendor?.name} status={vendor?.status} userName={userName} userEmail={userEmail} onBrowse={() => setView('explore')} onSignOut={onSignOut}>
+    <VendorWorkspace tab={tab} access={access} kind={word} badges={{ reservations: pendingCount, messages: unreadMessages }} onTab={navigate} hideHeading={tab === 'new-property' || Boolean(workspace && tab === 'properties')} businessName={vendor?.name} status={vendor?.status} userName={userName} userEmail={userEmail} onBrowse={() => setView('explore')} onSignOut={onSignOut}>
       {loading ? <div className="flex min-h-64 items-center justify-center" role="status"><LoaderCircle className="size-7 animate-spin text-[#006F3C]" /><span className="sr-only">Loading your workspace</span></div>
         : loadError ? <div role="alert" className="rounded-xl border border-rose-200 bg-white p-6"><p className="text-sm text-rose-700">{loadError}</p><button type="button" onClick={() => setReload((value) => value + 1)} className="mt-4 min-h-11 rounded-lg border px-4 text-sm font-semibold">Try again</button></div> : <div className="space-y-6">
       {dialog}
@@ -115,6 +125,7 @@ export default function VendorDashboard({ setView, userName, userEmail, onSignOu
 
       {vendor?.status === 'approved' && <>
         {tab === 'reservations' && <VendorReservations properties={listings} car={word === 'car'} tour={word === 'tour'} defaultTab={canOpen(access, 'overview') ? 'pending' : 'arriving'} />}
+        {tab === 'messages' && canOpen(access, 'messages') && <Inbox partnerOnly />}
         {tab === 'reviews' && canOpen(access, 'reviews') && <PartnerReviews properties={listings} />}
         {tab === 'promo-codes' && canOpen(access, 'promo-codes') && <PartnerCoupons />}
         {tab === 'reports' && canOpen(access, 'reports') && <VendorReports />}

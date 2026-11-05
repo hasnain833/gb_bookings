@@ -80,7 +80,7 @@ export async function consumeOtpChallenge(challengeId: string, code: string, pur
   const consumed = await OtpChallengeModel.findOneAndUpdate(
     { _id: challenge._id, consumedAt: null, expiresAt: { $gt: new Date() }, attempts: { $lt: challenge.maxAttempts } },
     { $set: { consumedAt: new Date() } }, { returnDocument: 'after', session },
-  ).select('+registration');
+  ).select('+registration +destination');
   if (!consumed) throw new AppError(400, 'INVALID_OR_EXPIRED_OTP', 'This security code is invalid or has expired.');
   return consumed;
 }

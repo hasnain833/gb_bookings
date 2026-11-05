@@ -20,11 +20,11 @@ async function requireDatabase() {
 const addDays = (date: string, days: number) => new Date(Date.parse(`${date}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
 
 /**
- * A stay can be reviewed once it has ended (checked out, or confirmed and past its check-out date, in case the
- * property forgot to check the guest out) and for REVIEW_WINDOW_DAYS afterwards. Cancelled and no-show stays cannot.
+ * A stay can be reviewed once it is completed: the partner checked the guest out, or it completed by itself 48 hours
+ * after check-out, which gave them time to report a no-show. Open for REVIEW_WINDOW_DAYS. Cancelled and no-show stays cannot.
  */
 export function reviewableUntil(booking: { status: string; endDate: string }, today = todayInPakistan()) {
-  if (!['completed', 'confirmed'].includes(booking.status) || booking.endDate > today) return null;
+  if (booking.status !== 'completed' || booking.endDate > today) return null;
   const until = addDays(booking.endDate, REVIEW_WINDOW_DAYS);
   return today <= until ? until : null;
 }
@@ -81,6 +81,9 @@ export async function createReview(
   if (!booking) throw new AppError(404, 'BOOKING_NOT_FOUND', 'Booking not found.');
   if (!reviewableUntil({ status: booking.status, endDate: shownEnd(booking) })) {
     throw new AppError(409, 'REVIEW_NOT_ALLOWED', `You can review a stay after check-out, for ${REVIEW_WINDOW_DAYS} days. Cancelled and no-show bookings cannot be reviewed.`);
+  }
+  if (booking.vendorId && await VendorMemberModel.exists({ userId: customerId, vendorId: booking.vendorId, status: 'active', deletedAt: null })) {
+    throw new AppError(403, 'OWN_LISTING', 'You cannot review your own listing.');
   }
   let review;
   try {

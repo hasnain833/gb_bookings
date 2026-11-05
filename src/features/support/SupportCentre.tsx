@@ -10,7 +10,7 @@ const FAQS: Array<[string, string]> = [
   ['How do I pay?', 'Pay on arrival: you pay the property, car partner or tour partner directly at check-in, at pickup, or when the tour starts. Each listing shows the ways they accept (cash, card, JazzCash, Easypaisa or bank transfer). Or choose Pay now at checkout to pay online by card or mobile wallet on Safepay\'s secure page.'],
   ['When is my booking confirmed?', 'After you book, the partner has 24 hours to confirm. You get an email either way. If they do not answer in time, the request is cancelled and nothing is held.'],
   ['How do I cancel?', 'Go to My Bookings and cancel any time before the check-in, pickup or tour start date. On or after that day, contact the partner directly. Their phone and WhatsApp are on your voucher once they confirm.'],
-  ['Can I change my dates?', 'Contact the partner: they can move your booking to new dates or rooms if there is space. Or cancel before the start date and book again.'],
+  ['Can I change my dates?', 'Open the booking in My Bookings and press Request a change. You see the new price first, and the partner accepts or declines. If a partner suggests a change, nothing happens unless you accept it.'],
   ['How do I use a promo code?', 'Enter it on the review step of checkout. Codes are made by partners and work only on their own listings.'],
   ['How do I write a review?', 'Open My Bookings after your stay, rental or tour. You can review it once, up to 30 days after it ends.'],
   ['How do I list my hotel, homestay, cars or tours?', 'Choose "Become a partner", pick your type and upload your documents. We check them and you can start adding listings once you are approved.'],

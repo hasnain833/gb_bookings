@@ -27,6 +27,7 @@ export default function CarBookingPanel({ listingId, baseCity, specs, paymentMet
   const [driver, setDriver] = useState(mode !== 'self_drive');
   const [outside, setOutside] = useState(false);
   const [oneWay, setOneWay] = useState(false);
+  const [chosenExtras, setChosenExtras] = useState<string[]>([]);
   const [pickupPlace, setPickupPlace] = useState('');
   const [dropoffPlace, setDropoffPlace] = useState('');
   const [quote, setQuote] = useState<ListingAvailability | null>(null);
@@ -43,12 +44,12 @@ export default function CarBookingPanel({ listingId, baseCity, specs, paymentMet
     if (!datesReady) { setQuote(null); return undefined; }
     let active = true;
     setLoading(true);
-    api.getListingAvailability(listingId, { checkIn: pickup, checkOut: returnDate, adults: passengers, children: 0, rooms: cars, driver: mode === 'both' ? driver : undefined, outsideBaseCity: outside, oneWay })
+    api.getListingAvailability(listingId, { checkIn: pickup, checkOut: returnDate, adults: passengers, children: 0, rooms: cars, driver: mode === 'both' ? driver : undefined, outsideBaseCity: outside, oneWay, carExtras: chosenExtras })
       .then((result) => active && setQuote(result))
       .catch((reason: Error) => active && setError(reason.message))
       .finally(() => active && setLoading(false));
     return () => { active = false; };
-  }, [listingId, pickup, returnDate, passengers, cars, driver, outside, oneWay, datesReady, mode]);
+  }, [listingId, pickup, returnDate, passengers, cars, driver, outside, oneWay, chosenExtras, datesReady, mode]);
 
   const unit = quote?.rooms[0];
   const days = quote?.nights ?? 0;
@@ -61,7 +62,7 @@ export default function CarBookingPanel({ listingId, baseCity, specs, paymentMet
       listingId, roomTypeId: unit.id, roomName: unit.name, startDate: pickup, endDate: returnDate,
       rooms: cars, adults: passengers, children: 0, guests: passengers, duration: days,
       totalPrice: unit.totalPrice, extrasTotal: unit.extrasTotal ?? 0, payAtHotel: true, withDriver: rental.driver,
-      rental: { driver: rental.driver, pickupPlace: pickupPlace.trim(), pickupTime, dropoffPlace: oneWay ? dropoffPlace.trim() : undefined, outsideBaseCity: outside, oneWay },
+      rental: { driver: rental.driver, pickupPlace: pickupPlace.trim(), pickupTime, dropoffPlace: oneWay ? dropoffPlace.trim() : undefined, outsideBaseCity: outside, oneWay, ...(chosenExtras.length ? { extras: chosenExtras } : {}) },
     });
   };
 
@@ -105,13 +106,21 @@ export default function CarBookingPanel({ listingId, baseCity, specs, paymentMet
 
       <div className="space-y-1.5">
         <label htmlFor="car-pickup-place" className={labelClass}><MapPin className="w-3.5 h-3.5 text-slate-400" /> Pickup place</label>
-        <input id="car-pickup-place" value={pickupPlace} maxLength={200} onChange={(event) => setPickupPlace(event.target.value)} placeholder={`e.g. ${baseCity.split(',')[0]} airport or your hotel`} className={inputClass} />
+        <input id="car-pickup-place" list="car-pickup-places" value={pickupPlace} maxLength={200} onChange={(event) => setPickupPlace(event.target.value)} placeholder={`e.g. ${baseCity.split(',')[0]} airport or your hotel`} className={inputClass} />
+        <datalist id="car-pickup-places">{specs.pickupPlaces?.map((place) => <option key={place} value={place} />)}</datalist>
         {specs.pickupNote && <p className="text-xs text-slate-500">{specs.pickupNote}</p>}
       </div>
       {specs.outsideCityPerDay !== undefined && <label className="flex items-start gap-2 text-sm text-slate-700">
         <input type="checkbox" checked={outside} onChange={(event) => setOutside(event.target.checked)} className="mt-0.5 size-4 accent-[#006F3C]" />
         <span>The trip leaves {baseCity.split(',')[0]}<span className="block text-xs text-slate-500">+{pkr(specs.outsideCityPerDay)} per day</span></span>
       </label>}
+      {specs.extras?.length ? <fieldset className="space-y-2">
+        <legend className={labelClass}>Add extras</legend>
+        {specs.extras.map((extra) => <label key={extra.name} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2 text-sm">
+          <span className="flex items-center gap-2"><input type="checkbox" checked={chosenExtras.includes(extra.name)} className="size-4 accent-[#006F3C]" onChange={(event) => setChosenExtras(event.target.checked ? [...chosenExtras, extra.name] : chosenExtras.filter((name) => name !== extra.name))} />{extra.name}</span>
+          <span className="text-slate-600">{pkr(extra.price)}{extra.perDay ? ' / day' : ''}</span>
+        </label>)}
+      </fieldset> : null}
       {oneWayOffered && <div className="space-y-2">
         <label className="flex items-start gap-2 text-sm text-slate-700">
           <input type="checkbox" checked={oneWay} onChange={(event) => setOneWay(event.target.checked)} className="mt-0.5 size-4 accent-[#006F3C]" />
@@ -129,10 +138,12 @@ export default function CarBookingPanel({ listingId, baseCity, specs, paymentMet
           <div className="flex justify-between text-slate-500"><span>{unit.nightlyRate * days * cars !== unit.roomTotal ? 'avg. ' : ''}{pkr(unit.nightlyRate)} × {days} day{days > 1 ? 's' : ''}{cars > 1 ? ` × ${cars} cars` : ''}</span><span className="text-slate-800">{pkr(unit.roomTotal)}</span></div>
           {rental.driver && rental.driverPerDay > 0 && <div className="flex justify-between text-slate-500"><span>Driver {pkr(rental.driverPerDay)} × {days} day{days > 1 ? 's' : ''}</span><span className="text-slate-800">{pkr(rental.driverPerDay * days * cars)}</span></div>}
           {rental.outsidePerDay > 0 && <div className="flex justify-between text-slate-500"><span>Outside {baseCity.split(',')[0]} × {days} day{days > 1 ? 's' : ''}</span><span className="text-slate-800">{pkr(rental.outsidePerDay * days * cars)}</span></div>}
+          {rental.extras?.map((extra) => <div key={extra.name} className="flex justify-between text-slate-500"><span>{extra.name}{extra.perDay ? ` × ${days} day${days > 1 ? 's' : ''}` : ''}</span><span className="text-slate-800">{pkr(extra.price * (extra.perDay ? days : 1) * cars)}</span></div>)}
           {rental.oneWayFee > 0 && <div className="flex justify-between text-slate-500"><span>One-way drop-off</span><span className="text-slate-800">{pkr(rental.oneWayFee * cars)}</span></div>}
           <div className="flex justify-between font-semibold text-slate-900"><span>Total before any fees and taxes</span><span>{pkr(unit.totalPrice)}</span></div>
           <ul className="space-y-1 text-xs text-slate-500">
             <li>{rental.fuelIncluded ? '✓ Fuel included' : 'Fuel is paid by you'}</li>
+            <li>{rental.kmPerDay ? `${rental.kmPerDay} km per day included${rental.extraPerKm ? `, then ${pkr(rental.extraPerKm)} per km, paid on return` : ''}` : '✓ Unlimited kilometres'}</li>
             {rental.oneWayOnRequest && <li>One-way fee is quoted by the partner when they confirm.</li>}
             {!rental.driver && <li>Self-drive: bring your driving licence{specs.minDriverAge ? ` (minimum age ${specs.minDriverAge})` : ''}{rental.deposit ? `. Refundable deposit ${pkr(rental.deposit)} at pickup` : ''}.</li>}
             {quote?.freeCancellationUntil && <li>Free cancellation until {formatDateForDisplay(quote.freeCancellationUntil)}</li>}

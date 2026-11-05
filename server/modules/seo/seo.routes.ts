@@ -6,6 +6,7 @@ import { connectDatabase } from '../../database/connection.js';
 import { ListingModel } from '../../models/listing.model.js';
 import { asyncHandler } from '../../shared/async-handler.js';
 import { escapeHtml } from '../email/auth-email.templates.js';
+import { visibleFilter } from '../listings/listing.service.js';
 
 /**
  * Crawlers get real HTML: each public page is the built index.html with its title, description and content filled in.
@@ -66,7 +67,7 @@ seoRouter.get('/robots.txt', (request, response) => {
 seoRouter.get('/sitemap.xml', asyncHandler(async (request, response) => {
   const base = siteUrl(request);
   const listings = await connectDatabase()
-    ? await ListingModel.find({ status: 'published', deletedAt: null, type: { $in: ['hotel', 'homestay', 'car', 'tour'] } }).select('publicId updatedAt').limit(45_000).lean() as any[]
+    ? await ListingModel.find({ ...await visibleFilter(), type: { $in: ['hotel', 'homestay', 'car', 'tour'] } }).select('publicId updatedAt').limit(45_000).lean() as any[]
     : [];
   const urls = [
     ...[...STATIC_PATHS, ...Object.keys(CATEGORIES).map((name) => `/${name}`)].map((pathName) => `<url><loc>${base}${pathName}</loc></url>`),
@@ -79,7 +80,7 @@ seoRouter.get('/listing/:id', asyncHandler(async (request, response) => {
   const html = await indexHtml();
   const canonical = `${siteUrl(request)}/listing/${encodeURIComponent(request.params.id)}`;
   const listing = await connectDatabase()
-    ? await ListingModel.findOne({ publicId: request.params.id, status: 'published', deletedAt: null }).lean() as any
+    ? await ListingModel.findOne({ ...await visibleFilter(), publicId: request.params.id }).lean() as any
     : null;
   if (!listing) {
     response.status(404).type('html').send(renderPage(html, { title: 'Listing not found', description: 'This listing is not available.', canonical, body: '<h1>Listing not found</h1>', noindex: true }));
@@ -102,7 +103,7 @@ seoRouter.get(Object.keys(CATEGORIES).map((name) => `/${name}`), asyncHandler(as
   const name = request.path.slice(1);
   const category = CATEGORIES[name];
   const listings = await connectDatabase()
-    ? await ListingModel.find({ type: category.type, status: 'published', deletedAt: null }).sort({ featured: -1, rating: -1 }).limit(100).select('publicId title location price').lean() as any[]
+    ? await ListingModel.find(await visibleFilter(category.type)).sort({ featured: -1, rating: -1 }).limit(100).select('publicId title location price').lean() as any[]
     : [];
   const items = listings.map((listing) => `<li><a href="${escapeHtml(listingPath(listing))}">${escapeHtml(listing.title)}</a>, ${escapeHtml(listing.location)}, from PKR ${Number(listing.price).toLocaleString('en-PK')} per ${category.unit}</li>`).join('');
   response.set('Cache-Control', 'public, max-age=300').type('html').send(renderPage(await indexHtml(), {

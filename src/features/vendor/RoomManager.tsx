@@ -8,6 +8,7 @@ import RoomCalendar from './RoomCalendar';
 import { BATHROOM_ITEMS, BED_KINDS, bedSummary, ROOM_NAME_PRESETS, ROOM_TYPES, type Bed, type BedKind, type RoomLayout, type RoomTypeKey } from '../../shared/utils/rooms';
 import Select from '../../shared/components/Select';
 import DateInput from '../../shared/components/DateInput';
+import { WEEKDAY_NAMES, type StayDeals } from '../../shared/utils/roomPricing';
 
 const inputClass = 'min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[#006F3C]';
 export const primaryButton = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#006F3C] px-4 text-sm font-bold text-white hover:bg-[#005c32] disabled:opacity-50';
@@ -252,7 +253,7 @@ function RoomCard({ listing, room, live, editable, busy, onRun, onReplace, onRem
             {!car && <button type="button" className={secondaryButton} disabled={busy} onClick={() => setEditing(true)}>Edit details &amp; photos</button>}
             {isNew ? <span className="inline-flex min-h-11 items-center text-sm text-slate-600">You can set weekend and season prices once this room is approved.</span>
               : <button type="button" className={secondaryButton} aria-expanded={pricesOpen} onClick={() => setPricesOpen(!pricesOpen)}>
-              Weekend &amp; season prices{(room.weekendPrice != null || room.seasons?.length) ? ' · on' : ''}
+              {car && listing.type === 'tour' ? 'Weekend & season prices' : 'Prices, stay rules & deals'}{(room.weekendPrice != null || room.seasons?.length || room.minNights || room.maxNights || room.noArrivalDays?.length || (room.deals && Object.keys(room.deals).length)) ? ' · on' : ''}
             </button>}
             {(editable || isNew) && <button type="button" className={`${secondaryButton} text-rose-700`} disabled={busy} onClick={onRemove}>{editable ? 'Remove' : 'Withdraw'}</button>}
           </div>}
@@ -298,10 +299,22 @@ function RoomCard({ listing, room, live, editable, busy, onRun, onReplace, onRem
   );
 }
 
-/** Weekend and season prices; like the base price they apply at once. A season beats the weekend price. */
+type DealKey = keyof StayDeals;
+const DEAL_ROWS: Array<[DealKey, string, (unit: string) => string, string, number, number]> = [
+  ['longStay', 'Long stays', (unit) => `Stays of at least (${unit}s)`, 'nights', 2, 365],
+  ['earlyBird', 'Early booking', () => 'Booked at least (days ahead)', 'days', 1, 365],
+  ['lastMinute', 'Last minute', () => 'Booked at most (days ahead)', 'days', 0, 30],
+];
+const readDeal = (deal: { nights?: number; days?: number; percent: number } | undefined) => ({ amount: String(deal?.nights ?? deal?.days ?? ''), percent: String(deal?.percent ?? '') });
+
+/** Weekend and season prices, stay rules and deals; like the base price they apply at once. A season beats the weekend price. */
 function PriceRules({ room, perWhat, busy, onSave }: {
-  room: VendorRoom; perWhat: 'night' | 'day' | 'adult'; busy: boolean; onSave: (input: { weekendPrice: number | null; seasons: RoomSeason[] }) => void;
+  room: VendorRoom; perWhat: 'night' | 'day' | 'adult'; busy: boolean; onSave: (input: { weekendPrice: number | null; seasons: RoomSeason[]; minNights?: number | null; maxNights?: number | null; noArrivalDays?: number[]; deals?: StayDeals }) => void;
 }) {
+  const [minNights, setMinNights] = useState(room.minNights ? String(room.minNights) : '');
+  const [maxNights, setMaxNights] = useState(room.maxNights ? String(room.maxNights) : '');
+  const [noArrival, setNoArrival] = useState<number[]>(room.noArrivalDays ?? []);
+  const [deals, setDeals] = useState({ longStay: readDeal(room.deals?.longStay), earlyBird: readDeal(room.deals?.earlyBird), lastMinute: readDeal(room.deals?.lastMinute) });
   const [weekend, setWeekend] = useState(room.weekendPrice != null ? String(room.weekendPrice) : '');
   const [seasons, setSeasons] = useState<RoomSeason[]>(room.seasons ?? []);
   const setSeason = (index: number, patch: Partial<RoomSeason>) => setSeasons(seasons.map((season, at) => at === index ? { ...season, ...patch } : season));
@@ -309,7 +322,14 @@ function PriceRules({ room, perWhat, busy, onSave }: {
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    onSave({ weekendPrice: weekend === '' ? null : Number(weekend), seasons: seasons.map((season) => ({ ...season, name: season.name.trim() })) });
+    const prices = { weekendPrice: weekend === '' ? null : Number(weekend), seasons: seasons.map((season) => ({ ...season, name: season.name.trim() })) };
+    if (perWhat === 'adult') return onSave(prices);
+    const chosen: StayDeals = {};
+    for (const [key, , , field] of DEAL_ROWS) {
+      const { amount, percent } = deals[key];
+      if (amount !== '' && percent !== '') Object.assign(chosen, { [key]: { [field]: Number(amount), percent: Number(percent) } });
+    }
+    onSave({ ...prices, deals: chosen, ...(perWhat === 'night' ? { minNights: minNights === '' ? null : Number(minNights), maxNights: maxNights === '' ? null : Number(maxNights), noArrivalDays: noArrival } : {}) });
   };
 
   return (
@@ -330,9 +350,29 @@ function PriceRules({ room, perWhat, busy, onSave }: {
             <button type="button" className={`${secondaryButton} text-rose-700`} onClick={() => setSeasons(seasons.filter((_, at) => at !== index))}>Remove</button>
           </div>
         ))}
-        {seasons.length < 20 && <button type="button" className={secondaryButton} onClick={() => setSeasons([...seasons, { name: '', from: '', to: '', price: room.basePrice }])}><Plus className="size-4" />Add season</button>}
+        {seasons.length < 60 && <button type="button" className={secondaryButton} onClick={() => setSeasons([...seasons, { name: '', from: '', to: '', price: room.basePrice }])}><Plus className="size-4" />Add season</button>}
       </fieldset>
-      <button type="submit" className={primaryButton} disabled={busy}>Save prices</button>
+      {perWhat === 'night' && <fieldset className="space-y-3">
+        <legend className="text-sm font-semibold text-slate-700">Stay rules</legend>
+        <div className="grid max-w-md grid-cols-2 gap-3">
+          <label className="text-xs font-bold text-slate-600">Minimum nights<input type="number" min={1} max={365} step={1} placeholder="No minimum" value={minNights} onChange={(event) => setMinNights(event.target.value)} className={`${inputClass} mt-1`} /></label>
+          <label className="text-xs font-bold text-slate-600">Maximum nights<input type="number" min={minNights || 1} max={365} step={1} placeholder="No maximum" value={maxNights} onChange={(event) => setMaxNights(event.target.value)} className={`${inputClass} mt-1`} /></label>
+        </div>
+        <div>
+          <p className="text-xs font-bold text-slate-600">No check-in on</p>
+          <div className="mt-1 flex flex-wrap gap-x-4">{WEEKDAY_NAMES.map((name, day) => <label key={name} className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" className="size-4 accent-[#006F3C]" checked={noArrival.includes(day)} disabled={!noArrival.includes(day) && noArrival.length >= 6} onChange={(event) => setNoArrival(event.target.checked ? [...noArrival, day] : noArrival.filter((item) => item !== day))} />{name.slice(0, 3)}</label>)}</div>
+        </div>
+      </fieldset>}
+      {perWhat !== 'adult' && <fieldset className="space-y-3">
+        <legend className="text-sm font-semibold text-slate-700">Automatic deals</legend>
+        <p className="text-sm text-slate-500">Taken off the price automatically, and shown to the guest. If several apply, the guest gets the biggest one, not all of them. A promo code still works on top.</p>
+        {DEAL_ROWS.map(([key, title, amountLabel, , min, max]) => <div key={key} className="grid max-w-xl grid-cols-2 items-end gap-3 sm:grid-cols-[8rem_1fr_6rem]">
+          <p className="col-span-2 text-sm font-semibold text-slate-800 sm:col-span-1 sm:pb-3">{title}</p>
+          <label className="text-xs font-bold text-slate-600">{amountLabel(perWhat)}<input type="number" min={min} max={max} step={1} required={deals[key].percent !== ''} value={deals[key].amount} onChange={(event) => setDeals({ ...deals, [key]: { ...deals[key], amount: event.target.value } })} className={`${inputClass} mt-1`} /></label>
+          <label className="text-xs font-bold text-slate-600">% off<input type="number" min={1} max={90} step={1} required={deals[key].amount !== ''} value={deals[key].percent} onChange={(event) => setDeals({ ...deals, [key]: { ...deals[key], percent: event.target.value } })} className={`${inputClass} mt-1`} /></label>
+        </div>)}
+      </fieldset>}
+      <button type="submit" className={primaryButton} disabled={busy}>Save</button>
     </form>
   );
 }

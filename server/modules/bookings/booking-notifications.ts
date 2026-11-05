@@ -3,14 +3,17 @@ import { escapeHtml } from '../email/auth-email.templates.js';
 import { isEmailConfigured, sendTransactionalEmail } from '../email/resend.service.js';
 import { shownEnd } from './rental.js';
 
-export type BookingEvent = 'created' | 'confirmed' | 'paid' | 'cancelled' | 'changed' | 'change_requested' | 'change_declined' | 'change_proposed' | 'proposal_declined' | 'reminder' | 'review_invite' | 'refund_sent';
+export type BookingEvent = 'created' | 'instant_booked' | 'details_changed' | 'confirmed' | 'paid' | 'cancelled' | 'changed' | 'change_requested' | 'change_declined' | 'change_proposed' | 'proposal_declined' | 'no_show' | 'no_show_disputed' | 'no_show_decided' | 'auto_completed' | 'reminder' | 'review_invite' | 'refund_sent';
 
 const guestCopy: Partial<Record<BookingEvent, { subject: string; message: string }>> = {
   created: { subject: 'Booking request received', message: 'We have received your booking request. The property will confirm it shortly.' },
   confirmed: { subject: 'Booking confirmed', message: 'Your booking has been confirmed. Pay on arrival: you pay the partner directly.' },
+  instant_booked: { subject: 'Booking confirmed', message: 'Your booking is confirmed. Pay on arrival: you pay the partner directly.' },
   paid: { subject: 'Payment received · booking confirmed', message: 'Thank you, we have received your payment and your booking is confirmed. There is nothing more to pay.' },
   cancelled: { subject: 'Booking cancelled', message: 'Your booking has been cancelled.' },
   changed: { subject: 'Booking changed', message: 'Your booking has been changed as agreed. The updated details and price are below.' },
+  no_show: { subject: 'Marked as a no-show', message: 'The partner has marked this booking as a no-show. If you were there, or they turned you away, open My Bookings within 3 days and press "I was there". GBBookings will look into it.' },
+  no_show_decided: { subject: 'Your no-show dispute', message: 'GBBookings has looked into the no-show on this booking. The decision is below.' },
   change_proposed: { subject: 'The partner proposed a change', message: 'The partner would like to change your booking. Nothing changes unless you accept. Open My Bookings to accept or decline; if you decline, your booking stays as it was.' },
   change_declined: { subject: 'Change request declined', message: 'The property could not make the change you asked for, so your booking stays as it was.' },
   reminder: { subject: 'Your trip is coming up', message: 'Your booking starts soon. Keep this email handy; your voucher is always in My Bookings.' },
@@ -20,9 +23,14 @@ const guestCopy: Partial<Record<BookingEvent, { subject: string; message: string
 
 const vendorCopy: Partial<Record<BookingEvent, { subject: string; message: string }>> = {
   created: { subject: 'New booking request', message: 'A guest has requested a booking. Please confirm or decline it from your vendor console.' },
+  instant_booked: { subject: 'New confirmed booking', message: 'A guest has booked with instant confirmation, so this booking is already confirmed. Collect payment on arrival. If you cannot honour it, cancel it from your vendor console as soon as you can.' },
+  details_changed: { subject: 'Guest updated their details', message: 'The guest has updated their contact details, arrival time or requests. The latest are in your reservations.' },
   paid: { subject: 'New paid booking', message: 'A guest has booked and paid online, so the booking is confirmed. Do not collect payment from this guest.' },
   cancelled: { subject: 'Booking cancelled', message: 'A booking at your property has been cancelled and the rooms have been released.' },
   changed: { subject: 'Booking changed', message: 'This booking has been changed. The updated details and price are below.' },
+  no_show_disputed: { subject: 'Guest disputes a no-show', message: 'The guest says they were there, so this booking is held back from your statements until GBBookings has looked into it. Their note is below.' },
+  no_show_decided: { subject: 'No-show dispute decided', message: 'GBBookings has looked into the no-show on this booking. The decision is below.' },
+  auto_completed: { subject: 'Booking completed', message: 'This stay ended 48 hours ago, so it has been marked as completed and commission applies. If something is wrong, contact GBBookings.' },
   proposal_declined: { subject: 'Guest declined your change', message: 'The guest declined the change you proposed, so the booking stays as it was.' },
   change_requested: { subject: 'Guest asked for a change', message: 'A guest would like to change this booking. Open your reservations to accept or decline; the new price is shown there.' },
 };
@@ -52,11 +60,14 @@ function bookingEmail(title: string, name: string, message: string, booking: any
       ['Return', `${shownEnd(booking)}, ${booking.rental.dropoffPlace} (${booking.nights} day${booking.nights === 1 ? '' : 's'})`],
       ['Driver', booking.rental.driver ? 'With driver' : `Self-drive${booking.rental.depositMinor ? ` · deposit PKR ${(booking.rental.depositMinor / 100).toLocaleString('en-PK')} at pickup` : ''}`],
       ['Fuel', booking.rental.fuelIncluded ? 'Included' : 'Paid by the guest'],
+      ...(booking.rental.extras?.length ? [['Extras', booking.rental.extras.map((item: any) => item.name).join(', ')]] : []),
+      ...(booking.rental.kmPerDay ? [['Mileage', `${booking.rental.kmPerDay} km per day${booking.rental.extraPerKmMinor ? `, then PKR ${(booking.rental.extraPerKmMinor / 100).toLocaleString('en-PK')} per km` : ''}`]] : []),
     ] as [string, string][] : [
       ['Check-in', booking.checkIn],
       ['Check-out', `${booking.checkOut} (${booking.nights} night${booking.nights === 1 ? '' : 's'})`],
     ] as [string, string][]),
-    ['Guests', `${booking.adults} adult(s), ${booking.children} child(ren)`],
+    ['Guests', `${booking.adults} adult(s), ${booking.children} child(ren)${booking.childAges?.length ? ` (ages ${booking.childAges.join(', ')})` : ''}`],
+    ...(booking.arrivalTime ? [['Arrival time', booking.arrivalTime] as [string, string]] : []),
     ...(booking.meals?.length ? [['Meals', booking.meals.map((meal: any) => meal.type).join(', ')] as [string, string]] : []),
     ...(booking.status === 'confirmed' && booking.listingSnapshot.phone ? [[booking.tour ? 'Tour partner phone / WhatsApp' : 'Property phone / WhatsApp', booking.listingSnapshot.phone] as [string, string]] : []),
     ...(booking.coupon ? [['Promo code', `${booking.coupon.code} (−${booking.pricing.currency} ${((booking.pricing.discountMinor ?? 0) / 100).toLocaleString('en-PK')})`] as [string, string]] : []),

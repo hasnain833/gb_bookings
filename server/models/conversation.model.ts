@@ -17,9 +17,24 @@ const conversationSchema = new Schema({
   partnerUnread: { type: Number, default: 0, min: 0 },
   // Set by each new message, cleared when its email alert goes out (see sendOfflineMessageAlerts).
   alertPending: { type: Boolean, default: false },
+  // Either side can report the chat. Only then can GBBookings read it.
+  report: {
+    type: new Schema({
+      status: { type: String, enum: ['open', 'reviewed'], required: true },
+      by: { type: String, enum: ['guest', 'partner'], required: true },
+      reportedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+      reason: { type: String, maxlength: 1_000 },
+      at: Date,
+      note: { type: String, maxlength: 1_000 },
+      reviewedAt: Date,
+      reviewedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    }, { _id: false }),
+    default: undefined,
+  },
 }, { timestamps: true });
 
 conversationSchema.index({ guestId: 1, listingId: 1 }, { unique: true });
+conversationSchema.index({ 'report.status': 1, 'report.at': -1 }, { sparse: true });
 conversationSchema.index({ alertPending: 1, 'lastMessage.at': 1 }, { partialFilterExpression: { alertPending: true } });
 conversationSchema.index({ guestId: 1, 'lastMessage.at': -1 });
 conversationSchema.index({ vendorId: 1, 'lastMessage.at': -1 });

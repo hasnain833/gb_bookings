@@ -9,12 +9,12 @@ export async function availableRoomCounts(roomTypes: RoomRef[], nights: string[]
   const counters = await RoomNightModel.find({
     roomTypeId: { $in: roomTypes.map((room) => room._id) },
     date: { $in: nights },
-  }).select('roomTypeId booked closed').lean();
+  }).select('roomTypeId booked closed synced').lean();
 
   const peakBooked = new Map<string, number>();
   for (const counter of counters as any[]) {
     const key = String(counter.roomTypeId);
-    peakBooked.set(key, Math.max(peakBooked.get(key) ?? 0, counter.booked + (counter.closed ?? 0)));
+    peakBooked.set(key, Math.max(peakBooked.get(key) ?? 0, counter.booked + (counter.closed ?? 0) + (counter.synced ?? 0)));
   }
   return new Map(roomTypes.map((room) => [
     String(room._id),
@@ -24,12 +24,12 @@ export async function availableRoomCounts(roomTypes: RoomRef[], nights: string[]
 
 /** Days from `from` to `to` with nothing free in any of these rooms: booked out or closed by the partner. */
 export async function fullyBookedDates(roomTypes: RoomRef[], from: string, to: string) {
-  const counters = await RoomNightModel.find({ roomTypeId: { $in: roomTypes.map((room) => room._id) }, date: { $gte: from, $lte: to } }).select('roomTypeId date booked closed').lean() as any[];
+  const counters = await RoomNightModel.find({ roomTypeId: { $in: roomTypes.map((room) => room._id) }, date: { $gte: from, $lte: to } }).select('roomTypeId date booked closed synced').lean() as any[];
   const totals = new Map(roomTypes.map((room) => [String(room._id), room.totalRooms]));
   const allRooms = roomTypes.reduce((sum, room) => sum + room.totalRooms, 0);
   const taken = new Map<string, number>();
   for (const counter of counters) {
-    const used = Math.min(totals.get(String(counter.roomTypeId)) ?? 0, counter.booked + (counter.closed ?? 0));
+    const used = Math.min(totals.get(String(counter.roomTypeId)) ?? 0, counter.booked + (counter.closed ?? 0) + (counter.synced ?? 0));
     taken.set(counter.date, (taken.get(counter.date) ?? 0) + used);
   }
   return [...taken].filter(([, used]) => used >= allRooms).map(([date]) => date).sort();
@@ -46,11 +46,11 @@ export async function releaseRooms(roomTypeId: Types.ObjectId, nights: string[],
   }
 }
 
-/** True if any future night already uses more rooms (booked + closed) than `totalRooms`. */
+/** True if any future night already uses more rooms (booked + closed + synced) than `totalRooms`. */
 export async function inventoryExceeds(roomTypeId: Types.ObjectId, totalRooms: number, fromDate: string, session?: ClientSession) {
   return Boolean(await RoomNightModel.exists({
     roomTypeId, date: { $gte: fromDate },
-    $expr: { $gt: [{ $add: ['$booked', { $ifNull: ['$closed', 0] }] }, totalRooms] },
+    $expr: { $gt: [{ $add: ['$booked', { $ifNull: ['$closed', 0] }, { $ifNull: ['$synced', 0] }] }, totalRooms] },
   }).session(session ?? null));
 }
 
@@ -74,7 +74,7 @@ export async function reserveRooms(room: RoomRef, nights: string[], quantity: nu
 
   for (const date of nights) {
     const result = await RoomNightModel.updateOne(
-      { roomTypeId: room._id, date, $expr: { $lte: [{ $add: ['$booked', { $ifNull: ['$closed', 0] }, quantity] }, room.totalRooms] } },
+      { roomTypeId: room._id, date, $expr: { $lte: [{ $add: ['$booked', { $ifNull: ['$closed', 0] }, { $ifNull: ['$synced', 0] }, quantity] }, room.totalRooms] } },
       { $inc: { booked: quantity } }, { session },
     );
     if (result.modifiedCount !== 1) throw unavailable();

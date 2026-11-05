@@ -24,6 +24,20 @@ const upload = multer({
   },
 });
 
+/** What the file really is, from its first bytes: a renamed file is refused whatever type the browser claims. */
+export function contentMatches(file: { buffer: Buffer; mimetype: string }) {
+  const { buffer } = file;
+  const ascii = (start: number, end: number) => buffer.subarray(start, end).toString('latin1');
+  switch (file.mimetype) {
+    case 'application/pdf': return ascii(0, 5) === '%PDF-';
+    case 'image/jpeg': return buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+    case 'image/png': return ascii(1, 4) === 'PNG' && buffer[0] === 0x89;
+    case 'image/webp': return ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WEBP';
+    case 'image/avif': return ascii(4, 8) === 'ftyp';
+    default: return false;
+  }
+}
+
 const parseUpload: RequestHandler = (request, response, next) => {
   upload.single('file')(request, response, (error) => {
     if (error instanceof multer.MulterError) {
@@ -37,6 +51,7 @@ const parseUpload: RequestHandler = (request, response, next) => {
     }
     if (error) return next(error);
     if (!request.file) return next(new AppError(400, 'FILE_REQUIRED', 'Attach one file using the file field.'));
+    if (!contentMatches(request.file)) return next(new AppError(415, 'UNSUPPORTED_MEDIA_TYPE', 'This file is not really the type its name says. Please upload a real PDF or photo.'));
     next();
   });
 };

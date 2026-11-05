@@ -178,6 +178,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout,
         <div className="space-y-1.5 min-w-0">
           <span className="inline-block rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium capitalize text-[#006F3C]">{listing.type === 'homestay' ? `${listing.hotelSpecs?.hotelType || 'Homestay'} · ${entireHome ? 'Entire place' : 'Private rooms'}` : listing.type === 'hotel' ? listing.hotelSpecs?.hotelType || 'Hotel' : listing.type}</span>
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-950 leading-tight wrap-break-word">{listing.title}</h1>
+          {specs?.stars ? <p className="text-sm font-medium text-slate-600" aria-label={`${specs.stars} star hotel`}><span aria-hidden="true" className="text-amber-500">{'★'.repeat(specs.stars)}</span> {specs.stars}-star hotel</p> : null}
           <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-600">
             <span className="inline-flex items-center gap-1"><MapPin className="w-4 h-4 text-slate-400 shrink-0" /> {listing.location}</span>
             {listing.reviewsCount > 0 ? (
@@ -279,6 +280,9 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout,
               <ul className="space-y-1.5 text-sm text-slate-600">
                 {listing.carSpecs.driverMode !== 'self_drive' && listing.carSpecs.driverPerDay ? <li>Driver: +PKR {listing.carSpecs.driverPerDay.toLocaleString()} per day</li> : null}
                 {listing.carSpecs.outsideCityPerDay !== undefined && <li>Trips outside {listing.location.split(',')[0]}: +PKR {listing.carSpecs.outsideCityPerDay.toLocaleString()} per day</li>}
+                <li>{listing.carSpecs.kmPerDay ? `${listing.carSpecs.kmPerDay} km per day included${listing.carSpecs.extraPerKm ? `, then PKR ${listing.carSpecs.extraPerKm.toLocaleString()} per km` : ''}` : 'Unlimited kilometres'}</li>
+                {listing.carSpecs.pickupPlaces?.length ? <li>Pickup at: {listing.carSpecs.pickupPlaces.join(', ')}</li> : null}
+                {listing.carSpecs.extras?.map((extra) => <li key={extra.name}>{extra.name}: +PKR {extra.price.toLocaleString()}{extra.perDay ? ' per day' : ''}</li>)}
                 {listing.carSpecs.oneWay === 'flat' && <li>One-way drop-off: PKR {(listing.carSpecs.oneWayFee ?? 0).toLocaleString()}</li>}
                 {listing.carSpecs.oneWay === 'on_request' && <li>One-way drop-off: price on request</li>}
                 {listing.carSpecs.driverMode && listing.carSpecs.driverMode !== 'with_driver' && <li>Self-drive: minimum age {listing.carSpecs.minDriverAge}{listing.carSpecs.deposit ? `, refundable deposit PKR ${listing.carSpecs.deposit.toLocaleString()} at pickup` : ''}. Bring your driving licence.</li>}
@@ -336,7 +340,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout,
             <section className={sectionClass} id="house-rules-section">
               <h2 className={headingClass}>{listing.type === 'homestay' ? 'House rules' : 'Policies'}</h2>
               <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5 text-sm text-slate-700">
-                {[...rules, ...policyRules, ...(bookable ? ['Pay on arrival: free cancellation until the day before check-in', `Pay now: ${policyLines(listing.cancellationPolicy).join('; ')}`] : []), ...(listing.fees ?? []).map((fee) => `${fee.name}: ${fee.kind === 'percent' ? `${fee.value}%` : `PKR ${fee.value.toLocaleString()} per booking`}, added at checkout`)].map((rule) => <li key={rule} className="flex items-center gap-2"><Clock className="w-4 h-4 text-slate-400 shrink-0" /> {rule}</li>)}
+                {[...new Set([...rules, ...policyRules, ...(bookable ? ['Pay on arrival: free cancellation until the day before check-in', `Pay now: ${policyLines(listing.cancellationPolicy).join('; ')}`] : []), ...(listing.fees ?? []).map((fee) => `${fee.name}: ${fee.kind === 'percent' ? `${fee.value}%` : `PKR ${fee.value.toLocaleString()} per booking`}, added at checkout`)])].map((rule) => <li key={rule} className="flex items-center gap-2"><Clock className="w-4 h-4 text-slate-400 shrink-0" /> {rule}</li>)}
               </ul>
             </section>
           )}
@@ -401,7 +405,7 @@ export default function ListingDetails({ listingId, onBack, onProceedToCheckout,
 
           <section className={sectionClass} id="details-reviews-block">
             <h2 className={headingClass}>Guest reviews</h2>
-            <ListingReviews listingId={listing.id} rating={listing.rating} count={listing.reviewsCount} scores={listing.reviewScores} />
+            <ListingReviews listingId={listing.id} rating={listing.rating} count={listing.reviewsCount} scores={listing.reviewScores} type={listing.type} />
           </section>
         </div>
 

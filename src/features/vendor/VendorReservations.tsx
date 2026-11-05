@@ -1,3 +1,4 @@
+import { pakistanToday, priceOn, stayDealPercent } from "../../shared/utils/roomPricing";
 import { useEffect, useState } from "react";
 import {
   LoaderCircle,
@@ -63,13 +64,6 @@ const actionsFor = (booking: Booking) =>
     .filter((action) => action !== "change")
     .map((action) => ({ action: action as VendorBookingAction, label: action === "cancel" && booking.status === "pending" ? "Decline" : (booking.rental && CAR_ACTION_LABELS[action]) || (booking.tour && TOUR_ACTION_LABELS[action]) || ACTION_LABELS[action] }));
 const changeable = (booking: Booking) => Boolean(booking.vendorActions?.includes("change"));
-// Mirrors server/modules/bookings/room-price.ts: a season wins, then Friday/Saturday, then the base price.
-const priceOn = (room: VendorRoom, date: string) => {
-  const season = room.seasons?.find((item) => item.from <= date && date <= item.to);
-  if (season) return season.price;
-  const weekday = new Date(`${date}T00:00:00Z`).getUTCDay();
-  return (weekday === 5 || weekday === 6) && room.weekendPrice != null ? room.weekendPrice : room.basePrice;
-};
 const priceForDays = (room: VendorRoom, from: string, days: number) =>
   Array.from({ length: days }, (_, index) => new Date(Date.parse(`${from}T00:00:00Z`) + index * 86_400_000).toISOString().slice(0, 10))
     .reduce((total, date) => total + priceOn(room, date), 0);
@@ -125,7 +119,7 @@ function ChangeBookingForm({
   const nights = nightsBetween(form.checkIn, form.checkOut) + (car ? 1 : 0);
   const total = tour
     ? (room ? priceOn(room, form.checkIn) * (booking.adults ?? 1) + (tour.childPrice ?? priceOn(room, form.checkIn)) * (booking.children ?? 0) : null)
-    : room && nights > 0 ? priceForDays(room, form.checkIn, nights) * form.rooms : null;
+    : room && nights > 0 ? Math.round(priceForDays(room, form.checkIn, nights) * (100 - stayDealPercent(room.deals, nights, form.checkIn, pakistanToday())) / 100) * form.rooms : null;
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
     setBusy(true);
@@ -589,6 +583,7 @@ const moneyRows = (booking: Booking): Array<[string, string | undefined]> => [
   ...(booking.charges ?? []).map((line): [string, string] => [line.name, `PKR ${line.amount.toLocaleString()}`]),
   ["Balance to collect", booking.balanceDue ? `PKR ${booking.balanceDue.toLocaleString()}${booking.balanceCollectedAt ? " · collected" : " · on arrival, changed after paying"}` : undefined],
   ["GBBookings fee", booking.platformFeePercent ? `PKR ${(booking.platformFee ?? 0).toLocaleString()} (${booking.platformFeePercent}%)${booking.status === "cancelled" && !booking.platformFee ? " · none, cancelled" : ""}` : undefined],
+  ["No-show", booking.noShow ? (booking.noShow.dispute?.status === "open" ? `The guest disputes this: "${booking.noShow.dispute.note}". Held from your statement until GBBookings decides.` : booking.noShow.dispute ? `Dispute decided: ${booking.noShow.dispute.decisionNote}` : Date.now() < Date.parse(booking.noShow.disputeUntil) ? `The guest can dispute this until ${formatDateForDisplay(booking.noShow.disputeUntil)}. Held from your statement until then.` : "Marked as a no-show") : undefined],
   ["Refund to guest", booking.refunds?.length ? booking.refunds.map((refund) => `PKR ${refund.amount.toLocaleString()} · ${refund.channel === "partner" ? "you return this to the guest" : refund.status === "sent" ? "sent" : "being sent by GBBookings"}`).join("; ") : booking.refund ? `PKR ${booking.refund.amount.toLocaleString()} (${booking.refund.percent}% of the total)` : undefined],
 ];
 
@@ -615,7 +610,10 @@ function ReservationDetails({ booking }: { booking: Booking }) {
     ["Return", `${formatDateForDisplay(booking.endDate)} · ${rental.dropoffPlace}${rental.oneWay ? ` (one-way${rental.oneWayOnRequest ? ", fee to agree with the guest" : ""})` : ""}`],
     ["Driver", rental.driver ? `With driver${rental.driverPerDay ? ` · PKR ${rental.driverPerDay.toLocaleString()}/day` : ""}` : `Self-drive · licence ${rental.licenceNumber ?? "—"}${rental.deposit ? ` · collect deposit PKR ${rental.deposit.toLocaleString()}` : ""}`],
     ["Trip", rental.outsideBaseCity ? `Leaves the base city${rental.outsidePerDay ? ` · +PKR ${rental.outsidePerDay.toLocaleString()}/day` : ""}` : "Within the base city"],
+    ["Driver's age", rental.driverAge ? String(rental.driverAge) : undefined],
     ["Fuel", rental.fuelIncluded ? "Included" : "Paid by the guest"],
+    ["Mileage", rental.kmPerDay ? `${rental.kmPerDay} km per day${rental.extraPerKm ? `, then PKR ${rental.extraPerKm.toLocaleString()} per km on return` : ""}` : "Unlimited"],
+    ["Extras", rental.extras?.length ? rental.extras.map((extra) => extra.name).join(", ") : undefined],
     ["Rate", booking.nightlyRate ? `PKR ${booking.nightlyRate.toLocaleString()} × ${booking.duration} day(s) × ${booking.rooms ?? 1} car(s)` : undefined],
     ["Driver & trip charges", booking.extrasTotal ? `PKR ${booking.extrasTotal.toLocaleString()}` : undefined],
     ["Promo code", booking.couponCode ? `${booking.couponCode} · ${booking.couponLabel} (−PKR ${(booking.discount ?? 0).toLocaleString()})` : undefined],
@@ -681,6 +679,18 @@ function ReservationDetails({ booking }: { booking: Booking }) {
               </dd>
             </div>
           ))}
+        {booking.arrivalTime && (
+          <>
+            <dt className="text-slate-500">Arrival time</dt>
+            <dd className="font-medium text-slate-800">{booking.arrivalTime}</dd>
+          </>
+        )}
+        {booking.childAges?.length ? (
+          <>
+            <dt className="text-slate-500">Children’s ages</dt>
+            <dd className="font-medium text-slate-800">{booking.childAges.join(", ")}</dd>
+          </>
+        ) : null}
         {booking.specialRequests && (
           <>
             <dt className="text-slate-500">Requests</dt>

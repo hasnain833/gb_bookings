@@ -9,6 +9,8 @@ const roomNightSchema = new Schema({
   booked: { type: Number, required: true, min: 0, default: 0 },
   // Rooms the property has taken out of sale that night (maintenance, private use). booked + closed never exceeds totalRooms.
   closed: { type: Number, min: 0, default: 0 },
+  // Rooms taken on other calendars (Airbnb, Google Calendar...), rewritten on every sync. Kept apart so a sync never touches the partner's own closures.
+  synced: { type: Number, min: 0, default: 0 },
 }, { timestamps: true });
 
 roomNightSchema.index({ roomTypeId: 1, date: 1 }, { unique: true });

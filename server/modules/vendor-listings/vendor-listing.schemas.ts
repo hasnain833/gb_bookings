@@ -1,6 +1,11 @@
+import { hideContacts } from '../messages/contact-filter.js';
 import { CANCELLATION_POLICY_KEYS } from '../../../src/shared/utils/cancellation.js';
 import { z } from 'zod';
 import { BATHROOM_ITEMS, BED_KINDS, BREAKFAST_KINDS, ROOM_TYPES, type BedKind, type RoomTypeKey } from '../../../src/shared/utils/rooms.js';
+
+// Guests and partners deal through GBBookings, so listings can't carry a way around it. The admin also reads them.
+const noContacts = (text: string) => !hideContacts(text).hidden;
+const NO_CONTACTS = 'Remove phone numbers, email addresses and website links. Guests reach you through GBBookings messages.';
 
 const mediaId = z.string().regex(/^med_[0-9a-f-]{36}$/i, 'Invalid media identifier.');
 const cleanList = z.array(z.string().trim().min(1).max(100)).max(100).default([]);
@@ -19,7 +24,7 @@ const homestaySpecs = z.object({
   hostName: z.string().trim().min(2).max(120),
   experienceType: z.enum(experienceTypes),
   stayType: z.enum(['rooms', 'entire_home']).default('rooms'),
-  hostBio: z.string().trim().max(1_000).optional(),
+  hostBio: z.string().trim().max(1_000).refine(noContacts, NO_CONTACTS).optional(),
   hostPhoto: photo.optional(),
   languages: cleanList,
   familyOnSite: z.boolean().default(false),
@@ -57,6 +62,13 @@ export const carSpecsSchema = z.object({
   deposit: pkr.optional(),
   minDriverAge: z.number().int().min(18).max(30).optional(),
   pickupNote: z.string().trim().max(500).optional(),
+  pickupPlaces: z.array(z.string().trim().min(2).max(80)).max(10).optional(),
+  // Absent: unlimited kilometres.
+  kmPerDay: z.number().int().min(1).max(5_000).optional(),
+  extraPerKm: pkr.optional(),
+  // A name is sent back when the guest chooses it, in a comma-separated list.
+  extras: z.array(z.object({ name: z.string().trim().min(2).max(40).regex(/^[^,]+$/, 'An extra\'s name cannot contain a comma.'), price: z.number().int().min(1).max(1_000_000), perDay: z.boolean() }).strict()).max(8)
+    .refine((list) => new Set(list.map((item) => item.name.toLowerCase())).size === list.length, 'List each extra once.').optional(),
 }).strict()
   .refine((specs) => specs.oneWay !== 'flat' || specs.oneWayFee !== undefined, { message: 'Set the one-way drop-off fee.', path: ['oneWayFee'] })
   .refine((specs) => specs.driverMode === 'with_driver' || specs.minDriverAge !== undefined, { message: 'Set the minimum age for self-drive renters.', path: ['minDriverAge'] });
@@ -104,9 +116,9 @@ export const stayInfoSchema = z.object({
 
 const listingFields = z.object({
   type: z.enum(['hotel', 'homestay', 'car', 'tour']).default('hotel'),
-  title: z.string().trim().min(2).max(160),
+  title: z.string().trim().min(2).max(160).refine(noContacts, NO_CONTACTS),
   location: z.string().trim().min(2).max(240),
-  description: z.string().trim().min(20).max(10_000),
+  description: z.string().trim().min(20).max(10_000).refine(noContacts, NO_CONTACTS),
   price: z.number().int().nonnegative(),
   imageIds: z.array(mediaId).min(1).max(20),
   photos: z.array(photo).min(1).max(20).optional(),
@@ -130,6 +142,7 @@ const listingFields = z.object({
       reservation: z.boolean().optional(),
     }).strict().refine((parking) => parking.available !== 'paid' || Boolean(parking.price), 'Set the parking price per day.').optional(),
     licenceNumber: z.string().trim().max(60).optional(),
+    stars: z.number().int().min(1).max(5).optional(),
   }).strict().optional(),
   address: z.object({
     line1: z.string().trim().min(2).max(160),
@@ -146,6 +159,7 @@ const listingFields = z.object({
   // Cars and tours only say how guests can pay at pickup or the start; hotels and homestays fill in the full policies.
   stayInfo: z.union([stayInfoSchema, stayInfoSchema.pick({ paymentMethods: true }).strict()]).optional(),
   cancellationPolicy: z.enum(CANCELLATION_POLICY_KEYS).optional(),
+  instantBook: z.boolean().optional(),
   // Service charge, cleaning fee and the like; taxes are set by the admin.
   fees: z.array(z.object({
     name: z.string().trim().min(2).max(60),
@@ -178,9 +192,16 @@ const seasons = z.array(z.object({
   to: isoDay,
   price: z.number().int().nonnegative(),
 }).strict().refine((season) => season.from <= season.to, { message: 'A season must end on or after its start date.' }))
-  .max(20)
+  .max(60)
   .refine((list) => [...list].sort((a, b) => a.from.localeCompare(b.from)).every((season, index, sorted) => index === 0 || sorted[index - 1].to < season.from),
     { message: 'Seasons cannot overlap.' });
+
+const dealPercent = z.number().int().min(1).max(90);
+const stayDeals = z.object({
+  longStay: z.object({ nights: z.number().int().min(2).max(365), percent: dealPercent }).strict().optional(),
+  earlyBird: z.object({ days: z.number().int().min(1).max(365), percent: dealPercent }).strict().optional(),
+  lastMinute: z.object({ days: z.number().int().min(0).max(30), percent: dealPercent }).strict().optional(),
+}).strict();
 
 const beds = z.array(z.object({ kind: z.enum(Object.keys(BED_KINDS) as [BedKind, ...BedKind[]]), count: z.number().int().min(1).max(20) }).strict()).min(1).max(10);
 
@@ -199,7 +220,7 @@ const roomLayout = {
 
 export const roomTypeSchema = z.object({
   name: z.string().trim().min(2).max(120),
-  description: z.string().trim().max(2_000).optional(),
+  description: z.string().trim().max(2_000).refine(noContacts, NO_CONTACTS).optional(),
   // Free text for cars, tours and older rooms; optional when beds or bedrooms are given.
   bedType: z.string().trim().min(2).max(80).optional(),
   ...roomLayout,
@@ -210,6 +231,11 @@ export const roomTypeSchema = z.object({
   // null clears the weekend price.
   weekendPrice: z.number().int().nonnegative().nullable().optional(),
   seasons: seasons.optional(),
+  // null clears a limit.
+  minNights: z.number().int().min(1).max(365).nullable().optional(),
+  maxNights: z.number().int().min(1).max(365).nullable().optional(),
+  noArrivalDays: z.array(z.number().int().min(0).max(6)).max(6).optional(),
+  deals: stayDeals.optional(),
   amenities: cleanList,
   photos: z.array(photo).max(10).optional(),
 }).strict();
@@ -221,7 +247,7 @@ export const updateRoomTypeSchema = roomTypeSchema.partial().extend({
 }).strict().refine(
   (input) => Object.keys(input).length > 0,
   { message: 'At least one room field is required.' },
-);
+).refine((input) => !input.minNights || !input.maxNights || input.minNights <= input.maxNights, { message: 'The minimum stay cannot be longer than the maximum stay.', path: ['maxNights'] });
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD dates.');
 export const roomCalendarQuerySchema = z.object({ from: isoDate, to: isoDate }).strict();

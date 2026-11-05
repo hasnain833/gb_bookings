@@ -76,6 +76,8 @@ const listingSchema = new Schema({
   },
   // How much a Pay now guest gets back; see src/shared/utils/cancellation.ts. Absent means the default policy.
   cancellationPolicy: { type: String, enum: CANCELLATION_POLICY_KEYS },
+  // Pay on arrival bookings are confirmed without the partner answering each one.
+  instantBook: { type: Boolean, default: false },
   // Charges on top of the price, shown separately at checkout. `value` is a percent, or PKR per booking.
   fees: {
     type: [new Schema({ name: { type: String, trim: true, maxlength: 60 }, kind: { type: String, enum: ['percent', 'amount'] }, value: { type: Number, min: 0 } }, { _id: false })],
@@ -116,6 +118,8 @@ const listingSchema = new Schema({
     parking: { available: { type: String, enum: ['none', 'free', 'paid'] }, price: Number, onSite: Boolean, reservation: Boolean },
     // Registration with the tourism department, where the law asks for it.
     licenceNumber: String,
+    // Official hotel class, where it has one. The admin checks it at review.
+    stars: { type: Number, min: 1, max: 5 },
   },
   homestaySpecs: {
     roomsAvailable: { type: Number, min: 0 },
@@ -161,6 +165,13 @@ const listingSchema = new Schema({
     deposit: { type: Number, min: 0 },
     minDriverAge: { type: Number, min: 18 },
     pickupNote: { type: String, trim: true, maxlength: 500 },
+    // Places the partner hands cars over at. Search finds a car by these, and guests pick from them.
+    pickupPlaces: { type: [String], default: undefined },
+    // Kilometres allowed per day and the charge for each one over (collected on return). Absent: unlimited.
+    kmPerDay: { type: Number, min: 1 },
+    extraPerKm: { type: Number, min: 0 },
+    // Paid add-ons the guest can choose, such as a child seat.
+    extras: { type: [new Schema({ name: String, price: Number, perDay: Boolean }, { _id: false })], default: undefined },
   },
   // Tours: what the tour is. The adult price per person and seats per departure live on its single booking unit.
   tourSpecs: {

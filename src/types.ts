@@ -56,6 +56,7 @@ export interface Listing {
     breakfast?: PropertyExtras["breakfast"];
     parking?: PropertyExtras["parking"];
     licenceNumber?: string;
+    stars?: number;
   };
   homestaySpecs?: {
     roomsAvailable: number;
@@ -142,10 +143,21 @@ export interface CarSpecs {
   deposit?: number;
   minDriverAge?: number;
   pickupNote?: string;
+  pickupPlaces?: string[];
+  /** Absent: unlimited kilometres. */
+  kmPerDay?: number;
+  extraPerKm?: number;
+  extras?: CarExtra[];
 }
 
 /** What a car booking resolved to: pickup details and the car's terms at booking time (PKR). */
+export interface CarExtra { name: string; price: number; perDay: boolean }
+
 export interface BookingRental {
+  driverAge?: number;
+  kmPerDay?: number;
+  extraPerKm?: number;
+  extras?: CarExtra[];
   pickupPlace?: string;
   pickupTime?: string;
   dropoffPlace?: string;
@@ -183,7 +195,8 @@ export interface Booking {
   /** What the guest gets back after a paid booking was cancelled. */
   refund?: { percent: number; amount: number };
   /** Each sum owed back to the guest and how far it has got. */
-  refunds?: Array<{ kind: 'cancellation' | 'change' | 'late_payment'; channel: 'safepay' | 'partner'; amount: number; status: 'pending' | 'sending' | 'sent' | 'failed'; sentAt?: string }>;
+  noShow?: { at: string; disputeUntil: string; dispute?: { status: 'open' | 'no_show_stands' | 'guest_stayed' | 'refund_guest'; note: string; at: string; decisionNote?: string } };
+  refunds?: Array<{ kind: 'cancellation' | 'change' | 'late_payment' | 'duplicate_payment'; channel: 'safepay' | 'partner'; amount: number; status: 'pending' | 'sending' | 'sent' | 'failed'; sentAt?: string }>;
   /** Fees and taxes on top of the price, already included in `totalPrice`. */
   charges?: Array<{ name: string; type: 'fee' | 'tax'; amount: number }>;
   /** A paid booking changed to cost more: what the partner collects on arrival. */
@@ -219,6 +232,8 @@ export interface Booking {
   couponLabel?: string;
   discount?: number;
   specialRequests?: string;
+  arrivalTime?: string;
+  childAges?: number[];
   checkInTime?: string;
   checkOutTime?: string;
   /** Only once the property has confirmed the stay. */

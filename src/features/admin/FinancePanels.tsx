@@ -12,7 +12,7 @@ const field = 'min-h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm
 const STATUS: Record<AdminRefund['status'], [string, string]> = {
   pending: ['Waiting', 'bg-amber-50 text-amber-800'], sending: ['Result unknown', 'bg-rose-50 text-rose-700'], failed: ['Failed', 'bg-rose-50 text-rose-700'], sent: ['Sent', 'bg-emerald-50 text-emerald-800'],
 };
-const KIND: Record<string, string> = { cancellation: 'Cancelled booking', change: 'Booking made cheaper', late_payment: 'Paid after release' };
+const KIND: Record<string, string> = { cancellation: 'Cancelled booking', change: 'Booking made cheaper', late_payment: 'Paid after release', duplicate_payment: 'Paid twice' };
 const Alert = ({ text }: { text: string }) => text ? <p role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{text}</p> : null;
 const Spinner = () => <div className="flex justify-center py-10"><LoaderCircle className="size-6 animate-spin text-[#006F3C]" aria-label="Loading" /></div>;
 

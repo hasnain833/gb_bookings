@@ -1,8 +1,7 @@
 import { env } from '../config/env.js';
 
 const allowedCorsOrigins = new Set([
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
+  ...(env.NODE_ENV === 'production' ? [] : ['http://localhost:3000', 'http://127.0.0.1:3000']),
   ...(env.APP_URL ? [new URL(env.APP_URL).origin] : []),
 ]);
 

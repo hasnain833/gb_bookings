@@ -45,7 +45,7 @@ let ai: GoogleGenAI | null = null;
 
 /** Asks Gemini to read the CNIC (PDF or image). Returns null when AI reading is not configured. */
 async function readCnic(file: { mimeType: string; data: Buffer }): Promise<CnicRead | null> {
-  if (!env.GEMINI_API_KEY) return null;
+  if (!env.GEMINI_API_KEY || !env.CNIC_AI_CHECK) return null;
   ai ??= new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
   const result = await ai.models.generateContent({
     model: env.GEMINI_MODEL,
@@ -85,7 +85,7 @@ export async function runIdentityCheck(vendor: any) {
 
     const document = vendor.verificationDocuments?.find((item: any) => item.type === 'identity');
     const media: any = document && await MediaModel.findById(document.mediaId).lean();
-    if (!env.GEMINI_API_KEY) findings.push({ level: 'warn', text: 'Automatic document reading is off (no GEMINI_API_KEY); open the CNIC and compare it by hand.' });
+    if (!env.GEMINI_API_KEY || !env.CNIC_AI_CHECK) findings.push({ level: 'warn', text: 'Automatic document reading is off; open the CNIC and compare it by hand.' });
     else if (!media) findings.push({ level: 'warn', text: 'No CNIC document attached.' });
     else {
       try {

@@ -71,7 +71,7 @@ const sortOptions: Record<ListListingsQuery['sort'], Record<string, 1 | -1>> = {
 const UNBOOKABLE_WITHOUT_PARTNER = ['car', 'tour'];
 
 /** Guests only see published listings of approved partners (or platform-owned ones). */
-async function visibleFilter(type?: string) {
+export async function visibleFilter(type?: string) {
   const approvedVendors = await VendorModel.find({ status: 'approved', deletedAt: null }).distinct('_id');
   return {
     status: 'published', deletedAt: null,
@@ -89,7 +89,7 @@ export async function listPublishedListings(query: ListListingsQuery) {
   if (query.featured !== undefined) filter.featured = query.featured;
   if (query.search) {
     const pattern = new RegExp(escapeRegex(query.search), 'i');
-    (filter.$and as unknown[]).push({ $or: ['title', 'location', 'description'].map((field) => ({ [field]: pattern })) });
+    (filter.$and as unknown[]).push({ $or: ['title', 'location', 'description', 'carSpecs.pickupPlaces'].map((field) => ({ [field]: pattern })) });
   }
   if (query.location) filter.location = new RegExp(escapeRegex(query.location), 'i');
   if (query.minPrice !== undefined || query.maxPrice !== undefined) {
@@ -110,6 +110,9 @@ export async function listPublishedListings(query: ListListingsQuery) {
     // Listings without a type/category still show, as on the landing pages before.
     (filter.$and as unknown[]).push({ $or: [{ [categoryField]: new RegExp(escapeRegex(query.category), 'i') }, { [categoryField]: { $in: [null, ''] } }] });
   }
+  // Partly or fully refundable until close to the start. Listings with no policy use the default, which is moderate.
+  if (query.freeCancellation) (filter.$and as unknown[]).push({ $or: [{ cancellationPolicy: { $in: ['flexible', 'moderate'] } }, { cancellationPolicy: null }] });
+  if (query.minStars) filter['hotelSpecs.stars'] = { $gte: query.minStars };
   if (query.breakfast) {
     (filter.$and as unknown[]).push({ $or: [
       { 'homestaySpecs.meals': { $elemMatch: { type: 'breakfast', included: true } } },

@@ -7,6 +7,7 @@ import CarEditor from './CarEditor';
 import TourEditor from './TourEditor';
 import { DeparturesField } from './TourFields';
 import RoomCalendar from './RoomCalendar';
+import CalendarSyncPanel from './CalendarSyncPanel';
 import RoomManager, { secondaryButton } from './RoomManager';
 import VendorReservations from './VendorReservations';
 
@@ -47,6 +48,7 @@ function DeparturesTab({ listing, onChange }: { listing: VendorListing; onChange
 function AvailabilityTab({ listing }: { listing: VendorListing }) {
   const [rooms, setRooms] = useState<VendorRoom[] | null>(null);
   const [roomId, setRoomId] = useState('');
+  const [calendarRevision, setCalendarRevision] = useState(0);
   useEffect(() => {
     let active = true;
     api.getHotelRooms(listing.id).then((result) => {
@@ -65,7 +67,8 @@ function AvailabilityTab({ listing }: { listing: VendorListing }) {
         {rooms.map((item) => <button key={item.id} type="button" aria-pressed={item.id === room.id} onClick={() => setRoomId(item.id)}
           className={`min-h-10 rounded-full border px-4 text-sm font-semibold ${item.id === room.id ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-300 bg-white text-slate-700'}`}>{item.name}</button>)}
       </div>
-      <RoomCalendar key={room.id} listingId={listing.id} room={room} />
+      <RoomCalendar key={room.id} listingId={listing.id} room={room} revision={calendarRevision} />
+      {listing.type !== 'tour' && <CalendarSyncPanel key={`sync-${room.id}`} listingId={listing.id} room={room} onChanged={() => setCalendarRevision((value) => value + 1)} />}
     </div>
   );
 }

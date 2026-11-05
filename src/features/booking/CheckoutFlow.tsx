@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { openPaymentTab, PaymentWaiting, sendToPayment } from './paymentTab';
 import { ArrowLeft, BedDouble, CalendarDays, Check, CheckCircle, Clock, Copy, LoaderCircle, MapPin, Printer, ShieldCheck, Users } from 'lucide-react';
 import { handleImageError, type Booking, type Listing } from '../../types';
 import { api, mealLabel } from '../../shared/api/api';
@@ -6,6 +7,7 @@ import { whatsappNumber } from '../../shared/utils/stayInfo';
 import { policyLines } from '../../shared/utils/cancellation';
 import type { MealType } from '../../types';
 import { formatDateForDisplay } from '../../shared/utils/date';
+import Select, { TimeInput } from '../../shared/components/Select';
 
 export interface CheckoutParams {
   listingId: string; startDate: string; endDate: string; totalPrice: number; guests: number; duration: number;
@@ -14,7 +16,7 @@ export interface CheckoutParams {
   meals?: MealType[];
   mealsTotal?: number;
   /** Car rentals: endDate is the return date, rooms are cars, guests are passengers; `totalPrice` includes `extrasTotal`. */
-  rental?: { driver: boolean; pickupPlace: string; pickupTime: string; dropoffPlace?: string; outsideBaseCity: boolean; oneWay: boolean };
+  rental?: { driver: boolean; pickupPlace: string; pickupTime: string; dropoffPlace?: string; outsideBaseCity: boolean; oneWay: boolean; extras?: string[] };
   extrasTotal?: number;
   /** Tours: startDate is the first day, endDate the last; rooms are seats (one per traveller). */
   tour?: { days: number; meetingPoint?: string; startTime?: string };
@@ -40,9 +42,13 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
   const [step, setStep] = useState<Step>(existingBooking ? 'receipt' : 'details');
   const [contact, setContact] = useState({ name: userName, email: userEmail, phone: '' });
   const [specialRequests, setSpecialRequests] = useState('');
+  const [arrivalTime, setArrivalTime] = useState('');
+  const [childAges, setChildAges] = useState<string[]>(() => Array.from({ length: params.rental ? 0 : params.children ?? 0 }, () => ''));
+  const [instant, setInstant] = useState(false);
   const [quote, setQuote] = useState(params.totalPrice);
   const [mealCost, setMealCost] = useState(params.mealsTotal ?? 0);
   const [alreadyBooked, setAlreadyBooked] = useState('');
+  const [paying, setPaying] = useState<{ bookingId: string; url: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [booking, setBooking] = useState<Booking | null>(existingBooking ?? null);
@@ -53,6 +59,7 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
   const [charges, setCharges] = useState<NonNullable<Booking['charges']>>([]);
   const [policy, setPolicy] = useState<string>();
   const [licenceNumber, setLicenceNumber] = useState('');
+  const [driverAge, setDriverAge] = useState('');
   // Pay now is offered only when online payment is set up on the server.
   const [onlineAvailable, setOnlineAvailable] = useState(false);
   const [payNow, setPayNow] = useState(false);
@@ -70,12 +77,12 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
     const result = await api.getListingAvailability(params.listingId, {
       checkIn: params.startDate, checkOut: apiCheckOut, adults: params.adults ?? params.guests,
       children: params.children ?? 0, rooms: params.rooms ?? 1, meals: params.meals, coupon: code,
-      ...(params.rental ? { driver: params.rental.driver, outsideBaseCity: params.rental.outsideBaseCity, oneWay: params.rental.oneWay } : {}),
+      ...(params.rental ? { driver: params.rental.driver, outsideBaseCity: params.rental.outsideBaseCity, oneWay: params.rental.oneWay, carExtras: params.rental.extras } : {}),
     });
     const room = result.rooms.find((item) => item.id === params.roomTypeId);
     if (!room?.bookable) throw new Error('This room is no longer available. Return to the property to choose another room or dates.');
     setQuote(room.totalPrice); setMealCost(result.mealsTotal); setExtras(room.extrasTotal ?? 0); setCharges(room.charges ?? []); setPolicy(result.cancellationPolicy);
-    setOnlineAvailable(Boolean(result.onlinePayment)); if (!result.onlinePayment) setPayNow(false);
+    setInstant(Boolean(result.instantBook)); setOnlineAvailable(Boolean(result.onlinePayment)); if (!result.onlinePayment) setPayNow(false);
     setCoupon(result.coupon ? { ...result.coupon, discount: room.discount ?? 0 } : null);
   };
   const review = async (event: FormEvent) => {
@@ -104,26 +111,33 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
   const reserve = async () => {
     if (submitting.current || booking || !params.roomTypeId) return;
     submitting.current = true; setBusy(true); setError('');
+    const tab = payNow ? openPaymentTab() : null;
     try {
       const created = await api.createBooking({
         listingId: params.listingId, roomTypeId: params.roomTypeId, checkIn: params.startDate, checkOut: apiCheckOut,
         rooms: params.rooms ?? 1, adults: params.adults ?? params.guests, children: params.children ?? 0,
         guest: { name: contact.name.trim(), email: contact.email.trim(), phone: contact.phone.trim() },
-        specialRequests: specialRequests.trim() || undefined, meals: params.meals?.length ? params.meals : undefined, couponCode: coupon?.code,
-        ...(params.rental ? { rental: { ...params.rental, ...(selfDrive ? { licenceNumber: licenceNumber.trim() } : {}) } } : {}),
+        specialRequests: specialRequests.trim() || undefined, arrivalTime: arrivalTime || undefined, childAges: childAges.length ? childAges.map(Number) : undefined, meals: params.meals?.length ? params.meals : undefined, couponCode: coupon?.code,
+        ...(params.rental ? { rental: { ...params.rental, ...(selfDrive ? { licenceNumber: licenceNumber.trim(), driverAge: Number(driverAge) } : {}) } } : {}),
         expectedTotalMinor: Math.round(quote * 100), paymentMethod: payNow ? 'online' : 'pay_at_hotel',
       }, checkoutKey.current);
       if (payNow) {
         setBooking(created);
-        try { window.location.replace(await api.startPayment(created.id)); return; }
+        try {
+          const url = await api.startPayment(created.id);
+          sendToPayment(tab, url);
+          if (tab) setPaying({ bookingId: created.id, url });
+          return;
+        }
         catch (reason) { throw new Error(`${reason instanceof Error ? reason.message : 'The payment page did not open.'} Your booking ${created.reference} is held for an hour: open My Bookings to pay.`); }
       }
       setBooking(created); setStep('receipt');
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Unable to reserve. Please retry.'); }
+    } catch (reason) { tab?.close(); setError(reason instanceof Error ? reason.message : 'Unable to reserve. Please retry.'); }
     finally { submitting.current = false; setBusy(false); }
   };
 
+  if (paying) return <PaymentWaiting bookingId={paying.bookingId} url={paying.url} />;
   if (step === 'receipt' && booking) return <Receipt booking={booking} onDone={() => onSuccess(booking)} />;
 
   const rooms = params.rooms ?? 1;
@@ -136,6 +150,7 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
   const unitWord = car ? 'car' : 'room';
   const cancellationNote = tour ? TOUR_CANCELLATION_NOTE : car ? CAR_CANCELLATION_NOTE : CANCELLATION_NOTE;
   const payWhere = tour ? 'at the start of the tour' : car ? 'at pickup' : 'at the property';
+  const confirmedNow = instant && !payNow;
 
   return (
     <div id="checkout-flow-component" className="mx-auto max-w-5xl space-y-6 px-4 pb-24">
@@ -156,13 +171,20 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
               <label className="block text-sm font-semibold text-slate-800">Phone number<input id="checkout-phone" required type="tel" pattern="[+]?[0-9][0-9 ()\-]{6,19}" title="Enter a phone number, like 0300 1234567." minLength={7} maxLength={30} autoComplete="tel" placeholder="03XX XXXXXXX" className={inputClass} value={contact.phone} onChange={(event) => setContact({ ...contact, phone: event.target.value })} /><span className="mt-1 block text-xs font-normal text-slate-500">For the property to reach you about arrival.</span></label>
             </div>
             {selfDrive && <label className="block text-sm font-semibold text-slate-800">Driving licence number<input id="checkout-licence" required minLength={5} maxLength={30} autoComplete="off" className={inputClass} value={licenceNumber} onChange={(event) => setLicenceNumber(event.target.value)} /><span className="mt-1 block text-xs font-normal text-slate-500">Self-drive only. Bring the licence at pickup; the partner checks it.</span></label>}
-            <label className="block text-sm font-semibold text-slate-800">Special requests <span className="font-normal text-slate-500">(optional)</span><textarea maxLength={1000} placeholder={tour ? 'Hotel for pickup, dietary needs, fitness or health notes…' : car ? 'Flight number, child seat, route plans…' : 'Arrival time, bed preference, accessibility needs…'} className={inputClass + ' min-h-24 py-3'} value={specialRequests} onChange={(event) => setSpecialRequests(event.target.value)} /><span className="mt-1 block text-xs font-normal text-slate-500">Requests depend on availability and aren’t guaranteed.</span></label>
+            {selfDrive && <label className="block max-w-xs text-sm font-semibold text-slate-800">Driver’s age<input id="checkout-driver-age" required type="number" step={1} min={listing.carSpecs?.minDriverAge ?? 18} max={100} title={`The driver must be at least ${listing.carSpecs?.minDriverAge ?? 18} to rent this car without a driver.`} className={inputClass} value={driverAge} onChange={(event) => setDriverAge(event.target.value)} /><span className="mt-1 block text-xs font-normal text-slate-500">Minimum {listing.carSpecs?.minDriverAge ?? 18} for this car.</span></label>}
+            {childAges.length > 0 && <fieldset><legend className="text-sm font-semibold text-slate-800">Children’s ages</legend><p className="text-xs text-slate-500">Age on the day {tour ? 'the tour starts' : 'you check in'}, so the {tour ? 'partner' : 'property'} can prepare.</p>
+              <div className="mt-1.5 grid grid-cols-2 gap-3 sm:grid-cols-4">{childAges.map((age, index) => <Select key={index} required aria-label={`Age of child ${index + 1}`} value={age} onChange={(event) => setChildAges(childAges.map((item, at) => at === index ? event.target.value : item))} className={inputClass.replace('mt-1.5 ', '')}>
+                <option value="">Child {index + 1}</option>
+                {Array.from({ length: 18 }, (_, years) => <option key={years} value={years}>{years === 0 ? 'Under 1' : `${years} year${years === 1 ? '' : 's'}`}</option>)}
+              </Select>)}</div></fieldset>}
+            {!car && !tour && <label className="block max-w-xs text-sm font-semibold text-slate-800">Arrival time <span className="font-normal text-slate-500">(optional)</span><TimeInput value={arrivalTime} onChange={(event) => setArrivalTime(event.target.value)} className={inputClass} /><span className="mt-1 block text-xs font-normal text-slate-500">Roughly when you expect to arrive. You can change it later.</span></label>}
+            <label className="block text-sm font-semibold text-slate-800">Special requests <span className="font-normal text-slate-500">(optional)</span><textarea maxLength={1000} placeholder={tour ? 'Hotel for pickup, dietary needs, fitness or health notes…' : car ? 'Flight number, child seat, route plans…' : 'Bed preference, accessibility needs…'} className={inputClass + ' min-h-24 py-3'} value={specialRequests} onChange={(event) => setSpecialRequests(event.target.value)} /><span className="mt-1 block text-xs font-normal text-slate-500">Requests depend on availability and aren’t guaranteed.</span></label>
             <button id="btn-checkout-review" disabled={busy} className={buttonClass + ' flex w-full items-center justify-center gap-2'}>{busy && <LoaderCircle className="size-4 animate-spin" />}{busy ? 'Checking availability…' : 'Continue to review'}</button>
           </form>}
 
           {step === 'review' && <section className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
             {alreadyBooked && <p role="status" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-950">You already have booking {alreadyBooked} here on overlapping dates. Continue only if you want another one.</p>}
-            <div><h1 className="text-xl font-bold text-slate-950">Review and request</h1><p className="mt-1 text-sm text-slate-500">Check everything before you send the request.</p></div>
+            <div><h1 className="text-xl font-bold text-slate-950">{confirmedNow ? 'Review and book' : 'Review and request'}</h1><p className="mt-1 text-sm text-slate-500">{confirmedNow ? 'Check everything before you book.' : 'Check everything before you send the request.'}</p></div>
             {quoteChanged && <p role="status" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">The price was updated by the property since you selected the room. The total below is the current price.</p>}
             <dl className="divide-y divide-slate-100 rounded-xl border border-slate-200 text-sm">
               <ReviewRow label="Guest">{contact.name}<span className="block text-slate-500">{contact.email} · {contact.phone}</span></ReviewRow>
@@ -171,7 +193,10 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
                 : <ReviewRow label={car ? 'Car' : 'Room'}>{rooms} × {params.roomName}<span className="block text-slate-500">{car ? `${plural(params.guests, 'passenger')} · ${params.rental!.driver ? 'with driver' : 'self-drive'}` : <>{plural(params.adults ?? params.guests, 'adult')}{params.children ? `, ${plural(params.children, 'child')}` : ''}</>}</span></ReviewRow>}
               {tour?.meetingPoint && <ReviewRow label="Meet at">{tour.meetingPoint}{tour.startTime ? <span className="block text-slate-500">at {tour.startTime}</span> : null}</ReviewRow>}
               {car && <ReviewRow label="Pickup">{params.rental!.pickupPlace}<span className="block text-slate-500">{params.rental!.oneWay ? `Drop-off: ${params.rental!.dropoffPlace}` : 'Return to the same place'}{params.rental!.outsideBaseCity ? ' · trip leaves the base city' : ''}</span></ReviewRow>}
-              {selfDrive && <ReviewRow label="Licence">{licenceNumber}</ReviewRow>}
+              {selfDrive && <ReviewRow label="Licence">{licenceNumber}<span className="block text-slate-500">Driver aged {driverAge}</span></ReviewRow>}
+              {params.rental?.extras?.length ? <ReviewRow label="Extras">{params.rental.extras.join(', ')}</ReviewRow> : null}
+              {childAges.length > 0 && <ReviewRow label="Children’s ages">{childAges.join(', ')}</ReviewRow>}
+              {arrivalTime && <ReviewRow label="Arrival">{arrivalTime}</ReviewRow>}
               {params.meals?.length ? <ReviewRow label="Meals">{params.meals.map(mealLabel).join(', ')}<span className="block text-slate-500">PKR {mealCost.toLocaleString()} for {plural(params.guests, 'guest')}, paid at check-in</span></ReviewRow> : null}
               {specialRequests.trim() && <ReviewRow label="Requests"><span className="italic">“{specialRequests.trim()}”</span></ReviewRow>}
             </dl>
@@ -184,7 +209,7 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
                 </form>}
             {onlineAvailable && <fieldset className="space-y-2">
               <legend className="text-sm font-semibold text-slate-800">How would you like to pay?</legend>
-              {([[true, 'Pay now', 'Card or mobile wallet on Safepay’s secure page. Confirmed instantly.'], [false, 'Pay on arrival', `Pay ${payWhere}. The partner confirms your request within a day.`]] as const).map(([value, title, hint]) => (
+              {([[true, 'Pay now', 'Card or mobile wallet on Safepay’s secure page. Confirmed instantly.'], [false, 'Pay on arrival', `Pay ${payWhere}. ${instant ? 'Confirmed right away.' : 'The partner confirms your request within a day.'}`]] as const).map(([value, title, hint]) => (
                 <label key={title} className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 ${payNow === value ? 'border-[#006F3C] bg-emerald-50/50' : 'border-slate-200'}`}>
                   <input type="radio" name="payment" checked={payNow === value} onChange={() => setPayNow(value)} className="mt-1 accent-[#006F3C]" />
                   <span><span className="block font-semibold text-slate-900">{title}</span><span className="block text-sm text-slate-500">{hint}</span></span>
@@ -194,12 +219,12 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
             <ol className="space-y-3 text-sm text-slate-700">
               {(payNow
                 ? [`You pay PKR ${quote.toLocaleString()} now on Safepay’s secure page.`, 'Your booking is confirmed as soon as the payment goes through, and we email you.', `If you cancel: ${policyLines(policy).join('; ')}.`]
-                : ['You send a reservation request — no payment is taken today.', 'The property confirms it, and we email you.', `You pay PKR ${quote.toLocaleString()} ${payWhere}. ${cancellationNote}`]).map((text, index) => (
+                : [...(instant ? ['Your booking is confirmed right away — no payment is taken today.', 'We email you the confirmation.'] : ['You send a reservation request — no payment is taken today.', 'The property confirms it, and we email you.']), `You pay PKR ${quote.toLocaleString()} ${payWhere}. ${cancellationNote}`]).map((text, index) => (
                 <li key={text} className="flex gap-3"><span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-xs font-bold text-[#006F3C]">{index + 1}</span><span className="pt-0.5">{text}</span></li>
               ))}
             </ol>
-            <button id="btn-confirm-booking" type="button" disabled={busy} onClick={reserve} className={buttonClass + ' flex w-full items-center justify-center gap-2'}>{busy && <LoaderCircle className="size-4 animate-spin" />}{busy ? (payNow ? 'Opening the payment page…' : 'Sending request…') : payNow ? `Pay PKR ${quote.toLocaleString()} now` : `Request reservation · PKR ${quote.toLocaleString()}`}</button>
-            <p className="text-center text-xs text-slate-500">By requesting, you agree to the property’s policies shown on its page.</p>
+            <button id="btn-confirm-booking" type="button" disabled={busy} onClick={reserve} className={buttonClass + ' flex w-full items-center justify-center gap-2'}>{busy && <LoaderCircle className="size-4 animate-spin" />}{busy ? (payNow ? 'Opening the payment page…' : confirmedNow ? 'Booking…' : 'Sending request…') : payNow ? `Pay PKR ${quote.toLocaleString()} now` : `${confirmedNow ? 'Book now' : 'Request reservation'} · PKR ${quote.toLocaleString()}`}</button>
+            <p className="text-center text-xs text-slate-500">By continuing, you agree to the property’s policies shown on its page.</p>
           </section>}
         </div>
 
@@ -218,7 +243,7 @@ export default function CheckoutFlow({ bookingParams: params, listing, userEmail
                 <div className="flex justify-between text-slate-600">{tour
                   ? <span>Tour for {plural(params.guests, 'traveller')}</span>
                   : <span>PKR {Math.round(roomQuote / nights / rooms).toLocaleString()} × {plural(nights, dayWord)}{rooms > 1 ? ` × ${rooms} ${unitWord}s` : ''}</span>}<span>PKR {roomQuote.toLocaleString()}</span></div>
-                {extras > 0 && <div className="flex justify-between text-slate-600"><span>Driver &amp; trip charges</span><span>PKR {extras.toLocaleString()}</span></div>}
+                {extras > 0 && <div className="flex justify-between text-slate-600"><span>Driver, extras &amp; trip charges</span><span>PKR {extras.toLocaleString()}</span></div>}
                 {mealCost > 0 && <div className="flex justify-between text-slate-600"><span>Meals ({params.meals!.map(mealLabel).join(', ')})</span><span>PKR {mealCost.toLocaleString()}</span></div>}
                 {coupon && <div className="flex justify-between text-emerald-700"><span>Promo {coupon.code}</span><span>−PKR {coupon.discount.toLocaleString()}</span></div>}
                 {charges.map((line) => <div key={line.name} className="flex justify-between text-slate-600"><span>{line.name}</span><span>PKR {line.amount.toLocaleString()}</span></div>)}
@@ -301,10 +326,12 @@ function Receipt({ booking, onDone }: { booking: Booking; onDone: () => void }) 
             <dt className="text-slate-500">Drop-off</dt><dd className="font-medium text-slate-900">{rental.dropoffPlace}{rental.oneWay ? ' (one-way)' : ''}</dd>
             <dt className="text-slate-500">Driver</dt><dd className="font-medium text-slate-900">{rental.driver ? 'With driver' : `Self-drive${rental.licenceNumber ? ` · licence ${rental.licenceNumber}` : ''}`}</dd>
             <dt className="text-slate-500">Fuel</dt><dd className="font-medium text-slate-900">{rental.fuelIncluded ? 'Included' : 'Paid by you'}</dd>
+            <dt className="text-slate-500">Mileage</dt><dd className="font-medium text-slate-900">{rental.kmPerDay ? `${rental.kmPerDay} km per day${rental.extraPerKm ? `, then PKR ${rental.extraPerKm.toLocaleString()} per km on return` : ''}` : 'Unlimited'}</dd>
+            {rental.extras?.length ? <><dt className="text-slate-500">Extras</dt><dd className="font-medium text-slate-900">{rental.extras.map((extra) => extra.name).join(', ')}</dd></> : null}
             {rental.deposit > 0 && <><dt className="text-slate-500">Deposit</dt><dd className="font-medium text-slate-900">PKR {rental.deposit.toLocaleString()} at pickup, refunded on return</dd></>}
           </>}
           {booking.nightlyRate !== undefined && !tour && <><dt className="text-slate-500">Rate</dt><dd className="font-medium text-slate-900">PKR {booking.nightlyRate.toLocaleString()} × {plural(nights, rental ? 'day' : 'night')}{(booking.rooms ?? 1) > 1 ? ` × ${booking.rooms} ${rental ? 'cars' : 'rooms'}` : ''}</dd></>}
-          {booking.extrasTotal ? <><dt className="text-slate-500">Trip charges</dt><dd className="font-medium text-slate-900">PKR {booking.extrasTotal.toLocaleString()}{rental ? ` (${[rental.driver && rental.driverPerDay ? 'driver' : '', rental.outsideBaseCity && rental.outsidePerDay ? 'outside base city' : '', rental.oneWayFee ? 'one-way' : ''].filter(Boolean).join(', ')})` : ''}</dd></> : null}
+          {booking.extrasTotal ? <><dt className="text-slate-500">Trip charges</dt><dd className="font-medium text-slate-900">PKR {booking.extrasTotal.toLocaleString()}{rental ? ` (${[rental.driver && rental.driverPerDay ? 'driver' : '', rental.outsideBaseCity && rental.outsidePerDay ? 'outside base city' : '', rental.oneWayFee ? 'one-way' : '', rental.extras?.length ? 'extras' : ''].filter(Boolean).join(', ')})` : ''}</dd></> : null}
           {rental?.oneWayOnRequest && <><dt className="text-slate-500">One-way fee</dt><dd className="font-medium text-slate-900">Agreed with the partner, not included above</dd></>}
           {booking.meals?.length ? <><dt className="text-slate-500">Meals</dt><dd className="font-medium text-slate-900">{booking.meals.map((meal) => mealLabel(meal.type)).join(', ')} · PKR {(booking.mealsTotal ?? 0).toLocaleString()}</dd></> : null}
           {booking.couponCode && <><dt className="text-slate-500">Promo code</dt><dd className="font-medium text-slate-900">{booking.couponCode} · {booking.couponLabel} (−PKR {(booking.discount ?? 0).toLocaleString()})</dd></>}
@@ -316,6 +343,8 @@ function Receipt({ booking, onDone }: { booking: Booking; onDone: () => void }) 
             <a href={`tel:${booking.propertyPhone.replace(/\s/g, '')}`} className="text-[#006F3C] underline">{booking.propertyPhone}</a>
             {whatsappNumber(booking.propertyPhone) && <a href={`https://wa.me/${whatsappNumber(booking.propertyPhone)}?text=${encodeURIComponent(`Hello, I have booking ${reference} at ${booking.listingTitle}.`)}`} target="_blank" rel="noopener noreferrer" className="ml-3 inline-flex min-h-9 items-center rounded-md bg-emerald-50 px-2 text-xs font-semibold text-emerald-800 print:hidden">WhatsApp</a>}
           </dd></>}
+          {booking.childAges?.length ? <><dt className="text-slate-500">Children’s ages</dt><dd className="font-medium text-slate-900">{booking.childAges.join(', ')}</dd></> : null}
+          {booking.arrivalTime && <><dt className="text-slate-500">Arrival time</dt><dd className="font-medium text-slate-900">{booking.arrivalTime}</dd></>}
           {booking.specialRequests && <><dt className="text-slate-500">Requests</dt><dd className="italic text-slate-700">“{booking.specialRequests}”</dd></>}
         </dl>
         {booking.status !== 'cancelled' && <p className="border-t border-slate-100 bg-slate-50 px-6 py-4 text-xs leading-5 text-slate-600">{booking.paymentMethod === 'online' && booking.cancellationPolicy ? `If you cancel: ${policyLines(booking.cancellationPolicy).join('; ')}.` : tour ? TOUR_CANCELLATION_NOTE : rental ? CAR_CANCELLATION_NOTE : CANCELLATION_NOTE} Cancel from My Bookings. Show this reference {tour ? 'when you meet your guide' : rental ? 'at pickup' : 'at the property on arrival'}.</p>}

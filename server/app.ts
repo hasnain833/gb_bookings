@@ -19,12 +19,14 @@ import { adminUserRouter } from './modules/users/user-admin.routes.js';
 import { wishlistRouter } from './modules/wishlist/wishlist.routes.js';
 import { adminSettingsRouter, publicSettingsRouter } from './modules/settings/settings.routes.js';
 import { messageRouter } from './modules/messages/message.routes.js';
+import { adminSupportRouter } from './modules/support/support.routes.js';
 import { newsletterRouter } from './modules/newsletter/newsletter.routes.js';
 import { adminReviewRouter, listingReviewHandlers, partnerReviewRouter } from './modules/reviews/review.routes.js';
 import { partnerCouponRouter } from './modules/coupons/coupon.routes.js';
 import { adminFinanceRouter, partnerFinanceRouter } from './modules/finance/finance.routes.js';
 import { inngest, inngestEnabled, inngestFunctions } from './modules/jobs/inngest.js';
 import { seoRouter } from './modules/seo/seo.routes.js';
+import { calendarFeedRouter } from './modules/calendar/calendar.routes.js';
 import { serve } from 'inngest/express';
 import { AppError } from './shared/app-error.js';
 import { isAllowedOrigin } from './shared/origin.js';
@@ -46,6 +48,8 @@ export function createApp(): Express {
   app.use(helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
     crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+    // OpenStreetMap's tile servers refuse requests that hide where they came from.
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
     contentSecurityPolicy: env.NODE_ENV === 'development' ? false : {
       directives: {
         'img-src': ["'self'", 'data:', 'blob:', 'https:'],
@@ -53,7 +57,7 @@ export function createApp(): Express {
         'font-src': ["'self'", 'data:', 'https://fonts.gstatic.com'],
         'script-src': ["'self'", 'https://accounts.google.com/gsi/client'],
         'connect-src': ["'self'", 'https://accounts.google.com/gsi/', 'https://photon.komoot.io', 'https://*.inngest.com', 'wss://*.inngest.com'],
-        'frame-src': ["'self'", 'https://www.google.com', 'https://maps.google.com', 'https://accounts.google.com/gsi/'],
+        'frame-src': ["'self'", 'https://accounts.google.com/gsi/'],
       },
     },
   }));
@@ -93,6 +97,7 @@ export function createApp(): Express {
   app.use('/api/v1/auth', authRouter);
   app.get(['/api/v1/listings/:id/availability', '/api/listings/:id/availability'], ...availabilityHandlers);
   app.get('/api/v1/listings/:id/unavailable-dates', ...unavailableDatesHandlers);
+  app.use('/api/v1/ical', calendarFeedRouter);
   app.get('/api/v1/listings/:id/reviews', ...listingReviewHandlers);
   app.use('/api/v1/listings', createListingRouter());
   app.use('/api/v1/vendors', vendorRouter);
@@ -106,6 +111,7 @@ export function createApp(): Express {
   app.use('/api/v1/messages', messageRouter);
   app.use('/api/v1/vendor/bookings', vendorBookingRouter);
   app.use('/api/v1/admin/bookings', adminBookingRouter);
+  app.use('/api/v1/admin/support', adminSupportRouter);
   app.use('/api/v1/admin/settings', adminSettingsRouter);
   app.use('/api/v1/admin/finance', adminFinanceRouter);
   app.use('/api/v1/vendor/finance', partnerFinanceRouter);

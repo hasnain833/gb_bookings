@@ -16,8 +16,13 @@ import { BookingModel } from '../../models/booking.model.js';
 import { VendorModel } from '../../models/vendor.model.js';
 import { VendorMemberModel } from '../../models/vendor-member.model.js';
 import { todayInPakistan } from '../bookings/stay-dates.js';
+import { deviceName } from '../../../src/shared/utils/device.js';
+import { emailAddressProblem } from '../../shared/email-domain.js';
+import { escapeHtml } from '../email/auth-email.templates.js';
+import { isEmailConfigured, sendTransactionalEmail } from '../email/resend.service.js';
 
 const PASSWORD_COST = 12;
+const REFRESH_REUSE_GRACE_MS = 60_000;
 const MAX_FAILED_LOGINS = 5;
 const LOCK_MINUTES = 15;
 // Version of the Terms and Privacy Policy a new account accepts.
@@ -96,6 +101,8 @@ export async function registerUser(input: {
 
   const existing = await UserModel.exists({ email: input.email, deletedAt: null });
   if (existing) throw new AppError(409, 'EMAIL_ALREADY_REGISTERED', 'An account already exists for this email address.');
+  const problem = await emailAddressProblem(input.email);
+  if (problem) throw new AppError(422, 'EMAIL_ADDRESS_INVALID', problem);
 
   const challenge = await createOtpChallenge({
     channel: 'email', destination: input.email, recipientName: input.name, purpose: 'signup',
@@ -185,13 +192,34 @@ export async function loginUser(
   return completeSignIn(user, input.rememberMe, metadata, trustedDeviceToken, 'auth.login_succeeded');
 }
 
+/**
+ * Admins always use a code: one stolen password would otherwise control refunds, payouts and bank approvals.
+ * Without email set up, a local install can still reach its admin; production never skips it.
+ */
+const needsTwoStep = (user: any) => Boolean(user.twoFactor?.enabled) || (user.roles?.includes('admin') && (env.NODE_ENV === 'production' || isEmailConfigured()));
+
+/** Tells the account holder about a sign-in from a browser this account hasn't used. A failed email never stops the sign-in. */
+async function alertIfNewDevice(user: any, metadata: SessionMetadata) {
+  if (!isEmailConfigured() || !metadata.userAgent) return;
+  const [seenHere, seenAnywhere] = await Promise.all([
+    SessionModel.exists({ userId: user._id, userAgent: metadata.userAgent }),
+    SessionModel.exists({ userId: user._id }),
+  ]);
+  if (seenHere || !seenAnywhere) return;
+  await sendTransactionalEmail({
+    to: { email: user.email, name: user.name }, subject: 'New sign-in to your GBBookings account', tag: 'new-device',
+    htmlContent: `<p>Hello ${escapeHtml(user.name)},</p><p>Your account was just signed in to from a new device: <strong>${escapeHtml(deviceName(metadata.userAgent))}</strong>${metadata.ipAddress ? ` (IP ${escapeHtml(metadata.ipAddress)})` : ''}.</p><p>If this was you, there is nothing to do. If not, change your password now and sign out that device under Profile, Login &amp; security.</p>`,
+  }).catch((error) => console.warn(`New device email failed: ${error.message}`));
+}
+
 /** After the first factor (password or Google): asks for the two-step code unless the device is trusted, else starts a session. */
 async function completeSignIn(user: any, rememberMe: boolean, metadata: SessionMetadata, trustedDeviceToken: string | undefined, auditAction: string) {
-  if (user.twoFactor?.enabled && !(rememberMe && await isTrustedDevice(String(user._id), trustedDeviceToken, metadata.userAgent))) {
+  if (needsTwoStep(user) && !(rememberMe && await isTrustedDevice(String(user._id), trustedDeviceToken, metadata.userAgent))) {
+    const channel = user.twoFactor?.enabled ? user.twoFactor.channel : 'email';
     const challenge = await createOtpChallenge({
       userId: String(user._id),
-      channel: user.twoFactor.channel,
-      destination: user.twoFactor.channel === 'sms' ? user.phone : user.email,
+      channel,
+      destination: channel === 'sms' ? user.phone : user.email,
       recipientName: user.name,
       purpose: 'two_factor_login',
       rememberMe,
@@ -203,6 +231,7 @@ async function completeSignIn(user: any, rememberMe: boolean, metadata: SessionM
     });
     return { requiresTwoFactor: true as const, ...challenge };
   }
+  await alertIfNewDevice(user, metadata);
   const session = await issueSession(user, rememberMe, metadata);
   await recordAuditEvent({
     actorId: String(user._id), actorType: 'user', action: auditAction,
@@ -290,9 +319,10 @@ export async function completeTwoFactorLogin(challengeId: string, code: string, 
   await requireDatabase();
   const challenge = await consumeOtpChallenge(challengeId, code, 'two_factor_login');
   const user = await UserModel.findOne({ _id: challenge.userId, status: 'active', deletedAt: null });
-  if (!user || !user.twoFactor?.enabled) {
+  if (!user || !needsTwoStep(user)) {
     throw new AppError(401, 'AUTHENTICATION_REQUIRED', 'This two-factor challenge is no longer valid.');
   }
+  await alertIfNewDevice(user, metadata);
   const session = await issueSession(user, challenge.rememberMe, metadata);
   const trustedDevice = challenge.rememberMe ? await rememberDevice(String(user._id), session.sessionId, metadata.userAgent) : undefined;
   await recordAuditEvent({
@@ -311,7 +341,14 @@ export async function refreshSession(rawRefreshToken: string, metadata: SessionM
     expiresAt: { $gt: new Date() },
   }).select('+refreshTokenHash');
 
-  if (!session) throw new AppError(401, 'INVALID_REFRESH_TOKEN', 'Your session has expired. Please sign in again.');
+  if (!session) {
+    // An old token coming back means it was copied. Two tabs refreshing together can do this harmlessly, hence the grace period.
+    await SessionModel.updateOne(
+      { previousRefreshTokenHash: tokenHash, revokedAt: null, rotatedAt: { $lt: new Date(Date.now() - REFRESH_REUSE_GRACE_MS) } },
+      { $set: { revokedAt: new Date() } },
+    );
+    throw new AppError(401, 'INVALID_REFRESH_TOKEN', 'Your session has expired. Please sign in again.');
+  }
 
   const user = await UserModel.findOne({ _id: session.userId, status: 'active', deletedAt: null });
   if (!user) throw new AppError(401, 'INVALID_REFRESH_TOKEN', 'Your session has expired. Please sign in again.');
@@ -322,6 +359,8 @@ export async function refreshSession(rawRefreshToken: string, metadata: SessionM
     {
       $set: {
         refreshTokenHash: hashToken(refreshToken),
+        previousRefreshTokenHash: tokenHash,
+        rotatedAt: new Date(),
         lastUsedAt: new Date(),
         userAgent: metadata.userAgent,
         ipAddress: metadata.ipAddress,
@@ -374,6 +413,48 @@ export async function updateUserProfile(userId: string, input: { name?: string; 
   );
   if (!user) throw new AppError(404, 'USER_NOT_FOUND', 'User account was not found.');
   return publicUser(user);
+}
+
+/** Step 1 of changing the email: a code to the current address (it's really them) and one to the new address (they can read it). */
+export async function requestEmailChange(userId: string, newEmail: string, metadata: SessionMetadata) {
+  await requireDatabase();
+  const user = await UserModel.findOne({ _id: userId, status: 'active', deletedAt: null });
+  if (!user) throw new AppError(404, 'USER_NOT_FOUND', 'User account was not found.');
+  if (newEmail === user.email) throw new AppError(409, 'EMAIL_UNCHANGED', 'That is already your email address.');
+  const problem = await emailAddressProblem(newEmail);
+  if (problem) throw new AppError(422, 'EMAIL_ADDRESS_INVALID', problem);
+  if (await UserModel.exists({ email: newEmail, deletedAt: null })) throw new AppError(409, 'EMAIL_ALREADY_REGISTERED', 'An account already exists for this email address.');
+  const shared = { userId, channel: 'email' as const, recipientName: user.name, requestedIp: metadata.ipAddress };
+  const current = await createOtpChallenge({ ...shared, destination: user.email, purpose: 'email_change_current' });
+  const next = await createOtpChallenge({ ...shared, destination: newEmail, purpose: 'email_change_new' });
+  return { currentChallengeId: current.challengeId, newChallengeId: next.challengeId };
+}
+
+/** Step 2: both codes. This device stays signed in, other sessions end, and the old address is told. */
+export async function confirmEmailChange(userId: string, sessionId: string, input: { currentChallengeId: string; currentCode: string; newChallengeId: string; newCode: string }, metadata: SessionMetadata) {
+  await requireDatabase();
+  await consumeOtpChallenge(input.currentChallengeId, input.currentCode, 'email_change_current', userId);
+  const challenge = await consumeOtpChallenge(input.newChallengeId, input.newCode, 'email_change_new', userId);
+  const user = await UserModel.findOne({ _id: userId, status: 'active', deletedAt: null });
+  if (!user) throw new AppError(404, 'USER_NOT_FOUND', 'User account was not found.');
+  const previous = user.email;
+  user.email = challenge.destination;
+  user.emailVerifiedAt = new Date();
+  try {
+    await user.save();
+  } catch (error: any) {
+    if (error?.code === 11000) throw new AppError(409, 'EMAIL_ALREADY_REGISTERED', 'An account already exists for this email address.');
+    throw error;
+  }
+  await SessionModel.updateMany({ userId, revokedAt: null, publicId: { $ne: sessionId } }, { $set: { revokedAt: new Date() } });
+  await TrustedDeviceModel.deleteMany({ userId });
+  await recordAuditEvent({ actorId: userId, actorType: 'user', action: 'auth.email_changed', resourceType: 'user', resourceId: user.publicId, ...metadata });
+  if (isEmailConfigured()) {
+    await sendTransactionalEmail({
+      to: { email: previous, name: user.name }, subject: 'Your GBBookings email was changed', tag: 'email-changed',
+      htmlContent: `<p>Hello ${escapeHtml(user.name)},</p><p>The email on your GBBookings account was changed to <strong>${escapeHtml(user.email)}</strong>. If this was not you, contact info@gbbookings.com straight away.</p>`,
+    }).catch((error) => console.warn(`Email change notice failed: ${error.message}`));
+  }
 }
 
 /** Step 1 of changing a password: proves the person at this session also holds the email. Also lets Google accounts set a first password. */

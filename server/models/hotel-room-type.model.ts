@@ -33,10 +33,27 @@ const hotelRoomTypeSchema = new Schema({
     type: [new Schema({ name: { type: String, trim: true, maxlength: 60 }, from: String, to: String, priceMinor: { type: Number, min: 0 } }, { _id: false })],
     default: [],
   },
+  // Stay rules and automatic discounts (see src/shared/utils/roomPricing.ts). They apply at once, like prices.
+  minNights: { type: Number, min: 1, max: 365 },
+  maxNights: { type: Number, min: 1, max: 365 },
+  noArrivalDays: { type: [Number], default: undefined },
+  deals: {
+    type: new Schema({
+      longStay: { type: new Schema({ nights: Number, percent: Number }, { _id: false }) },
+      earlyBird: { type: new Schema({ days: Number, percent: Number }, { _id: false }) },
+      lastMinute: { type: new Schema({ days: Number, percent: Number }, { _id: false }) },
+    }, { _id: false }),
+    default: undefined,
+  },
   amenities: { type: [String], default: [] },
   photos: { type: [photoSchema], default: [] },
   // Guest-facing edits on a live listing ({ changes, isNew? }); reviewed together with the listing's revision.
   pendingRevision: { type: Schema.Types.Mixed, default: undefined },
+  // Calendar sync. The token is the secret in the public feed link.
+  icalToken: { type: String, select: false, index: { unique: true, sparse: true } },
+  icalFeeds: { type: [new Schema({ id: String, name: { type: String, maxlength: 60 }, url: { type: String, maxlength: 2000 }, dates: [String], lastSyncAt: Date, lastError: String }, { _id: false })], default: undefined },
+  icalConflicts: { type: [String], default: undefined },
+  icalSyncedAt: { type: Date, default: null },
   status: { type: String, enum: ['active', 'paused', 'archived'], default: 'active', index: true },
   deletedAt: { type: Date, default: null, index: true },
 }, { timestamps: true });

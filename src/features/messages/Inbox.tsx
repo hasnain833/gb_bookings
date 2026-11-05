@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import { ArrowLeft, LoaderCircle, MessageSquare, Send, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Flag, LoaderCircle, MessageSquare, Send, ShieldCheck } from 'lucide-react';
 import { api, type ChatMessage, type Conversation, type ConversationThread } from '../../shared/api/api';
 import { onMessage, realtimeConnected } from '../../shared/api/realtime';
 import { formatDateForDisplay } from '../../shared/utils/date';
 import { handleImageError } from '../../types';
+import { useReasonDialog } from '../../shared/components/ReasonDialog';
+import { toast } from '../../shared/components/Toaster';
 
 /** Opens (or starts) the thread with a listing's partner, e.g. from a booking card or listing page. */
 export type InboxStart = { listingId: string; title: string; image?: string };
@@ -16,8 +18,9 @@ const timeLabel = (value: string) => {
     : date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 };
 
-export default function Inbox({ start }: { start?: InboxStart }) {
-  const [side, setSide] = useState<'guest' | 'partner'>('guest');
+/** `partnerOnly`: inside the partner dashboard, which has its own heading and only shows guests' messages. */
+export default function Inbox({ start, partnerOnly = false }: { start?: InboxStart; partnerOnly?: boolean }) {
+  const [side, setSide] = useState<'guest' | 'partner'>(partnerOnly ? 'partner' : 'guest');
   const [isPartner, setIsPartner] = useState(false);
   const [unread, setUnread] = useState({ guest: 0, partner: 0 });
   const [conversations, setConversations] = useState<Conversation[] | null>(null);
@@ -92,7 +95,7 @@ export default function Inbox({ start }: { start?: InboxStart }) {
 
   const showingThread = Boolean(openId || draftStart);
   return <div className="mx-auto max-w-6xl space-y-4 pb-10">
-    <div className="flex flex-wrap items-end justify-between gap-3">
+    {!partnerOnly && <div className="flex flex-wrap items-end justify-between gap-3">
       <h1 className="text-3xl font-extrabold tracking-tight text-slate-950">Inbox</h1>
       {isPartner && <div role="tablist" aria-label="Whose messages" className="flex rounded-xl border border-slate-200 bg-white p-1">
         {([['partner', 'From my guests'], ['guest', 'My own trips']] as const).map(([id, label]) => (
@@ -102,7 +105,7 @@ export default function Inbox({ start }: { start?: InboxStart }) {
           </button>
         ))}
       </div>}
-    </div>
+    </div>}
     {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
 
     <div className="grid min-h-[560px] overflow-hidden rounded-2xl border border-slate-200 bg-white md:grid-cols-[320px_minmax(0,1fr)]">
@@ -146,6 +149,14 @@ function Thread({ side, thread, draft, onBack, onSend }: {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [hiddenNotice, setHiddenNotice] = useState(false);
+  const [justReported, setJustReported] = useState(false);
+  const { askReason, dialog } = useReasonDialog();
+  const report = async () => {
+    const reason = await askReason({ title: 'Report this chat', description: 'GBBookings will read this chat and look into it. The other person is not told.', confirmLabel: 'Report chat', destructive: true, noteLabel: 'What went wrong?' });
+    if (!reason || !thread) return;
+    try { await api.reportConversation(thread.conversation.id, reason); setJustReported(true); toast('Chat reported. GBBookings will look into it.'); }
+    catch (failure) { toast(failure instanceof Error ? failure.message : 'The chat could not be reported.', 'error'); }
+  };
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => { end.current?.scrollIntoView({ block: 'end' }); }, [thread?.messages.length]);
 
@@ -161,12 +172,16 @@ function Thread({ side, thread, draft, onBack, onSend }: {
   };
 
   return <>
+    {dialog}
     <header className="flex items-center gap-3 border-b border-slate-200 p-3">
       <button type="button" onClick={onBack} aria-label="Back to conversations" className="flex size-10 items-center justify-center rounded-lg hover:bg-slate-50 md:hidden"><ArrowLeft className="size-5" /></button>
       <div className="min-w-0 flex-1">
         <h2 className="truncate font-bold text-slate-950">{draft ? title : other}</h2>
         <p className="truncate text-xs text-slate-500">{draft ? 'Ask the host anything before or after you book' : title}</p>
       </div>
+      {thread && (justReported || thread.conversation.reported
+        ? <span className="shrink-0 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-900">Reported</span>
+        : <button type="button" onClick={() => void report()} className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-lg px-2 text-xs font-semibold text-slate-500 hover:bg-slate-50 hover:text-rose-700"><Flag className="size-3.5" aria-hidden="true" />Report</button>)}
     </header>
     {thread && thread.bookings.length > 0 && <div className="flex flex-wrap gap-2 border-b border-slate-100 bg-[#F5F7F4] px-4 py-2 text-xs text-slate-700">
       {thread.bookings.map((booking) => <span key={booking.reference} className="rounded-full bg-white px-2.5 py-1 font-semibold">{booking.reference} · {formatDateForDisplay(booking.checkIn)} · {booking.status}</span>)}

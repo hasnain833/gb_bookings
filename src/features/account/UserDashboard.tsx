@@ -1,6 +1,10 @@
 import { toast } from '../../shared/components/Toaster';
 import { CANCELLATION_POLICIES, daysBetween, refundPercentFor } from '../../shared/utils/cancellation';
 import ChangeBookingDialog from './ChangeBookingDialog';
+import EditBookingDialog from './EditBookingDialog';
+import BookingSupportDialog from './BookingSupportDialog';
+import ChangeEmailDialog from './ChangeEmailDialog';
+import { openPaymentTab, PaymentWaiting, sendToPayment } from '../booking/paymentTab';
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { ArrowRight, Building2, CalendarDays, Check, ChevronLeft, ChevronRight, Circle, Heart, LoaderCircle, MapPin, MessageSquare, RefreshCw, Star, Trash2, X } from 'lucide-react';
 import type { Booking, Listing } from '../../types';
@@ -10,6 +14,7 @@ import { formatDateForDisplay } from '../../shared/utils/date';
 import { useBodyScrollLock } from '../../shared/utils/scrollLock';
 import SecurityPanel from './SecurityPanel';
 import { ReviewDialog } from '../reviews/ReviewParts';
+import { useReasonDialog } from '../../shared/components/ReasonDialog';
 
 interface UserDashboardProps {
   userEmail: string; userName?: string; setView: (view: string) => void;
@@ -53,7 +58,17 @@ function BookingsPage({ setView, onSelectBooking, onMessage, paymentReturn, user
   const [reload, setReload] = useState(0);
   const [cancelBooking, setCancelBooking] = useState<Booking | null>(null);
   const [changeBooking, setChangeBooking] = useState<Booking | null>(null);
+  const [editBooking, setEditBooking] = useState<Booking | null>(null);
+  const [helpBooking, setHelpBooking] = useState<Booking | null>(null);
   const [reviewBooking, setReviewBooking] = useState<Booking | null>(null);
+  const [paying, setPaying] = useState<{ bookingId: string; url: string } | null>(null);
+  const { askReason, dialog: reasonDialog } = useReasonDialog();
+  const disputeNoShow = async (booking: Booking) => {
+    const note = await askReason({ title: 'Were you there?', description: 'Tell us what happened, for example when you arrived and who you spoke to. The partner sees your note, and GBBookings decides. The partner is not paid for this booking until then.', confirmLabel: 'Send dispute', noteLabel: 'What happened' });
+    if (!note) return;
+    try { await api.disputeNoShow(booking.id, note); toast('Dispute sent. We will email you with the decision.'); setReload((value) => value + 1); }
+    catch (reason) { toast(reason instanceof Error ? reason.message : 'Your dispute could not be sent. Please try again.', 'error'); }
+  };
   const [cancelBusy, setCancelBusy] = useState(false);
   const [cancelError, setCancelError] = useState('');
   const cancelLock = useRef(false);
@@ -92,8 +107,13 @@ function BookingsPage({ setView, onSelectBooking, onMessage, paymentReturn, user
 
   const completePayment = async (booking: Booking) => {
     setPayingId(booking.id); setPaymentNotice(null);
-    try { window.location.replace(await api.startPayment(booking.id)); }
-    catch (reason) { setPaymentNotice({ tone: 'warn', text: reason instanceof Error ? reason.message : 'The payment page did not open. Please try again.' }); setPayingId(null); }
+    const tab = openPaymentTab();
+    try {
+      const url = await api.startPayment(booking.id);
+      sendToPayment(tab, url);
+      if (tab) { setPaying({ bookingId: booking.id, url }); setPayingId(null); }
+    }
+    catch (reason) { tab?.close(); setPaymentNotice({ tone: 'warn', text: reason instanceof Error ? reason.message : 'The payment page did not open. Please try again.' }); setPayingId(null); }
   };
   const confirmCancellation = async (reason: string) => {
     if (!cancelBooking || cancelLock.current) return;
@@ -104,6 +124,7 @@ function BookingsPage({ setView, onSelectBooking, onMessage, paymentReturn, user
   };
   const pickTrip = (next: Trip) => { setTrip(next); setPage(1); };
 
+  if (paying) return <PaymentWaiting bookingId={paying.bookingId} url={paying.url} />;
   return <div id="user-dashboard-view" className="mx-auto max-w-5xl space-y-5 pb-10">
     <div className="flex flex-wrap items-end justify-between gap-3">
       <h1 className="text-3xl font-extrabold tracking-tight text-slate-950">Bookings &amp; trips</h1>
@@ -130,15 +151,18 @@ function BookingsPage({ setView, onSelectBooking, onMessage, paymentReturn, user
         : bookings.map((booking) => trip === 'upcoming'
           ? <UpcomingCard key={booking.id} booking={booking} today={today} paying={payingId === booking.id}
               canCancel={today < booking.startDate} onView={() => onSelectBooking(booking)} onMessage={() => onMessage(booking)} onPay={() => void completePayment(booking)}
-              onCancel={() => { setCancelError(''); setCancelBooking(booking); }} onChange={() => setChangeBooking(booking)}
+              onCancel={() => { setCancelError(''); setCancelBooking(booking); }} onChange={() => setChangeBooking(booking)} onEdit={() => setEditBooking(booking)} onHelp={() => setHelpBooking(booking)}
               onAnswer={async (decision) => {
                 try { await api.answerChangeProposal(booking.id, decision); toast(decision === 'accept' ? 'Change accepted. Your booking has been updated.' : 'Change declined. Your booking stays as it was.'); setReload((value) => value + 1); }
                 catch (reason) { toast(reason instanceof Error ? reason.message : 'That could not be saved. Please try again.', 'error'); }
               }} />
-          : <CompactCard key={booking.id} booking={booking} onView={() => onSelectBooking(booking)} onReview={() => setReviewBooking(booking)} />)}
+          : <CompactCard key={booking.id} booking={booking} onView={() => onSelectBooking(booking)} onReview={() => setReviewBooking(booking)} onDispute={() => void disputeNoShow(booking)} onHelp={() => setHelpBooking(booking)} />)}
       {!loading && !error && pagination && pagination.pages > 1 && <nav aria-label="Booking pages" className="flex flex-wrap items-center justify-between gap-3 pt-2"><p className="text-xs text-slate-500">Page {page} of {pagination.pages}</p><div className="flex gap-2"><button type="button" disabled={page <= 1} onClick={() => setPage((value) => value - 1)} className={secondaryButton}><ChevronLeft className="size-4" />Previous</button><button type="button" disabled={page >= pagination.pages} onClick={() => setPage((value) => value + 1)} className={secondaryButton}>Next<ChevronRight className="size-4" /></button></div></nav>}
     </section>
+    {reasonDialog}
     {reviewBooking && <ReviewDialog booking={reviewBooking} onClose={() => setReviewBooking(null)} onSaved={(review) => { setBookings((items) => items.map((item) => item.id === reviewBooking.id ? { ...item, review, reviewableUntil: undefined } : item)); setReviewBooking(null); }} />}
+    {helpBooking && <BookingSupportDialog booking={helpBooking} onClose={() => setHelpBooking(null)} />}
+    {editBooking && <EditBookingDialog booking={editBooking} onClose={() => setEditBooking(null)} onSaved={(updated) => { setBookings((items) => items.map((item) => item.id === updated.id ? { ...item, ...updated } : item)); setEditBooking(null); toast('Your details were updated.'); }} />}
     {changeBooking && <ChangeBookingDialog booking={changeBooking} onClose={() => setChangeBooking(null)} onSent={(updated) => { setBookings((items) => items.map((item) => item.id === updated.id ? updated : item)); setChangeBooking(null); }} />}
     {cancelBooking && <CancelReservationDialog booking={cancelBooking} busy={cancelBusy} error={cancelError} onClose={() => setCancelBooking(null)} onConfirm={confirmCancellation} />}
   </div>;
@@ -149,9 +173,9 @@ const partySummary = (booking: Booking) => booking.tour
   ? `${booking.guests || 1} traveller(s) · ${booking.tour.days} day(s)`
   : `${booking.duration ?? 1} ${booking.rental ? 'day' : 'night'}(s) · ${booking.rooms || 1} ${booking.rental ? 'car' : 'room'}(s) · ${booking.guests || booking.adults || 1} ${booking.rental ? 'passenger' : 'guest'}(s)`;
 
-function UpcomingCard({ booking, today, canCancel, paying, onView, onMessage, onPay, onCancel, onChange, onAnswer }: {
+function UpcomingCard({ booking, today, canCancel, paying, onView, onMessage, onPay, onCancel, onChange, onEdit, onHelp, onAnswer }: {
   onAnswer: (decision: 'accept' | 'decline') => Promise<void>;
-  booking: Booking; today: string; canCancel: boolean; paying: boolean; onView: () => void; onMessage: () => void; onPay: () => void; onCancel: () => void; onChange: () => void;
+  booking: Booking; today: string; canCancel: boolean; paying: boolean; onView: () => void; onMessage: () => void; onPay: () => void; onCancel: () => void; onChange: () => void; onEdit: () => void; onHelp: () => void;
 }) {
   const unpaid = awaitingPayment(booking);
   const days = daysUntil(today, booking.startDate);
@@ -202,15 +226,22 @@ function UpcomingCard({ booking, today, canCancel, paying, onView, onMessage, on
         {unpaid && <button type="button" disabled={paying} onClick={onPay} className={primaryButton}>{paying && <LoaderCircle className="size-4 animate-spin" />}Complete payment</button>}
         <button type="button" onClick={onView} className={unpaid ? secondaryButton : primaryButton}>View voucher</button>
         <button type="button" onClick={onMessage} className={secondaryButton}><MessageSquare className="size-4" aria-hidden="true" />Message partner</button>
+        {today <= booking.startDate && !booking.checkedInAt && <button type="button" onClick={onEdit} className={secondaryButton}>Edit details</button>}
         {canCancel && !unpaid && <button type="button" onClick={onChange} className={secondaryButton}>Request a change</button>}
+        <button type="button" onClick={onHelp} className={secondaryButton}>Get help</button>
         {canCancel && <button type="button" onClick={onCancel} className="min-h-11 rounded-lg px-3 text-sm font-semibold text-rose-700 hover:bg-rose-50">Cancel booking</button>}
       </div>
     </div>
   </article>;
 }
 
-function CompactCard({ booking, onView, onReview }: { booking: Booking; onView: () => void; onReview: () => void }) {
-  const note = booking.status === 'cancelled'
+function CompactCard({ booking, onView, onReview, onDispute, onHelp }: { booking: Booking; onView: () => void; onReview: () => void; onDispute: () => void; onHelp: () => void }) {
+  const canDispute = booking.status === 'no_show' && booking.noShow && !booking.noShow.dispute && Date.now() < Date.parse(booking.noShow.disputeUntil);
+  const dispute = booking.noShow?.dispute;
+  const note = dispute
+    ? <span className="font-semibold text-amber-900">{dispute.status === 'open' ? 'You disputed this no-show. GBBookings is looking into it.' : `Dispute decided: ${dispute.decisionNote}`}</span>
+    : canDispute ? <span className="font-semibold text-amber-900">Marked as a no-show by the partner. You can dispute this until {formatDateForDisplay(booking.noShow!.disputeUntil)}.</span>
+    : booking.status === 'cancelled'
     ? (booking.refund ? <span className="font-semibold text-[#00552E]">Refund {money(booking.refund.amount)} ({booking.refund.percent}%) · {booking.refund.amount === 0 ? 'none due' : booking.refunds?.every((refund) => refund.status === 'sent') ? 'sent' : 'on its way'}</span> : <span>Nothing was charged</span>)
     : booking.review ? <span className="flex items-center gap-1"><Star className="size-3.5 fill-amber-400 text-amber-400" />You rated it {booking.review.overall}/5</span>
     : booking.reviewableUntil ? <span>Review open until {formatDateForDisplay(booking.reviewableUntil)}</span>
@@ -225,7 +256,9 @@ function CompactCard({ booking, onView, onReview }: { booking: Booking; onView: 
       </div>
     </div>
     <div className="flex flex-wrap gap-2">
+      {canDispute && <button type="button" onClick={onDispute} className={primaryButton}>I was there</button>}
       {booking.reviewableUntil && <button type="button" onClick={onReview} className={primaryButton}><Star className="size-4" />Write a review</button>}
+      <button type="button" onClick={onHelp} className={secondaryButton}>Get help</button>
       <button type="button" onClick={onView} className={secondaryButton}>View<ChevronRight className="size-4" /></button>
     </div>
   </article>;
@@ -238,6 +271,7 @@ function ProfilePage({ userEmail, userName, setView, onSelectListing }: UserDash
   const [vendor, setVendor] = useState<VendorProfile | null>(null);
   const [counts, setCounts] = useState<{ trips: number; upcoming: number } | null>(null);
   const [savedCount, setSavedCount] = useState<number | null>(null);
+  const [changingEmail, setChangingEmail] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -307,7 +341,11 @@ function ProfilePage({ userEmail, userName, setView, onSelectListing }: UserDash
             onSave={async (value) => setUser(await api.updateProfile({ phone: value }))} />
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 py-4">
             <div><p className="text-sm font-bold text-slate-900">Email</p><p className="text-[15px] text-slate-600">{user.email}</p></div>
-            {user.emailVerified ? <span className="text-sm font-bold text-[#00552E]">Verified</span> : <span className="text-sm font-semibold text-amber-800">Not verified · see below</span>}
+            <div className="flex items-center gap-3">
+              {user.emailVerified ? <span className="text-sm font-bold text-[#00552E]">Verified</span> : <span className="text-sm font-semibold text-amber-800">Not verified · see below</span>}
+              <button type="button" onClick={() => setChangingEmail(true)} className="min-h-10 text-sm font-semibold text-[#006F3C] underline">Change</button>
+            </div>
+            {changingEmail && <ChangeEmailDialog currentEmail={user.email} onClose={() => setChangingEmail(false)} />}
           </div>
         </> : <LoadingCards />}
       </section>

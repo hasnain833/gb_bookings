@@ -81,6 +81,7 @@ function listingView(listing: any) {
     coordinates: latLng(listing.coordinates),
     stayInfo: listing.stayInfo,
     cancellationPolicy: listing.cancellationPolicy ?? DEFAULT_CANCELLATION_POLICY,
+    instantBook: Boolean(listing.instantBook),
     fees: plainValue(listing.fees) ?? [],
     status: listing.status,
     rejectionReason: listing.rejectionReason,
@@ -224,6 +225,10 @@ function roomView(room: any) {
     basePrice: room.basePriceMinor / 100,
     ...(room.weekendPriceMinor != null ? { weekendPrice: room.weekendPriceMinor / 100 } : {}),
     seasons: (room.seasons ?? []).map((season: any) => ({ name: season.name, from: season.from, to: season.to, price: season.priceMinor / 100 })),
+    ...(room.minNights ? { minNights: room.minNights } : {}),
+    ...(room.maxNights ? { maxNights: room.maxNights } : {}),
+    ...(room.noArrivalDays?.length ? { noArrivalDays: [...room.noArrivalDays] } : {}),
+    ...(room.deals ? { deals: plainValue(room.deals) } : {}),
     amenities: room.amenities ?? [],
     photos: publicPhotos(room.photos),
     status: room.status,
@@ -371,6 +376,7 @@ const listingContent = (listing: any) => ({
     breakfast: plainValue(listing.hotelSpecs.breakfast),
     parking: plainValue(listing.hotelSpecs.parking),
     licenceNumber: listing.hotelSpecs.licenceNumber,
+    stars: listing.hotelSpecs.stars,
   },
   address: plainValue(listing.address),
   homestaySpecs:
@@ -540,7 +546,9 @@ export async function updateHotelListing(
       "Listings cannot be edited while under review.",
     );
   assertPropertyType(listing.type, input.hotelSpecs?.hotelType, listing.hotelSpecs?.hotelType);
-  const { price, imageIds, photos, departures, ...edits } = input;
+  const { price, imageIds, photos, departures, instantBook, ...edits } = input;
+  // How bookings are answered is an operating choice, like departures: it applies at once.
+  if (instantBook !== undefined) listing.instantBook = instantBook;
   // Each listing type keeps its own spec block.
   if (listing.type === "car" || listing.type === "tour") delete edits.hotelSpecs;
   if (listing.type !== "tour") delete edits.tourSpecs;
@@ -683,7 +691,7 @@ async function syncListingPrice(listing: any) {
 }
 
 // Price, inventory and pausing are day-to-day operations and apply at once; on a live listing, what guests read waits for review.
-const LIVE_ROOM_FIELDS = ["basePrice", "weekendPrice", "seasons", "totalRooms", "status"];
+const LIVE_ROOM_FIELDS = ["basePrice", "weekendPrice", "seasons", "totalRooms", "status", "minNights", "maxNights", "noArrivalDays", "deals"];
 
 /** Weekend and season prices in minor units; like the base price they apply at once, without review. */
 function priceRulesMinor(input: { weekendPrice?: number | null; seasons?: Array<{ name: string; from: string; to: string; price: number }> }) {
@@ -841,7 +849,7 @@ function dateRange(from: string, to: string) {
   );
 }
 
-async function ownedRoom(userId: string, listingId: string, roomId: string) {
+export async function ownedRoom(userId: string, listingId: string, roomId: string) {
   const { listing } = await ownedListing(userId, listingId);
   const room = await HotelRoomTypeModel.findOne({
     publicId: roomId,
@@ -867,7 +875,7 @@ export async function getRoomCalendar(
     roomTypeId: room._id,
     date: { $in: dates },
   })
-    .select("date booked closed")
+    .select("date booked closed synced")
     .lean()) as any[];
   const byDate = new Map(counters.map((counter) => [counter.date, counter]));
   return {
@@ -876,11 +884,13 @@ export async function getRoomCalendar(
     days: dates.map((date) => {
       const booked = byDate.get(date)?.booked ?? 0;
       const closed = byDate.get(date)?.closed ?? 0;
+      const synced = byDate.get(date)?.synced ?? 0;
       return {
         date,
         booked,
         closed,
-        available: Math.max(0, room.totalRooms - booked - closed),
+        synced,
+        available: Math.max(0, room.totalRooms - booked - closed - synced),
       };
     }),
   };
@@ -922,7 +932,7 @@ export async function setRoomClosures(
         {
           roomTypeId: room._id,
           date,
-          booked: { $lte: room.totalRooms - input.closed },
+          $expr: { $lte: [{ $add: ["$booked", { $ifNull: ["$synced", 0] }, input.closed] }, room.totalRooms] },
         },
         { $set: { closed: input.closed } },
         { session },

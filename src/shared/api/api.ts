@@ -1,3 +1,4 @@
+import type { StayDeals } from '../utils/roomPricing';
 import type { PropertyAddress, PropertyExtras, RoomLayout } from '../utils/rooms';
 import type {
   Booking,
@@ -105,6 +106,26 @@ async function request<T>(path: string, init: RequestInit = {}, allowRefresh = t
 
     return payload as T;
   } finally { activeRequests.delete(controller); }
+}
+
+const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+const MAX_PHOTO_SIDE = 2400;
+
+/** Phone photos are often over the upload limit, so large ones are resized here rather than refused. */
+async function shrinkPhoto(file: File) {
+  if (file.size <= MAX_UPLOAD_BYTES) return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, MAX_PHOTO_SIDE / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+    return blob ? new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' }) : file;
+  } catch {
+    return file;
+  }
 }
 
 function unwrapCollection<T>(payload: T[] | { data: T[] }): T[] {
@@ -261,6 +282,7 @@ export interface VendorListing {
   homestaySpecs?: HomestaySpecs;
   carSpecs?: CarSpecs;
   tourSpecs?: TourSpecs;
+  instantBook?: boolean;
   /** Fixed-departure tours: bookable start dates. */
   departures?: string[];
   coordinates?: LatLng;
@@ -287,6 +309,10 @@ export interface VendorRoom extends RoomLayout {
   weekendPrice?: number | null;
   /** Date ranges (YYYY-MM-DD, inclusive) with their own price; a season beats the weekend price. */
   seasons?: RoomSeason[];
+  minNights?: number | null;
+  maxNights?: number | null;
+  noArrivalDays?: number[];
+  deals?: StayDeals;
   amenities: string[];
   photos: ListingPhoto[];
   status: 'active' | 'paused' | 'archived';
@@ -304,6 +330,8 @@ export interface PlatformSettings {
 
 /** A guest↔partner thread about one listing. `side` is which side the viewer is on. */
 export interface Conversation {
+  /** You reported this chat and GBBookings has not closed the report yet. */
+  reported?: boolean;
   id: string;
   side: 'guest' | 'partner';
   listing: { publicId: string; title: string; image?: string; type?: string };
@@ -319,6 +347,14 @@ export interface ConversationThread {
   messages: ChatMessage[];
   bookings: Array<{ reference: string; checkIn: string; checkOut: string; status: string }>;
 }
+export interface SupportCase { id: string; status: 'open' | 'resolved'; messages: Array<{ from: 'guest' | 'admin'; body: string; at: string }>; updatedAt: string }
+export type AdminSupportCase = SupportCase & { booking: (Booking & { vendorName?: string }) | null };
+export interface ChatReport {
+  id: string; listingTitle?: string; partnerName?: string; guestName?: string;
+  report: { status: 'open' | 'reviewed'; by: 'guest' | 'partner'; reason: string; at: string; note?: string; reviewedAt?: string };
+}
+export type ChatReportThread = ChatReport & { messages: Array<{ sender: 'guest' | 'partner'; body: string; at: string; contactsHidden?: boolean }> };
+
 export interface SentMessage { conversation: Conversation; message: ChatMessage }
 
 export interface RoomSeason { name: string; from: string; to: string; price: number }
@@ -328,11 +364,21 @@ export type VendorRoomInput =Omit<VendorRoom, 'id' | 'status' | 'photos' | 'pend
 export interface RoomCalendar {
   roomId: string;
   totalRooms: number;
-  days: Array<{ date: string; booked: number; closed: number; available: number }>;
+  days: Array<{ date: string; booked: number; closed: number; synced: number; available: number }>;
 }
 
+export interface CalendarSync {
+  exportPath: string;
+  feeds: Array<{ id: string; name: string; url: string; lastSyncAt?: string; lastError?: string; nights: number }>;
+  conflicts: string[];
+  syncedAt?: string;
+}
+
+export type AdminBooking = Booking & { vendorName?: string; platformFee?: number };
+export type AdminBookingFilters = { q?: string; status?: string; paymentStatus?: string; type?: string; dispute?: string; from?: string; to?: string };
+
 /** Server-side listing filters; dates/guests only return listings with a free room that fits. */
-export interface ListingFilters {
+export interface ListingFilters { freeCancellation?: 'true'; minStars?: number;
   location?: string;
   minPrice?: number;
   maxPrice?: number;
@@ -366,6 +412,10 @@ export interface RoomAvailability extends RoomLayout {
   photos: ListingPhoto[];
   available: number;
   bookable: boolean;
+  /** Why the partner's stay rules don't allow these dates. */
+  stayRule?: string;
+  /** The partner's automatic discount already in these prices. */
+  dealPercent?: number;
   nightlyRate: number;
   roomTotal: number;
   /** Car rentals: driver, out-of-city and one-way charges. */
@@ -393,6 +443,8 @@ export interface ListingAvailability {
   /** Whether checkout can offer Pay now (online payment is set up). */
   onlinePayment?: boolean;
   cancellationPolicy?: string;
+  /** Pay on arrival is confirmed at once, with no request to answer. */
+  instantBook?: boolean;
   mealsTotal: number;
   /** The promo code applied to the quote. */
   coupon?: { code: string; label: string };
@@ -414,8 +466,10 @@ export interface CreateBookingInput {
   /** Paid homestay meals; included ones are not sent. */
   meals?: MealType[];
   couponCode?: string;
+  arrivalTime?: string;
+  childAges?: number[];
   /** Car rentals; then checkOut is the return date, adults are passengers and rooms are cars. */
-  rental?: { driver: boolean; pickupPlace: string; pickupTime: string; dropoffPlace?: string; outsideBaseCity: boolean; oneWay: boolean; licenceNumber?: string };
+  rental?: { driver: boolean; pickupPlace: string; pickupTime: string; dropoffPlace?: string; outsideBaseCity: boolean; oneWay: boolean; licenceNumber?: string; driverAge?: number; extras?: string[] };
   /** Pay now (online) or Pay on arrival. */
   paymentMethod: 'online' | 'pay_at_hotel';
   expectedTotalMinor?: number;
@@ -473,6 +527,8 @@ export interface AdminUser {
 }
 
 export type UserStatusAction = 'activate' | 'suspend' | 'archive' | 'verify_email';
+
+const calendarSyncPath = (listingId: string, roomId: string) => `/api/v1/vendor/listings/${encodeURIComponent(listingId)}/rooms/${encodeURIComponent(roomId)}/calendar-sync`;
 
 function queryString(params: Record<string, string | number | undefined>) {
   const query = new URLSearchParams();
@@ -607,7 +663,9 @@ export const api = {
     return request<{ data: VendorProfile }>('/api/v1/vendors/me/submit', { method: 'POST' });
   },
 
-  uploadMedia(kind: 'images' | 'documents', file: File) {
+  async uploadMedia(kind: 'images' | 'documents', original: File) {
+    const file = kind === 'images' ? await shrinkPhoto(original) : original;
+    if (file.size > MAX_UPLOAD_BYTES) throw new ApiError(`Files must be no larger than ${MAX_UPLOAD_BYTES / 1024 / 1024} MB.`, 413);
     const body = new FormData();
     body.append('file', file);
     return request<{ data: MediaAsset }>(`/api/v1/media/${kind}`, { method: 'POST', body });
@@ -647,7 +705,7 @@ export const api = {
     return request<{ data: VendorListing }>('/api/v1/vendor/listings', { method: 'POST', body: JSON.stringify(input) });
   },
 
-  updateHotelListing(listingId: string, input: Partial<Pick<VendorListing, 'title' | 'location' | 'description' | 'hotelSpecs'>> & { address?: PropertyAddress; homestaySpecs?: Omit<HomestaySpecsInput, 'stayType'>; carSpecs?: CarSpecsInput; tourSpecs?: TourSpecsInput; departures?: string[]; coordinates?: LatLng; stayInfo?: ListingStayInfoInput; imageIds?: string[]; photos?: PhotoInput[]; cancellationPolicy?: string; fees?: NonNullable<VendorListing['fees']> }) {
+  updateHotelListing(listingId: string, input: Partial<Pick<VendorListing, 'title' | 'location' | 'description' | 'hotelSpecs'>> & { address?: PropertyAddress; homestaySpecs?: Omit<HomestaySpecsInput, 'stayType'>; carSpecs?: CarSpecsInput; tourSpecs?: TourSpecsInput; departures?: string[]; coordinates?: LatLng; stayInfo?: ListingStayInfoInput; imageIds?: string[]; photos?: PhotoInput[]; cancellationPolicy?: string; instantBook?: boolean; fees?: NonNullable<VendorListing['fees']> }) {
     return request<{ data: VendorListing }>(`/api/v1/vendor/listings/${encodeURIComponent(listingId)}`, {
       method: 'PATCH', body: JSON.stringify(input),
     }).then((result) => result.data);
@@ -671,6 +729,30 @@ export const api = {
 
   getRoomCalendar(listingId: string, roomId: string, from: string, to: string) {
     return request<{ data: RoomCalendar }>(`/api/v1/vendor/listings/${encodeURIComponent(listingId)}/rooms/${encodeURIComponent(roomId)}/calendar${queryString({ from, to })}`).then((result) => result.data);
+  },
+
+  getCalendarSync(listingId: string, roomId: string) {
+    return request<{ data: CalendarSync }>(`${calendarSyncPath(listingId, roomId)}`).then((result) => result.data);
+  },
+
+  addCalendarFeed(listingId: string, roomId: string, input: { name: string; url: string }) {
+    return request<{ data: CalendarSync }>(`${calendarSyncPath(listingId, roomId)}/feeds`, { method: 'POST', body: JSON.stringify(input) }).then((result) => result.data);
+  },
+
+  removeCalendarFeed(listingId: string, roomId: string, feedId: string) {
+    return request<{ data: CalendarSync }>(`${calendarSyncPath(listingId, roomId)}/feeds/${encodeURIComponent(feedId)}`, { method: 'DELETE' }).then((result) => result.data);
+  },
+
+  syncCalendarsNow(listingId: string, roomId: string) {
+    return request<{ data: CalendarSync }>(`${calendarSyncPath(listingId, roomId)}/run`, { method: 'POST' }).then((result) => result.data);
+  },
+
+  resetCalendarLink(listingId: string, roomId: string) {
+    return request<{ data: CalendarSync }>(`${calendarSyncPath(listingId, roomId)}/link`, { method: 'POST' }).then((result) => result.data);
+  },
+
+  disputeNoShow(bookingId: string, note: string) {
+    return request<{ data: Booking }>(`/api/v1/bookings/${encodeURIComponent(bookingId)}/no-show-dispute`, { method: 'POST', body: JSON.stringify({ note }) }).then((result) => result.data);
   },
 
   setRoomClosures(listingId: string, roomId: string, input: { from: string; to: string; closed: number }) {
@@ -714,6 +796,14 @@ export const api = {
 
   logout() {
     return request<void>('/api/v1/auth/logout', { method: 'POST' });
+  },
+
+  requestEmailChange(newEmail: string) {
+    return request<{ currentChallengeId: string; newChallengeId: string }>('/api/v1/auth/change-email/code', { method: 'POST', body: JSON.stringify({ newEmail }) });
+  },
+
+  confirmEmailChange(input: { currentChallengeId: string; currentCode: string; newChallengeId: string; newCode: string }) {
+    return request<void>('/api/v1/auth/change-email', { method: 'POST', body: JSON.stringify(input) });
   },
 
   requestPasswordChangeCode() {
@@ -774,6 +864,18 @@ export const api = {
   sendMessage(conversationId: string, body: string) {
     return request<{ data: SentMessage }>(`/api/v1/messages/conversations/${encodeURIComponent(conversationId)}/messages`, { method: 'POST', body: JSON.stringify({ body }) }).then((result) => result.data);
   },
+  reportConversation(conversationId: string, reason: string) {
+    return request<{ data: Conversation }>(`/api/v1/messages/conversations/${encodeURIComponent(conversationId)}/report`, { method: 'POST', body: JSON.stringify({ reason }) }).then((result) => result.data);
+  },
+
+  getBookingSupport(bookingId: string) {
+    return request<{ data: SupportCase | null }>(`/api/v1/bookings/${encodeURIComponent(bookingId)}/support`).then((result) => result.data);
+  },
+
+  writeBookingSupport(bookingId: string, body: string) {
+    return request<{ data: SupportCase }>(`/api/v1/bookings/${encodeURIComponent(bookingId)}/support`, { method: 'POST', body: JSON.stringify({ body }) }).then((result) => result.data);
+  },
+
   unreadMessages() {
     return request<{ data: { guest: number; partner: number; isPartner: boolean } }>('/api/v1/messages/unread').then((result) => result.data);
   },
@@ -787,7 +889,7 @@ export const api = {
     return request<AuthResponse>('/api/v1/auth/me', { method: 'PATCH', body: JSON.stringify(input) }).then((result) => result.user);
   },
 
-  getListingAvailability(listingId: string, params: { checkIn: string; checkOut: string; adults: number; children?: number; rooms?: number; meals?: MealType[]; coupon?: string; driver?: boolean; outsideBaseCity?: boolean; oneWay?: boolean }) {
+  getListingAvailability(listingId: string, params: { carExtras?: string[]; checkIn: string; checkOut: string; adults: number; children?: number; rooms?: number; meals?: MealType[]; coupon?: string; driver?: boolean; outsideBaseCity?: boolean; oneWay?: boolean }) {
     const query = new URLSearchParams({
       checkIn: params.checkIn,
       checkOut: params.checkOut,
@@ -795,6 +897,7 @@ export const api = {
       children: String(params.children ?? 0),
       rooms: String(params.rooms ?? 1),
       ...(params.meals?.length ? { meals: params.meals.join(',') } : {}),
+      ...(params.carExtras?.length ? { carExtras: params.carExtras.join(',') } : {}),
       ...(params.coupon ? { coupon: params.coupon } : {}),
       ...(params.driver !== undefined ? { driver: String(params.driver) } : {}),
       ...(params.outsideBaseCity ? { outsideBaseCity: 'true' } : {}),
@@ -867,6 +970,10 @@ export const api = {
     return request<{ data: PayoutStatement }>(`/api/v1/vendor/finance/payouts/${encodeURIComponent(payoutId)}`).then((result) => result.data);
   },
 
+  updateBookingDetails(bookingId: string, input: { name: string; phone: string; specialRequests: string; arrivalTime?: string | null }) {
+    return request<{ data: Booking }>(`/api/v1/bookings/${encodeURIComponent(bookingId)}/details`, { method: 'POST', body: JSON.stringify(input) }).then((result) => result.data);
+  },
+
   answerChangeProposal(bookingId: string, decision: 'accept' | 'decline') {
     return request<{ data: Booking }>(`/api/v1/bookings/${encodeURIComponent(bookingId)}/change-proposal`, { method: 'POST', body: JSON.stringify({ decision }) }).then((result) => result.data);
   },
@@ -927,6 +1034,27 @@ export const api = {
   },
 
   admin: {
+    supportCounts() {
+      return request<{ data: { cases: number; reports: number } }>('/api/v1/admin/support/counts').then((result) => result.data);
+    },
+    listSupportCases(status: 'open' | 'resolved', page = 1) {
+      return request<Paginated<AdminSupportCase>>(`/api/v1/admin/support/cases${queryString({ status, page })}`);
+    },
+    replySupportCase(id: string, body: string, resolve: boolean) {
+      return request<{ data: SupportCase }>(`/api/v1/admin/support/cases/${encodeURIComponent(id)}/reply`, { method: 'POST', body: JSON.stringify({ body, resolve }) }).then((result) => result.data);
+    },
+    setSupportCaseStatus(id: string, status: 'open' | 'resolved') {
+      return request<{ data: SupportCase }>(`/api/v1/admin/support/cases/${encodeURIComponent(id)}/status`, { method: 'POST', body: JSON.stringify({ status }) }).then((result) => result.data);
+    },
+    listChatReports(status: 'open' | 'reviewed') {
+      return request<{ data: ChatReport[] }>(`/api/v1/admin/support/chat-reports${queryString({ status })}`).then((result) => result.data);
+    },
+    getChatReport(id: string) {
+      return request<{ data: ChatReportThread }>(`/api/v1/admin/support/chat-reports/${encodeURIComponent(id)}`).then((result) => result.data);
+    },
+    reviewChatReport(id: string, note: string) {
+      return request<{ data: ChatReport }>(`/api/v1/admin/support/chat-reports/${encodeURIComponent(id)}/review`, { method: 'POST', body: JSON.stringify({ note }) }).then((result) => result.data);
+    },
     listReviews(params: { status?: 'reported' | 'hidden' | 'all'; page?: number; limit?: number } = {}) {
       return request<Paginated<Review>>(`/api/v1/admin/reviews${queryString(params)}`);
     },
@@ -977,6 +1105,17 @@ export const api = {
       return request<{ data: AdminUser }>(`/api/v1/admin/users/${encodeURIComponent(userId)}/status`, {
         method: 'POST', body: JSON.stringify({ action, reason }),
       }).then((result) => result.data);
+    },
+    listBookings(params: AdminBookingFilters & { page?: number }) {
+      return request<Paginated<AdminBooking> & { openDisputes: number }>(`/api/v1/admin/bookings${queryString(params)}`);
+    },
+    /** A plain link would fail on an expired sign-in, so a normal request refreshes it first. */
+    async exportBookings(params: AdminBookingFilters) {
+      await api.getCurrentUser();
+      window.location.assign(`/api/v1/admin/bookings/export${queryString(params)}`);
+    },
+    decideNoShowDispute(bookingId: string, decision: 'no_show_stands' | 'guest_stayed' | 'refund_guest', note: string) {
+      return request<{ data: Booking }>(`/api/v1/admin/bookings/${encodeURIComponent(bookingId)}/no-show-dispute`, { method: 'POST', body: JSON.stringify({ decision, note }) }).then((result) => result.data);
     },
     findBooking(reference: string) {
       return request<{ data: AdminBookingLookup }>(`/api/v1/admin/bookings/lookup${queryString({ reference })}`).then((result) => result.data);

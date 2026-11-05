@@ -5,10 +5,17 @@ import { AppError } from '../../shared/app-error.js';
 import { asyncHandler } from '../../shared/async-handler.js';
 import { sessionMetadata } from '../auth/auth.service.js';
 import { createReviewHandlers } from '../reviews/review.routes.js';
+import { getBookingCase, writeToSupport } from '../support/support.service.js';
+import { supportBodySchema } from '../support/support.routes.js';
 import { listingIdParamsSchema } from '../listings/listing.schemas.js';
 import {
   adminCancelBookingSchema,
+  adminBookingFiltersSchema,
+  adminBookingsQuerySchema,
+  decideNoShowSchema,
+  disputeNoShowSchema,
   availabilityQuerySchema,
+  bookingDetailsSchema,
   bookingReferenceQuerySchema,
   bookingIdParamsSchema,
   cancelBookingSchema,
@@ -25,12 +32,17 @@ import {
 import {
   actOnVendorBooking,
   adminCancelBooking,
+  decideNoShowDispute,
+  disputeNoShow,
+  exportAdminBookings,
+  listAdminBookings,
   findBookingForAdmin,
   cancelOwnBooking,
   createBooking,
   getBooking,
   getListingAvailability,
   getUnavailableDates,
+  updateBookingDetails,
   handleSafepayWebhook,
   listCustomerBookings,
   startOnlinePayment,
@@ -102,8 +114,24 @@ bookingRouter.post('/:id/cancel', validate('params', bookingIdParamsSchema), val
   response.json({ data: await cancelOwnBooking(actor(request), request.params.id, request.body.reason, sessionMetadata(request)) });
 }));
 
+bookingRouter.get('/:id/support', validate('params', bookingIdParamsSchema), asyncHandler(async (request, response) => {
+  response.json({ data: await getBookingCase(request.auth!.userId, request.params.id) });
+}));
+
+bookingRouter.post('/:id/support', validate('params', bookingIdParamsSchema), validate('body', supportBodySchema), asyncHandler(async (request, response) => {
+  response.json({ data: await writeToSupport(request.auth!.userId, request.params.id, request.body.body, sessionMetadata(request)) });
+}));
+
+bookingRouter.post('/:id/details', validate('params', bookingIdParamsSchema), validate('body', bookingDetailsSchema), asyncHandler(async (request, response) => {
+  response.json({ data: await updateBookingDetails(actor(request), request.params.id, request.body, sessionMetadata(request)) });
+}));
+
 bookingRouter.post('/:id/change-request', validate('params', bookingIdParamsSchema), validate('body', changeRequestSchema), asyncHandler(async (request, response) => {
   response.json({ data: await requestBookingChange(actor(request), request.params.id, request.body, sessionMetadata(request)) });
+}));
+
+bookingRouter.post('/:id/no-show-dispute', validate('params', bookingIdParamsSchema), validate('body', disputeNoShowSchema), asyncHandler(async (request, response) => {
+  response.json({ data: await disputeNoShow(actor(request), request.params.id, request.body.note, sessionMetadata(request)) });
 }));
 
 bookingRouter.post('/:id/change-proposal', validate('params', bookingIdParamsSchema), validate('body', proposalAnswerSchema), asyncHandler(async (request, response) => {
@@ -138,6 +166,19 @@ vendorBookingRouter.post('/:id/change-request', authorizePermission('booking:man
 
 export const adminBookingRouter = Router();
 adminBookingRouter.use(authenticate, authorizePermission('booking:manage'));
+
+adminBookingRouter.get('/', validate('query', adminBookingsQuerySchema), asyncHandler(async (request, response) => {
+  response.json(await listAdminBookings(request.query as any));
+}));
+
+adminBookingRouter.get('/export', validate('query', adminBookingFiltersSchema), asyncHandler(async (request, response) => {
+  const csv = await exportAdminBookings(actor(request), request.query as any, sessionMetadata(request));
+  response.set({ 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="gbbookings-bookings-${new Date().toISOString().slice(0, 10)}.csv"`, 'Cache-Control': 'no-store' }).send(csv);
+}));
+
+adminBookingRouter.post('/:id/no-show-dispute', validate('params', bookingIdParamsSchema), validate('body', decideNoShowSchema), asyncHandler(async (request, response) => {
+  response.json({ data: await decideNoShowDispute(actor(request), request.params.id, request.body, sessionMetadata(request)) });
+}));
 
 adminBookingRouter.get('/lookup', validate('query', bookingReferenceQuerySchema), asyncHandler(async (request, response) => {
   response.json({ data: await findBookingForAdmin((request.query as { reference: string }).reference) });
